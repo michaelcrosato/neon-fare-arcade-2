@@ -3,8 +3,10 @@ import { build } from "esbuild";
 import path from "node:path";
 import type { CameraMode } from "../../game/model";
 import type {} from "./fixtures/elevated-scene";
+import { SCENE_TEST_TIMEOUT, WEBGPU_TEST_OPTIONS } from "./browser-options";
 
-test.use({ channel: "chromium", launchOptions: { args: ["--enable-unsafe-webgpu"] } });
+test.use(WEBGPU_TEST_OPTIONS);
+test.setTimeout(SCENE_TEST_TIMEOUT);
 let bundle: string;
 test.beforeAll(async () => {
   const result = await build({ entryPoints: [path.resolve("tests/browser/fixtures/elevated-scene.ts")],

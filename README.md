@@ -73,6 +73,10 @@ Canyon. Sundown Highway leads south from the city; detour west onto Cinder Cone
 Loop for the rock arch, then follow Canyon Rim Road and Painted Canyon Scenic
 Drive for the mesas and river bridges.
 
+To preview a production build, run `npm run build` and then
+`npm run start -- --host 127.0.0.1 --port 4173`. This uses Vite's Cloudflare
+preview so the built Worker and static assets run together on Windows and Linux.
+
 ## Quality commands
 
 - `npm run test:file -- tests/game/player.test.ts`: run one focused test file
@@ -89,6 +93,8 @@ Drive for the mesas and river bridges.
 
 `check:fast` is the normal feedback loop. `check` remains authoritative before
 publishing. CI runs the same complete gate on pull requests and pushes to main.
+Linux renderer checks use SwiftShader Vulkan under Xvfb, with screenshots and
+traces retained for seven days. WebGPU errors still fail the suite.
 
 ## Architecture rules
 

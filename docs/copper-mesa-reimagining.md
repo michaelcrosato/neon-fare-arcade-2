@@ -120,11 +120,20 @@ The Copper tests cover:
 `copper-world.spec.ts` captures ten desktop and three mobile locations, each
 in Fixed, Chase High, Chase Low, and Cab using WebGPU and Canvas: 104 scene
 captures plus four GPS captures. All 22 tests in the complete browser suite
-passed, covering the city, elevated beltway, Northstar, menus, simulation
+passed against both the development server and the built Worker preview,
+covering the city, elevated beltway, Northstar, menus, simulation
 controls, walking, focus, persistence recovery, diagnostics, and trusted mobile
 input. Representative desktop/mobile frames were visually reviewed in both
 renderers. A manual Free Run check opened **S · MESA**, selected a destination,
 and committed the resulting road route from the city.
+
+Publication also restored the executable bits on the Linux build helpers.
+`npm start` previews the built Cloudflare Worker and its assets through Vite;
+this avoids the native Windows path separators in vinext's static-file cache.
+Linux CI uses an explicit SwiftShader Vulkan adapter under Xvfb so WebGPU is
+actually rendered and captured. All shader, device-loss, and frame-error
+assertions remain active. Regional scene cases receive a larger time allowance
+on the CPU renderer; desktop Windows continues to exercise the native GPU.
 
 ## Final budget measurements
 
