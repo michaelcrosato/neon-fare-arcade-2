@@ -1,0 +1,165 @@
+.game-stage {
+  --fare-stack-left: 92px;
+  --fare-stack-bottom: 22px;
+  --fare-stack-width: 280px;
+  --fare-stack-height: 94px;
+  --fare-stack-center-x: 232px;
+  --fare-stack-half-height: 47px;
+  --stage-top-half: 36px;
+  position: relative;
+  width: 100%;
+  height: calc(100dvh - 72px);
+  min-height: 520px;
+  overflow: hidden;
+  background: #3aa9f0;
+}
+
+.game-stage::before,
+.game-stage::after {
+  content: "";
+  position: absolute;
+  z-index: 5;
+  inset: 0;
+  pointer-events: none;
+}
+
+.game-stage::before {
+  background:
+    radial-gradient(circle at 50% 48%, transparent 42%, rgba(9, 9, 9, 0.16) 77%, rgba(9, 9, 9, 0.38) 112%),
+    linear-gradient(105deg, rgba(22, 223, 228, 0.05), transparent 32%, rgba(240, 68, 46, 0.07));
+  mix-blend-mode: multiply;
+}
+
+.game-stage::after {
+  opacity: 0;
+  background: radial-gradient(circle, rgba(255, 250, 240, 0.72), rgba(240, 68, 46, 0.46) 45%, transparent 74%);
+}
+
+.game-stage.is-crashed::after {
+  animation: impact-flash 320ms ease-out both;
+}
+
+.game-canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  visibility: hidden;
+}
+
+.game-canvas.is-active {
+  visibility: visible;
+}
+
+.game-stage.is-boosting .game-canvas.is-active {
+  filter: saturate(1.35) contrast(1.14) brightness(1.04);
+  animation: boost-rattle 60ms steps(2, end) infinite;
+}
+
+.speed-fx {
+  position: absolute;
+  z-index: 6;
+  inset: 0;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease;
+}
+
+.is-boosting .speed-fx { opacity: 1; }
+.is-drifting:not(.is-boosting) .speed-fx {
+  opacity: calc(0.18 + var(--drift-intensity, 0) * 0.52);
+}
+
+.is-drifting:not(.is-boosting) .game-canvas.is-active {
+  filter: saturate(calc(1 + var(--drift-intensity, 0) * 0.22));
+}
+
+.speed-fx::before,
+.speed-fx::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+}
+
+.is-boosting .speed-fx::before {
+  background: radial-gradient(circle at 50% 54%, transparent 0 23%, rgb(22 223 228 / 13%) 35%, rgb(255 212 0 / 12%) 51%, transparent 72%);
+  animation: boost-tunnel 280ms linear infinite;
+}
+
+.is-boosting .speed-fx::after {
+  inset: 9px;
+  border: 5px solid rgb(255 212 0 / 38%);
+  box-shadow: inset 0 0 70px rgb(240 68 46 / 28%), 0 0 30px rgb(22 223 228 / 20%);
+  animation: boost-frame 180ms steps(2, end) infinite;
+}
+
+.speed-fx i {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 7px;
+  height: 68vh;
+  background: linear-gradient(transparent, rgb(255 250 240 / 96%) 36%, rgb(255 250 240 / 20%));
+  clip-path: polygon(38% 0, 62% 0, 100% 100%, 0 100%);
+  filter: drop-shadow(0 0 5px rgb(22 223 228 / 80%));
+  transform-origin: 50% 0;
+  animation: speed-rush 230ms linear infinite;
+}
+
+.speed-fx i:nth-child(3n) { background: linear-gradient(transparent, rgb(22 223 228 / 96%) 36%, transparent); }
+.speed-fx i:nth-child(4n) { background: linear-gradient(transparent, rgb(255 212 0 / 96%) 36%, transparent); }
+.speed-fx i:nth-child(5n) { background: linear-gradient(transparent, rgb(240 68 46 / 90%) 36%, transparent); }
+.speed-fx i:nth-child(1) { transform: rotate(10deg) translateY(12vh); animation-delay: -20ms; }
+.speed-fx i:nth-child(2) { transform: rotate(32deg) translateY(17vh); animation-delay: -170ms; }
+.speed-fx i:nth-child(3) { transform: rotate(55deg) translateY(10vh); animation-delay: -80ms; }
+.speed-fx i:nth-child(4) { transform: rotate(78deg) translateY(19vh); animation-delay: -210ms; }
+.speed-fx i:nth-child(5) { transform: rotate(101deg) translateY(13vh); animation-delay: -130ms; }
+.speed-fx i:nth-child(6) { transform: rotate(124deg) translateY(18vh); animation-delay: -40ms; }
+.speed-fx i:nth-child(7) { transform: rotate(147deg) translateY(11vh); animation-delay: -190ms; }
+.speed-fx i:nth-child(8) { transform: rotate(169deg) translateY(16vh); animation-delay: -95ms; }
+.speed-fx i:nth-child(9) { transform: rotate(191deg) translateY(12vh); animation-delay: -220ms; }
+.speed-fx i:nth-child(10) { transform: rotate(214deg) translateY(18vh); animation-delay: -65ms; }
+.speed-fx i:nth-child(11) { transform: rotate(237deg) translateY(10vh); animation-delay: -145ms; }
+.speed-fx i:nth-child(12) { transform: rotate(260deg) translateY(17vh); animation-delay: -15ms; }
+.speed-fx i:nth-child(13) { transform: rotate(283deg) translateY(13vh); animation-delay: -180ms; }
+.speed-fx i:nth-child(14) { transform: rotate(306deg) translateY(19vh); animation-delay: -110ms; }
+.speed-fx i:nth-child(15) { transform: rotate(329deg) translateY(11vh); animation-delay: -205ms; }
+.speed-fx i:nth-child(16) { transform: rotate(351deg) translateY(16vh); animation-delay: -55ms; }
+
+.speed-fx__hit {
+  position: absolute;
+  top: 20%;
+  left: 50%;
+  display: none;
+  padding: 5px 18px 7px;
+  color: var(--yellow);
+  background: var(--ink);
+  border: 5px solid var(--paper);
+  box-shadow: 9px 9px 0 var(--red);
+  font: italic 900 clamp(2.4rem, 7vw, 6.4rem)/0.82 Impact, sans-serif;
+  letter-spacing: 0.03em;
+  text-shadow: 4px 4px 0 var(--red);
+}
+
+.is-boosting .speed-fx__hit {
+  display: block;
+  animation: boost-hit 460ms cubic-bezier(0.12, 0.9, 0.2, 1) both;
+}
+
+.speed-fx__slash {
+  position: absolute;
+  top: -12%;
+  display: none;
+  width: 18%;
+  height: 128%;
+  background: linear-gradient(90deg, transparent, rgb(255 212 0 / 32%), transparent);
+  transform: skewX(-16deg);
+}
+
+.speed-fx__slash--left { left: 6%; }
+.speed-fx__slash--right { right: 6%; }
+.is-boosting .speed-fx__slash { display: block; animation: boost-slash 310ms linear infinite; }

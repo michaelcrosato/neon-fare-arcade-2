@@ -1,0 +1,126 @@
+import { CAMERA_OPTIONS } from "@/game/config";
+import { drivingTraitPackage } from "@/game/driving-traits";
+import { rankFor } from "@/game/math";
+import type {
+  CameraMode,
+  DrivingModel,
+  FareImpact,
+  Hud,
+  Mode,
+  RunKind,
+} from "@/game/model";
+import { FareCardBrowser } from "./fare-card-deck";
+
+type GameSessionOverlaysProps = Readonly<{
+  mode: Mode;
+  hud: Hud;
+  cameraMode: CameraMode;
+  careerBank: number;
+  fareCards: readonly FareImpact[];
+  diagnosticsActive: boolean;
+  diagnosticsNotice: string;
+  onSetCameraMode: (mode: CameraMode) => void;
+  onSetMode: (mode: Mode) => void;
+  onOpenHow: () => void;
+  onFinishRun: () => void;
+  onToggleFareDispatch: () => void;
+  onRequestStartRun: (runKind: RunKind, drivingModel?: DrivingModel) => void;
+  onOpenScores: () => void;
+  onCopyDiagnostics: () => void;
+}>;
+
+export function GameSessionOverlays({
+  mode,
+  hud,
+  cameraMode,
+  careerBank,
+  fareCards,
+  diagnosticsActive,
+  diagnosticsNotice,
+  onSetCameraMode,
+  onSetMode,
+  onOpenHow,
+  onFinishRun,
+  onToggleFareDispatch,
+  onRequestStartRun,
+  onOpenScores,
+  onCopyDiagnostics,
+}: GameSessionOverlaysProps) {
+  return (
+    <>
+      {mode === "countdown" && (
+        <div className="countdown" aria-live="assertive">
+          <small>{hud.drivingModel === "simulation" ? "SIMULATION FREE RUN" : hud.runKind === "free-run" ? "FREE RUN · NO TIMER" : "DRIVER PACKAGE"}</small>
+          <b>{hud.drivingModel === "simulation" ? "CROWN CAB ’96" : drivingTraitPackage(hud.drivingTraitId).name}</b>
+          <span>{Math.ceil(Math.max(0, hud.countdown)) || "GO!"}</span>
+        </div>
+      )}
+
+      {mode === "paused" && (
+        <div className="pause-overlay" role="region" aria-label="Game paused">
+          <div className="pause-layout">
+            <div className="pause-paper">
+              <p>{hud.runKind === "free-run" ? "NO RUSH. NO CLOCK." : "THE CITY CAN WAIT…"}</p>
+              <h2>{hud.runKind === "free-run" ? "FREE RUN PAUSED!" : "PAUSED!"}</h2>
+              {hud.playerMode === "driving" && <div className="pause-camera-options" role="group" aria-label="Camera view">
+                <small>CAMERA VIEW</small>
+                <div>
+                  {CAMERA_OPTIONS.map((option) => (
+                    <button key={option.id} onClick={() => onSetCameraMode(option.id)} aria-pressed={cameraMode === option.id}>{option.shortLabel}</button>
+                  ))}
+                </div>
+              </div>}
+              {hud.runKind === "free-run" && <>
+                <button
+                  className={`duty-toggle ${hud.fareDispatchEnabled ? "is-on-duty" : "is-off-duty"}`}
+                  type="button"
+                  role="switch"
+                  aria-label="Passenger fare dispatch"
+                  aria-checked={hud.fareDispatchEnabled}
+                  aria-disabled={hud.passengerOnboard || hud.courierActive}
+                  aria-describedby={hud.passengerOnboard || hud.courierActive ? "pause-duty-lock-note" : undefined}
+                  onClick={onToggleFareDispatch}
+                >
+                  <small>PASSENGER DISPATCH · {hud.fareDispatchEnabled ? "ON DUTY" : "OFF DUTY"}</small>
+                  <strong>{hud.fareDispatchEnabled ? "GO OFF DUTY · ROAM FREELY" : "GO ON DUTY · FIND FARES"}</strong>
+                </button>
+                {(hud.passengerOnboard || hud.courierActive) && <small id="pause-duty-lock-note" className="duty-lock-note">FINISH CURRENT JOB TO CHANGE DUTY STATUS</small>}
+              </>}
+              <button className="primary-small" onClick={() => onSetMode("playing")}>{hud.runKind === "free-run" ? "RESUME FREE RUN" : "RESUME RUN"}</button>
+              <button onClick={onOpenHow}>HOW TO PLAY</button>
+              {diagnosticsActive && <button onClick={onCopyDiagnostics}>COPY DIAGNOSTICS</button>}
+              {diagnosticsNotice && <small className="duty-lock-note" role="status" aria-live="polite">{diagnosticsNotice}</small>}
+              {hud.runKind === "free-run"
+                ? <button onClick={onFinishRun}>END FREE RUN · BANK FARE</button>
+                : <button onClick={() => onSetMode("menu")}>QUIT TO MENU</button>}
+            </div>
+            <FareCardBrowser cards={fareCards} />
+          </div>
+        </div>
+      )}
+
+      {mode === "ended" && (
+        <div className="end-overlay">
+          <div className={`rank-burst ${hud.runKind === "free-run" ? "is-free-run" : ""}`}><small>{hud.runKind === "free-run" ? "MODE" : "RANK"}</small><strong>{hud.runKind === "free-run" ? "FREE" : rankFor(hud.score)}</strong></div>
+          <div className="end-paper">
+            <p>{hud.runKind === "free-run" ? "CAB PARKED · FARE BANKED" : "SHIFT'S OVER"}</p>
+            <h2>{hud.runKind === "free-run" ? "FREE RUN SAVED!" : "RUN COMPLETE!"}</h2>
+            <div className="end-total"><span>TOTAL SCORE</span><strong>{hud.score.toLocaleString()}</strong></div>
+            <div className="end-grid">
+              <span><small>FARE</small><b>${hud.fare}</b></span>
+              <span><small>DELIVERIES</small><b>{hud.deliveries}</b></span>
+              <span><small>PACKAGES</small><b>{hud.courierDeliveries}</b></span>
+              <span><small>BEST MULTI</small><b>{hud.bestMultiplier.toFixed(1)}×</b></span>
+              <span><small>CRASHES</small><b>{hud.collisions}</b></span>
+            </div>
+            <p className="banked-callout">FARE BANKED +${hud.fare} · CAREER TOTAL ${careerBank} · NEON LOFTS IS NEAR THE STARTING BLOCK</p>
+            <button className="primary-small" onClick={() => onRequestStartRun(hud.runKind, hud.drivingModel)}>{hud.drivingModel === "simulation" ? "SIMULATION AGAIN" : hud.runKind === "free-run" ? "FREE RUN AGAIN" : "RUN IT BACK"}</button>
+            {hud.runKind === "timed"
+              ? <button onClick={onOpenScores}>VIEW RUN LOG</button>
+              : <button onClick={() => onSetMode("menu")}>RETURN TO MENU</button>}
+          </div>
+        </div>
+      )}
+    </>
+  );
+}

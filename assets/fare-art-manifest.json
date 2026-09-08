@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "atlas": { "width": 1536, "height": 1024, "columns": 3, "rows": 2, "cellWidth": 512, "cellHeight": 512 },
+  "provenance": { "status": "existing-project-assets", "sourcePrompt": null, "license": "not-recorded" },
+  "passengerSheets": [
+    { "file": "/fare-passengers.webp", "cells": [0, 5], "riderIds": ["rico", "juno", "max", "nova", "bea", "dex"], "region": "shared", "sha256": "178185af36fa62196589c05c536ec70c95af80a731741ea1c521190f416d97e1" },
+    { "file": "/fare-passengers-2.webp", "cells": [6, 11], "riderIds": ["kai", "lux", "mira", "zed", "ivy", "omar"], "region": "shared", "sha256": "398ba673cfcc2e939bdc5a518b4461ad00d4516a43a4e2636fd6c18371157094" },
+    { "file": "/fare-passengers-3.webp", "cells": [12, 17], "riderIds": ["sage", "teo", "nyx", "rox", "lev", "ada"], "region": "shared", "sha256": "f6298e549330021b08135565e4dfafddcd1ad8f04325a496584585781dae7386" },
+    { "file": "/fare-passengers-4.webp", "cells": [18, 23], "riderIds": ["finn", "sora", "pax", "rae", "ezra", "uma"], "region": "shared", "sha256": "a0ac91add82c2f344cd586f8d7661233d38b0808c9a75cd3216dbbbd17f5ef65" },
+    { "file": "/fare-passengers-5.webp", "cells": [24, 29], "riderIds": ["axl", "lena", "marco", "tess", "bo", "nia"], "region": "shared", "sha256": "3d80240991b6059aa0363221d7aa6025d6e33fc618fc056764e1be63e613527b" },
+    { "file": "/fare-passengers-6.webp", "cells": [30, 35], "riderIds": ["cal", "zara", "ren", "eli", "maya", "sol"], "region": "shared", "sha256": "fb1488af7be13da013717480d71c2f8f8097dd98889d00631bc58a08bbb4761e" },
+    { "file": "/fare-passengers-7.webp", "cells": [36, 41], "riderIds": ["vera", "jet", "noa", "arlo", "kiyo", "luz"], "region": "shared", "sha256": "209d87730b14baae92df6973359a59552319cd0c06edba73b7f7d7149d64246f" },
+    { "file": "/fare-passengers-8.webp", "cells": [42, 47], "riderIds": ["tariq", "wren", "dani", "indy", "yara", "bram"], "region": "shared", "sha256": "2d750cb76aaef7e0a74a8ec0ddcbf4fc14bab7f2aa5f37f2b56c87c8e12d6832" },
+    { "file": "/fare-passengers-9.webp", "cells": [48, 53], "riderIds": ["ellis", "mae", "otis", "josie", "hank", "priya"], "region": "cedar-vale", "sha256": "a84723eeef8eb104cefb5b0301104e47c0b57fb89aee5496e4a800dc8b1a309e" },
+    { "file": "/fare-passengers-10.webp", "cells": [54, 59], "riderIds": ["gus", "nell", "dean", "rosa", "milo", "june"], "region": "cedar-vale", "sha256": "6f26bbae33a42298f0cb2b93f6e6f10de2735c4f8b0b6dc24e5a16cd2c32fca3" },
+    { "file": "/fare-passengers-11.webp", "cells": [60, 65], "riderIds": ["clark", "esme", "benji", "alma", "rowan", "faye"], "region": "cedar-vale", "sha256": "da8bcec72350a713bc03ff6486d76c4a1dc69f62fe091df33eb3267dc45f5eed" },
+    { "file": "/fare-passengers-12.webp", "cells": [66, 71], "riderIds": ["samir", "greta", "leo", "mabel", "amir", "dot"], "region": "cedar-vale", "sha256": "8f3dde67b791d9ad9a469698c38a6b71b3b618d623a10847f58f6903adbe6ae3" },
+    { "file": "/fare-passengers-13.webp", "cells": [72, 77], "riderIds": ["astrid", "beckett", "cass", "dev", "eira", "forrest"], "region": "northstar-range", "sha256": "041f5fba5e31176f0742463ad338978afc27a6e7327ce9159a40d7ca6487523d" },
+    { "file": "/fare-passengers-14.webp", "cells": [78, 83], "riderIds": ["gabi", "hugo", "imani", "jae", "koda", "lark"], "region": "northstar-range", "sha256": "fe6e5e2b3e8c041d5080886d07b2e588446f850d277116559835b9ebbcaa2792" },
+    { "file": "/fare-passengers-15.webp", "cells": [84, 89], "riderIds": ["maren", "niko", "opal", "quinn", "ravi", "skye"], "region": "northstar-range", "sha256": "40508269a6a3aaf4ce386b911d012e46fe8c44d07482ec7a00550a3f1b3c1a50" },
+    { "file": "/fare-passengers-16.webp", "cells": [90, 95], "riderIds": ["nash", "tobin", "val", "wyatt", "yuki", "zola"], "region": "northstar-range", "sha256": "fe8e0d05fcbc4103d7fcb195241e3d97a0f16912a333fb5a71dba7960fed7f93" },
+    { "file": "/fare-passengers-17.webp", "cells": [96, 101], "riderIds": ["carmen", "diego", "estrella", "felix", "gloria", "hector"], "region": "copper-mesa", "sha256": "82eced637fec39b88d8585140bc50ac2eeea10810cd9a4b897c4ada3d8f6f4d8" },
+    { "file": "/fare-passengers-18.webp", "cells": [102, 107], "riderIds": ["inez", "joel", "karina", "lola", "mateo", "nora"], "region": "copper-mesa", "sha256": "f15fa8723fd9195b1f41f3c830e6faaeda5c92e2f58c8f2014477b20db23a344" },
+    { "file": "/fare-passengers-19.webp", "cells": [108, 113], "riderIds": ["paloma", "rafa", "selena", "tomas", "vivi", "xavi"], "region": "copper-mesa", "sha256": "4eca2f11bab8de0300bad560b3d6279c935ff8933ba41600c0d20da3a90c90fa" },
+    { "file": "/fare-passengers-20.webp", "cells": [114, 119], "riderIds": ["brooke", "cole", "emmy", "jules", "morgan", "wade"], "region": "copper-mesa", "sha256": "bf722271550bb8da2800bbf8b5354b98d08a22db43bcb66099eb0ab85b6001cc" },
+    { "file": "/fare-passengers-21.webp", "cells": [120, 125], "riderIds": ["anouk", "odette", "celeste", "delia", "emmett", "frankie"], "region": "cypress-reach", "sha256": "7dfb3110abcbf1297d9c6c53b76339f8d54832e2a03922755cdf36ba681ec691" },
+    { "file": "/fare-passengers-22.webp", "cells": [126, 131], "riderIds": ["hazel", "isaiah", "jonah", "kit", "lucille", "minh"], "region": "cypress-reach", "sha256": "5fdb0981363df3f51452ea761d68fa69b81ced4fa7634bab9431e5636dc8ccac" },
+    { "file": "/fare-passengers-23.webp", "cells": [132, 137], "riderIds": ["odessa", "pearl", "reed", "simone", "thalia", "ulysses"], "region": "cypress-reach", "sha256": "30d7a8a42cb11085294374a3e248c419d78ce5ccfb629606188ac1e022d1b35c" },
+    { "file": "/fare-passengers-24.webp", "cells": [138, 143], "riderIds": ["vincent", "willow", "yvette", "zeke", "basil", "mercy"], "region": "cypress-reach", "sha256": "6e2613ee3ad4aa41e43f4db00d965c3b1fbdf8f5f764b6996fdea4b6280bc752" },
+    {"file": "/fare-passengers-25.webp", "cells": [144, 149], "riderIds": ["sienna", "dante", "leila", "miles", "keiko", "eden"], "region": "solana-coast", "sha256": "19840f2d01f1582ccc869e8774f5fe53c9840a6d4d4ed9fdbeec370d84b4207a", "provenanceFile": "assets/solana-coast-art-prompts.json" },
+    {"file": "/fare-passengers-26.webp", "cells": [150, 155], "riderIds": ["malik", "serena", "adrian", "kira", "owen", "nadine"], "region": "solana-coast", "sha256": "e2304607cae3abf636c762db739498dfc48c7a743c1f8696847840c32b2f69fa", "provenanceFile": "assets/solana-coast-art-prompts.json" },
+    {"file": "/fare-passengers-27.webp", "cells": [156, 161], "riderIds": ["remy", "cleo", "ronan", "asha", "luca", "marisol"], "region": "solana-coast", "sha256": "502a66e93c93c1f0a3a6a7a0b82264e82506548d8b5297e206302929ff53c417", "provenanceFile": "assets/solana-coast-art-prompts.json" },
+    {"file": "/fare-passengers-28.webp", "cells": [162, 167], "riderIds": ["theo", "elena", "callum", "veda", "juniper", "hollis"], "region": "solana-coast", "sha256": "0c49f66527ba5951b9edad068097967e825761e8e7832e12f3998c18d3df57c7", "provenanceFile": "assets/solana-coast-art-prompts.json" }
+  ],
+  "destinationSheets": [
+    { "file": "/fare-destinations.webp", "cells": [0, 5], "sha256": "39a8bf72a35c951338251daaf8b4b2f24810158718806bc361d811e4a56a0cfb" },
+    { "file": "/fare-destinations-2.webp", "cells": [6, 11], "sha256": "d448bc7c22b439ea23c16aa5a3cc4487cc3cac5641f50c1688097ded289e6ac7" },
+    { "file": "/fare-destinations-3.webp", "cells": [12, 17], "sha256": "bd1515ad05ee5852ab3500c9c13f20573e4a3a0796cec177681a1544a7ad7d87" },
+    { "file": "/fare-destinations-4.webp", "cells": [18, 23], "sha256": "f7a4b07194e4e922a04feaa2db20a9b4bfd5b91df009d0ea7fd6261872afb2a9" },
+    {"file": "/fare-destinations-5.webp", "cells": [24, 29], "sha256": "437f56d49a3d40beac638c6215bcd5920f3fa226b1eb82c3429ceb2acc0296de", "provenanceFile": "assets/solana-coast-art-prompts.json" }
+  ]
+}

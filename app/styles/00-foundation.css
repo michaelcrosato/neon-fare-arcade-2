@@ -1,0 +1,166 @@
+:root {
+  --ink: #090909;
+  --paper: #f4ebdd;
+  --yellow: #ffd400;
+  --yellow-hot: #ffbd00;
+  --red: #f0442e;
+  --red-dark: #9d1c13;
+  --cyan: #16dfe4;
+  --orange: #ef6a1f;
+  --pink: #ed3f96;
+  --white: #fffaf0;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  min-height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: var(--ink);
+}
+
+body {
+  color: var(--ink);
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+button,
+kbd {
+  font: inherit;
+}
+
+button {
+  border: 0;
+}
+
+button:focus-visible {
+  outline: 4px solid var(--cyan);
+  outline-offset: 4px;
+}
+
+:where(
+  h1,
+  h2,
+  h3,
+  .brand > span,
+  .topbar nav button,
+  .tagline,
+  .start-button,
+  .primary-small,
+  .control-strip,
+  .hud-top strong,
+  .objective-banner > span,
+  .objective-banner strong,
+  .speedometer > strong,
+  .combo-sticker strong,
+  .comic-callout,
+  .pause-paper button,
+  .end-paper > button,
+  .rank-burst strong,
+  .end-total strong,
+  .end-grid b,
+  .touch-controls button,
+  .instruction-grid article > b,
+  .comic-modal .primary-small,
+  .run-rank,
+  .run-list li em,
+  .empty-runs
+) {
+  font-family: "Barlow Condensed", Impact, sans-serif !important;
+  font-weight: 900 !important;
+}
+
+.arcade-shell {
+  position: relative;
+  width: 100vw;
+  min-height: 100dvh;
+  overflow: hidden;
+  background: var(--ink);
+  isolation: isolate;
+}
+
+.topbar {
+  position: relative;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 72px;
+  padding: 0 38px;
+  background: var(--ink);
+  color: var(--white);
+  border-bottom: 4px solid var(--yellow);
+  box-shadow: 0 5px 0 rgba(0, 0, 0, 0.65);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 0;
+  color: var(--yellow);
+  background: transparent;
+  cursor: pointer;
+  transform: skewX(-7deg);
+}
+
+.brand > span {
+  font-family: Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif;
+  font-size: clamp(1.65rem, 2.2vw, 2.25rem);
+  font-style: italic;
+  font-weight: 900;
+  letter-spacing: -0.035em;
+  line-height: 1;
+  text-shadow: 3px 3px 0 #30180b;
+}
+
+.brand i {
+  display: grid;
+  grid-template-columns: repeat(3, 8px);
+  grid-template-rows: repeat(2, 8px);
+  transform: skewX(7deg);
+}
+
+.brand i b:nth-child(odd) {
+  background: var(--yellow);
+}
+
+.brand i b:nth-child(even) {
+  background: var(--white);
+}
+
+.topbar nav {
+  display: flex;
+  align-items: center;
+  gap: clamp(15px, 2.4vw, 34px);
+}
+
+.topbar nav button {
+  padding: 8px 2px;
+  color: var(--white);
+  background: transparent;
+  font-family: Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif;
+  font-size: 1rem;
+  font-style: italic;
+  font-weight: 900;
+  letter-spacing: 0.055em;
+  cursor: pointer;
+  transition: color 140ms ease, transform 140ms ease;
+}
+
+.topbar nav button:hover {
+  color: var(--yellow);
+  transform: translateY(-2px) skewX(-4deg);
+}
+
+.topbar nav > span {
+  width: 2px;
+  height: 29px;
+  background: var(--yellow);
+  transform: skewX(-9deg);
+}

@@ -1,0 +1,302 @@
+# Regional world plan
+
+Neon Fare's world is a planned 3 × 3 collection of equal-size regional cells.
+The original procedural city owns the center cell. Each compass cell can carry
+its own theme, name, lot deck, landmarks, public realm, and ambient scenes while
+sharing one continuous driving, walking, fare, traffic, streaming, and GPS
+simulation.
+
+## Coordinate contract
+
+Each region is 11 × 11 chunks. A chunk is 4 × 4 blocks; a block is 36 world
+units square. One regional cell is therefore 44 × 44 blocks and 1,584 world
+units wide.
+
+| Slot | Chunk X | Chunk Y | Status |
+| --- | ---: | ---: | --- |
+| NW | -16…-6 | -16…-6 | reserved |
+| N | -5…5 | -16…-6 | active: Northstar Range |
+| NE | 6…16 | -16…-6 | reserved |
+| W | -16…-6 | -5…5 | active: Solana Coast |
+| C | -5…5 | -5…5 | active: Neon City |
+| E | 6…16 | -5…5 | active: Cedar Vale |
+| SW | -16…-6 | 6…16 | reserved |
+| S | -5…5 | 6…16 | active: Copper Mesa |
+| SE | 6…16 | 6…16 | active: Cypress Reach |
+
+The active footprint is 726 chunks: 121 per region.
+
+The center/E seam is the road at `x = 792`, and the N/center seam is the road at
+`y = -792`. Cedar Vale's outer road is `x = 2376`; Northstar Range's outer road
+is `y = -2376`. The center/S seam is `y = 792`, and Copper Mesa's outer road is
+`y = 2376`. Cypress Reach fills the southeast cell, sharing `y = 792` with
+Cedar Vale and `x = 792` with Copper Mesa; its outer roads are `x = 2376` and
+`y = 2376`. Solana Coast shares `x = -792` with Neon City; its outer west
+edge at `x = -2376` is ocean, with no perimeter road. Northeast, southwest,
+and northwest remain inactive even when
+they lie inside the world's rectangular hull. Region
+ownership is stored in `game/regions.ts`; systems must use the active-region
+registry rather than infer playable space from one symmetric radius or hull.
+
+## Runtime ownership
+
+- `game/regions.ts` owns slots, active regions, exact containment, bounds,
+  nearest-region presentation, movement projection, and local place names.
+- `game/residential.ts` owns Cedar Vale's neighborhood deck and authored anchor
+  registry.
+- `game/mountain.ts` owns Northstar Range's area deck, rural building families,
+  terrain dressing, portals, and authored anchor registry.
+- `game/desert.ts` owns Copper Mesa's area deck, desert vegetation and apparent
+  terrain, adobe/roadside families, portals, and authored anchor registry.
+- `game/wetland.ts` owns Cypress Reach's town, bayou, coast, water, stilt-house,
+  dock, portal, and authored-anchor vocabulary.
+- `game/coastal.ts` owns Solana Coast's shore, architecture, palms, pier,
+  portals, anchors, and pedestrian policy; `coastal-layout.ts` holds the shared
+  shoreline and coastal-drive coordinates for world and GPS.
+- `game/road-topology.ts` owns enabled local-grid segments. Northstar, Copper
+  Mesa, Cypress Reach, and Solana Coast use compact town lattices and sparse rural spines
+  instead of citywide grids.
+- `game/world.ts` dispatches from region to district/theme and generates chunks.
+- Roads, navigation, movement, fare placement, pedestrians, traffic, streaming,
+  and the full GPS use axis-specific or active-region-aware bounds.
+- The Regional GPS opens focused on the taxi's current region, supports
+  wheel/button zoom, drag and keyboard panning, route/taxi/region focus, and a
+  stable all-nine overview derived from the compass slot registry. Reserved
+  cells appear as future regions only in overview; local roads and labels enter
+  at deterministic detail levels so another activation cannot make the map
+  unreadable.
+- The original `CHUNK_MIN`, `CHUNK_MAX`, `WORLD_ROAD_LIMIT`, and `WORLD_LIMIT`
+  constants are center-region compatibility aliases only.
+
+An inactive compass cell must remain non-driveable even if two active cells
+form an L around it. `containingRegionForPosition`, `isPlayablePoint`,
+`isActiveBlock`, and `isActiveChunk` are the authority for simulation. A
+nearest-region lookup is presentation-only.
+
+## Cedar Vale: East region
+
+Cedar Vale is a warm, low-rise residential borough with mature trees, pitched
+roofs, porches, amber lamps, hedges, mailboxes, family cars, garden paths, and a
+sage/cream/terracotta/porch-blue palette. It deliberately avoids repeating the
+center city's towers, factories, warehouses, marina lots, and flat neon roofline.
+
+Its five neighborhoods are:
+
+- **Willow Gate** — the denser city transition: rowhomes, duplexes, garden
+  apartments, corner flats, and the gateway station.
+- **Pine Ridge** — bungalows, ranch houses, evergreens, trails, and Bellwether
+  School.
+- **Maple Commons** — the civic heart: common green, library, recreation, local
+  shops, and denser family housing.
+- **Brookside** — cottage courts, pools, recreation lots, rain gardens, and
+  pocket parks.
+- **Garden End** — deeper yards, community gardens, the water tower, and the
+  Moonbeam Drive-In.
+
+The authored regional anchors are Maple Commons, Bellwether School, Cedar
+Branch Library, Brookside Recreation Center, Engine House 9, Garden End Water
+Tower, Moonbeam Drive-In, and Cedar Vale Gateway Station. Multi-block anchors
+retain public streets between their tiles and expose exactly one stable portal.
+
+## Northstar Range: North region
+
+Northstar Range is a rural mountain destination built around a small tourism
+town rather than another urban grid. Its visual language uses pine forest,
+granite shelves, meadow and snow colors, cabins, A-frames, farmsteads, a sparse
+roadside-services layer, and resort architecture. Four winding authored roads—
+Northstar Highway, Pinehook Loop, Mirror Lake Road, and Silver Run Switchbacks—
+connect its thin rural street skeleton to the city seam.
+
+Its five named areas are:
+
+- **Timber Pass** — the city gateway, roadside motel, fuel, general store, and
+  scattered homes.
+- **Northstar Village** — the compact main-street core, diner, outfitter, town
+  square, and Timberline Lodge.
+- **Pinehook Woods** — cabins, campgrounds, trails, ranger services, and Old
+  Spruce Mill.
+- **Mirror Lake** — lakeside homes, forest clearings, fishing lodge, and a
+  large impassable water landmark.
+- **Silver Run** — chalet country, snowfields, lift infrastructure, resort, and
+  the Aurora Lookout.
+
+The nine authored anchors are Northstar Gate, Timber Pass Gas & General,
+Northstar Village Square, Timberline Lodge, Pinewatch Ranger Station, Old
+Spruce Mill, Mirror Lake, Silver Run Resort, and Aurora Lookout.
+
+The current engine keeps every driveable road and actor on one physical plane.
+Northstar creates apparent elevation with layered cliffs, rock shelves,
+snowcaps, tree density, lift towers, resort silhouettes, and distant
+mountain forms. True road grades are intentionally deferred until vehicle,
+traffic, collision, camera, navigation, and Canvas fallback can share one
+elevation-aware contract.
+
+## Copper Mesa: South region
+
+Copper Mesa is a Sonoran-inspired desert region with sunbaked sand, adobe cream,
+terracotta, red rock, turquoise, saguaro green, and roadside-neon accents. It
+combines a compact tourism town with ranch country, isolated homes, trading
+posts, dry washes, cactus flats, and a broad scenic badlands edge. Four authored
+roads—Sundown Highway, Copper Loop, Arroyo Road, and Painted Canyon Scenic
+Drive—connect a sparse rural skeleton to Neon City's south seam.
+
+Its five named areas are:
+
+- **Redrock Gate** — the urban transition, visitor arch, services, auto shops,
+  first adobe homes, and roadside motor courts.
+- **Copper Junction** — the historic town core, shaded plaza, diner, pottery
+  market, civic bell tower, and tourism services.
+- **Saguaro Flats** — ranches, trailers, homesteads, trailheads, cactus country,
+  and the Dustwind Airpark.
+- **Arroyo Vista** — courtyard homes, arts, resort architecture, roadside
+  commerce, and the Sunstone solar campus.
+- **Painted Canyon** — rodeo country, red-rock shelves, dry washes, sparse
+  wilderness, scenic roads, and the regional visitor center.
+
+The ten authored anchors are Sundown Gate, Roadrunner Trading Post, Copper
+Junction, Coyote Motor Court, Desert Bloom Resort, Dustwind Airpark, Ocotillo
+Arts Center, Sunstone Solar Field, Saguaro Rodeo Grounds, and Painted Canyon.
+Multi-block anchors are continuous campuses whose internal grid streets are
+removed from pavement, routing, traffic, fares, pedestrians, physics, and GPS.
+
+Copper Mesa also stays on the engine's shared physical plane. Layered mesas,
+canyon shelves, overlooks, road cuts, solar towers, signs, and the south skyline
+create apparent elevation without introducing unsafe road grades.
+
+## Cypress Reach: Southeast region
+
+Cypress Reach is a humid bayou-and-coast region built around Lantern Bay, a
+compact fishing town reached through Cedar Vale or Copper Mesa. Moss, blackwater
+teal, weathered timber, lantern amber, coral, and mint replace the neighboring
+regions' palettes. Stilt homes, shotgun houses, fishing cottages, houseboats,
+docks, reeds, cypress groves, fireflies, shrimp boats, and raised roadside
+businesses make it immediately recognizable.
+
+Its five named areas are:
+
+- **Twinwater Crossing** — the two-region gateway, scattered homes, fuel, bait,
+  and the first stretches of raised causeway.
+- **Lantern Bay** — the social core, seafood market, roadhouse, motel, marina,
+  riverboat, boardwalks, and porch-lit main street.
+- **Blackwater Basin** — deep cypress forest, reed marsh, fishing docks,
+  preserves, mudflats, and the working shipyard.
+- **Stormwall Coast** — levees, locks, coast-guard facilities, houseboat yards,
+  open water, and storm-weathered services.
+- **Cypress Reach** — quiet rural wetland between the named hubs, with isolated
+  stilt homes, fishing camps, trails, and small roadside businesses.
+
+Four authored roads—Cypress Causeway, Lantern Bay Loop, Blackwater Trace, and
+Stormwall Levee Road—join a sparse local skeleton and keep the region connected
+without recreating the city grid. Ten anchors provide distinct destinations:
+Twinwater Gate, Lantern Bay Market, Bayou Belle, Stormwall Locks, Cypress Crown
+Preserve, Gulfwatch Station, Moonwater Marina, Sunkissed Motor Lodge, Blackwater
+Shipyard, and Saint Lumina Chapel. Semantic water always has matching collision.
+The region stays on the shared flat driveable plane; raised buildings, bridges,
+levees, boats, tree canopies, and the southeast skyline provide visual depth.
+
+## Solana Coast: West region
+
+Solana Coast takes its cues from California beach towns. Golden sand and
+continuous turquoise water define its west edge. White stucco, coral, mint,
+cobalt blue, terracotta roofs, striped shop awnings, and tall palms replace the
+city's tower silhouettes. The streets remain on the shared flat driving plane;
+cliff gardens and raised terraces provide visual relief without hidden slopes.
+
+Five named areas give the coast structure:
+
+- **Pacific Strand** — a broad beach, rescue towers, volleyball courts,
+  umbrellas, a palm promenade, and a walkable pier with a 3D Ferris wheel.
+- **Solana Village** — Spanish Revival courtyard homes, Art Deco shops,
+  surfboard workshops, motor inns, and small skate parks.
+- **Citrus Heights** — glass-fronted mid-century homes, overhanging roofs,
+  open palm gardens, and terraced rock gardens around a scenic loop.
+- **Mariposa Arts** — the film studio, record shops, surf culture, and an
+  outdoor music venue.
+- **Sunset Gate** — the city transition, with the welcome arch, fuel stops,
+  roadside businesses, and low-rise homes.
+
+Pacific Coast Drive follows the beach. Sunset Boulevard links it to the city.
+Citrus Scenic Loop serves the north, and Mariposa Drive curves through the
+south. A town grid and sparse rural links use the same topology as traffic,
+fares, road physics, and GPS. Four existing traffic slots use these roads;
+the total traffic population remains 36.
+
+Ten authored destinations anchor the area: Sunset Gate, Solana Pier, Mission
+del Sol, Tidal Aquarium, Pacific Palms Club, Mariposa Pictures, Citrus House,
+Breakwater Surf Pavilion, Sunset Bowl, and Coastwatch Rescue. Multi-tile sites
+close only their internal grid streets. All sites publish one clear entrance
+and outward return position.
+
+The coast has 24 exclusive pickup customers. Their roles include surf coaches,
+film crew, artists, marine scientists, mechanics, a nurse, and local shop owners.
+Their portraits occupy cells 144–167 on four new sheets. Six destination scenes
+occupy cells 24–29 on a separate coastal sheet. Existing destination indices stay
+stable in cells 0–23. The shared 48 riders can also appear here. Fare six returns
+to Neon City, the coast's only active cardinal neighbor.
+
+Shore geometry stays world-aligned and unscaled. Ocean tiles fill the full
+36-unit block width so former street seams cannot create gaps. Semantic water
+has matching collision. The pier splits water into side bands to leave a dry,
+continuous walking route. The beach and promenade have no road lattice or
+generic curb walkers. The full GPS shows the same ocean and sand bands.
+
+## Content and budget contract
+
+Every new theme should provide:
+
+1. A region-local deterministic lot deck with its own RNG salt.
+2. At least four visually dominant tile families not reused from another theme.
+3. Several quiet tiles, several social/public tiles, and spaced authored anchors.
+4. A regional palette and recognizable skyline/roadside motif.
+5. Stable place names for HUD, fares, and the full map.
+6. Collision, pedestrian, portal, and semantic-water clearance.
+
+Hard live budgets remain independent of total geography because streaming stays
+local:
+
+- 760 boxes, 128 colliders, and 32 interactions per chunk.
+- Radius 3 / at most 49 visual chunks.
+- Radius 1 / at most 9 collision chunks.
+- 37,240 streamed boxes, 920 streamed colliders, and 720 streamed interactions.
+
+New region targets should be lower than the hard caps: approximately 700 boxes
+and 105 colliders per chunk, with no more than 12 interactions per chunk on
+average. One residence portal per lot is unnecessary; visual doors can outnumber
+interactive doors.
+
+## Expansion checklist
+
+Before activating another compass cell:
+
+1. Extend `region-types.ts` and add the active entry/slot mapping in
+   `regions.ts`; keep all nine compass identities stable.
+2. Define the cell's chunk/road bounds in `config.ts` and update the world
+   extent derived from active cells.
+3. Add a dedicated theme module for lot selection, builders, portals, anchors,
+   semantic water, and pedestrian policy. Extend the model's district/lot
+   unions exhaustively rather than growing an untyped global switch.
+4. Add its anchors, theme, campus rule, and map-label policy to the exhaustive
+   `regional-content.ts` manifest.
+5. Add sparse/local roads through `road-topology.ts` and authored corridors
+   through `road-layout.ts`; keep routing, pavement, traffic, fares,
+   pedestrians, and GPS on those shared authorities.
+6. Add its passenger pool, portrait-sheet metadata, fare placement coverage,
+   place names, renderer scene policy, and relevant CSS theme styling.
+7. Ensure the old region owns shared seam geometry and the new first row/column
+   does not double-draw it.
+8. Run deterministic chunk, stream, collision, portal, pedestrian, fare, route,
+   map, and regional-manifest sweeps across every active region.
+9. Preserve center hashes, courier portals, opening-fare behavior, sixth-fare
+   cardinal transfers, and inactive-cell containment.
+10. Verify Fixed, Chase High, Chase Low, Cab, walking, WebGPU, and Canvas at the
+    seam, regional center, landmark cluster, and far edge.
+
+The shared road graph now uses A* for regional routes. Cross-region paths honor
+the exact active-cell union and enabled street topology, so Northstar-to-Cedar
+trips descend through Neon City instead of cutting across the inactive northeast
+cell, while Cypress Reach connects only through Cedar Vale and Copper Mesa. The
+guaranteed sixth-fare transfer crosses only an active cardinal seam, ranks only
+its destination cell, and starts a new region-local six-job market after arrival.
+Future expansions must preserve those properties; any global fare fallback
+should iterate active-region ranges or a top-k index instead of sorting one giant
+rectangular candidate set.
