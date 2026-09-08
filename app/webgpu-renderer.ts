@@ -22,6 +22,9 @@ import {
   taxiGroundShadow,
 } from "@/game/render/scene";
 import { renderTargetSize } from "@/game/render/resolution";
+import {
+  MAX_STREAM_SURFACE_QUADS, SURFACE_VERTEX_BYTES, SURFACE_VERTICES_PER_QUAD, packSurfaceQuads,
+} from "@/game/render/surfaces";
 import { cabViewMatrix } from "@/game/render/cab-camera";
 import {
   lookAt,
@@ -55,16 +58,19 @@ export class WebGPURenderer implements Renderer {
   private readonly sceneFormat = "rgba16float";
   private skyPipeline: any;
   private pipeline: any;
+  private surfacePipeline: any;
   private ghostPipeline: any;
   private postPipeline: any;
   private vertexBuffer: any;
   private cityBuffer: any;
+  private surfaceBuffer: any;
   private actorBuffer: any;
   private navBuffer: any;
   private ghostBuffer: any;
   private cameraBuffer: any;
   private skyBindGroup: any;
   private bindGroup: any;
+  private surfaceBindGroup: any;
   private ghostBindGroup: any;
   private postBindGroup: any = null;
   private postSampler: any;
@@ -73,6 +79,7 @@ export class WebGPURenderer implements Renderer {
   private depthTexture: any = null;
   private depthTextureView: any = null;
   private cityCount = 0;
+  private surfaceVertexCount = 0;
   private cityKey = "";
   private destroyed = false;
   private onUncapturedError: ((event?: { error?: unknown }) => void) | null = null;
@@ -228,6 +235,7 @@ fn sunRayMask(point: vec2<f32>, thickness: f32, inner: f32, outer: f32) -> f32 {
     color = paintWorldCloud(color, azimuth, elevation, 1.08, 0.17, 0.95);
     color = paintWorldCloud(color, azimuth, elevation, -2.55, 0.25, 0.82);
 
+    if (camera.params.z > -792.0 || abs(camera.params.y) > 792.0) {
     // NORTH: separated mountain ranges, snow, pines and a radio mast.
     let northFar = wrapAngle(azimuth - (-1.5707963 - camera.params.y / 6000.0));
     let northGate = max(max(angularWindow(northFar + 0.48, 0.1, 0.18), angularWindow(northFar, 0.17, 0.25)), angularWindow(northFar - 0.48, 0.1, 0.18));
@@ -248,6 +256,7 @@ fn sunRayMask(point: vec2<f32>, thickness: f32, inner: f32, outer: f32) -> f32 {
     let mastBearing = -1.3707963 - camera.params.y / 2500.0;
     let mast = max(angularRect(azimuth, elevation, mastBearing, 0.11, vec2<f32>(0.007, 0.15), 0.003), angularRect(azimuth, elevation, mastBearing, 0.19, vec2<f32>(0.04, 0.006), 0.003));
     color = mix(color, vec3<f32>(0.28, 0.10, 0.08), mast);
+
 
     // WEST: broken downtown groups and one Art-Deco crown.
     let westFar = wrapAngle(azimuth - (3.14159265 + camera.params.z / 5200.0));
@@ -343,6 +352,7 @@ fn sunRayMask(point: vec2<f32>, thickness: f32, inner: f32, outer: f32) -> f32 {
     color = mix(color, vec3<f32>(0.93, 0.28, 0.16), lockTower);
     let reachLantern = reachDepth * ellipseMask(vec2<f32>(wrapAngle(azimuth - (reachBearing - 0.22)), elevation), vec2<f32>(0.0, 0.09), vec2<f32>(0.018, 0.024));
     color = mix(color, vec3<f32>(1.0, 0.69, 0.08), reachLantern);
+    }
   }
 
   let dotCell = floor(v.position.xy / vec2<f32>(9.0));
@@ -405,6 +415,22 @@ fn sunRayMask(point: vec2<f32>, thickness: f32, inner: f32, outer: f32) -> f32 {
   out.worldNormal = normalize(vec3<f32>(rotatedNormal, normal.z));
   return out;
 }
+struct SurfaceVertexIn {
+  @location(0) worldData: vec4<f32>,
+  @location(1) normalShade: vec4<f32>,
+  @location(2) tint: vec4<f32>,
+};
+@vertex fn vsSurface(v: SurfaceVertexIn) -> VertexOut {
+  var out: VertexOut;
+  out.position = camera.viewProj * vec4<f32>(v.worldData.xyz, 1.0);
+  out.color = v.tint;
+  out.worldPos = v.worldData.xyz;
+  out.localPos = vec3<f32>(0.0);
+  out.material = v.worldData.w;
+  out.faceShade = v.normalShade.w;
+  out.worldNormal = v.normalShade.xyz;
+  return out;
+}
 @fragment fn fsMain(v: VertexOut) -> @location(0) vec4<f32> {
   let normal = normalize(v.worldNormal);
   let sunDirection = normalize(vec3<f32>(0.64, 0.22, 0.74));
@@ -456,6 +482,17 @@ fn sunRayMask(point: vec2<f32>, thickness: f32, inner: f32, outer: f32) -> f32 {
     color = mix(color, vec3<f32>(0.1, 0.85, 0.92), wave);
   }
   let worldDistance = distance(v.worldPos.xy, camera.params.yz);
+  if (v.material > 15.5 && v.material < 16.5) {
+    let seam = smoothstep(0.035, 0.09, abs(fract(v.worldPos.z * 0.65) - 0.5));
+    color *= 0.85 + seam * 0.15;
+  }
+  if (v.material > 16.5 && v.material < 17.5) {
+    let strata = sin(v.worldPos.z * 1.8 + v.worldPos.x * 0.04 + v.worldPos.y * 0.03);
+    color *= 0.93 + strata * 0.07;
+  }
+  if (v.material > 17.5 && v.material < 18.5) {
+    color = mix(color, vec3<f32>(0.74, 0.86, 0.94), (1.0 - direct) * 0.15);
+  }
   let fog = smoothstep(camera.sky.w * 0.58, camera.sky.w * 0.94, worldDistance);
   color = mix(color, vec3<f32>(0.72, 0.88, 0.93), fog * 0.84);
   return vec4<f32>(color, 1.0);
@@ -580,6 +617,23 @@ fn bloomColor(color: vec3<f32>) -> vec3<f32> {
       primitive: { topology: "triangle-list", cullMode: "none" },
       depthStencil: { format: "depth24plus", depthWriteEnabled: true, depthCompare: "less" },
     });
+    this.surfacePipeline = device.createRenderPipeline({
+      layout: "auto",
+      vertex: {
+        module: shader, entryPoint: "vsSurface",
+        buffers: [{
+          arrayStride: SURFACE_VERTEX_BYTES,
+          attributes: [
+            { shaderLocation: 0, offset: 0, format: "float32x4" },
+            { shaderLocation: 1, offset: 16, format: "float32x4" },
+            { shaderLocation: 2, offset: 32, format: "float32x4" },
+          ],
+        }],
+      },
+      fragment: { module: shader, entryPoint: "fsMain", targets: [{ format: this.sceneFormat }] },
+      primitive: { topology: "triangle-list", cullMode: "none" },
+      depthStencil: { format: "depth24plus", depthWriteEnabled: true, depthCompare: "less" },
+    });
     this.ghostPipeline = device.createRenderPipeline({
       layout: "auto",
       vertex: { module: shader, entryPoint: "vsMain", buffers: vertexBuffers },
@@ -608,6 +662,7 @@ fn bloomColor(color: vec3<f32>) -> vec3<f32> {
     this.vertexBuffer = device.createBuffer({ size: vertices.byteLength, usage: 0x20 | 0x08 });
     device.queue.writeBuffer(this.vertexBuffer, 0, vertices);
     this.cityBuffer = device.createBuffer({ size: INSTANCE_BYTES * MAX_STREAM_BOXES, usage: 0x20 | 0x08 });
+    this.surfaceBuffer = device.createBuffer({ size: SURFACE_VERTEX_BYTES * SURFACE_VERTICES_PER_QUAD * MAX_STREAM_SURFACE_QUADS, usage: 0x20 | 0x08 });
     this.actorBuffer = device.createBuffer({ size: INSTANCE_BYTES * ACTOR_INSTANCE_CAPACITY, usage: 0x20 | 0x08 });
     this.navBuffer = device.createBuffer({ size: INSTANCE_BYTES * NAVIGATION_INSTANCE_CAPACITY, usage: 0x20 | 0x08 });
     this.ghostBuffer = device.createBuffer({ size: INSTANCE_BYTES * GHOST_INSTANCE_CAPACITY, usage: 0x20 | 0x08 });
@@ -618,6 +673,10 @@ fn bloomColor(color: vec3<f32>) -> vec3<f32> {
     });
     this.bindGroup = device.createBindGroup({
       layout: this.pipeline.getBindGroupLayout(0),
+      entries: [{ binding: 0, resource: { buffer: this.cameraBuffer } }],
+    });
+    this.surfaceBindGroup = device.createBindGroup({
+      layout: this.surfacePipeline.getBindGroupLayout(0),
       entries: [{ binding: 0, resource: { buffer: this.cameraBuffer } }],
     });
     this.ghostBindGroup = device.createBindGroup({
@@ -694,6 +753,9 @@ fn bloomColor(color: vec3<f32>) -> vec3<f32> {
       if (world.boxes.length > MAX_STREAM_BOXES) throw new Error("Streamed city exceeded GPU instance budget");
       this.device.queue.writeBuffer(this.cityBuffer, 0, packBoxes(world.boxes));
       this.cityCount = world.boxes.length;
+      const surfaces = packSurfaceQuads([...(world.landscapeSurfaces ?? []), ...(world.surfaces ?? [])]);
+      this.surfaceVertexCount = surfaces.length / (SURFACE_VERTEX_BYTES / Float32Array.BYTES_PER_ELEMENT);
+      if (surfaces.byteLength) this.device.queue.writeBuffer(this.surfaceBuffer, 0, surfaces);
       this.cityKey = world.key;
     }
     const playerMode = isInterior(game) ? "interior" : isDriving(game) ? "driving" : "walking";
@@ -722,6 +784,7 @@ fn bloomColor(color: vec3<f32>) -> vec3<f32> {
     const forwardX = Math.cos(camera.heading);
     const forwardY = Math.sin(camera.heading);
     const skyView = perspectiveSkyView(camera);
+    const drawDistance = world.landscapeSurfaces?.length ? 1_200 : PERSPECTIVE_DRAW_DISTANCE;
     let projection: Float32Array;
     let view: Float32Array;
     if (camera.mode === "fixed") {
@@ -730,19 +793,19 @@ fn bloomColor(color: vec3<f32>) -> vec3<f32> {
       // same way when switching between Fixed ISO and the chase cameras.
       projection = orthoZO(halfHeight * aspect, -halfHeight * aspect, -halfHeight, halfHeight, 0.1, 140);
       view = lookAt(
-        [camera.x + 25, camera.y + 25, 29],
-        [camera.x, camera.y, 0],
+        [camera.x + 25, camera.y + 25, 29 + camera.heightOffset],
+        [camera.x, camera.y, camera.heightOffset],
       );
     } else if (camera.mode === "cab") {
       const fov = skyView!.fovY;
-      projection = perspectiveZO(fov, aspect, 0.08, PERSPECTIVE_DRAW_DISTANCE);
+      projection = perspectiveZO(fov, aspect, 0.08, drawDistance);
       view = cabViewMatrix(game, camera);
     } else {
       const preset = chaseCameraPreset(camera.mode, camera.onFoot);
       const boomRatio = camera.boom / preset.distance;
       const eyeHeight = 1.65 + (preset.height - 1.65) * boomRatio + camera.heightOffset;
       const fov = skyView!.fovY;
-      projection = perspectiveZO(fov, aspect, 0.15, PERSPECTIVE_DRAW_DISTANCE);
+      projection = perspectiveZO(fov, aspect, 0.15, drawDistance);
       view = lookAt(
         [camera.x - forwardX * camera.boom, camera.y - forwardY * camera.boom, eyeHeight],
         [camera.x + forwardX * preset.lookAhead, camera.y + forwardY * preset.lookAhead, preset.targetZ + camera.heightOffset],
@@ -752,7 +815,7 @@ fn bloomColor(color: vec3<f32>) -> vec3<f32> {
     const uniform = new Float32Array(CAMERA_UNIFORM_FLOATS);
     uniform.set(matrix, 0);
     uniform.set([seconds, camera.x, camera.y, skyView?.fovY ?? 0], 16);
-    uniform.set([aspect, camera.heading, skyView?.pitch ?? 0, PERSPECTIVE_DRAW_DISTANCE], 20);
+    uniform.set([aspect, camera.heading, skyView?.pitch ?? 0, drawDistance], 20);
     this.device.queue.writeBuffer(this.cameraBuffer, 0, uniform);
 
     const encoder = this.device.createCommandEncoder();
@@ -778,6 +841,15 @@ fn bloomColor(color: vec3<f32>) -> vec3<f32> {
     scenePass.setVertexBuffer(0, this.vertexBuffer);
     scenePass.setVertexBuffer(1, this.cityBuffer);
     scenePass.draw(36, this.cityCount);
+    if (this.surfaceVertexCount) {
+      scenePass.setPipeline(this.surfacePipeline);
+      scenePass.setBindGroup(0, this.surfaceBindGroup);
+      scenePass.setVertexBuffer(0, this.surfaceBuffer);
+      scenePass.draw(this.surfaceVertexCount);
+      scenePass.setPipeline(this.pipeline);
+      scenePass.setBindGroup(0, this.bindGroup);
+      scenePass.setVertexBuffer(0, this.vertexBuffer);
+    }
     scenePass.setVertexBuffer(1, this.actorBuffer);
     scenePass.draw(36, actors.length);
     if (navigation.length) {
@@ -826,6 +898,7 @@ fn bloomColor(color: vec3<f32>) -> vec3<f32> {
     this.depthTexture?.destroy?.();
     this.vertexBuffer?.destroy?.();
     this.cityBuffer?.destroy?.();
+    this.surfaceBuffer?.destroy?.();
     this.actorBuffer?.destroy?.();
     this.navBuffer?.destroy?.();
     this.ghostBuffer?.destroy?.();

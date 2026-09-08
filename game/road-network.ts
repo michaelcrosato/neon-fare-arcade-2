@@ -6,9 +6,14 @@ import {
   WORLD_ROAD_MIN_X,
   WORLD_ROAD_MIN_Y,
 } from "./config";
-import type { Vec2 } from "./model";
-import { clamp, distance, normalizeAngle } from "./math";
+import type { WorldPoint } from "./model";
+import { clamp, distance } from "./math";
+import { compileRoad, sampleRoad, roadDistance, type RoadSample } from "./roads/geometry";
+import { RoadGraph, roadNodeKey, type RoadGraphSegment } from "./roads/graph";
+import { RoadSpatialIndex } from "./roads/spatial-index";
+import { splitRoadIntersections } from "./roads/intersections";
 import { isPlayablePoint } from "./regions";
+import { atRoadElevation, inNorthstarTerrain, northstarRoadHeight } from "./terrain/northstar-forms";
 import {
   gridStreetPointEnabled,
   gridStreetSegmentEnabled,
@@ -21,7 +26,6 @@ import {
 } from "./road-layout";
 
 const EPSILON = 0.001;
-const NODE_PRECISION = 1000;
 
 type NetworkKind = "street" | RoadKind;
 
@@ -34,42 +38,16 @@ export type SpecialRoadSegment = {
   lanes: number;
   travelWeight: number;
   index: number;
-  a: Vec2;
-  b: Vec2;
+  a: WorldPoint;
+  b: WorldPoint;
 };
 
-type NetworkSegment = {
-  id: string;
-  pathId: string;
-  kind: NetworkKind;
-  halfWidth: number;
-  travelWeight: number;
-  a: Vec2;
-  b: Vec2;
-  aId: string;
-  bId: string;
-  allowAB: boolean;
-  allowBA: boolean;
-};
-
-type GraphEdge = {
-  to: string;
-  cost: number;
-  segment: NetworkSegment;
-};
-
-type SegmentProjection = {
-  segment: NetworkSegment;
-  point: Vec2;
-  t: number;
-  centerDistance: number;
-  tangentYaw: number;
-};
+type NetworkSegment = RoadGraphSegment & { kind: NetworkKind };
 
 export type RoadProjection = {
   roadId: string;
   kind: NetworkKind;
-  point: Vec2;
+  point: WorldPoint;
   centerDistance: number;
   surfaceDistance: number;
   tangentYaw: number;
@@ -77,24 +55,22 @@ export type RoadProjection = {
 };
 
 export type NetworkRouteCandidate = {
-  route: Vec2[];
+  route: WorldPoint[];
   departureYaw: number;
   cost: number;
   usesSpecialRoad: boolean;
 };
 
-export type RoadPathSample = {
-  point: Vec2;
-  heading: number;
+export type RoadPathSample = RoadSample & {
   road: RoadPathDefinition;
 };
 
-function pointKey(point: Vec2) {
-  return `${Math.round(point.x * NODE_PRECISION)},${Math.round(point.y * NODE_PRECISION)}`;
+function pointKey(point: WorldPoint) {
+  return roadNodeKey(point);
 }
 
-function samePoint(a: Vec2, b: Vec2, tolerance = 0.02) {
-  return distance(a, b) <= tolerance;
+function samePoint(a: WorldPoint, b: WorldPoint, tolerance = 0.02) {
+  return roadDistance(a, b) <= tolerance;
 }
 
 function nearestGridRoadX(value: number) {
@@ -113,19 +89,20 @@ function nearestGridRoadY(value: number) {
   );
 }
 
-function projectPointToSegment(point: Vec2, a: Vec2, b: Vec2) {
+function projectPointToSegment(point: WorldPoint, a: WorldPoint, b: WorldPoint) {
   const dx = b.x - a.x;
   const dy = b.y - a.y;
   const lengthSquared = dx * dx + dy * dy;
   const t = lengthSquared <= EPSILON
     ? 0
     : clamp(((point.x - a.x) * dx + (point.y - a.y) * dy) / lengthSquared, 0, 1);
-  const projection = { x: a.x + dx * t, y: a.y + dy * t };
+  const projection: WorldPoint = { x: a.x + dx * t, y: a.y + dy * t };
+  if (a.z !== undefined || b.z !== undefined) projection.z = (a.z ?? 0) + ((b.z ?? 0) - (a.z ?? 0)) * t;
   return { point: projection, t, distance: distance(point, projection) };
 }
 
 function pathPairs(road: RoadPathDefinition) {
-  const pairs: Array<[Vec2, Vec2]> = [];
+  const pairs: Array<[WorldPoint, WorldPoint]> = [];
   for (let index = 1; index < road.points.length; index += 1) {
     pairs.push([road.points[index - 1], road.points[index]]);
   }
@@ -150,21 +127,21 @@ export const SPECIAL_ROAD_SEGMENTS: readonly SpecialRoadSegment[] = SPECIAL_ROAD
   }))
 ));
 
-function pointInRoundaboutIsland(point: Vec2, margin = 0) {
+function pointInRoundaboutIsland(point: WorldPoint, margin = 0) {
   return ROUNDABOUTS.some((roundabout) => (
     Math.abs(point.x - roundabout.center.x) <= roundabout.islandHalfSize + margin
     && Math.abs(point.y - roundabout.center.y) <= roundabout.islandHalfSize + margin
   ));
 }
 
-function pointInsideRoundaboutApproachCut(point: Vec2) {
+function pointInsideRoundaboutApproachCut(point: WorldPoint) {
   return ROUNDABOUTS.some((roundabout) => (
     distance(point, roundabout.center) < roundabout.radius - 0.75
   ));
 }
 
-function splitAtGridCrossings(a: Vec2, b: Vec2) {
-  const candidates: Array<{ t: number; point: Vec2; grid: boolean }> = [
+function splitAtGridCrossings(a: WorldPoint, b: WorldPoint) {
+  const candidates: Array<{ t: number; point: WorldPoint; grid: boolean }> = [
     { t: 0, point: a, grid: false },
     { t: 1, point: b, grid: false },
   ];
@@ -174,7 +151,9 @@ function splitAtGridCrossings(a: Vec2, b: Vec2) {
     for (let x = WORLD_ROAD_MIN_X; x <= WORLD_ROAD_MAX_X; x += ROAD_SPACING) {
       const t = (x - a.x) / dx;
       if (t > EPSILON && t < 1 - EPSILON) {
-        candidates.push({ t, point: { x, y: a.y + dy * t }, grid: true });
+        const point: WorldPoint = { x, y: a.y + dy * t };
+        if (a.z !== undefined || b.z !== undefined) point.z = (a.z ?? 0) + ((b.z ?? 0) - (a.z ?? 0)) * t;
+        candidates.push({ t, point, grid: true });
       }
     }
   }
@@ -182,7 +161,9 @@ function splitAtGridCrossings(a: Vec2, b: Vec2) {
     for (let y = WORLD_ROAD_MIN_Y; y <= WORLD_ROAD_MAX_Y; y += ROAD_SPACING) {
       const t = (y - a.y) / dy;
       if (t > EPSILON && t < 1 - EPSILON) {
-        candidates.push({ t, point: { x: a.x + dx * t, y }, grid: true });
+        const point: WorldPoint = { x: a.x + dx * t, y };
+        if (a.z !== undefined || b.z !== undefined) point.z = (a.z ?? 0) + ((b.z ?? 0) - (a.z ?? 0)) * t;
+        candidates.push({ t, point, grid: true });
       }
     }
   }
@@ -199,27 +180,17 @@ function splitAtGridCrossings(a: Vec2, b: Vec2) {
   return output;
 }
 
-function explicitJunction(road: RoadPathDefinition, candidate: Vec2) {
+function explicitJunction(road: RoadPathDefinition, candidate: WorldPoint) {
   return road.junctions.some((junction) => samePoint(junction, candidate));
 }
 
-const graphNodes = new Map<string, Vec2>();
-const adjacency = new Map<string, GraphEdge[]>();
 const physicalSegments: NetworkSegment[] = [];
-const gridJunctions = new Map<string, Vec2>();
-const undirectedNeighbors = new Map<string, Set<string>>();
+const gridJunctions = new Map<string, WorldPoint>();
 
-function ensureNode(point: Vec2) {
-  const id = pointKey(point);
-  if (!graphNodes.has(id)) graphNodes.set(id, { ...point });
-  if (!adjacency.has(id)) adjacency.set(id, []);
-  if (!undirectedNeighbors.has(id)) undirectedNeighbors.set(id, new Set());
-  return id;
-}
-
-function registerGridJunction(point: Vec2) {
-  const id = ensureNode(point);
-  gridJunctions.set(id, graphNodes.get(id)!);
+function registerGridJunction(point: WorldPoint) {
+  // Local streets follow the engineered terrain; bridges keep their own deck.
+  if (Math.abs((point.z ?? 0) - northstarRoadHeight(point.x, point.y)) > 0.001) return;
+  gridJunctions.set(pointKey(point), { ...point });
 }
 
 function addPhysicalSegment(
@@ -227,8 +198,8 @@ function addPhysicalSegment(
   kind: NetworkKind,
   halfWidth: number,
   travelWeight: number,
-  a: Vec2,
-  b: Vec2,
+  a: WorldPoint,
+  b: WorldPoint,
   allowAB = true,
   allowBA = true,
 ) {
@@ -238,27 +209,10 @@ function addPhysicalSegment(
     const t = sample / samples;
     if (!isPlayablePoint(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t)) return;
   }
-  const aId = ensureNode(a);
-  const bId = ensureNode(b);
-  const segment: NetworkSegment = {
-    id: `${pathId}:${aId}:${bId}`,
-    pathId,
-    kind,
-    halfWidth,
-    travelWeight,
-    a: graphNodes.get(aId)!,
-    b: graphNodes.get(bId)!,
-    aId,
-    bId,
-    allowAB,
-    allowBA,
-  };
-  physicalSegments.push(segment);
-  const cost = distance(segment.a, segment.b) * travelWeight;
-  if (allowAB) adjacency.get(aId)!.push({ to: bId, cost, segment });
-  if (allowBA) adjacency.get(bId)!.push({ to: aId, cost, segment });
-  undirectedNeighbors.get(aId)!.add(bId);
-  undirectedNeighbors.get(bId)!.add(aId);
+  physicalSegments.push({
+    id: `${pathId}:${pointKey(a)}:${pointKey(b)}`,
+    pathId, kind, halfWidth, travelWeight, a, b, allowAB, allowBA,
+  });
 }
 
 for (const road of SPECIAL_ROADS) {
@@ -268,7 +222,6 @@ for (const road of SPECIAL_ROADS) {
       : [{ t: 0, point: a, grid: explicitJunction(road, a) }, { t: 1, point: b, grid: explicitJunction(road, b) }];
     for (const item of split) {
       if (item.grid || explicitJunction(road, item.point)) registerGridJunction(item.point);
-      else ensureNode(item.point);
     }
     for (let index = 1; index < split.length; index += 1) {
       addPhysicalSegment(
@@ -296,7 +249,7 @@ const gridRoadYs = Array.from(
 
 for (const x of gridRoadXs) {
   const points = [
-    ...gridRoadYs.map((y) => ({ x, y })),
+    ...gridRoadYs.map((y) => atRoadElevation({ x, y })),
     ...[...gridJunctions.values()].filter((candidate) => Math.abs(candidate.x - x) < 0.02),
   ].sort((a, b) => a.y - b.y);
   const unique = points.filter((candidate, index) => index === 0 || !samePoint(candidate, points[index - 1]));
@@ -317,7 +270,7 @@ for (const x of gridRoadXs) {
 
 for (const y of gridRoadYs) {
   const points = [
-    ...gridRoadXs.map((x) => ({ x, y })),
+    ...gridRoadXs.map((x) => atRoadElevation({ x, y })),
     ...[...gridJunctions.values()].filter((candidate) => Math.abs(candidate.y - y) < 0.02),
   ].sort((a, b) => a.x - b.x);
   const unique = points.filter((candidate, index) => index === 0 || !samePoint(candidate, points[index - 1]));
@@ -336,39 +289,13 @@ for (const y of gridRoadYs) {
   }
 }
 
-function nearestNetworkSegment(point: Vec2, heading?: number): SegmentProjection {
-  let best: SegmentProjection | null = null;
-  let bestScore = Number.POSITIVE_INFINITY;
-  for (const segment of physicalSegments) {
-    const projected = projectPointToSegment(point, segment.a, segment.b);
-    const yaw = Math.atan2(segment.b.y - segment.a.y, segment.b.x - segment.a.x);
-    const alignment = heading === undefined
-      ? 0
-      : Math.min(
-          Math.abs(Math.sin(normalizeAngle(yaw - heading))),
-          Math.abs(Math.sin(normalizeAngle(yaw + Math.PI - heading))),
-        );
-    const score = projected.distance + alignment * 2.2;
-    if (score < bestScore) {
-      bestScore = score;
-      best = {
-        segment,
-        point: projected.point,
-        t: projected.t,
-        centerDistance: projected.distance,
-        tangentYaw: yaw,
-      };
-    }
-  }
-  if (!best) throw new Error("Road network has no segments");
-  return best;
-}
+const roadGraph = new RoadGraph(splitRoadIntersections(physicalSegments));
 
-export function nearestRoadProjection(point: Vec2, heading?: number): RoadProjection {
-  const projection = nearestNetworkSegment(point, heading);
+export function nearestRoadProjection(point: WorldPoint, heading?: number): RoadProjection {
+  const projection = roadGraph.nearest(point.z === undefined ? atRoadElevation(point) : point, heading);
   return {
     roadId: projection.segment.pathId,
-    kind: projection.segment.kind,
+    kind: projection.segment.kind as NetworkKind,
     point: projection.point,
     centerDistance: projection.centerDistance,
     surfaceDistance: projection.centerDistance - projection.segment.halfWidth,
@@ -377,7 +304,7 @@ export function nearestRoadProjection(point: Vec2, heading?: number): RoadProjec
   };
 }
 
-export function nearestSpecialRoadProjection(point: Vec2) {
+export function nearestSpecialRoadProjection(point: WorldPoint) {
   let best: (RoadProjection & { segment: SpecialRoadSegment }) | null = null;
   for (const segment of SPECIAL_ROAD_SEGMENTS) {
     const projected = projectPointToSegment(point, segment.a, segment.b);
@@ -397,10 +324,15 @@ export function nearestSpecialRoadProjection(point: Vec2) {
   return best;
 }
 
-export function isRoadSurface(point: Vec2, margin = 0) {
+export function isRoadSurface(point: WorldPoint, margin = 0) {
   if (!isPlayablePoint(point.x, point.y, -margin)) return false;
-  const special = nearestSpecialRoadProjection(point);
-  if (special && special.centerDistance <= special.halfWidth + margin) return true;
+  const elevated = point.z === undefined ? atRoadElevation(point) : point;
+  if (roadSurfaceIndex.query(elevated, Math.max(0.05, margin)).some((sample) => (
+    Math.abs((elevated.z ?? 0) - sample.point.z) < 1.25
+    && sample.surfaceDistance <= Math.max(0.025, margin)
+    && Math.abs(sample.lateralOffset) <= sample.halfWidth + margin
+  ))) return true;
+  if (inNorthstarTerrain(point.x, point.y) || Math.abs(point.z ?? 0) > 1.25) return false;
   if (pointInRoundaboutIsland(point, -0.4 + margin)) return false;
   const vertical = Math.abs(point.x - nearestGridRoadX(point.x)) <= ROAD_HALF + margin
     && point.y >= WORLD_ROAD_MIN_Y - ROAD_HALF - margin
@@ -414,29 +346,25 @@ export function isRoadSurface(point: Vec2, margin = 0) {
 }
 
 /** Four-lane authored corridors receive the highway top-speed bonus. */
-export function isHighwaySpeedSurface(point: Vec2, margin = 0) {
-  return SPECIAL_ROAD_SEGMENTS.some((segment) => {
-    if (segment.lanes < 4) return false;
-    return projectPointToSegment(point, segment.a, segment.b).distance
-      <= segment.halfWidth + margin;
-  });
+export function isHighwaySpeedSurface(point: WorldPoint, margin = 0) {
+  return specialRoadSurfaceIndex.query(point, Math.max(0.05, margin)).some((sample) => (
+    (pathMetrics.get(sample.roadId)?.road.lanes ?? 0) >= 4
+    && Math.abs((point.z ?? 0) - sample.point.z) < 1.25
+    && sample.surfaceDistance <= Math.max(0.025, margin)
+    && Math.abs(sample.lateralOffset) <= sample.halfWidth + margin
+  ));
 }
 
-export function roadHalfWidthAtPoint(point: Vec2) {
+export function roadHalfWidthAtPoint(point: WorldPoint) {
   const projection = nearestRoadProjection(point);
   return projection.centerDistance <= projection.halfWidth + 3 ? projection.halfWidth : ROAD_HALF;
 }
 
-export function isRoadJunctionPoint(point: Vec2) {
-  const direct = undirectedNeighbors.get(pointKey(point));
-  if (direct) return direct.size >= 3;
-  for (const [id, candidate] of graphNodes) {
-    if (distance(candidate, point) <= 1.2) return (undirectedNeighbors.get(id)?.size ?? 0) >= 3;
-  }
-  return false;
+export function isRoadJunctionPoint(point: WorldPoint) {
+  return roadGraph.isJunction(point);
 }
 
-function segmentIntersectsExpandedSquare(a: Vec2, b: Vec2, center: Vec2, halfExtent: number) {
+function segmentIntersectsExpandedSquare(a: WorldPoint, b: WorldPoint, center: WorldPoint, halfExtent: number) {
   const minX = center.x - halfExtent;
   const maxX = center.x + halfExtent;
   const minY = center.y - halfExtent;
@@ -462,7 +390,7 @@ function segmentIntersectsExpandedSquare(a: Vec2, b: Vec2, center: Vec2, halfExt
   return false;
 }
 
-export function specialRoadIntersectsSquare(center: Vec2, halfExtent: number, clearance = 0) {
+export function specialRoadIntersectsSquare(center: WorldPoint, halfExtent: number, clearance = 0) {
   return SPECIAL_ROAD_SEGMENTS.some((segment) => (
     segmentIntersectsExpandedSquare(
       segment.a,
@@ -473,7 +401,7 @@ export function specialRoadIntersectsSquare(center: Vec2, halfExtent: number, cl
   ));
 }
 
-export function routeCrossesRoundaboutIsland(route: readonly Vec2[]) {
+export function routeCrossesRoundaboutIsland(route: readonly WorldPoint[]) {
   for (let index = 1; index < route.length; index += 1) {
     for (const roundabout of ROUNDABOUTS) {
       if (segmentIntersectsExpandedSquare(
@@ -487,272 +415,42 @@ export function routeCrossesRoundaboutIsland(route: readonly Vec2[]) {
   return false;
 }
 
-type SearchResult = {
-  points: Vec2[];
-  cost: number;
-  usesSpecialRoad: boolean;
-};
-
-type QueueItem = { id: string; distance: number; priority: number };
-
-function queuePush(queue: QueueItem[], item: QueueItem) {
-  queue.push(item);
-  let index = queue.length - 1;
-  while (index > 0) {
-    const parent = Math.floor((index - 1) / 2);
-    if (queue[parent].priority <= item.priority) break;
-    queue[index] = queue[parent];
-    index = parent;
-  }
-  queue[index] = item;
+export function routeRoadNetwork(start: WorldPoint, target: WorldPoint, heading: number, direction: 1 | -1): NetworkRouteCandidate | null {
+  return roadGraph.route(start.z === undefined ? atRoadElevation(start) : start,
+    target.z === undefined ? atRoadElevation(target) : target, heading, direction, 4);
 }
 
-function queuePop(queue: QueueItem[]) {
-  if (!queue.length) return null;
-  const first = queue[0];
-  const last = queue.pop()!;
-  if (queue.length) {
-    let index = 0;
-    while (true) {
-      const left = index * 2 + 1;
-      const right = left + 1;
-      if (left >= queue.length) break;
-      const child = right < queue.length && queue[right].priority < queue[left].priority ? right : left;
-      if (queue[child].priority >= last.priority) break;
-      queue[index] = queue[child];
-      index = child;
-    }
-    queue[index] = last;
-  }
-  return first;
-}
-
-function shortestPath(startId: string, targetId: string): SearchResult | null {
-  if (startId === targetId) {
-    return { points: [graphNodes.get(startId)!], cost: 0, usesSpecialRoad: false };
-  }
-  const distances = new Map<string, number>([[startId, 0]]);
-  const previous = new Map<string, { node: string; edge: GraphEdge }>();
-  const targetPoint = graphNodes.get(targetId)!;
-  const heuristic = (id: string) => distance(graphNodes.get(id)!, targetPoint) * 0.68;
-  const queue: QueueItem[] = [{ id: startId, distance: 0, priority: heuristic(startId) }];
-  while (queue.length) {
-    const current = queuePop(queue)!;
-    if (current.distance !== distances.get(current.id)) continue;
-    if (current.id === targetId) break;
-    for (const edge of adjacency.get(current.id) ?? []) {
-      const nextCost = current.distance + edge.cost;
-      if (nextCost + 0.0001 < (distances.get(edge.to) ?? Number.POSITIVE_INFINITY)) {
-        distances.set(edge.to, nextCost);
-        previous.set(edge.to, { node: current.id, edge });
-        queuePush(queue, {
-          id: edge.to,
-          distance: nextCost,
-          priority: nextCost + heuristic(edge.to),
-        });
-      }
-    }
-  }
-  const finalCost = distances.get(targetId);
-  if (finalCost === undefined) return null;
-  const ids = [targetId];
-  let cursor = targetId;
-  let usesSpecialRoad = false;
-  while (cursor !== startId) {
-    const step = previous.get(cursor);
-    if (!step) return null;
-    usesSpecialRoad ||= step.edge.segment.kind !== "street";
-    cursor = step.node;
-    ids.push(cursor);
-  }
-  ids.reverse();
-  return {
-    points: ids.map((id) => graphNodes.get(id)!),
-    cost: finalCost,
-    usesSpecialRoad,
-  };
-}
-
-function uniqueRoute(points: Vec2[]) {
-  return points.filter((candidate, index) => index === 0 || !samePoint(candidate, points[index - 1], 0.05));
-}
-
-export function routeRoadNetwork(
-  start: Vec2,
-  target: Vec2,
-  heading: number,
-  direction: 1 | -1,
-): NetworkRouteCandidate | null {
-  const from = nearestNetworkSegment(start, heading);
-  const to = nearestNetworkSegment(target);
-  const fromYaw = from.tangentYaw;
-  const startOptions = [
-    {
-      nodeId: from.segment.aId,
-      endpoint: from.segment.a,
-      allowed: from.segment.allowBA,
-      yaw: fromYaw + Math.PI,
-      length: distance(from.point, from.segment.a),
-    },
-    {
-      nodeId: from.segment.bId,
-      endpoint: from.segment.b,
-      allowed: from.segment.allowAB,
-      yaw: fromYaw,
-      length: distance(from.point, from.segment.b),
-    },
-  ].filter((option) => {
-    if (!option.allowed) return false;
-    const forwardDot = Math.cos(normalizeAngle(option.yaw - heading));
-    return direction > 0 ? forwardDot >= -0.02 : forwardDot <= 0.02;
-  });
-  const targetOptions = [
-    {
-      nodeId: to.segment.aId,
-      endpoint: to.segment.a,
-      allowed: to.segment.allowAB,
-      length: distance(to.segment.a, to.point),
-    },
-    {
-      nodeId: to.segment.bId,
-      endpoint: to.segment.b,
-      allowed: to.segment.allowBA,
-      length: distance(to.segment.b, to.point),
-    },
-  ].filter((option) => option.allowed);
-
-  let best: NetworkRouteCandidate | null = null;
-  for (const startOption of startOptions) {
-    for (const targetOption of targetOptions) {
-      const graph = shortestPath(startOption.nodeId, targetOption.nodeId);
-      if (!graph) continue;
-      const route = uniqueRoute([
-        start,
-        from.point,
-        startOption.endpoint,
-        ...graph.points,
-        targetOption.endpoint,
-        to.point,
-        target,
-      ]);
-      const cost = (
-        distance(start, from.point)
-        + startOption.length * from.segment.travelWeight
-        + graph.cost
-        + targetOption.length * to.segment.travelWeight
-        + distance(to.point, target)
-      );
-      const candidate: NetworkRouteCandidate = {
-        route,
-        departureYaw: startOption.yaw,
-        cost,
-        usesSpecialRoad: from.segment.kind !== "street"
-          || to.segment.kind !== "street"
-          || graph.usesSpecialRoad,
-      };
-      if (!best || candidate.cost < best.cost) best = candidate;
-    }
-  }
-  return best;
-}
-
-/** Heading-neutral graph route for fare economy and rectangular-route fallback. */
-export function routeRoadNetworkShortest(start: Vec2, target: Vec2): NetworkRouteCandidate | null {
-  const from = nearestNetworkSegment(start);
-  const to = nearestNetworkSegment(target);
-  const fromYaw = from.tangentYaw;
-  const startOptions = [
-    {
-      nodeId: from.segment.aId,
-      endpoint: from.segment.a,
-      allowed: from.segment.allowBA,
-      yaw: fromYaw + Math.PI,
-      length: distance(from.point, from.segment.a),
-    },
-    {
-      nodeId: from.segment.bId,
-      endpoint: from.segment.b,
-      allowed: from.segment.allowAB,
-      yaw: fromYaw,
-      length: distance(from.point, from.segment.b),
-    },
-  ].filter((option) => option.allowed);
-  const targetOptions = [
-    {
-      nodeId: to.segment.aId,
-      endpoint: to.segment.a,
-      allowed: to.segment.allowAB,
-      length: distance(to.segment.a, to.point),
-    },
-    {
-      nodeId: to.segment.bId,
-      endpoint: to.segment.b,
-      allowed: to.segment.allowBA,
-      length: distance(to.segment.b, to.point),
-    },
-  ].filter((option) => option.allowed);
-  let best: NetworkRouteCandidate | null = null;
-  for (const startOption of startOptions) {
-    for (const targetOption of targetOptions) {
-      const graph = shortestPath(startOption.nodeId, targetOption.nodeId);
-      if (!graph) continue;
-      const route = uniqueRoute([
-        start,
-        from.point,
-        startOption.endpoint,
-        ...graph.points,
-        targetOption.endpoint,
-        to.point,
-        target,
-      ]);
-      const cost = distance(start, from.point)
-        + startOption.length * from.segment.travelWeight
-        + graph.cost
-        + targetOption.length * to.segment.travelWeight
-        + distance(to.point, target);
-      const candidate: NetworkRouteCandidate = {
-        route,
-        departureYaw: startOption.yaw,
-        cost,
-        usesSpecialRoad: from.segment.kind !== "street"
-          || to.segment.kind !== "street"
-          || graph.usesSpecialRoad,
-      };
-      if (!best || candidate.cost < best.cost) best = candidate;
-    }
-  }
-  return best;
+/** Heading-neutral physical route for fare economy and route planning. */
+export function routeRoadNetworkShortest(start: WorldPoint, target: WorldPoint): NetworkRouteCandidate | null {
+  return roadGraph.route(start.z === undefined ? atRoadElevation(start) : start,
+    target.z === undefined ? atRoadElevation(target) : target, undefined, 1, 4);
 }
 
 const pathMetrics = new Map(SPECIAL_ROADS.map((road) => {
-  const pairs = pathPairs(road);
-  const cumulative = [0];
-  for (const [a, b] of pairs) cumulative.push(cumulative[cumulative.length - 1] + distance(a, b));
-  return [road.id, { road, pairs, cumulative, length: cumulative[cumulative.length - 1] }] as const;
+  const geometry = compileRoad(road.id, road.points, road.halfWidth, road.closed,
+    road.points.some((point) => inNorthstarTerrain(point.x, point.y)) ? 4 : 0);
+  return [road.id, { road, geometry, length: geometry.length }] as const;
 }));
+
+export const specialRoadSurfaceIndex = new RoadSpatialIndex([...pathMetrics.values()].map(({ geometry }) => geometry));
+
+export const elevatedGridRoads = physicalSegments.filter((segment) => segment.kind === "street"
+  && inNorthstarTerrain((segment.a.x + segment.b.x) / 2, (segment.a.y + segment.b.y) / 2))
+  .map((segment) => compileRoad(segment.id, [segment.a, segment.b], ROAD_HALF));
+export const roadSurfaceIndex = new RoadSpatialIndex([
+  ...[...pathMetrics.values()].map(({ geometry }) => geometry), ...elevatedGridRoads,
+]);
+
+export function compiledSpecialRoad(roadId: string) {
+  return pathMetrics.get(roadId)?.geometry ?? null;
+}
 
 export function sampleSpecialRoad(roadId: string, distanceAlong: number, laneOffset = 0): RoadPathSample | null {
   const metrics = pathMetrics.get(roadId);
   if (!metrics || metrics.length <= 0) return null;
-  const wrapped = metrics.road.closed
-    ? ((distanceAlong % metrics.length) + metrics.length) % metrics.length
-    : clamp(distanceAlong, 0, metrics.length);
-  let index = metrics.cumulative.findIndex((value, candidate) => (
-    candidate > 0 && value >= wrapped
-  )) - 1;
-  if (index < 0) index = metrics.pairs.length - 1;
-  const [a, b] = metrics.pairs[index];
-  const segmentStart = metrics.cumulative[index];
-  const segmentLength = Math.max(EPSILON, distance(a, b));
-  const t = clamp((wrapped - segmentStart) / segmentLength, 0, 1);
-  const heading = Math.atan2(b.y - a.y, b.x - a.x);
   return {
     road: metrics.road,
-    heading,
-    point: {
-      x: a.x + (b.x - a.x) * t - Math.sin(heading) * laneOffset,
-      y: a.y + (b.y - a.y) * t + Math.cos(heading) * laneOffset,
-    },
+    ...sampleRoad(metrics.geometry, distanceAlong, laneOffset),
   };
 }
 
@@ -760,7 +458,7 @@ export function specialRoadLength(roadId: string) {
   return pathMetrics.get(roadId)?.length ?? 0;
 }
 
-export function specialRoadNamesNear(point: Vec2, maxDistance = 22) {
+export function specialRoadNamesNear(point: WorldPoint, maxDistance = 22) {
   const names = new Set<string>();
   for (const segment of SPECIAL_ROAD_SEGMENTS) {
     const projected = projectPointToSegment(point, segment.a, segment.b);

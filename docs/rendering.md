@@ -25,6 +25,35 @@ Hard budgets:
 - ghost/occlusion pass: 96;
 - camera uniform: 24 floats / 96 bytes.
 
+## Road, terrain, and architectural surfaces
+
+`MeshFace` accepts triangles or quads alongside the unchanged box protocol;
+`SurfaceQuad` remains the four-corner road-authoring type.
+`game/render/surfaces.ts` packs one or two triangles per face, with 12 floats /
+48 bytes per vertex: position xyz/material, normal xyz/face light, and RGBA.
+Surface budgets are independent: 2,048 faces per chunk and 65,536 per visual
+stream, including distant landscape. The worst-case vertex allocation is
+393,216 vertices. Timber, stone, and snow use material IDs 16, 17, and 18.
+The WebGPU road pipeline shares the scene's lighting, fog and depth buffer;
+static road vertices upload only when the streamed world key changes. Interior
+switches clear this buffer. Device loss and disposal release it with the other
+GPU resources.
+
+Pavement and lane strips use the same mitered cross sections as tire contact
+and traffic. Deck sidewalls, undersides, guardrails and supports are generated
+with matching collision geometry. Canvas projects those same surfaces, culls
+back faces, and draws actors/routes on their decks. Northstar additionally uses
+full cuboid faces for static structures and orthographic depth ordering so
+pitched roofs meet their walls and elevated terrain occludes consistently.
+It remains an overhead graphic fallback. An outline preserves taxi visibility
+under an elevated road.
+
+Chunk collision capacity is 256 and stream capacity is 1,536; collision radius
+remains one chunk. The 121 central city chunks currently total 71,092 static
+boxes and 8,581 colliders. Their maximum radius-three view is 30,457 boxes;
+their maximum collision window is 888. The exhaustive tests also check every
+window across all 726 active regional chunks.
+
 Pocket interiors replace the streamed city buffer instead of appending to it.
 Absolute buffer capacity is 512 static boxes, 96 colliders, and 32 interactions;
 authored venues target and enforce 128 boxes, 24 colliders, and six interactions.
@@ -133,10 +162,22 @@ No new shadow texture, material ID, instance field, or render pass is required.
 These are contact approximations, not scene-wide cast shadows; raised surfaces
 can still hide the ground plane in WebGPU.
 
+The shared road pose transforms the complete taxi, cockpit, wheels, loaded
+cargo and boost trail. Arcade body load transfer composes with road pitch/bank;
+the simulation cab retains its existing rollover model. Cab View follows that
+same deck immediately and uses a 1.72-unit seated eye to clear the dashboard.
+Chase and fixed cameras follow elevation with smoothing. Contact shadows remain
+on the supporting deck while an airborne taxi rises above them.
+
 ## World streaming
 
 Perspective views draw visual chunks out to radius 3 and keep collision chunks
-at radius 1. The far plane is 400. Increasing draw distance requires checking:
+at radius 1. The normal far plane is 400. Northstar adds cached 36-unit distant
+terrain patches and road strips beyond the loaded chunks, reaching a 1,200-unit
+far plane. Chunk borders retain 9-unit vertices to meet near terrain without
+cracks. Near terrain has 256 faces per chunk. The same terrain supplies GPS
+contours, and painted background geography is suppressed inside Northstar.
+Increasing draw distance requires checking:
 
 1. `DISTANT_STREAM_RADIUS` and `CACHE_RADIUS` together;
 2. `MAX_STREAM_BOXES` and the world budget tests;
@@ -161,6 +202,8 @@ Generation is capped at two ten-box scenes per chunk.
 - north/east/south/west sky bearings;
 - taxi ghosting behind buildings;
 - Canvas fallback after disabling or rejecting WebGPU.
+- ramp ascent/descent, beltway deck and the street beneath it in all four
+  cameras and both renderers; confirm cockpit and camera share the road pose;
 - simulation cab at normal roll, two-wheel lift, settled on either side, and on
   its roof in Chase High, Chase Low, Cab, and Canvas views;
 - exit/re-enter in every saved taxi camera, preserving the exterior view during

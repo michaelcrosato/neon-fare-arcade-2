@@ -60,15 +60,16 @@ test("every deterministic city chunk stays inside its rendering budgets", () => 
   }
 
   assert.deepEqual(maxBoxes, { count: 738, at: "0,5" });
-  assert.deepEqual(maxColliders, { count: 100, at: "4,-5" });
-  assert.equal(totalBoxes, 72763);
-  assert.equal(totalColliders, 6829);
+  assert.deepEqual(maxColliders, { count: 134, at: "4,-2" });
+  // Adaptive road surfaces, elevated decks, supports and clear ramp corridors.
+  assert.equal(totalBoxes, 71092);
+  assert.equal(totalColliders, 8581);
 });
 
 test("representative chunk output is byte-for-byte deterministic", () => {
   const chunk = generateCityChunk(0, 0);
   const hash = createHash("sha256").update(JSON.stringify(chunk)).digest("hex");
-  assert.equal(hash, "0ef938bc388a5b60d8965ee1343c718c0aec5bb8d85614b4329bb179e4f717b0");
+  assert.equal(hash, "6fd1ebe846dc6fef192b0cfb27429755511b3be2d9a8f795d2839d3149de2537");
 });
 
 test("ordinary lot contents leave the same widened sidewalk ring in every orientation", () => {
@@ -80,7 +81,7 @@ test("ordinary lot contents leave the same widened sidewalk ring in every orient
   for (let cx = CHUNK_MIN; cx <= CHUNK_MAX; cx += 1) {
     for (let cy = CHUNK_MIN; cy <= CHUNK_MAX; cy += 1) {
       for (const collider of generateCityChunk(cx, cy).colliders) {
-        if (collider.id.startsWith("roundabout-island-")) continue;
+        if (collider.id.startsWith("roundabout-island-") || collider.id.startsWith("road-")) continue;
         const blockX = Math.floor(collider.x / ROAD_SPACING);
         const blockY = Math.floor(collider.y / ROAD_SPACING);
         if (landmarkBlockKeys.has(`${blockX},${blockY}`)) continue;
@@ -130,7 +131,7 @@ test("store portals and their return poses are stable and clear in every lot ori
       }
     }
   }
-  assert.equal(portalCount, 1476);
+  assert.equal(portalCount, 1469);
   assert.equal(headings.size, 4);
   const home = generateCityChunk(0, 0).interactions.find((portal) => portal.id === "venue:0:0:home");
   assert.deepEqual(home?.venue, { id: "venue:0:0:home", kind: "home", label: "NEON LOFTS" });
@@ -140,14 +141,14 @@ test("streaming changes draw radius without expanding collision radius", () => {
   const stream = new CityStream();
   const near = stream.update(0, 0, 1);
   assert.deepEqual(
-    { chunks: near.chunks.length, boxes: near.boxes.length, colliders: near.colliders.length },
-    { chunks: 9, boxes: 4959, colliders: 359 },
+    { chunks: near.chunks.length, boxes: near.boxes.length, surfaces: near.surfaces?.length, colliders: near.colliders.length },
+    { chunks: 9, boxes: 4491, surfaces: 702, colliders: 353 },
   );
 
   const distant = stream.update(0, 0, 3);
   assert.deepEqual(
-    { chunks: distant.chunks.length, boxes: distant.boxes.length, colliders: distant.colliders.length },
-    { chunks: 49, boxes: 29281, colliders: 359 },
+    { chunks: distant.chunks.length, boxes: distant.boxes.length, surfaces: distant.surfaces?.length, colliders: distant.colliders.length },
+    { chunks: 49, boxes: 27762, surfaces: 3532, colliders: 353 },
   );
   assert.ok(distant.boxes.length <= MAX_STREAM_BOXES);
   assert.ok(distant.colliders.length <= MAX_STREAM_COLLIDERS);
@@ -178,9 +179,9 @@ test("every city center preserves collision radius and worst-case stream budgets
     }
   }
 
-  assert.deepEqual(maxNearBoxes, { count: 5738, at: "-4,0" });
-  assert.deepEqual(maxFarBoxes, { count: 30852, at: "5,2" });
-  assert.deepEqual(maxColliders, { count: 709, at: "-4,-4" });
+  assert.deepEqual(maxNearBoxes, { count: 5757, at: "-4,0" });
+  assert.deepEqual(maxFarBoxes, { count: 30457, at: "5,2" });
+  assert.deepEqual(maxColliders, { count: 888, at: "-3,-4" });
 });
 
 test("the expanded lot catalog appears throughout the world with four orientations", () => {
@@ -245,6 +246,8 @@ test("all generated geometry is finite and every collider stays clear of roads",
           roundaboutIslands += 1;
           continue;
         }
+        // Road decks, piers and rails have their own lane/height clearance tests.
+        if (collider.id.startsWith("road-")) continue;
         const centerX = Math.floor(collider.x / ROAD_SPACING) * ROAD_SPACING + ROAD_SPACING / 2;
         const centerY = Math.floor(collider.y / ROAD_SPACING) * ROAD_SPACING + ROAD_SPACING / 2;
         assert.ok(Math.abs(collider.x - centerX) + collider.halfX <= roadClearance + 1e-9);

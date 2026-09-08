@@ -385,6 +385,7 @@ function stepSimulationSubstep(
 ) {
   const state = game.simulationVehicle;
   const previousHeading = game.heading;
+  const grounded = game.roadMotion?.grounded !== false;
   const forwardX = Math.cos(previousHeading);
   const forwardY = Math.sin(previousHeading);
   const rightX = -forwardY;
@@ -453,7 +454,7 @@ function stepSimulationSubstep(
   state.engineRpm = smooth(state.engineRpm, targetRpm, state.shiftCooldown > 0 ? 14 : 8, dt);
 
   const rallyTires = game.installedUpgrades.includes("rally-tires");
-  const friction = onRoad
+  const friction = !grounded ? 0 : onRoad
     ? CROWN_TAXI_SPECS.roadFriction
     : rallyTires ? CROWN_TAXI_SPECS.rallyOffroadFriction : CROWN_TAXI_SPECS.offroadFriction;
   const staticFrontLoad = CROWN_TAXI_SPECS.massKg * GRAVITY
@@ -525,10 +526,10 @@ function stepSimulationSubstep(
   const rollingCoefficient = onRoad
     ? CROWN_TAXI_SPECS.rollingResistance
     : rallyTires ? 0.029 : 0.038;
-  const rollingForce = Math.abs(longitudinal) > 0.08
+  const rollingForce = grounded && Math.abs(longitudinal) > 0.08
     ? -Math.sign(longitudinal) * rollingCoefficient * CROWN_TAXI_SPECS.massKg * GRAVITY
     : 0;
-  const engineBrakingForce = !state.overturned && state.throttle < 0.03 && Math.abs(longitudinal) > 0.35
+  const engineBrakingForce = grounded && !state.overturned && state.throttle < 0.03 && Math.abs(longitudinal) > 0.35
     ? -Math.sign(longitudinal) * 1_050 * Math.max(0.7, gearRatio)
     : 0;
 
@@ -560,11 +561,11 @@ function stepSimulationSubstep(
     CROWN_TAXI_SPECS.rearCorneringStiffnessNPerRad,
     rearLateralCapacity,
   );
-  const tripForce = state.overturned ? 0 : terrainTripForce(state, longitudinal, lateral, onRoad, dt);
+  const tripForce = state.overturned || !grounded ? 0 : terrainTripForce(state, longitudinal, lateral, onRoad, dt);
 
   let chassisLongitudinalForce = aeroForce + rollingForce + engineBrakingForce;
   let chassisLateralForce = tripForce;
-  if (state.overturned) {
+  if (state.overturned && grounded) {
     chassisLongitudinalForce += -longitudinal * CROWN_TAXI_SPECS.massKg * 1.45;
     chassisLateralForce += -lateral * CROWN_TAXI_SPECS.massKg * 2.1;
   }
@@ -591,13 +592,13 @@ function stepSimulationSubstep(
   // A fast broadside slide has little longitudinal speed, but is not a
   // parking maneuver. Keep its momentum under the tire-force model.
   const lowSpeedBlend = clamp((planarSpeed - 1.1) / 4.2, 0, 1);
-  if (!state.overturned) {
+  if (!state.overturned && grounded) {
     const kinematicYawRate = longitudinal / CROWN_TAXI_SPECS.wheelbaseM * Math.tan(state.steeringAngle);
     state.yawRate = kinematicYawRate * (1 - lowSpeedBlend) + state.yawRate * lowSpeedBlend;
     lateral *= Math.exp(-(1 - lowSpeedBlend) * 8 * dt);
   }
 
-  if (state.brake > 0.05 && throttleTarget === 0 && Math.sign(previousLongitudinal) !== Math.sign(longitudinal)) {
+  if (grounded && state.brake > 0.05 && throttleTarget === 0 && Math.sign(previousLongitudinal) !== Math.sign(longitudinal)) {
     longitudinal = 0;
   }
   // The governor limits engine force, not collision or spin momentum.

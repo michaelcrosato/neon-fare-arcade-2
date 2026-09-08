@@ -30,6 +30,9 @@ import type { DrivingModel, DrivingTraitId, Game, RunKind, TrafficCar } from "./
 import { makeSimulationVehicleState } from "./simulation-vehicle";
 import { sampleSpecialRoad, specialRoadLength } from "./road-network";
 import { containingRegionForPosition } from "./regions";
+import { makeVehicleRoadMotion } from "./vehicle-road-contact";
+import { ROAD_SURFACE_HEIGHT } from "./roads/contact";
+import { makeArcadeVehicleState } from "./arcade-handling";
 
 export function makeTraffic(): TrafficCar[] {
   const random = mulberry32(0xc0ffee);
@@ -72,6 +75,9 @@ export function makeTraffic(): TrafficCar[] {
       return {
         x: sample.point.x,
         y: sample.point.y,
+        z: sample.point.z + ROAD_SURFACE_HEIGHT,
+        pitch: -Math.atan(sample.grade) * dir,
+        roll: sample.bank * dir,
         heading: sample.heading + (dir < 0 ? Math.PI : 0),
         motion: { kind: "path", roadId: pathRoadId, progress },
         dir,
@@ -115,6 +121,9 @@ export function makeGame(
   return {
     x: TAXI_START.x,
     y: TAXI_START.y,
+    z: 0,
+    roadMotion: makeVehicleRoadMotion(),
+    arcadeVehicle: makeArcadeVehicleState(),
     vx: 0,
     vy: 0,
     heading: TAXI_START.heading,
@@ -184,14 +193,14 @@ export function activePassengerJob(game: Game) {
   return game.fareJobs[game.jobIndex % game.fareJobs.length];
 }
 
-export function getObjective(game: Game) {
+export function getObjective(game: Game): import("./model").WorldPoint {
   const courier = activeCourierContract(game);
   if (courier && game.activeCourier) {
     return game.activeCourier.stage === "pickup"
       ? courier.origin.entrance
       : courier.destination.entrance;
   }
-  if (!game.fareDispatchEnabled && !game.onboard) return { x: game.x, y: game.y };
+  if (!game.fareDispatchEnabled && !game.onboard) return { x: game.x, y: game.y, ...(game.z ? { z: game.z } : {}) };
   const job = activePassengerJob(game);
   return game.onboard ? job.dropoff : job.pickup;
 }

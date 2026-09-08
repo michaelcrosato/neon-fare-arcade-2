@@ -39,6 +39,8 @@ export type DiagnosticStreamContext = Readonly<{
     boxes: number;
     colliders: number;
     interactions: number;
+    /** Optional for reading older schema-3 captures made before road meshes. */
+    surfaceQuads?: number;
   }>;
 }>;
 

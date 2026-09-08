@@ -14,14 +14,18 @@ import type {
   Box,
   Camera,
   Game,
+  MeshFace,
   NavigationPlan,
   Renderer,
   WorldView,
+  WorldPoint,
 } from "@/game/model";
+import { mountainAnimatedBoxes } from "@/game/mountain-scenery";
 import { getObjective } from "@/game/state";
 import { waitingFares } from "@/game/fare-selection";
 import {
   ambientPeopleBoxes,
+  addCarBoxes,
   boostTrailBoxes,
   farePassengerAppearance,
   farePassengerPoint,
@@ -30,6 +34,10 @@ import {
   taxiBoxes,
   taxiGroundShadow,
 } from "@/game/render/scene";
+import { placeBoxesOnRoad } from "@/game/render/road-pose";
+import { boxSurfaceFaces } from "@/game/render/surfaces";
+import { inNorthstarTerrain } from "@/game/terrain/northstar-forms";
+import { groundAt } from "@/game/vehicle-road-contact";
 import { groundShadowOffset, litBoxTopColor, litSurfaceColor } from "@/game/render/lighting";
 import { renderTargetSize } from "@/game/render/resolution";
 import {
@@ -53,6 +61,7 @@ export class Canvas2DRenderer implements Renderer {
   private dpr = 1;
   private skyGradient!: CanvasGradient;
   private vignette!: CanvasGradient;
+  private boxFaces = new WeakMap<Box, MeshFace[]>();
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -264,26 +273,37 @@ export class Canvas2DRenderer implements Renderer {
     const forwardX = Math.cos(camera.heading);
     const forwardY = Math.sin(camera.heading);
     const scale = Math.min(this.width, this.height) / denominator * camera.zoom;
-    const cameraLift = directional ? camera.heightOffset * scale * 0.6 : 0;
-    const project = (x: number, y: number) => {
+    const cameraLift = camera.heightOffset * scale * 0.6;
+    const project = (x: number, y: number, z = 0) => {
       if (!directional) {
         return {
           x: this.width / 2 + (x - camera.x) * scale,
-          y: this.height / 2 + (y - camera.y) * scale,
+          y: this.height / 2 + (y - camera.y) * scale + cameraLift - z * scale * 0.6,
         };
       }
       const deltaX = x - camera.x;
       const deltaY = y - camera.y;
       return {
         x: this.width / 2 + (-forwardY * deltaX + forwardX * deltaY) * scale,
-        y: this.height * anchorY - (forwardX * deltaX + forwardY * deltaY) * scale + cameraLift,
+        y: this.height * anchorY - (forwardX * deltaX + forwardY * deltaY) * scale + cameraLift - z * scale * 0.6,
       };
     };
     const screenYaw = (yaw: number) => directional ? yaw - camera.heading - Math.PI / 2 : yaw;
+    const mountainFrame = inNorthstarTerrain(camera.x, camera.y) && !interior;
+    const deckDraws: Array<{ height: number; draw: () => void }> = [];
+    const drawOnDeck = (height: number, draw: () => void, point: WorldPoint = camera) => {
+      if (!mountainFrame && height <= 1) draw();
+      else {
+        const depth = mountainFrame ? height + (directional
+          ? -0.6 * (forwardX * (point.x - camera.x) + forwardY * (point.y - camera.y))
+          : 0.6 * (point.y - camera.y)) : height;
+        deckDraws.push({ height: depth, draw });
+      }
+    };
 
     // Two small ellipses give contact and a soft edge without per-actor blur.
-    const drawGroundShadow = (x: number, y: number, sx: number, sy: number, yaw: number, alpha = 0.22) => {
-      const p = project(x, y);
+    const drawGroundShadow = (x: number, y: number, sx: number, sy: number, yaw: number, alpha = 0.22, z = 0) => {
+      const p = project(x, y, z);
       const radius = Math.max(sx, sy) * scale * 0.55;
       if (p.x < -radius || p.x > this.width + radius || p.y < -radius || p.y > this.height + radius) return;
       ctx.save();
@@ -302,8 +322,7 @@ export class Canvas2DRenderer implements Renderer {
 
     const drawBox = (box: Box) => {
       if (box.z < -0.4) return;
-      const p = project(box.x, box.y);
-      p.y -= (box.screenLift ?? 0) * scale;
+      const p = project(box.x, box.y, box.screenLift ?? 0);
       const roll = box.pitch ?? 0;
       const pitch = box.tilt ?? 0;
       const width = (Math.abs(Math.cos(pitch)) * box.sx + Math.abs(Math.sin(pitch)) * box.sz) * scale;
@@ -375,137 +394,126 @@ export class Canvas2DRenderer implements Renderer {
       ctx.restore();
     };
 
-    for (const box of world.boxes) drawBox(box);
-    if (!interior) for (const box of ambientPeopleBoxes(game, seconds, controlledPose(game))) drawBox(box);
+    const drawSurface = (surface: MeshFace) => {
+      const [a, b, c] = surface.corners;
+      const points = surface.corners.map((point) => project(point.x, point.y, point.z));
+      const [pa, pb, pc] = points;
+      // Projected winding also selects the visible walls of pitched buildings.
+      if ((pb.x - pa.x) * (pc.y - pa.y) - (pb.y - pa.y) * (pc.x - pa.x) < -1e-8) return;
+      if (points.every((point) => point.x < -40) || points.every((point) => point.x > this.width + 40)
+        || points.every((point) => point.y < -40) || points.every((point) => point.y > this.height + 40)) return;
+      const center = { x: surface.corners.reduce((sum, p) => sum + p.x, 0) / surface.corners.length,
+        y: surface.corners.reduce((sum, p) => sum + p.y, 0) / surface.corners.length };
+      drawOnDeck(surface.corners.reduce((sum, point) => sum + point.z, 0) / surface.corners.length, () => {
+        const nx = (b.y - a.y) * (c.z - a.z) - (b.z - a.z) * (c.y - a.y);
+        const ny = (b.z - a.z) * (c.x - a.x) - (b.x - a.x) * (c.z - a.z);
+        const nz = (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
+        const length = Math.hypot(nx, ny, nz) || 1;
+        ctx.fillStyle = rgba(litSurfaceColor(surface.color, nx / length, ny / length, nz / length));
+        ctx.beginPath();
+        ctx.moveTo(points[0].x, points[0].y);
+        for (const point of points.slice(1)) ctx.lineTo(point.x, point.y);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = ctx.fillStyle;
+        ctx.lineWidth = 0.7;
+        ctx.stroke();
+      }, center);
+    };
+    for (const box of world.boxes) {
+      if (mountainFrame && inNorthstarTerrain(box.x, box.y)) {
+        let faces = this.boxFaces.get(box);
+        if (!faces) { faces = boxSurfaceFaces(box); this.boxFaces.set(box, faces); }
+        for (const face of faces) drawSurface(face);
+      } else drawOnDeck(box.screenLift ? box.z : 0, () => drawBox(box), box);
+    }
+    for (const surface of [...(world.landscapeSurfaces ?? []), ...(world.surfaces ?? [])]) drawSurface(surface);
+    if (!interior) {
+      for (const box of ambientPeopleBoxes(game, seconds, controlledPose(game))) drawOnDeck(box.z, () => drawBox(box));
+      for (const box of mountainAnimatedBoxes(seconds, controlledPose(game))) drawOnDeck(box.z, () => drawBox(box));
+    }
 
     const fareWaiters = interior ? [] : waitingFares(game);
     const ringPulse = 1 + Math.sin(seconds * 5) * 0.08;
-    for (const { index, job } of fareWaiters) {
-      const pickup = project(job.pickup.x, job.pickup.y);
-      const selected = !game.onboard && index === game.jobIndex;
-      ctx.save();
-      ctx.strokeStyle = "#00dfe9";
-      ctx.lineWidth = selected ? 7 : 4;
-      ctx.setLineDash(selected ? [] : [8, 6]);
-      ctx.beginPath();
-      ctx.arc(pickup.x, pickup.y, scale * 3.9 * ringPulse, 0, Math.PI * 2);
-      ctx.stroke();
-      if (selected) {
-        ctx.strokeStyle = "rgba(255,255,255,0.92)";
-        ctx.lineWidth = 2;
+    const drawObjectiveRing = (point: WorldPoint, color: string, selected = false, dashed = false, radius = 3.9) => {
+      drawOnDeck((point.z ?? 0) + 0.9, () => {
+        const center = project(point.x, point.y, point.z ?? 0);
+        ctx.save();
+        ctx.strokeStyle = color;
+        ctx.lineWidth = selected ? 7 : 4;
+        ctx.setLineDash(dashed ? [8, 6] : []);
         ctx.beginPath();
-        ctx.arc(pickup.x, pickup.y, scale * 4.45 * ringPulse, 0, Math.PI * 2);
+        ctx.arc(center.x, center.y, scale * radius * ringPulse, 0, Math.PI * 2);
         ctx.stroke();
-      }
-      ctx.restore();
+        if (selected) {
+          ctx.strokeStyle = "rgba(255,255,255,0.92)";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(center.x, center.y, scale * (radius + 0.55) * ringPulse, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+        ctx.restore();
+      });
+    };
+    for (const { index, job } of fareWaiters) {
+      const selected = !game.onboard && index === game.jobIndex;
+      drawObjectiveRing(job.pickup, "#00dfe9", selected, !selected);
     }
-    if (!interior && game.onboard) {
-      const dropoff = getObjective(game);
-      const pickup = project(dropoff.x, dropoff.y);
-      ctx.save();
-      ctx.strokeStyle = "#ef281c";
-      ctx.lineWidth = 7;
-      ctx.beginPath();
-      ctx.arc(pickup.x, pickup.y, scale * 3.9 * ringPulse, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.restore();
-    }
-    if (!interior && game.activeCourier) {
-      const courierTarget = getObjective(game);
-      const marker = project(courierTarget.x, courierTarget.y);
-      ctx.save();
-      ctx.strokeStyle = game.activeCourier.stage === "pickup" ? "#ef6a1f" : "#ed3f96";
-      ctx.lineWidth = 8;
-      ctx.setLineDash([10, 6]);
-      ctx.beginPath();
-      ctx.arc(marker.x, marker.y, scale * 4.3 * ringPulse, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.restore();
-    }
+    if (!interior && game.onboard) drawObjectiveRing(getObjective(game), "#ef281c", true);
+    if (!interior && game.activeCourier) drawObjectiveRing(getObjective(game),
+      game.activeCourier.stage === "pickup" ? "#ef6a1f" : "#ed3f96", true, true, 4.3);
 
     const route = driving ? navigationPlan.route : [];
-    ctx.save();
-    ctx.setLineDash([11, 9]);
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-    ctx.beginPath();
-    route.forEach((point, index) => {
-      const p = project(point.x, point.y);
-      if (index === 0) ctx.moveTo(p.x, p.y);
-      else ctx.lineTo(p.x, p.y);
-    });
-    ctx.strokeStyle = "#090909";
-    ctx.lineWidth = 10;
-    ctx.stroke();
-    ctx.strokeStyle = game.customDestination
-      ? "#ffd400"
-      : game.activeCourier
-      ? game.activeCourier.stage === "pickup" ? "#ef6a1f" : "#ed3f96"
-      : game.onboard ? "#f0442e" : "#16dfe4";
-    ctx.lineWidth = 5;
-    ctx.lineDashOffset = -seconds * 18;
-    ctx.stroke();
-    ctx.restore();
-
-    const drawCar = (x: number, y: number, heading: number, color: string, taxi = false) => {
-      const p = project(x, y);
-      const crownTaxi = taxi && game.drivingModel === "simulation";
-      const bodyLength = crownTaxi ? 3.15 : 2.5;
-      const bodyWidth = crownTaxi ? 1.34 : 1.3;
-      const shadowOffset = groundShadowOffset(0.45);
-      drawGroundShadow(x + shadowOffset.x, y + shadowOffset.y, bodyLength + 0.7, bodyWidth + 0.5, heading);
-      ctx.save();
-      ctx.translate(p.x, p.y);
-      ctx.rotate(screenYaw(heading));
-      ctx.fillStyle = "#090909";
-      ctx.fillRect(-(bodyLength + 0.4) * scale / 2, -(bodyWidth + 0.25) * scale / 2, (bodyLength + 0.4) * scale, (bodyWidth + 0.25) * scale);
-      ctx.fillStyle = color;
-      ctx.fillRect(-bodyLength * scale / 2, -bodyWidth * scale / 2, bodyLength * scale, bodyWidth * scale);
-      ctx.fillStyle = taxi ? "#fff3d8" : "#222";
-      ctx.fillRect((crownTaxi ? -0.58 : -0.45) * scale, -0.48 * scale, (crownTaxi ? 1.08 : 0.9) * scale, 0.96 * scale);
-      if (taxi) {
-        ctx.fillStyle = "#090909";
-        const checkerCount = crownTaxi ? 9 : 7;
-        for (let i = -Math.floor(checkerCount / 2); i <= Math.floor(checkerCount / 2); i += 1) {
-          ctx.fillRect(i * scale * 0.24, -bodyWidth * scale * 0.51, scale * 0.12, scale * 0.16);
-        }
-        if (crownTaxi) {
-          ctx.fillStyle = "#465e66";
-          ctx.fillRect(-0.46 * scale, -0.43 * scale, 0.86 * scale, 0.86 * scale);
-          ctx.fillStyle = "#ffc400";
-          ctx.fillRect(-0.1 * scale, -0.73 * scale, 0.56 * scale, 0.13 * scale);
-          ctx.fillRect(-0.1 * scale, 0.6 * scale, 0.56 * scale, 0.13 * scale);
-          ctx.fillStyle = "#d6d6c8";
-          ctx.fillRect(1.52 * scale, -0.66 * scale, 0.13 * scale, 1.32 * scale);
-          ctx.fillRect(-1.65 * scale, -0.66 * scale, 0.13 * scale, 1.32 * scale);
-        }
-        if (game.activeCourier?.stage === "dropoff" && game.activeCourier.loadedInTaxi) {
-          ctx.fillStyle = "#ef6a1f";
-          ctx.strokeStyle = "#090909";
-          ctx.lineWidth = Math.max(2, scale * 0.12);
-          ctx.fillRect(-0.42 * scale, -0.42 * scale, 0.84 * scale, 0.84 * scale);
-          ctx.strokeRect(-0.42 * scale, -0.42 * scale, 0.84 * scale, 0.84 * scale);
-        }
-      }
-      ctx.restore();
-    };
+    let dashDistance = 0;
+    for (let index = 1; index < route.length; index += 1) {
+      const a = route[index - 1], b = route[index];
+      const start = project(a.x, a.y, (a.z ?? 0) + 0.75);
+      const end = project(b.x, b.y, (b.z ?? 0) + 0.75);
+      const phase = dashDistance;
+      dashDistance += Math.hypot(end.x - start.x, end.y - start.y);
+      drawOnDeck(((a.z ?? 0) + (b.z ?? 0)) / 2 + 0.75, () => {
+        ctx.save();
+        ctx.setLineDash([11, 9]);
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        ctx.lineDashOffset = phase - seconds * 18;
+        ctx.beginPath();
+        ctx.moveTo(start.x, start.y);
+        ctx.lineTo(end.x, end.y);
+        ctx.strokeStyle = "#090909";
+        ctx.lineWidth = 10;
+        ctx.stroke();
+        ctx.strokeStyle = game.customDestination
+          ? "#ffd400"
+          : game.activeCourier
+          ? game.activeCourier.stage === "pickup" ? "#ef6a1f" : "#ed3f96"
+          : game.onboard ? "#f0442e" : "#16dfe4";
+        ctx.lineWidth = 5;
+        ctx.stroke();
+        ctx.restore();
+      });
+    }
 
     for (const car of interior ? [] : game.traffic) {
       if (game.elapsed >= car.activeAt) {
-        drawCar(car.x, car.y, car.heading, rgba(car.color));
+        const boxes: Box[] = [];
+        addCarBoxes(boxes, car.x, car.y, car.heading, car.color, false, false);
+        placeBoxesOnRoad(boxes, 0, { x: car.x, y: car.y, heading: car.heading, z: car.z ?? 0, pitch: car.pitch ?? 0, roll: car.roll ?? 0 });
+        drawOnDeck((car.z ?? 0) + 1, () => {
+          drawGroundShadow(car.x, car.y, 5.2, 2.7, car.heading, 0.22, car.z ?? 0);
+          for (const box of boxes) drawBox(box);
+        });
       }
     }
-    for (const box of boostTrailBoxes(game, seconds)) drawBox(box);
-    for (const box of particleBoxes(game, seconds)) drawBox(box);
+    for (const box of boostTrailBoxes(game, seconds)) drawOnDeck((game.z ?? 0) + 1, () => drawBox(box));
+    for (const box of particleBoxes(game, seconds)) drawOnDeck(box.z + 0.8, () => drawBox(box));
     if (shouldRenderTaxi(interior ? "interior" : driving ? "driving" : "walking", camera.mode)) {
-      if (game.drivingModel === "simulation") {
-        const shadow = taxiGroundShadow(game)!;
-        drawGroundShadow(shadow.x, shadow.y, shadow.sx, shadow.sy, shadow.yaw, 0.28);
+      const shadow = taxiGroundShadow(game)!;
+      drawOnDeck(game.z + 1, () => {
+        drawGroundShadow(shadow.x, shadow.y, shadow.sx, shadow.sy, shadow.yaw, 0.28, shadow.screenLift);
         for (const box of taxiBoxes(game, { includeGroundShadow: false })) drawBox(box);
-      } else {
-        drawCar(game.x, game.y, game.heading, "#ffc400", true);
-      }
-      const taxi = project(game.x, game.y);
+      });
+      const taxi = project(game.x, game.y, game.z);
       ctx.save();
       ctx.setLineDash([6, 5]);
       ctx.strokeStyle = "rgba(22,223,228,0.72)";
@@ -520,8 +528,9 @@ export class Canvas2DRenderer implements Renderer {
       x: number,
       y: number,
       selected: boolean,
+      z = 0,
     ) => {
-      const point = project(x, y);
+      const point = project(x, y, z);
       const height = Math.max(26, Math.min(62, scale * 2.65));
       const width = height * 0.42;
       const appearance = farePassengerAppearance(artCell);
@@ -581,20 +590,23 @@ export class Canvas2DRenderer implements Renderer {
     };
     for (const { index, job } of fareWaiters) {
       const point = farePassengerPoint(job);
-      drawFarePassenger(
+      drawOnDeck((point.z ?? 0) + 2.5, () => drawFarePassenger(
         job.passengerArtCell,
         job.rider,
         point.x,
         point.y,
         !game.onboard && index === game.jobIndex,
-      );
+        point.z,
+      ));
     }
 
     const drawPlayerAvatar = () => {
       if (game.player.kind !== "walking") return;
       const { actor } = game.player;
       const motion = walkingMotion(actor);
-      const ground = project(actor.x, actor.y);
+      const groundHeight = interior ? 0 : groundAt({ x: actor.x, y: actor.y, z: motion.elevation }).height;
+      const airHeight = Math.max(0, motion.elevation - groundHeight);
+      const ground = project(actor.x, actor.y, groundHeight);
       const animate = seconds !== 0;
       const phase = animate ? motion.gaitPhase : 0;
       const speedMix = Math.min(1, actor.speed / 8.2);
@@ -604,13 +616,13 @@ export class Canvas2DRenderer implements Renderer {
       const width = height * 0.42;
       const stride = Math.sin(phase) * width * 0.2 * speedMix * (1 - crouch * 0.5);
       const runLean = motion.action === "run" ? width * 0.08 * speedMix : 0;
-      const lift = motion.elevation * scale;
+      const lift = airHeight * scale * 0.6;
       const landingSquash = animate ? motion.landingImpact * height * 0.04 : 0;
       const faceDirection = Math.sin(screenYaw(actor.heading));
 
       ctx.save();
       ctx.translate(ground.x, ground.y);
-      ctx.fillStyle = `rgba(12,24,38,${0.38 / (1 + motion.elevation * 0.5)})`;
+      ctx.fillStyle = `rgba(12,24,38,${0.38 / (1 + airHeight * 0.5)})`;
       ctx.beginPath();
       ctx.ellipse(0, 2, width * (0.63 - Math.min(0.28, motion.elevation * 0.1)), height * 0.08, 0, 0, Math.PI * 2);
       ctx.fill();
@@ -690,14 +702,27 @@ export class Canvas2DRenderer implements Renderer {
     };
 
     if (shouldRenderPlayerAvatar(interior ? "interior" : driving ? "driving" : "walking", camera.mode)) {
-      drawPlayerAvatar();
+      drawOnDeck((controlledPose(game).z ?? 0) + 1.2, drawPlayerAvatar);
     }
-    for (const box of interactionMarkerBoxes(game, world, seconds)) drawBox(box);
+    for (const box of interactionMarkerBoxes(game, world, seconds)) drawOnDeck(box.z, () => drawBox(box));
+    deckDraws.sort((a, b) => a.height - b.height);
+    for (const item of deckDraws) item.draw();
+    if (!interior && groundAt({ x: game.x, y: game.y, z: game.z + 100 }).height > game.z + 2) {
+      const taxi = project(game.x, game.y, game.z);
+      ctx.save();
+      ctx.translate(taxi.x, taxi.y);
+      ctx.rotate(screenYaw(game.heading));
+      ctx.strokeStyle = "rgba(22,223,228,0.75)";
+      ctx.lineWidth = 2;
+      ctx.setLineDash([5, 4]);
+      ctx.strokeRect(-2.5 * scale, -1.3 * scale, 5 * scale, 2.6 * scale);
+      ctx.restore();
+    }
 
     const turnCue = navigationPlan.turnCue;
     if (driving && navigationPlan.requiresUTurn) {
       const marker = localPoint(game.x, game.y, game.heading, 11, 0);
-      const ground = project(marker.x, marker.y);
+      const ground = project(marker.x, marker.y, game.z);
       const bob = Math.sin(seconds * 5) * 4;
       ctx.save();
       ctx.translate(ground.x, ground.y - 35 - bob);
@@ -723,7 +748,7 @@ export class Canvas2DRenderer implements Renderer {
       ctx.fillText("U-TURN", 0, 51);
       ctx.restore();
     } else if (driving && turnCue) {
-      const ground = project(turnCue.point.x, turnCue.point.y);
+      const ground = project(turnCue.point.x, turnCue.point.y, turnCue.point.z ?? 0);
       const hover = 25 + Math.sin(seconds * 5) * 5;
       ctx.save();
       ctx.strokeStyle = "rgba(22,223,228,0.85)";

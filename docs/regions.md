@@ -27,8 +27,8 @@ units wide.
 The active footprint is 726 chunks: 121 per region.
 
 The center/E seam is the road at `x = 792`, and the N/center seam is the road at
-`y = -792`. Cedar Vale's outer road is `x = 2376`; Northstar Range's outer road
-is `y = -2376`. The center/S seam is `y = 792`, and Copper Mesa's outer road is
+`y = -792`. Cedar Vale's outer road is `x = 2376`; Northstar Range ends in
+mountain wilderness at `y = -2376`, with no perimeter street. The center/S seam is `y = 792`, and Copper Mesa's outer road is
 `y = 2376`. Cypress Reach fills the southeast cell, sharing `y = 792` with
 Cedar Vale and `x = 792` with Copper Mesa; its outer roads are `x = 2376` and
 `y = 2376`. Solana Coast shares `x = -792` with Neon City; its outer west
@@ -46,6 +46,10 @@ registry rather than infer playable space from one symmetric radius or hull.
   registry.
 - `game/mountain.ts` owns Northstar Range's area deck, rural building families,
   terrain dressing, portals, and authored anchor registry.
+- `game/terrain/` owns Northstar's landforms, settlement benches, shared terrain
+  mesh/contact, watercourse beds, distant terrain, and GPS contours.
+- `game/mountain-scenery.ts` owns the spillway and gondola; `game/architecture.ts`
+  supplies pitched roofs, faceted rocks, conifer crowns, and the observatory dome.
 - `game/desert.ts` owns Copper Mesa's area deck, desert vegetation and apparent
   terrain, adobe/roadside families, portals, and authored anchor registry.
 - `game/wetland.ts` owns Cypress Reach's town, bayou, coast, water, stilt-house,
@@ -103,9 +107,11 @@ retain public streets between their tiles and expose exactly one stable portal.
 Northstar Range is a rural mountain destination built around a small tourism
 town rather than another urban grid. Its visual language uses pine forest,
 granite shelves, meadow and snow colors, cabins, A-frames, farmsteads, a sparse
-roadside-services layer, and resort architecture. Four winding authored roads—
-Northstar Highway, Pinehook Loop, Mirror Lake Road, and Silver Run Switchbacks—
-connect its thin rural street skeleton to the city seam.
+roadside-services layer, and resort architecture. Five winding authored roads—
+Northstar Highway, Pinehook Loop, Mirror Lake Road, Silver Run Switchbacks, and
+Spruce Gorge Viaduct—connect its compact village and short service lanes to the
+city seam. The highway includes a covered rock gallery; Silver Run makes broad
+hairpins around Aurora Lookout and returns around the west side of the resort.
 
 Its five named areas are:
 
@@ -124,12 +130,18 @@ The nine authored anchors are Northstar Gate, Timber Pass Gas & General,
 Northstar Village Square, Timberline Lodge, Pinewatch Ranger Station, Old
 Spruce Mill, Mirror Lake, Silver Run Resort, and Aurora Lookout.
 
-The current engine keeps every driveable road and actor on one physical plane.
-Northstar creates apparent elevation with layered cliffs, rock shelves,
-snowcaps, tree density, lift towers, resort silhouettes, and distant
-mountain forms. True road grades are intentionally deferred until vehicle,
-traffic, collision, camera, navigation, and Canvas fallback can share one
-elevation-aware contract.
+Northstar now has physical mountains: a 9-unit triangulated terrain field,
+road cuts and embankments, high bridges over the gorge, and buildings on graded
+benches. Village ground is z=44, Mirror Lake z=82, the resort z=128, Aurora
+Lookout z=157, and the upper gondola station z=221. Road tops add 0.64. Terrain,
+tires, walking feet, traffic, collision, camera height, fare approaches, portals,
+and both GPS views share those elevations. GPS displays 18 meters per unit.
+
+Mirror Lake drains through an animated spillway into the gorge. An eight-cabin
+gondola follows two sagging cables above a cleared snow run between the resort
+and an upper station. It is animated scenery, with solid station walls, ceilings,
+and pylons; it does not transport the player. Distant ridges use the same physical
+height field as nearby mountains, so they remain in place throughout the climb.
 
 ## Copper Mesa: South region
 

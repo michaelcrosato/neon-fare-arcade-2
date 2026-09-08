@@ -189,11 +189,11 @@ export const NAVIGATION_ARRIVAL_RADIUS = 6;
 export const NAVIGATION_REPLAN_COOLDOWN = 0.35;
 export const FARE_HANDOFF_SECONDS = 1;
 export const MAX_CHUNK_BOXES = 760;
-export const MAX_CHUNK_COLLIDERS = 128;
+export const MAX_CHUNK_COLLIDERS = 256;
 export const MAX_CHUNK_INTERACTIONS = 32;
 export const MAX_STREAM_BOXES =
   MAX_CHUNK_BOXES * (DISTANT_STREAM_RADIUS * 2 + 1) ** 2;
-export const MAX_STREAM_COLLIDERS = 920;
+export const MAX_STREAM_COLLIDERS = 1_536;
 export const MAX_STREAM_INTERACTIONS = 720;
 export const PERSPECTIVE_DRAW_DISTANCE = 400;
 
@@ -214,6 +214,9 @@ export const MATERIAL = {
   WATER: 13,
   PERSON: 14,
   PLAYER: 15,
+  TIMBER: 16,
+  STONE: 17,
+  SNOW: 18,
 } as const satisfies Record<string, MaterialId>;
 
 // Compatibility aliases keep the existing rendering code readable while the
@@ -234,6 +237,9 @@ export const MAT_SIGN = MATERIAL.SIGN;
 export const MAT_WATER = MATERIAL.WATER;
 export const MAT_PERSON = MATERIAL.PERSON;
 export const MAT_PLAYER = MATERIAL.PLAYER;
+export const MAT_TIMBER = MATERIAL.TIMBER;
+export const MAT_STONE = MATERIAL.STONE;
+export const MAT_SNOW = MATERIAL.SNOW;
 
 /** Passenger and destination atlases scale independently. */
 export const PASSENGER_ART_CELL_COUNT = 168;
@@ -254,7 +260,9 @@ export const FARE_STREAM_NEARBY_TARGET = 3;
 export const MIN_FARE_HANDOFF_DISTANCE = ROAD_SPACING * 2;
 export const MAX_FARE_TRIP_DISTANCE = ROAD_SPACING * 42;
 /** Regional fares may cross a full 11-chunk cell before reaching a neighbor. */
-export const MAX_REGIONAL_FARE_TRIP_DISTANCE = ROAD_SPACING * 60;
+export const MAX_FLAT_REGIONAL_FARE_TRIP_DISTANCE = ROAD_SPACING * 60;
+// The summit road takes a longer route around real ridges and switchbacks.
+export const MAX_REGIONAL_FARE_TRIP_DISTANCE = ROAD_SPACING * 110;
 export const MIN_REGIONAL_FARE_TRIP_DISTANCE = ROAD_SPACING * 10;
 /** Long-haul dropoffs land well inside the new region, not just over its seam. */
 export const REGIONAL_FARE_DESTINATION_DEPTH = ROAD_SPACING * 8;

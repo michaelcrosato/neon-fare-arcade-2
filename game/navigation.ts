@@ -4,7 +4,6 @@ import {
   NAV_VELOCITY_HEADING_ENTER_SPEED,
   NAV_VELOCITY_HEADING_EXIT_SPEED,
   ROAD_HALF,
-  ROAD_SPACING,
   TURN_APPROACH_LIMIT,
   TURN_CUE_ENTER_DISTANCE,
   TURN_CUE_EXIT_DISTANCE,
@@ -15,73 +14,37 @@ import {
   UTURN_EXIT_ANGLE,
   UTURN_MIN_SAVINGS,
   UTURN_ROUTE_RATIO,
-  WORLD_ROAD_MAX_X,
-  WORLD_ROAD_MAX_Y,
-  WORLD_ROAD_MIN_X,
-  WORLD_ROAD_MIN_Y,
 } from "./config";
 import {
   clamp,
-  distance,
-  nearestRoadX,
-  nearestRoadY,
-  nearestRoadDistance,
   normalizeAngle,
   segmentYaw,
 } from "./math";
-import type { Game, NavigationPlan, TurnCue, Vec2 } from "./model";
+import type { Game, NavigationPlan, TurnCue, WorldPoint } from "./model";
+import { roadDistance as distance } from "./roads/geometry";
 import {
   buildGpsRoute,
   compactRoute,
   routeLength,
-  snapToRoad,
 } from "./route-geometry";
 import {
   isRoadJunctionPoint,
-  nearestSpecialRoadProjection,
   roadHalfWidthAtPoint,
-  routeCrossesRoundaboutIsland,
   routeRoadNetwork,
 } from "./road-network";
 import { getNavigationKey, getNavigationTarget } from "./state";
-import { containingRegionForPosition } from "./regions";
-import {
-  gridStreetPointEnabled,
-  regionUsesSparseRoadTopology,
-  routeStaysOnEnabledRoads,
-} from "./road-topology";
 
 export { buildGpsRoute, compactRoute, routeLength, snapToRoad } from "./route-geometry";
 export type { RoadSnap } from "./route-geometry";
 
 export type RouteCandidate = {
-  route: Vec2[];
+  route: WorldPoint[];
   departureYaw: number;
   cost?: number;
   usesSpecialRoad?: boolean;
 };
 
-export function navigationRoadAxis(start: Vec2, heading: number): "vertical" | "horizontal" {
-  const verticalDistance = nearestRoadDistance(start.x, "x");
-  const horizontalDistance = nearestRoadDistance(start.y, "y");
-  if (verticalDistance <= ROAD_HALF + 0.8 && horizontalDistance <= ROAD_HALF + 0.8) {
-    return Math.abs(Math.cos(heading)) >= Math.abs(Math.sin(heading)) ? "horizontal" : "vertical";
-  }
-  if (verticalDistance + 0.8 < horizontalDistance) return "vertical";
-  if (horizontalDistance + 0.8 < verticalDistance) return "horizontal";
-  return Math.abs(Math.cos(heading)) >= Math.abs(Math.sin(heading)) ? "horizontal" : "vertical";
-}
-
-export function nextIntersection(value: number, direction: 1 | -1, axis: "x" | "y" = "x") {
-  const next = direction > 0
-    ? Math.floor(value / ROAD_SPACING + 1) * ROAD_SPACING
-    : Math.ceil(value / ROAD_SPACING - 1) * ROAD_SPACING;
-  const min = axis === "x" ? WORLD_ROAD_MIN_X : WORLD_ROAD_MIN_Y;
-  const max = axis === "x" ? WORLD_ROAD_MAX_X : WORLD_ROAD_MAX_Y;
-  return next >= min && next <= max ? next : null;
-}
-
-export function routeDepartureYaw(route: Vec2[], fallback: number) {
+export function routeDepartureYaw(route: WorldPoint[], fallback: number) {
   for (let index = 1; index < route.length; index += 1) {
     const before = route[index - 1];
     const point = route[index];
@@ -92,167 +55,14 @@ export function routeDepartureYaw(route: Vec2[], fallback: number) {
   return next ? segmentYaw(route[0], next) : fallback;
 }
 
-export function routeHasReverseTurn(route: Vec2[]) {
-  let previousYaw: number | null = null;
-  for (let index = 1; index < route.length; index += 1) {
-    const before = route[index - 1];
-    const point = route[index];
-    if (distance(before, point) < 1) continue;
-    const yaw = segmentYaw(before, point);
-    if (previousYaw !== null && Math.abs(normalizeAngle(yaw - previousYaw)) > 2.55) return true;
-    previousYaw = yaw;
-  }
-  return false;
+function graphRouteCandidateForDirection(start: WorldPoint, target: WorldPoint, heading: number, direction: 1 | -1) {
+  const route = routeRoadNetwork(start, target, heading, direction);
+  return route ? { ...route, route: compactRoute(route.route) } : null;
 }
 
-export function routeEndpointIntersections(point: Vec2, axis: "vertical" | "horizontal") {
-  const coordinate = axis === "vertical" ? point.y : point.x;
-  const min = axis === "vertical" ? WORLD_ROAD_MIN_Y : WORLD_ROAD_MIN_X;
-  const max = axis === "vertical" ? WORLD_ROAD_MAX_Y : WORLD_ROAD_MAX_X;
-  const low = clamp(Math.floor(coordinate / ROAD_SPACING) * ROAD_SPACING, min, max);
-  const high = clamp(Math.ceil(coordinate / ROAD_SPACING) * ROAD_SPACING, min, max);
-  const values = low === high ? [low] : [low, high];
-  return values.map((value) => axis === "vertical" ? { x: point.x, y: value } : { x: value, y: point.y });
-}
-
-export function gridPaths(from: Vec2, to: Vec2) {
-  const candidates: Vec2[][] = [
-    [from, { x: to.x, y: from.y }, to],
-    [from, { x: from.x, y: to.y }, to],
-  ];
-  for (const offset of [-ROAD_SPACING, ROAD_SPACING]) {
-    candidates.push([
-      from,
-      { x: from.x + offset, y: from.y },
-      { x: from.x + offset, y: to.y },
-      to,
-    ]);
-    candidates.push([
-      from,
-      { x: from.x, y: from.y + offset },
-      { x: to.x, y: from.y + offset },
-      to,
-    ]);
-  }
-  return candidates;
-}
-
-export function routeCandidateForDirection(start: Vec2, target: Vec2, heading: number, direction: 1 | -1): RouteCandidate | null {
-  const axis = navigationRoadAxis(start, heading);
-  const from = axis === "vertical"
-    ? { x: nearestRoadX(start.x), y: start.y }
-    : { x: start.x, y: nearestRoadY(start.y) };
-  const targetRoad = snapToRoad(target);
-  const headingSign = axis === "vertical" ? Math.sign(Math.sin(heading)) : Math.sign(Math.cos(heading));
-  const forwardSign = ((headingSign || 1) * direction) as 1 | -1;
-  const departureYaw = axis === "vertical"
-    ? forwardSign > 0 ? Math.PI / 2 : -Math.PI / 2
-    : forwardSign > 0 ? 0 : Math.PI;
-
-  const sameRoad = axis === targetRoad.axis && (
-    axis === "vertical"
-      ? Math.abs(from.x - targetRoad.point.x) < 0.8
-      : Math.abs(from.y - targetRoad.point.y) < 0.8
-  );
-  const targetDelta = axis === "vertical" ? targetRoad.point.y - from.y : targetRoad.point.x - from.x;
-  if (sameRoad && targetDelta * forwardSign > 1) {
-    const route = compactRoute([start, from, targetRoad.point, target]);
-    if (routeStaysOnEnabledRoads(route)) {
-      return { route, departureYaw };
-    }
-  }
-
-  const candidates: RouteCandidate[] = [];
-  const collectCandidates = (prefix: Vec2[], gridStart: Vec2, initialYaw: number) => {
-    for (const endpoint of routeEndpointIntersections(targetRoad.point, targetRoad.axis)) {
-      for (const gridPath of gridPaths(gridStart, endpoint)) {
-        const rawRoute = [...prefix, ...gridPath, targetRoad.point, target]
-          .filter((point, index, points) => index === 0 || distance(point, points[index - 1]) > 0.1);
-        const insideWorld = routeStaysOnEnabledRoads(rawRoute);
-        if (
-          insideWorld
-          && !routeHasReverseTurn(rawRoute)
-          && routeStaysOnEnabledRoads(rawRoute)
-        ) {
-          candidates.push({ route: compactRoute(rawRoute), departureYaw: initialYaw });
-        }
-      }
-    }
-  };
-
-  const firstCoordinate = nextIntersection(
-    axis === "vertical" ? from.y : from.x,
-    forwardSign,
-    axis === "vertical" ? "y" : "x",
-  );
-  if (firstCoordinate !== null) {
-    const first = axis === "vertical" ? { x: from.x, y: firstCoordinate } : { x: firstCoordinate, y: from.y };
-    collectCandidates([start, from], first, departureYaw);
-  } else if (direction > 0) {
-    // At the outer city edge, a legal 90-degree turn is a better first choice
-    // than telling the player to reverse away from the boundary.
-    const boundary = axis === "vertical"
-      ? { x: from.x, y: nearestRoadY(from.y) }
-      : { x: nearestRoadX(from.x), y: from.y };
-    if (distance(from, boundary) <= ROAD_HALF + 0.5) {
-      for (const side of [-1, 1]) {
-        const lateral = axis === "vertical"
-          ? { x: boundary.x + side * ROAD_SPACING, y: boundary.y }
-          : { x: boundary.x, y: boundary.y + side * ROAD_SPACING };
-        if (
-          lateral.x >= WORLD_ROAD_MIN_X && lateral.x <= WORLD_ROAD_MAX_X
-          && lateral.y >= WORLD_ROAD_MIN_Y && lateral.y <= WORLD_ROAD_MAX_Y
-          && gridStreetPointEnabled(lateral, axis === "vertical" ? "horizontal" : "vertical")
-        ) {
-          collectCandidates([start, from, boundary], lateral, segmentYaw(boundary, lateral));
-        }
-      }
-    }
-  }
-  candidates.sort((a, b) => routeLength(a.route) - routeLength(b.route));
-  const candidate = candidates[0] || null;
-  return candidate ? { ...candidate, cost: routeLength(candidate.route) } : null;
-}
-
-function hybridRouteCandidateForDirection(
-  start: Vec2,
-  target: Vec2,
-  heading: number,
-  direction: 1 | -1,
-) {
-  const legacy = routeCandidateForDirection(start, target, heading, direction);
-  const network = routeRoadNetwork(start, target, heading, direction);
-  if (!network) return legacy;
-  const startRegion = containingRegionForPosition(start.x, start.y);
-  const targetRegion = containingRegionForPosition(target.x, target.y);
-  const regionalGraphRequired = regionUsesSparseRoadTopology(startRegion?.id)
-    || regionUsesSparseRoadTopology(targetRegion?.id);
-  const specialStart = nearestSpecialRoadProjection(start);
-  const startsOnSpecial = Boolean(
-    specialStart && specialStart.centerDistance <= specialStart.halfWidth + 1.2,
-  );
-  const legacyCost = legacy?.cost ?? (legacy ? routeLength(legacy.route) : Number.POSITIVE_INFINITY);
-  const legacyCrossesIsland = Boolean(legacy && routeCrossesRoundaboutIsland(legacy.route));
-  if (
-    regionalGraphRequired
-    || (startsOnSpecial && network.usesSpecialRoad)
-    || !legacy
-    || legacyCrossesIsland
-    || (network.usesSpecialRoad && network.cost < legacyCost * 0.96)
-  ) {
-    return {
-      route: compactRoute(network.route),
-      departureYaw: network.departureYaw,
-      cost: network.cost,
-      usesSpecialRoad: network.usesSpecialRoad,
-    } satisfies RouteCandidate;
-  }
-  return legacy;
-}
-
-export function buildNavigationPlan(start: Vec2, target: Vec2, heading: number): NavigationPlan {
+export function buildNavigationPlan(start: WorldPoint, target: WorldPoint, heading: number): NavigationPlan {
   const directDistance = distance(start, target);
-  if (directDistance <= NAVIGATION_ARRIVAL_RADIUS) {
+  if (directDistance <= NAVIGATION_ARRIVAL_RADIUS && Math.abs((start.z ?? 0) - (target.z ?? 0)) < 1.4) {
     return makeNavigationPlan({
       route: compactRoute([start, target]),
       departureYaw: directDistance > 0.1 ? segmentYaw(start, target) : heading,
@@ -260,14 +70,11 @@ export function buildNavigationPlan(start: Vec2, target: Vec2, heading: number):
       travelHeading: heading,
     });
   }
-  const forward = hybridRouteCandidateForDirection(start, target, heading, 1);
-  const reverse = hybridRouteCandidateForDirection(start, target, heading, -1);
+  const forward = graphRouteCandidateForDirection(start, target, heading, 1);
+  const reverse = graphRouteCandidateForDirection(start, target, heading, -1);
   const forwardCost = forward?.cost ?? (forward ? routeLength(forward.route) : Number.POSITIVE_INFINITY);
   const reverseCost = reverse?.cost ?? (reverse ? routeLength(reverse.route) : Number.POSITIVE_INFINITY);
-  const reverseSavings = forwardCost - reverseCost;
-  const reverseIsWorthIt = Boolean(reverse) && (
-    !forward || (reverseSavings >= UTURN_MIN_SAVINGS && forwardCost >= reverseCost * UTURN_ROUTE_RATIO)
-  );
+  const reverseIsWorthIt = Boolean(reverse) && preferReverseRoute(forwardCost, reverseCost);
   const chosen = reverseIsWorthIt ? reverse : forward || reverse;
   if (!chosen) {
     const networkFallback = routeRoadNetwork(start, target, heading, 1)
@@ -289,6 +96,11 @@ export function buildNavigationPlan(start: Vec2, target: Vec2, heading: number):
   });
 }
 
+export function preferReverseRoute(forwardCost: number, reverseCost: number) {
+  return Number.isFinite(reverseCost) && (forwardCost - reverseCost >= UTURN_MIN_SAVINGS
+    && forwardCost >= reverseCost * UTURN_ROUTE_RATIO);
+}
+
 function makeNavigationPlan(plan: Omit<NavigationPlan, "turnCue">): NavigationPlan {
   const rawCue = plan.requiresUTurn ? null : nextTurnCue(plan.route, plan.departureYaw);
   const turnCue = rawCue
@@ -304,19 +116,20 @@ export function gameTravelHeading(game: Game, useVelocity = Math.hypot(game.vx, 
   return useVelocity && velocity > 0.01 ? Math.atan2(game.vy, game.vx) : game.heading;
 }
 
-export function pointToSegmentDistance(point: Vec2, start: Vec2, end: Vec2) {
+export function pointToSegmentDistance(point: WorldPoint, start: WorldPoint, end: WorldPoint) {
   const dx = end.x - start.x;
   const dy = end.y - start.y;
   const lengthSquared = dx * dx + dy * dy;
   if (lengthSquared < 0.01) return distance(point, end);
   const t = clamp(((point.x - start.x) * dx + (point.y - start.y) * dy) / lengthSquared, 0, 1);
-  return distance(point, { x: start.x + dx * t, y: start.y + dy * t });
+  const z = (start.z ?? 0) + ((end.z ?? 0) - (start.z ?? 0)) * t;
+  return Math.hypot(point.x - start.x - dx * t, point.y - start.y - dy * t, ((point.z ?? 0) - z) * 4);
 }
 
 export class NavigationController {
   private objectiveKey = "";
-  private waypoints: Vec2[] = [];
-  private activeStart: Vec2 = { x: 0, y: 0 };
+  private waypoints: WorldPoint[] = [];
+  private activeStart: WorldPoint = { x: 0, y: 0 };
   private activeYaw = 0;
   private wrongWay = false;
   private alignedFor = 0;
@@ -326,7 +139,7 @@ export class NavigationController {
   private turnCueVisible = false;
   private usingVelocityHeading = false;
 
-  private adoptPlan(plan: NavigationPlan, player: Vec2, elapsed: number) {
+  private adoptPlan(plan: NavigationPlan, player: WorldPoint, elapsed: number) {
     this.waypoints = plan.route.slice(1);
     this.activeStart = player;
     this.activeYaw = plan.departureYaw;
@@ -335,7 +148,7 @@ export class NavigationController {
     this.lastReplanAt = elapsed;
   }
 
-  private resolveTurnCue(player: Vec2, travelHeading: number): TurnCue | null {
+  private resolveTurnCue(player: WorldPoint, travelHeading: number): TurnCue | null {
     if (this.wrongWay || this.waypoints.length < 2) {
       this.turnCueKey = "";
       this.turnCueVisible = false;
@@ -377,7 +190,7 @@ export class NavigationController {
   }
 
   update(game: Game): NavigationPlan {
-    const player = { x: game.x, y: game.y };
+    const player = { x: game.x, y: game.y, z: game.z ?? 0 };
     const target = getNavigationTarget(game);
     const objectiveKey = getNavigationKey(game);
     const isNewRun = game.elapsed + 0.1 < this.lastElapsed;
@@ -403,9 +216,10 @@ export class NavigationController {
     while (this.waypoints.length > 1) {
       const waypoint = this.waypoints[0];
       const next = this.waypoints[1];
+      if (Math.abs((player.z ?? 0) - (waypoint.z ?? 0)) > 1.5) break;
       const waypointDistance = distance(player, waypoint);
       const atIntersection = isRoadJunctionPoint(waypoint);
-      if (!atIntersection && waypointDistance < ROAD_HALF + 1) {
+      if (!atIntersection && waypointDistance < ROAD_HALF + 1 && Math.abs((player.z ?? 0) - (waypoint.z ?? 0)) < 1.4) {
         this.activeStart = waypoint;
         this.waypoints.shift();
         continue;
@@ -471,7 +285,7 @@ export class NavigationController {
   }
 }
 
-export function routeDistanceToPoint(route: Vec2[], target: Vec2) {
+export function routeDistanceToPoint(route: WorldPoint[], target: WorldPoint) {
   if (route.length && distance(route[0], target) < 0.1) return 0;
   let routeDistance = 0;
   for (let index = 1; index < route.length; index += 1) {
@@ -481,7 +295,7 @@ export function routeDistanceToPoint(route: Vec2[], target: Vec2) {
   return Number.POSITIVE_INFINITY;
 }
 
-export function nextTurnCue(route: Vec2[], firstIncomingYaw?: number): TurnCue | null {
+export function nextTurnCue(route: WorldPoint[], firstIncomingYaw?: number): TurnCue | null {
   let routeDistance = 0;
   for (let index = 1; index < route.length - 1; index += 1) {
     const before = route[index - 1];
@@ -510,7 +324,7 @@ export function nextTurnCue(route: Vec2[], firstIncomingYaw?: number): TurnCue |
   return null;
 }
 
-export function gpsInstruction(route: Vec2[], heading: number, turnCue?: TurnCue | null, requiresUTurn = false) {
+export function gpsInstruction(route: WorldPoint[], heading: number, turnCue?: TurnCue | null, requiresUTurn = false) {
   const cueIsControllerResolved = turnCue !== undefined;
   const resolvedTurnCue = turnCue === undefined ? nextTurnCue(route) : turnCue;
   let nextIndex = 1;

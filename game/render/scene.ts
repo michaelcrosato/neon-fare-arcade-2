@@ -1,3 +1,5 @@
+import { atTerrainElevation } from "../terrain/surface";
+import { mountainAnimatedBoxes } from "../mountain-scenery";
 import {
   AMBIENT_PEDESTRIANS_PER_BLOCK,
   BLUE,
@@ -25,7 +27,7 @@ import {
   YELLOW,
 } from "../config";
 import { clamp, distance, localPoint } from "../math";
-import type { Box, Color, Game, Job, Vec2 } from "../model";
+import type { Box, Color, Game, Job, Vec2, WorldPoint } from "../model";
 import { buildGpsRoute, routeLength } from "../route-geometry";
 import { waitingFares } from "../fare-selection";
 import { landmarkTileForBlock } from "../landmarks";
@@ -40,6 +42,14 @@ import { coastalPedestrianCountForBlock } from "../coastal";
 import { isActiveBlock, regionForBlock } from "../regions";
 import type { WorldView } from "../model";
 import { vehicleGroundShadow } from "./lighting";
+import { placeBoxesOnRoad, type RoadPose } from "./road-pose";
+import { groundAt } from "../vehicle-road-contact";
+
+export function taxiRoadPose(game: Game): RoadPose {
+  return { x: game.x, y: game.y, heading: game.heading, z: (game.z ?? 0) + (game.roadMotion?.heave ?? 0),
+    pitch: (game.roadMotion?.pitch ?? 0) + (game.drivingModel === "arcade" ? game.arcadeVehicle?.bodyPitch ?? 0 : 0),
+    roll: (game.roadMotion?.roll ?? 0) + (game.drivingModel === "arcade" ? game.arcadeVehicle?.bodyRoll ?? 0 : 0) };
+}
 
 export function addCarBoxes(
   boxes: Box[],
@@ -49,6 +59,7 @@ export function addCarBoxes(
   color: Color,
   taxi = false,
   includeGroundShadow = true,
+  steering = 0,
 ) {
   const firstBox = boxes.length;
   if (includeGroundShadow) boxes.push(vehicleGroundShadow(x, y, heading, 5.2, 2.7));
@@ -60,7 +71,7 @@ export function addCarBoxes(
   for (const forward of [-1.35, 1.35]) {
     for (const right of [-1.12, 1.12]) {
       const wheel = localPoint(x, y, heading, forward, right);
-      boxes.push({ x: wheel.x, y: wheel.y, z: 0.55, sx: 0.75, sy: 0.24, sz: 0.72, yaw: heading, color: INK });
+      boxes.push({ x: wheel.x, y: wheel.y, z: 0.55, sx: 0.75, sy: 0.24, sz: 0.72, yaw: heading + (forward > 0 ? steering * 0.42 : 0), color: INK });
     }
   }
   if (taxi) {
@@ -251,7 +262,8 @@ export function cabInteriorBoxes(game: Game) {
   const wheelCenterForward = 0.47;
   const wheelCenterZ = 1.25;
   const wheelRadius = 0.25;
-  const steeringRotation = game.simulationVehicle.steeringAngle * 1.7;
+  const steeringRotation = game.drivingModel === "simulation"
+    ? game.simulationVehicle.steeringAngle * 1.7 : game.steering * 0.85;
   for (let index = 0; index < 8; index += 1) {
     const angle = index / 8 * Math.PI * 2 + steeringRotation;
     add(
@@ -267,12 +279,13 @@ export function cabInteriorBoxes(game: Game) {
   }
   add(wheelCenterForward, driverRight, wheelCenterZ, 0.1, 0.48, 0.07, INK, { pitch: steeringRotation });
   add(wheelCenterForward, driverRight, wheelCenterZ, 0.1, 0.08, 0.48, INK, { pitch: steeringRotation });
+  placeBoxesOnRoad(boxes, 0, taxiRoadPose(game));
   return boxes;
 }
 
 export function routeBoxes(
   game: Game,
-  route: readonly Vec2[] = buildGpsRoute({ x: game.x, y: game.y }, getNavigationTarget(game)),
+  route: readonly WorldPoint[] = buildGpsRoute(game, getNavigationTarget(game)),
 ) {
   if (!isDriving(game)) return [];
   const boxes: Box[] = [];
@@ -295,7 +308,8 @@ export function routeBoxes(
       boxes.push({
         x: a.x + (b.x - a.x) * t,
         y: a.y + (b.y - a.y) * t,
-        z: 0.75,
+        z: (a.z ?? 0) + ((b.z ?? 0) - (a.z ?? 0)) * t + 0.75,
+        screenLift: (a.z ?? 0) + ((b.z ?? 0) - (a.z ?? 0)) * t,
         sx: 2.8,
         sy: 0.48,
         sz: 0.1,
@@ -312,17 +326,22 @@ export function routeBoxes(
 
 export function taxiGroundShadow(game: Game) {
   if (isInterior(game)) return null;
-  return vehicleGroundShadow(game.x, game.y, game.heading,
+  const shadow = vehicleGroundShadow(game.x, game.y, game.heading,
     game.drivingModel === "simulation" ? 5.75 : 5.2,
     game.drivingModel === "simulation" ? 2.35 : 2.7);
+  const height = groundAt(game, 0.85).height;
+  shadow.z += height;
+  shadow.screenLift = height;
+  return shadow;
 }
 
 export function taxiBoxes(game: Game, options: { includeGroundShadow?: boolean } = {}) {
   if (isInterior(game)) return [];
   const boxes: Box[] = [];
   if (options.includeGroundShadow !== false) boxes.push(taxiGroundShadow(game)!);
+  const vehicleStart = boxes.length;
   if (game.drivingModel === "simulation") addCrownTaxiBoxes(boxes, game);
-  else addCarBoxes(boxes, game.x, game.y, game.heading, YELLOW, true, false);
+  else addCarBoxes(boxes, game.x, game.y, game.heading, YELLOW, true, false, game.steering);
   if (game.activeCourier?.stage === "dropoff" && game.activeCourier.loadedInTaxi) {
     const parcel = game.drivingModel === "simulation"
       ? crownVehiclePointPose(game, -0.25, 0, 2.17)
@@ -336,6 +355,7 @@ export function taxiBoxes(game: Game, options: { includeGroundShadow?: boolean }
     boxes.push({ ...parcel, sx: 0.9, sy: 0.72, sz: 0.55, yaw: game.heading + Math.PI / 4, color: ORANGE, material: MAT_MARKER, ...bodyAttitude });
     boxes.push({ ...ribbon, sx: 0.62, sy: 0.08, sz: 0.08, yaw: game.heading, color: PINK, material: MAT_MARKER, ...bodyAttitude });
   }
+  placeBoxesOnRoad(boxes, vehicleStart, taxiRoadPose(game));
   return boxes;
 }
 
@@ -379,6 +399,7 @@ export function boostTrailBoxes(game: Game, seconds: number) {
       });
     }
   }
+  placeBoxesOnRoad(boxes, 0, taxiRoadPose(game));
   return boxes;
 }
 
@@ -387,7 +408,8 @@ export function particleBoxes(game: Game, seconds: number) {
   return game.particles.map((particle) => ({
     x: particle.x,
     y: particle.y,
-    z: 0.25,
+    z: (particle.z ?? 0) + 0.25,
+    screenLift: particle.z ?? 0,
     sx: 0.28 + particle.life * 0.45,
     sy: 0.28 + particle.life * 0.45,
     sz: 0.12,
@@ -531,9 +553,9 @@ export function interactionMarkerBoxes(game: Game, world: WorldView, seconds: nu
       ? ORANGE
       : interaction.kind === "service" ? PINK : homeEntrance || active ? YELLOW : CYAN;
     const pulse = 1 + Math.sin(seconds * 6 + interaction.x * 0.1) * 0.12;
-    boxes.push({ x: interaction.x, y: interaction.y, z: 1.5, sx: 0.25, sy: 0.25, sz: 2.1, yaw: 0, color, material: MAT_MARKER });
-    boxes.push({ x: interaction.x, y: interaction.y, z: 2.85, sx: 1.5 * pulse, sy: 1.5 * pulse, sz: 0.22, yaw: seconds, color: INK, material: MAT_MARKER });
-    boxes.push({ x: interaction.x, y: interaction.y, z: 3.02, sx: 1.2 * pulse, sy: 1.2 * pulse, sz: 0.18, yaw: seconds, color, material: MAT_MARKER });
+    boxes.push({ x: interaction.x, y: interaction.y, z: (interaction.z ?? 0) + 1.5, screenLift: interaction.z ?? 0, sx: 0.25, sy: 0.25, sz: 2.1, yaw: 0, color, material: MAT_MARKER });
+    boxes.push({ x: interaction.x, y: interaction.y, z: (interaction.z ?? 0) + 2.85, screenLift: interaction.z ?? 0, sx: 1.5 * pulse, sy: 1.5 * pulse, sz: 0.22, yaw: seconds, color: INK, material: MAT_MARKER });
+    boxes.push({ x: interaction.x, y: interaction.y, z: (interaction.z ?? 0) + 3.02, screenLift: interaction.z ?? 0, sx: 1.2 * pulse, sy: 1.2 * pulse, sz: 0.18, yaw: seconds, color, material: MAT_MARKER });
   }
   return boxes;
 }
@@ -618,7 +640,7 @@ export function ambientPedestrianPointForBlock(
     x -= loopEdge;
     y += loopEdge - loopEdge * 2 * progress;
   }
-  return { x, y };
+  return atTerrainElevation({ x, y, z: 0 });
 }
 
 export function ambientPeopleBoxes(game: Game, seconds: number, focus: Vec2 = game) {
@@ -638,9 +660,9 @@ export function ambientPeopleBoxes(game: Game, seconds: number, focus: Vec2 = ga
       for (let pedestrianIndex = 0; pedestrianIndex < AMBIENT_PEDESTRIANS_PER_BLOCK; pedestrianIndex += 1) {
         const point = ambientPedestrianPointForBlock(blockX, blockY, seconds, pedestrianIndex);
         if (!point) continue;
-        const { x, y } = point;
-        boxes.push({ x, y, z: 1.05, sx: 0.52, sy: 0.38, sz: 1.25, yaw: 0, color: colors[personIndex % colors.length], material: MAT_PERSON });
-        boxes.push({ x, y, z: 1.82, sx: 0.48, sy: 0.48, sz: 0.48, yaw: 0, color: PAPER, material: MAT_PERSON });
+        const { x, y, z } = point;
+        boxes.push({ x, y, z: z + 1.05, screenLift: z, sx: 0.52, sy: 0.38, sz: 1.25, yaw: 0, color: colors[personIndex % colors.length], material: MAT_PERSON });
+        boxes.push({ x, y, z: z + 1.82, screenLift: z, sx: 0.48, sy: 0.48, sz: 0.48, yaw: 0, color: PAPER, material: MAT_PERSON });
         personIndex += 1;
       }
     }
@@ -700,6 +722,7 @@ function farePassengerPose(job: Job) {
   return {
     x: job.pickup.x,
     y: job.pickup.y,
+    z: job.pickup.z ?? 0,
     yaw: Math.atan2(
       job.pickupApproach.y - job.pickup.y,
       job.pickupApproach.x - job.pickup.x,
@@ -708,8 +731,7 @@ function farePassengerPose(job: Job) {
 }
 
 export function farePassengerPoint(job: Job) {
-  const { x, y } = farePassengerPose(job);
-  return { x, y };
+  return { ...job.pickup };
 }
 
 export function farePassengerPalette(index: number) {
@@ -746,12 +768,13 @@ export function farePassengerBoxes(job: Job, index: number, seconds: number) {
   boxes.push({ x: point.x, y: point.y, z: 2.39, sx: 0.69, sy: 0.64, sz: 0.18, yaw, color: hair, material: MAT_PERSON });
   const bag = bodyPart(-0.08, bagSide * 0.82);
   boxes.push({ x: bag.x, y: bag.y, z: 0.72, sx: 0.48, sy: 0.28, sz: 0.72, yaw, color: accent, material: MAT_PERSON });
+  for (const box of boxes) { box.z += point.z; box.screenLift = point.z; }
   return boxes;
 }
 
 function addObjectiveRing(
   boxes: Box[],
-  point: Vec2,
+  point: WorldPoint,
   seconds: number,
   color: Color,
   direction: number,
@@ -763,7 +786,8 @@ function addObjectiveRing(
     boxes.push({
       x: point.x + Math.cos(angle) * 4.1 * pulse,
       y: point.y + Math.sin(angle) * 4.1 * pulse,
-      z: 0.38,
+      z: (point.z ?? 0) + 0.38,
+      screenLift: point.z ?? 0,
       sx: 1.3,
       sy: 0.42,
       sz: 0.32,
@@ -780,15 +804,15 @@ export function farePresentationBoxes(game: Game, seconds: number) {
     addObjectiveRing(boxes, job.pickup, seconds, CYAN, 1.05, 12);
     boxes.push(...farePassengerBoxes(job, index, seconds));
     if (!game.onboard && index === game.jobIndex) {
-      boxes.push({ x: job.pickup.x, y: job.pickup.y, z: 3.15, sx: 0.42, sy: 0.42, sz: 5.8, yaw: 0, color: CYAN, material: MAT_MARKER });
-      boxes.push({ x: job.pickup.x, y: job.pickup.y, z: 6.25, sx: 2.6, sy: 2.6, sz: 0.35, yaw: seconds, color: WHITE, material: MAT_MARKER });
+      boxes.push({ x: job.pickup.x, y: job.pickup.y, z: (job.pickup.z ?? 0) + 3.15, screenLift: job.pickup.z ?? 0, sx: 0.42, sy: 0.42, sz: 5.8, yaw: 0, color: CYAN, material: MAT_MARKER });
+      boxes.push({ x: job.pickup.x, y: job.pickup.y, z: (job.pickup.z ?? 0) + 6.25, screenLift: job.pickup.z ?? 0, sx: 2.6, sy: 2.6, sz: 0.35, yaw: seconds, color: WHITE, material: MAT_MARKER });
     }
   }
   if (game.onboard) {
     const target = getObjective(game);
     addObjectiveRing(boxes, target, seconds, RED, -1.2);
-    boxes.push({ x: target.x, y: target.y, z: 3.15, sx: 0.42, sy: 0.42, sz: 5.8, yaw: 0, color: RED, material: MAT_MARKER });
-    boxes.push({ x: target.x, y: target.y, z: 6.25, sx: 2.6, sy: 2.6, sz: 0.35, yaw: seconds, color: YELLOW, material: MAT_MARKER });
+    boxes.push({ x: target.x, y: target.y, z: (target.z ?? 0) + 3.15, screenLift: target.z ?? 0, sx: 0.42, sy: 0.42, sz: 5.8, yaw: 0, color: RED, material: MAT_MARKER });
+    boxes.push({ x: target.x, y: target.y, z: (target.z ?? 0) + 6.25, screenLift: target.z ?? 0, sx: 2.6, sy: 2.6, sz: 0.35, yaw: seconds, color: YELLOW, material: MAT_MARKER });
   }
   return boxes;
 }
@@ -799,16 +823,16 @@ export function courierPresentationBoxes(game: Game, seconds: number) {
   const color = game.activeCourier.stage === "pickup" ? ORANGE : PINK;
   const boxes: Box[] = [];
   addObjectiveRing(boxes, target, seconds, color, game.activeCourier.stage === "pickup" ? 1.15 : -1.25, 16);
-  boxes.push({ x: target.x, y: target.y, z: 3.45, sx: 0.48, sy: 0.48, sz: 6.4, yaw: 0, color, material: MAT_MARKER });
-  boxes.push({ x: target.x, y: target.y, z: 6.8, sx: 2.8, sy: 2.8, sz: 0.4, yaw: seconds, color: INK, material: MAT_MARKER });
-  boxes.push({ x: target.x, y: target.y, z: 7.08, sx: 2.15, sy: 2.15, sz: 0.34, yaw: seconds, color, material: MAT_MARKER });
+  boxes.push({ x: target.x, y: target.y, z: (target.z ?? 0) + 3.45, screenLift: target.z ?? 0, sx: 0.48, sy: 0.48, sz: 6.4, yaw: 0, color, material: MAT_MARKER });
+  boxes.push({ x: target.x, y: target.y, z: (target.z ?? 0) + 6.8, screenLift: target.z ?? 0, sx: 2.8, sy: 2.8, sz: 0.4, yaw: seconds, color: INK, material: MAT_MARKER });
+  boxes.push({ x: target.x, y: target.y, z: (target.z ?? 0) + 7.08, screenLift: target.z ?? 0, sx: 2.15, sy: 2.15, sz: 0.34, yaw: seconds, color, material: MAT_MARKER });
   return boxes;
 }
 
 export function dynamicBoxes(
   game: Game,
   seconds: number,
-  route: readonly Vec2[] = buildGpsRoute({ x: game.x, y: game.y }, getNavigationTarget(game)),
+  route: readonly WorldPoint[] = buildGpsRoute(game, getNavigationTarget(game)),
   world?: WorldView,
   options: { showPlayerAvatar?: boolean } = {},
 ) {
@@ -821,6 +845,7 @@ export function dynamicBoxes(
   }
   for (const car of game.traffic) {
     if (game.elapsed >= car.activeAt) {
+      const start = boxes.length;
       addCarBoxes(
         boxes,
         car.x,
@@ -828,10 +853,13 @@ export function dynamicBoxes(
         car.heading,
         car.color,
       );
+      placeBoxesOnRoad(boxes, start, { x: car.x, y: car.y, heading: car.heading,
+        z: car.z ?? 0, pitch: car.pitch ?? 0, roll: car.roll ?? 0 });
     }
   }
 
   boxes.push(...boostTrailBoxes(game, seconds));
+  boxes.push(...mountainAnimatedBoxes(seconds, controlledPose(game)));
 
   boxes.push(...ambientPeopleBoxes(game, seconds, controlledPose(game)));
 

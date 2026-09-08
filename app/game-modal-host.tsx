@@ -152,7 +152,7 @@ export function GameModalHost({
                 </strong>
               </div>
             </div>
-            <p className="full-map-status" role="status" aria-live="polite">{mapNotice}</p>
+            <p className="full-map-status" role="status" aria-label="GPS pin status" aria-live="polite">{mapNotice}</p>
             <div className="full-map-actions">
               <button className="primary-small" onClick={onCommitDestination} disabled={!mapDraft}>SET GPS ROUTE</button>
               {hud.customDestination && <button onClick={onRemoveDestination}>{hud.fareDispatchEnabled ? "RETURN TO JOB ROUTE" : "CLEAR GPS ROUTE"}</button>}

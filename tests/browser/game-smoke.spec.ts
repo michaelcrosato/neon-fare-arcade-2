@@ -74,7 +74,7 @@ test("free run supports exploration, GPS, driving, pause, and copyable replay di
   const map = gpsDialog.getByRole("img", { name: /Interactive Neon Fare regional GPS/i });
   await map.focus();
   await page.keyboard.press("Shift+ArrowRight");
-  await expect(gpsDialog.getByRole("status")).toContainText("PIN READY");
+  await expect(gpsDialog.getByRole("status", { name: "GPS pin status" })).toContainText("PIN READY");
   await page.keyboard.press("Enter");
   await expect(page.locator(".gps-header b")).toHaveText("CUSTOM ROUTE");
 
@@ -151,6 +151,7 @@ test("malformed career storage recovers to a normalized save", async ({ page }) 
   await page.addInitScript(() => localStorage.setItem("neon-fare-career-v1", "{not-json"));
   await page.goto("/");
   await expect(page.getByRole("group", { name: "Choose game mode" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Start Free Run with arcade/i })).toBeEnabled();
   await expect.poll(async () => page.evaluate(() => JSON.parse(localStorage.getItem("neon-fare-career-v1") ?? "null"))).toEqual({
     version: 1,
     bank: 0,

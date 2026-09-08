@@ -1,3 +1,4 @@
+import { groundAt } from "../../game/vehicle-road-contact";
 import assert from "node:assert/strict";
 import test from "node:test";
 
@@ -55,11 +56,11 @@ function runTicks(
   return { game, events };
 }
 
-test("fixed-step driving replay keeps straight acceleration and reverse while steering builds progressively", () => {
+test("fixed-step arcade replay has a stronger launch and preserves reverse while steering builds progressively", () => {
   const forward = runTicks({ ...IDLE_INPUT, up: true }).game;
   approximate(forward.x, 0);
-  approximate(forward.y, -6.298771745502387);
-  approximate(forward.speed, 16.266791511819967);
+  approximate(forward.y, -8.564251392839362);
+  approximate(forward.speed, 20.22547181610342);
   approximate(forward.elapsed, 1);
   approximate(forward.timeLeft, 74);
 
@@ -81,7 +82,7 @@ test("fixed-step driving replay keeps straight acceleration and reverse while st
   const boosted = runTicks({ ...IDLE_INPUT, up: true, boost: true }).game;
   assert.ok(boosted.y < -14.5);
   assert.ok(boosted.speed > 32);
-  approximate(boosted.boost, 20);
+  approximate(boosted.boost, 19);
 });
 
 test("grid traffic turns onto open perimeter lanes instead of crossing a landmark campus", () => {
@@ -150,7 +151,8 @@ test("drift intensity and slip scale with speed and held turning angle", () => {
 
   const tap = slide(40, 3);
   const held = slide(40, 18);
-  assert.ok(held.steering > tap.steering * 2);
+  assert.ok(tap.steering > 0.45 && tap.steering < 0.55, "a 50 ms tap reaches half lock");
+  assert.ok(held.steering > 0.98, "a 300 ms hold reaches full lock");
   assert.ok(held.driftIntensity > tap.driftIntensity * 6);
   assert.ok(Math.abs(held.driftAngle) > Math.abs(tap.driftAngle) * 20);
 });
@@ -387,6 +389,7 @@ test("every four-lane corridor raises normal and boosted top speed by exactly 10
     game.traffic = [];
     game.x = x;
     game.y = y;
+    game.z = groundAt({ x, y, z: 100 }).height;
     game.heading = heading;
     game.vx = Math.cos(heading) * initialForwardSpeed;
     game.vy = Math.sin(heading) * initialForwardSpeed;
@@ -450,6 +453,7 @@ test("the global highway ceiling is exactly 180 km/h", () => {
     game.traffic = [];
     game.x = sample.point.x;
     game.y = sample.point.y;
+    game.z = sample.point.z + 0.64;
     game.heading = sample.heading;
     game.vx = Math.cos(sample.heading) * 100 + Math.sin(sample.heading) * 60;
     game.vy = Math.sin(sample.heading) * 100 - Math.cos(sample.heading) * 60;
@@ -484,6 +488,7 @@ test("Boost Overdrive adds exactly 60 km/h of same-road boosted headroom", () =>
     game.installedUpgrades = ["boost-overdrive"];
     game.x = x;
     game.y = y;
+    game.z = groundAt({ x, y, z: 100 }).height;
     game.heading = heading;
     game.vx = Math.cos(heading) * 100;
     game.vy = Math.sin(heading) * 100;

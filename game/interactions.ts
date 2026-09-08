@@ -24,7 +24,7 @@ export function nearestInteraction(game: Game, world?: WorldView): InteractionCa
   const candidates: InteractionCandidate[] = [];
   if (game.player.location.kind === "city") {
     const taxiDistance = distance(pose, { x: game.x, y: game.y });
-    if (taxiDistance <= TAXI_ENTER_RADIUS) {
+    if (taxiDistance <= TAXI_ENTER_RADIUS && Math.abs((pose.z ?? 0) - (game.z ?? 0)) < 1) {
       if (isSimulationVehicleOverturned(game)) {
         if (canRightSimulationVehicle(game)) {
           candidates.push({
@@ -54,7 +54,7 @@ export function nearestInteraction(game: Game, world?: WorldView): InteractionCa
   }
   for (const interaction of world?.interactions ?? []) {
     const interactionDistance = distance(pose, interaction);
-    if (interactionDistance > interaction.radius) continue;
+    if (interactionDistance > interaction.radius || Math.abs((pose.z ?? 0) - (interaction.z ?? 0)) > 1.4) continue;
     const courierPrompt = interaction.kind === "courier-counter"
       ? courierCounterPrompt(game, interaction.venue)
       : null;

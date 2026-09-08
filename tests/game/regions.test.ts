@@ -258,7 +258,7 @@ test("all 726 chunks and every live regional window stay inside hard budgets", (
   assert.ok(maxInteractions <= MAX_STREAM_INTERACTIONS);
 });
 
-test("the city owns both shared seam roads and each neighboring region owns its outer edge", () => {
+test("seam roads have one owner and Northstar ends in wilderness at its northern edge", () => {
   const center = generateCityChunk(5, 0);
   const gateway = generateCityChunk(6, 0);
   const far = generateCityChunk(16, 0);
@@ -285,7 +285,8 @@ test("the city owns both shared seam roads and each neighboring region owns its 
   );
   assert.equal(horizontalRoadsAt(cityNorth, -792), 4);
   assert.equal(horizontalRoadsAt(northGateway, -792), 0);
-  assert.equal(horizontalRoadsAt(farNorth, WORLD_ROAD_MIN_Y), 4);
+  assert.equal(horizontalRoadsAt(farNorth, WORLD_ROAD_MIN_Y), 0);
+  assert.ok(farNorth.surfaces?.some((surface) => surface.kind === "terrain"));
 
   const citySouth = generateCityChunk(0, 5);
   const southGateway = generateCityChunk(0, 6);
@@ -297,7 +298,7 @@ test("the city owns both shared seam roads and each neighboring region owns its 
 
 test("deep regional roads route through the city while the inactive northeast cell stays blank", () => {
   assert.equal(isRoadSurface({ x: 2196, y: 0 }), true);
-  assert.equal(isRoadSurface({ x: 0, y: -2052 }), true);
+  assert.equal(isRoadSurface({ x: -36, y: -2124 }), true);
   assert.equal(isRoadSurface({ x: 1008, y: -1008 }), false);
   const plan = buildNavigationPlan({ x: 0, y: 0 }, { x: 2300, y: 50 }, 0);
   assert.deepEqual(plan.route[0], { x: 0, y: 0 });

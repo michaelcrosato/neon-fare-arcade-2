@@ -46,7 +46,8 @@ import {
 import type { FareId, Game, InputState, RunKind, WorldView } from "./model";
 import { isHighwaySpeedSurface, isRoadSurface, nearestRoadProjection } from "./road-network";
 import { activePassengerJob, getObjective } from "./state";
-import { advancePathTraffic } from "./traffic";
+import { advancePathTraffic, alignGridTraffic } from "./traffic";
+import { terrainBarrier } from "./terrain/surface";
 import {
   BOOST_COOLER_DRAIN_MULTIPLIER,
   IMPACT_BAR_BOOST_LOSS_MULTIPLIER,
@@ -58,6 +59,8 @@ import { controlledPose, isDriving, shouldAdvanceRunClock } from "./player";
 import { clampPointToActiveRegions } from "./regions";
 import { nearestEnabledGridRoadLine } from "./road-topology";
 import { creditRunTime, quickTimeBonus } from "./run-rules";
+import { ensureVehicleRoadMotion, groundAt, stepVehicleRoadContact } from "./vehicle-road-contact";
+import { arcadeHeadingDelta, makeArcadeVehicleState, stepArcadeChassis } from "./arcade-handling";
 import {
   applySimulationGroundImpulse,
   reconcileSimulationHeading,
@@ -102,16 +105,16 @@ export type SimulationEvent = ExplorationEvent
     }
   | { type: "clock-warning"; secondsRemaining: number };
 
-function collisionSafeSteeringPose(world: WorldView, x: number, y: number, heading: number, delta: number) {
+function collisionSafeSteeringPose(world: WorldView, x: number, y: number, heading: number, delta: number, z: number) {
   if (Math.abs(delta) < 1e-8) return { x, y, heading };
   const desired = heading + delta;
-  if (!taxiHitsBuilding(world, x, y, desired)) return { x, y, heading: desired };
-  if (taxiHitsBuilding(world, x, y, heading)) return { x, y, heading };
+  if (!taxiHitsBuilding(world, x, y, desired, z)) return { x, y, heading: desired };
+  if (taxiHitsBuilding(world, x, y, heading, z)) return { x, y, heading };
 
   // A small outward correction lets the taxi pivot while scraping a facade or
   // squeezing between props. Large corrections are rejected so steering can
   // never become a disguised teleport through a building.
-  const repairedTurn = depenetrateTaxi(world, x, y, desired, 6);
+  const repairedTurn = depenetrateTaxi(world, x, y, desired, 6, z);
   if (repairedTurn.resolved && Math.hypot(repairedTurn.x - x, repairedTurn.y - y) <= 0.45) {
     return { x: repairedTurn.x, y: repairedTurn.y, heading: desired };
   }
@@ -121,13 +124,13 @@ function collisionSafeSteeringPose(world: WorldView, x: number, y: number, headi
   for (let iteration = 0; iteration < 8; iteration += 1) {
     const candidateFraction = (safeFraction + blockedFraction) / 2;
     const candidateHeading = heading + delta * candidateFraction;
-    if (taxiHitsBuilding(world, x, y, candidateHeading)) blockedFraction = candidateFraction;
+    if (taxiHitsBuilding(world, x, y, candidateHeading, z)) blockedFraction = candidateFraction;
     else safeFraction = candidateFraction;
   }
   return { x, y, heading: heading + delta * safeFraction };
 }
 
-function applyBuildingResponse(game: Game, contact: BuildingContact, dampTangent: boolean) {
+function applyBuildingResponse(game: Game, contact: Pick<BuildingContact, "normalX" | "normalY">, dampTangent: boolean) {
   const inwardSpeed = game.vx * contact.normalX + game.vy * contact.normalY;
   if (inwardSpeed >= 0) return;
   const previousVx = game.vx;
@@ -155,7 +158,7 @@ function collisionSafeTrafficPush(game: Game, world: WorldView, pushX: number, p
   ];
   for (const candidate of candidates) {
     const { x, y } = clampPointToActiveRegions(candidate, 2.4);
-    if (!taxiHitsBuilding(world, x, y, game.heading)) {
+    if (!taxiHitsBuilding(world, x, y, game.heading, game.z)) {
       game.x = x;
       game.y = y;
       return true;
@@ -164,7 +167,7 @@ function collisionSafeTrafficPush(game: Game, world: WorldView, pushX: number, p
   return false;
 }
 
-function nearestClearRoadPose(world: WorldView, x: number, y: number, heading: number) {
+function nearestClearRoadPose(world: WorldView, x: number, y: number, heading: number, z: number) {
   const { x: safeX, y: safeY } = clampPointToActiveRegions({ x, y }, 2.4);
   const horizontalHeading = Math.cos(heading) >= 0 ? 0 : Math.PI;
   const verticalHeading = Math.sin(heading) >= 0 ? Math.PI / 2 : -Math.PI / 2;
@@ -175,7 +178,7 @@ function nearestClearRoadPose(world: WorldView, x: number, y: number, heading: n
         : nearestRoadY(value + offset * ROAD_SPACING)
     )),
   )];
-  const projection = nearestRoadProjection({ x: safeX, y: safeY }, heading);
+  const projection = nearestRoadProjection({ x: safeX, y: safeY, z }, heading);
   const projectionYaw = projection.tangentYaw;
   const candidates = [
     { x: projection.point.x, y: projection.point.y, heading: projectionYaw },
@@ -187,8 +190,8 @@ function nearestClearRoadPose(world: WorldView, x: number, y: number, heading: n
     - ((b.x - x) ** 2 + (b.y - y) ** 2)
   ));
   return candidates.find((candidate) => (
-    isRoadSurface(candidate)
-    && !taxiHitsBuilding(world, candidate.x, candidate.y, candidate.heading)
+    isRoadSurface({ ...candidate, z })
+    && !taxiHitsBuilding(world, candidate.x, candidate.y, candidate.heading, z)
   )) ?? null;
 }
 
@@ -200,20 +203,23 @@ export function stepGame(
   random: RandomSource = Math.random,
 ): SimulationEvent[] {
   const events: SimulationEvent[] = [];
+  ensureVehicleRoadMotion(game);
+  game.arcadeVehicle ??= makeArcadeVehicleState();
+  const previousVx = game.vx, previousVy = game.vy;
   events.push(...stepExploration(game, input, dt, world));
   const driving = isDriving(game);
   const drivingTrait = drivingTraitPackage(game.drivingTraitId).modifiers;
   const controlInput: Readonly<InputState> = driving
     ? input
     : { up: false, down: false, left: false, right: false, boost: false, interact: input.interact };
-  const repairedStart = depenetrateTaxi(world, game.x, game.y, game.heading);
+  const repairedStart = depenetrateTaxi(world, game.x, game.y, game.heading, 8, game.z);
   if (repairedStart.resolved && repairedStart.moved) {
     game.x = repairedStart.x;
     game.y = repairedStart.y;
     game.vx *= 0.35;
     game.vy *= 0.35;
   } else if (!repairedStart.resolved) {
-    const recoveryPose = nearestClearRoadPose(world, game.x, game.y, game.heading);
+    const recoveryPose = nearestClearRoadPose(world, game.x, game.y, game.heading, game.z);
     if (recoveryPose) {
       game.x = recoveryPose.x;
       game.y = recoveryPose.y;
@@ -222,7 +228,7 @@ export function stepGame(
       game.vy = 0;
     }
   }
-  let lastSafePose = taxiHitsBuilding(world, game.x, game.y, game.heading)
+  let lastSafePose = taxiHitsBuilding(world, game.x, game.y, game.heading, game.z)
     ? null
     : { x: game.x, y: game.y, heading: game.heading };
   game.elapsed += dt;
@@ -238,7 +244,7 @@ export function stepGame(
       game,
       controlInput,
       dt,
-      isRoadSurface({ x: game.x, y: game.y }),
+      isRoadSurface(game),
     );
     if (vehicleResult.rolloverStarted) events.push({ type: "vehicle-overturned" });
     const requestedDelta = normalizeAngle(game.heading - previousHeading);
@@ -248,11 +254,12 @@ export function stepGame(
       game.y,
       previousHeading,
       requestedDelta,
+      game.z,
     );
     game.x = steeringPose.x;
     game.y = steeringPose.y;
     reconcileSimulationHeading(game, previousHeading, steeringPose.heading);
-    if (!taxiHitsBuilding(world, game.x, game.y, game.heading)) {
+    if (!taxiHitsBuilding(world, game.x, game.y, game.heading, game.z)) {
       lastSafePose = { x: game.x, y: game.y, heading: game.heading };
     }
   } else {
@@ -267,30 +274,33 @@ export function stepGame(
   const brakePressed = brake > 0 && !game.brakeInputHeld;
   game.brakeInputHeld = brake > 0;
   const steerInput = (controlInput.right ? 1 : 0) - (controlInput.left ? 1 : 0);
+  const previousSteering = game.steering;
   const steeringResponse = steerInput === 0
-    ? 13
+    ? 20
     : Math.sign(steerInput) === Math.sign(game.steering) || game.steering === 0
-      ? 9
-      : 15;
+      ? 14
+      : 26;
   game.steering += (steerInput - game.steering)
     * (1 - Math.exp(-steeringResponse * dt));
   if (Math.abs(game.steering) < 0.001 && steerInput === 0) game.steering = 0;
   const steer = game.steering;
 
-  if (throttle) forwardSpeed += 18 * drivingTrait.throttleMultiplier * dt;
+  const groundTraction = game.roadMotion.grounded ? 1 : 0.08;
+  const launchAcceleration = 20 + 3.5 * (1 - clamp(Math.abs(forwardSpeed) / 24, 0, 1));
+  if (throttle) forwardSpeed += launchAcceleration * drivingTrait.throttleMultiplier * groundTraction * dt;
   if (brake) {
-    if (forwardSpeed > 1) forwardSpeed -= 28 * drivingTrait.brakingMultiplier * dt;
+    if (forwardSpeed > 1) forwardSpeed -= 34 * drivingTrait.brakingMultiplier * groundTraction * dt;
     else forwardSpeed -= (game.collisionCooldown > 0 ? 16 : 9) * dt;
   }
 
   game.boosting = controlInput.boost && game.boost > 0 && forwardSpeed > 3;
   if (game.boosting) {
-    forwardSpeed += 24 * drivingTrait.boostAccelerationMultiplier * dt;
+    forwardSpeed += 24 * drivingTrait.boostAccelerationMultiplier * (game.roadMotion.grounded ? 1 : 0.35) * dt;
     const coolerDrain = hasRunUpgrade(game, "boost-cooler") ? BOOST_COOLER_DRAIN_MULTIPLIER : 1;
     game.boost = Math.max(0, game.boost - 30 * drivingTrait.boostDrainMultiplier * coolerDrain * dt);
   }
 
-  const highwaySpeedBonus = isHighwaySpeedSurface({ x: game.x, y: game.y })
+  const highwaySpeedBonus = isHighwaySpeedSurface(game)
     ? HIGHWAY_SPEED_BONUS_WORLD_UNITS
     : 0;
   const speedRatio = clamp(
@@ -305,12 +315,13 @@ export function stepGame(
     && Math.sign(steer) === Math.sign(lateralSpeed);
   const brakeKickCounterSteering = Math.abs(lateralSpeed) > 0.2
     && Math.sign(steerInput || steer) === Math.sign(lateralSpeed);
-  const brakeKickSteerFactor = clamp((steeringCommitment - 0.18) / 0.82, 0, 1);
+  const brakeKickSteerFactor = clamp((Math.abs(previousSteering) - 0.18) / 0.82, 0, 1);
   const canInitiateBrakeKick = game.drifting
     || (driftSpeedFactor > 0.25 && brakeKickSteerFactor > 0.55);
   let brakeKickTriggered = false;
   if (
     brakePressed
+    && game.roadMotion.grounded
     && game.brakeDriftCooldown <= 0
     && forwardSpeed > 10
     && brakeKickSteerFactor > 0
@@ -322,7 +333,7 @@ export function stepGame(
       * (0.85 + game.driftIntensity * 0.15);
     game.brakeDriftKick = Math.sign(steer) * brakeKickStrength;
     game.brakeDriftCooldown = 0.35;
-    forwardSpeed *= 1 - Math.abs(game.brakeDriftKick) * 0.0125;
+    forwardSpeed *= 1 - Math.abs(game.brakeDriftKick) * 0.015;
     brakeKickTriggered = true;
   }
   const driftIntent = throttle
@@ -348,30 +359,34 @@ export function stepGame(
     * dt
     + brakeKickYawRate * traitSteering * dt;
   const blockedSteering = Math.abs(recoveryHeadingDelta) > 1e-8
-    && Boolean(taxiHitsBuilding(world, game.x, game.y, game.heading + recoveryHeadingDelta));
+    && Boolean(taxiHitsBuilding(world, game.x, game.y, game.heading + recoveryHeadingDelta, game.z));
   const recoverySteering = Math.abs(steer) > 0
     && (throttle > 0 || brake > 0)
-    && (blockedSteering || taxiNearBuilding(world, game.x, game.y, game.heading));
+    && (blockedSteering || taxiNearBuilding(world, game.x, game.y, game.heading, 0.65, game.z));
   if (recoverySteering) steerStrength = recoverySteerStrength;
-  const headingDelta = steeringDirection
+  const requestedHeadingDelta = steeringDirection
     * 2.28
     * steerStrength
     * traitSteering
     * driftYawScale
     * dt
     + brakeKickYawRate * traitSteering * dt;
+  const catchAssist = steerInput === 0 && game.roadMotion.grounded
+    ? game.driftAngle * game.driftIntensity * 1.2 * dt : 0;
+  const headingDelta = arcadeHeadingDelta(game, requestedHeadingDelta + catchAssist, dt, counterSteering);
   const previousHeading = game.heading;
-  const steeringPose = collisionSafeSteeringPose(world, game.x, game.y, game.heading, headingDelta);
+  const steeringPose = collisionSafeSteeringPose(world, game.x, game.y, game.heading, headingDelta, game.z);
   game.x = steeringPose.x;
   game.y = steeringPose.y;
   game.heading = steeringPose.heading;
-  if (!taxiHitsBuilding(world, game.x, game.y, game.heading)) {
+  if (!taxiHitsBuilding(world, game.x, game.y, game.heading, game.z)) {
     lastSafePose = { x: game.x, y: game.y, heading: game.heading };
   }
   // Preserve part of the taxi's world-space momentum while the body rotates.
   // This is what creates a real slip angle instead of merely turning the car
   // faster while its velocity stays glued to the nose.
   const appliedHeadingDelta = game.heading - previousHeading;
+  if (Math.abs(appliedHeadingDelta - headingDelta) > 1e-6) game.arcadeVehicle.yawRate = appliedHeadingDelta / dt;
   const appliedTurnFactor = clamp(
     Math.abs(appliedHeadingDelta) / Math.max(1e-6, Math.abs(headingDelta)),
     0,
@@ -394,9 +409,9 @@ export function stepGame(
     0.76,
   ) + effectiveBrakeKick * 0.2;
   const cappedInertiaBlend = clamp(
-    inertiaBlend,
+    game.roadMotion.grounded ? inertiaBlend : 1,
     0,
-    0.86,
+    game.roadMotion.grounded ? 0.86 : 1,
   );
   forwardSpeed += (inertialForwardSpeed - forwardSpeed) * cappedInertiaBlend;
   lateralSpeed += (inertialLateralSpeed - lateralSpeed) * cappedInertiaBlend;
@@ -422,7 +437,7 @@ export function stepGame(
   game.driftIntensity += (targetDriftIntensity - game.driftIntensity)
     * (1 - Math.exp(-driftResponse * dt));
   game.driftIntensity = clamp(game.driftIntensity, 0, 1);
-  game.drifting = Math.abs(forwardSpeed) > 10
+  game.drifting = game.roadMotion.grounded && Math.abs(forwardSpeed) > 10
     && game.driftIntensity > 0.1
     && (effectiveDriftIntent > 0.12 || effectiveBrakeKick > 0.08 || driftAngleFactor > 0.08);
 
@@ -437,7 +452,7 @@ export function stepGame(
   );
   if (counterSteering) gripMix *= 0.58;
   if (steeringCommitment === 0) gripMix *= 0.72;
-  const grip = roadGrip + (slideGrip - roadGrip) * gripMix;
+  const grip = (roadGrip + (slideGrip - roadGrip) * gripMix) * groundTraction;
   lateralSpeed *= Math.exp(-grip * dt);
   game.driftAngle = Math.atan2(
     lateralSpeed,
@@ -523,6 +538,13 @@ export function stepGame(
   }
 
   const impact = game.speed;
+  const previousHeight = game.z;
+  if (game.roadMotion.grounded && driving) {
+    const support = groundAt(game, 0.85, game.roadMotion.roadId);
+    const gravityAlongRoad = game.drivingModel === "simulation" ? 10 : 5;
+    game.vx += support.normal.x * support.normal.z * gravityAlongRoad * dt;
+    game.vy += support.normal.y * support.normal.z * gravityAlongRoad * dt;
+  }
   const travel = Math.hypot(game.vx * dt, game.vy * dt);
   const movementSteps = Math.min(8, Math.max(1, Math.ceil(travel / 0.24)));
   const movementDt = dt / movementSteps;
@@ -546,7 +568,12 @@ export function stepGame(
       hitBuilding = true;
     }
 
-    const candidateContact = taxiBuildingContact(world, nextX, nextY, game.heading);
+    const candidateHeight = game.roadMotion.grounded
+      ? groundAt({ x: nextX, y: nextY, z: game.z }, 0.85, game.roadMotion.roadId).height
+      : game.z;
+    const candidateZ = Math.abs(candidateHeight - game.z) <= 0.85 ? candidateHeight : game.z;
+    const candidateContact = terrainBarrier(game, { x: nextX, y: nextY })
+      ?? taxiBuildingContact(world, nextX, nextY, game.heading, candidateZ);
     if (!candidateContact) {
       game.x = nextX;
       game.y = nextY;
@@ -574,7 +601,8 @@ export function stepGame(
       { x: game.x + slideX, y: game.y + slideY },
       2.4,
     );
-    if (!taxiHitsBuilding(world, slideCandidateX, slideCandidateY, game.heading)) {
+    if (!terrainBarrier(game, { x: slideCandidateX, y: slideCandidateY })
+      && !taxiHitsBuilding(world, slideCandidateX, slideCandidateY, game.heading, game.z)) {
       game.x = slideCandidateX;
       game.y = slideCandidateY;
       lastSafePose = { x: game.x, y: game.y, heading: game.heading };
@@ -600,7 +628,8 @@ export function stepGame(
     events.push({ type: "building-collision" });
   }
 
-  if (!isRoadSurface({ x: game.x, y: game.y })) {
+  stepVehicleRoadContact(game, dt, previousHeight, world);
+  if (game.roadMotion.grounded && !isRoadSurface(game)) {
     if (game.drivingModel !== "simulation") {
       const offroadDrag = hasRunUpgrade(game, "rally-tires") ? RALLY_TIRE_OFFROAD_DRAG : 2.35;
       game.vx *= Math.exp(-offroadDrag * dt);
@@ -702,9 +731,10 @@ export function stepGame(
     const boundedTraffic = clampPointToActiveRegions(traffic, 3);
     traffic.x = boundedTraffic.x;
     traffic.y = boundedTraffic.y;
+    alignGridTraffic(traffic);
     const hitDistance = Math.hypot(game.x - traffic.x, game.y - traffic.y);
     const trafficHeading = traffic.heading;
-    const trafficHit = hitDistance < 5 && obbOverlap(
+    const trafficHit = Math.abs(game.z - (traffic.z ?? 0)) < 1.8 && hitDistance < 5 && obbOverlap(
       { x: game.x, y: game.y, heading: game.heading, halfLength: 2.25, halfWidth: 1.03 },
       { x: traffic.x, y: traffic.y, heading: trafficHeading, halfLength: 2.05, halfWidth: 0.98 },
     );
@@ -740,7 +770,7 @@ export function stepGame(
     }
   }
 
-  const finalRepair = depenetrateTaxi(world, game.x, game.y, game.heading);
+  const finalRepair = depenetrateTaxi(world, game.x, game.y, game.heading, 8, game.z);
   if (finalRepair.resolved && finalRepair.moved) {
     game.x = finalRepair.x;
     game.y = finalRepair.y;
@@ -753,7 +783,7 @@ export function stepGame(
     game.vx = 0;
     game.vy = 0;
   } else if (!finalRepair.resolved) {
-    const recoveryPose = nearestClearRoadPose(world, game.x, game.y, game.heading);
+    const recoveryPose = nearestClearRoadPose(world, game.x, game.y, game.heading, game.z);
     if (recoveryPose) {
       game.x = recoveryPose.x;
       game.y = recoveryPose.y;
@@ -763,7 +793,9 @@ export function stepGame(
     }
   }
 
+  if (game.drivingModel === "arcade") stepArcadeChassis(game, previousVx, previousVy, dt);
   for (const particle of game.particles) {
+    particle.z ??= game.z;
     particle.x += particle.vx * dt;
     particle.y += particle.vy * dt;
     particle.life -= dt;
@@ -810,6 +842,7 @@ export function stepGame(
       game.objectiveDwell = 0;
     } else if (
       objectiveDistance < (game.onboard ? FARE_DROPOFF_RADIUS : FARE_PICKUP_RADIUS)
+      && Math.abs(game.z - (objective.z ?? 0)) < 1.5 && game.roadMotion.grounded
       && game.speed < speedLimit
     ) {
     game.objectiveDwell += dt;

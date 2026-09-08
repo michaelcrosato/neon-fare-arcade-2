@@ -145,6 +145,7 @@ export function stepExploration(
     const outward = {
       x: interaction.x + Math.cos(interaction.heading) * 1.15,
       y: interaction.y + Math.sin(interaction.heading) * 1.15,
+      z: interaction.z ?? 0,
       heading: interaction.heading,
     };
     game.player = {

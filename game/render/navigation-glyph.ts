@@ -85,6 +85,7 @@ export function turnArrowBoxes(seconds: number, navigation: NavigationPlan, came
   boxes.push({ x: cue.point.x, y: cue.point.y, z: 2.65, sx: 0.18, sy: 0.18, sz: 4.8, yaw: 0, color: CYAN, material: MAT_TURN });
   boxes.push({ x: cue.point.x, y: cue.point.y, z: 0.45, sx: 5.2, sy: 0.22, sz: 0.12, yaw: seconds * 1.8, color: WHITE, material: MAT_TURN });
   boxes.push({ x: cue.point.x, y: cue.point.y, z: 0.45, sx: 5.2, sy: 0.22, sz: 0.12, yaw: seconds * 1.8 + Math.PI / 2, color: CYAN, material: MAT_TURN });
+  for (const box of boxes) box.z += cue.point.z ?? 0;
   return boxes;
 }
 
@@ -121,6 +122,7 @@ export function uTurnArrowBoxes(game: Game, seconds: number, cameraMode: CameraM
   boxes.push({ x: beacon.x, y: beacon.y, z: 2.65, sx: 0.2, sy: 0.2, sz: 4.8, yaw: 0, color: CYAN, material: MAT_TURN });
   boxes.push({ x: beacon.x, y: beacon.y, z: 0.45, sx: 5.5, sy: 0.24, sz: 0.12, yaw: seconds * 1.8, color: WHITE, material: MAT_TURN });
   boxes.push({ x: beacon.x, y: beacon.y, z: 0.45, sx: 5.5, sy: 0.24, sz: 0.12, yaw: seconds * 1.8 + Math.PI / 2, color: RED, material: MAT_TURN });
+  for (const box of boxes) box.z += game.z ?? 0;
   return boxes;
 }
 

@@ -30,6 +30,7 @@ function streamContext(world: ReturnType<CityStream["update"]>, focus: { x: numb
       boxes: world.boxes.length,
       colliders: world.colliders.length,
       interactions: world.interactions.length,
+      surfaceQuads: world.surfaces?.length ?? 0,
     },
   };
 }

@@ -150,8 +150,8 @@ test("Cab View follows the walker after leaving a rolled simulation taxi", () =>
   const camera: Camera = {
     x: 5, y: 7, heading: 0.4, mode: "cab", zoom: 1, boom: 0, heightOffset: -0.2,
   };
-  const eye = crownVehiclePointPose(game, 0.02, -0.46, 1.52 + camera.heightOffset);
-  const target = crownVehiclePointPose(game, 26, -0.32, 1.15 + camera.heightOffset);
+  const eye = crownVehiclePointPose(game, 0.02, -0.46, 1.72 + camera.heightOffset);
+  const target = crownVehiclePointPose(game, 26, -0.32, 1.35 + camera.heightOffset);
   assert.deepEqual(cabViewMatrix(game, camera), lookAt(
     [eye.x, eye.y, eye.z], [target.x, target.y, target.z], crownVehicleUpVector(game),
   ));
@@ -173,7 +173,10 @@ test("Cab View follows the walker after leaving a rolled simulation taxi", () =>
   assert.deepEqual(cabViewMatrix(game, camera), expected, "parked taxi must not move the walking camera");
   game.drivingModel = "arcade";
   game.player = { kind: "driving" };
-  assert.deepEqual(cabViewMatrix(game, camera), expected, "arcade cabin matrix stays unchanged");
+  assert.deepEqual(cabViewMatrix(game, camera), lookAt(
+    [walkingEye.x, walkingEye.y, 1.72 + camera.heightOffset],
+    [walkingTarget.x, walkingTarget.y, 1.35 + camera.heightOffset],
+  ), "the driving eye clears the dashboard");
 });
 
 test("one navigation glyph model fits every camera and budget", () => {

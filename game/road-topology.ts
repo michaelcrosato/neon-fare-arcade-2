@@ -1,3 +1,4 @@
+import { northstarGridStreetEnabled } from "./terrain/northstar-forms";
 import { ROAD_SPACING } from "./config";
 import {
   campusBlocksGridStreetPoint,
@@ -16,10 +17,10 @@ const EPSILON = 0.02;
 
 /** Northstar keeps only a compact village lattice and a sparse rural skeleton. */
 export const NORTHSTAR_VILLAGE_GRID = {
-  minX: -ROAD_SPACING * 8,
-  maxX: ROAD_SPACING * 8,
-  minY: -ROAD_SPACING * 44,
-  maxY: -ROAD_SPACING * 33,
+  minX: -144,
+  maxX: 180,
+  minY: -1512,
+  maxY: -1332,
 } as const;
 
 /** Copper Junction is the only dense South grid; the desert beyond is rural. */
@@ -37,23 +38,6 @@ export const LANTERN_BAY_GRID = {
   minY: ROAD_SPACING * 30,
   maxY: ROAD_SPACING * 48,
 } as const;
-
-const NORTHSTAR_VERTICAL_SPINES = new Set([
-  -ROAD_SPACING * 16,
-  0,
-  ROAD_SPACING * 16,
-]);
-
-const NORTHSTAR_HORIZONTAL_LINKS = new Set([
-  -ROAD_SPACING * 66,
-  -ROAD_SPACING * 60,
-  -ROAD_SPACING * 54,
-  -ROAD_SPACING * 48,
-  -ROAD_SPACING * 42,
-  -ROAD_SPACING * 36,
-  -ROAD_SPACING * 30,
-  -ROAD_SPACING * 24,
-]);
 
 const COPPER_MESA_VERTICAL_SPINES = new Set([
   -ROAD_SPACING * 16,
@@ -96,13 +80,6 @@ function nearestGridLine(value: number) {
   return Math.round(value / ROAD_SPACING) * ROAD_SPACING;
 }
 
-function insideVillage(point: Vec2) {
-  return point.x >= NORTHSTAR_VILLAGE_GRID.minX - EPSILON
-    && point.x <= NORTHSTAR_VILLAGE_GRID.maxX + EPSILON
-    && point.y >= NORTHSTAR_VILLAGE_GRID.minY - EPSILON
-    && point.y <= NORTHSTAR_VILLAGE_GRID.maxY + EPSILON;
-}
-
 function insideCopperJunction(point: Vec2) {
   return point.x >= COPPER_JUNCTION_GRID.minX - EPSILON
     && point.x <= COPPER_JUNCTION_GRID.maxX + EPSILON
@@ -115,26 +92,6 @@ function insideLanternBay(point: Vec2) {
     && point.x <= LANTERN_BAY_GRID.maxX + EPSILON
     && point.y >= LANTERN_BAY_GRID.minY - EPSILON
     && point.y <= LANTERN_BAY_GRID.maxY + EPSILON;
-}
-
-function northstarGridStreetEnabled(point: Vec2, axis: GridStreetAxis) {
-  if (insideVillage(point)) return true;
-  if (axis === "vertical") {
-    const roadX = nearestGridLine(point.x);
-    if (NORTHSTAR_VERTICAL_SPINES.has(roadX)) return true;
-    // Short rural feeders serve the mill/woods and lake country without
-    // rebuilding the full city lattice between them.
-    if (roadX === -ROAD_SPACING * 10) {
-      return point.y >= -ROAD_SPACING * 60 && point.y <= -ROAD_SPACING * 40;
-    }
-    if (roadX === ROAD_SPACING * 10) {
-      // Lake/lookout access: one long rural lane links the village grid to
-      // Mirror Lake and Aurora Lookout without restoring the full lattice.
-      return point.y >= -ROAD_SPACING * 66 && point.y <= -ROAD_SPACING * 36;
-    }
-    return false;
-  }
-  return NORTHSTAR_HORIZONTAL_LINKS.has(nearestGridLine(point.y));
 }
 
 function copperMesaGridStreetEnabled(point: Vec2, axis: GridStreetAxis) {

@@ -210,8 +210,8 @@ test("named gas upgrades change only their advertised simulation effects", () =>
     stepGame(baseline, boostInput, FIXED_DT, EMPTY_WORLD, () => 1);
     stepGame(cooled, boostInput, FIXED_DT, EMPTY_WORLD, () => 1);
   }
-  assert.equal(baseline.boost, 20);
-  assert.ok(Math.abs(cooled.boost - 23) < 1e-9);
+  assert.equal(baseline.boost, 19);
+  assert.ok(Math.abs(cooled.boost - 22.12) < 1e-9);
   assert.equal(cooled.speed, baseline.speed);
   assert.equal(cooled.y, baseline.y);
 

@@ -9,6 +9,7 @@ import {
   gpsInstruction,
   nextTurnCue,
   routeLength,
+  preferReverseRoute,
 } from "../../game/navigation";
 import { makeGame } from "../../game/state";
 import { SPECIAL_ROADS } from "../../game/road-layout";
@@ -24,8 +25,8 @@ const NAV_JOB = makeTestJob({
   pickup: { x: 4.5, y: -12 },
   pickupApproach: { x: 4.5, y: -12 },
   dropoffStopId: "navigation-dropoff",
-  dropoff: { x: -72, y: 126 },
-  dropoffApproach: { x: -72, y: 126 },
+  dropoff: { x: -72, y: 18 },
+  dropoffApproach: { x: -72, y: 18 },
   destination: "MARINA ARCADE",
 });
 const NAV_JOBS = [NAV_JOB] as const;
@@ -47,41 +48,23 @@ test("route compaction removes duplicates and collinear waypoints", () => {
   );
 });
 
-test("the first fare route remains unchanged", () => {
+test("the first fare route keeps its physical distance through the shared graph", () => {
   const route = buildGpsRoute({ x: 0, y: -12 }, { x: -72, y: 126 });
   assert.deepEqual(route, [
     { x: 0, y: -12 },
-    { x: 0, y: -0 },
-    { x: -72, y: -0 },
+    { x: 0, y: 108 },
+    { x: -72, y: 108 },
     { x: -72, y: 126 },
   ]);
   assert.equal(routeLength(route), 210);
 });
 
 test("U-turn policy requires both material savings and route ratio", () => {
-  const savingsBelowMinimum = buildNavigationPlan(
-    { x: -50, y: -50 },
-    { x: -100, y: -70 },
-    0,
-  );
-  assert.equal(routeLength(savingsBelowMinimum.route), 130);
-  assert.equal(savingsBelowMinimum.requiresUTurn, false);
-
-  const ratioBelowMinimum = buildNavigationPlan(
-    { x: -150, y: -130 },
-    { x: -90, y: -170 },
-    0,
-  );
-  assert.equal(routeLength(ratioBelowMinimum.route), 164);
-  assert.equal(ratioBelowMinimum.requiresUTurn, false);
-
-  const worthwhileReverse = buildNavigationPlan(
-    { x: -50, y: -50 },
-    { x: -100, y: -60 },
-    0,
-  );
-  assert.equal(routeLength(worthwhileReverse.route), 104);
-  assert.equal(worthwhileReverse.requiresUTurn, true);
+  assert.equal(preferReverseRoute(65, 30), false); // ratio is large, savings are too small
+  assert.equal(preferReverseRoute(164, 128), false); // savings qualify, ratio does not
+  assert.equal(preferReverseRoute(168, 120), true);
+  assert.equal(preferReverseRoute(Infinity, 120), true);
+  assert.equal(preferReverseRoute(120, Infinity), false);
 });
 
 test("turn cues and GPS copy agree on direction", () => {
@@ -154,7 +137,9 @@ test("navigation keeps the current turn until the taxi commits to its exit", () 
   game.y = 0;
   game.heading = Math.PI;
   game.elapsed = 0.3;
-  assert.deepEqual(controller.update(game).turnCue?.point, { x: -72, y: 0 });
+  const nextCue = controller.update(game).turnCue;
+  assert.ok(nextCue && nextCue.point.x < -60 && nextCue.point.x > -73 && Math.abs(nextCue.point.y) < 0.01);
+  assert.equal(nextCue.kind, "left");
 });
 
 test("late exit alignment can complete a wide turn without a radial dead zone", () => {
@@ -173,7 +158,9 @@ test("late exit alignment can complete a wide turn without a radial dead zone", 
   game.y = 2.25;
   game.heading = Math.PI;
   game.elapsed = 0.2;
-  assert.deepEqual(controller.update(game).turnCue?.point, { x: -72, y: 0 });
+  const nextCue = controller.update(game).turnCue;
+  assert.ok(nextCue && nextCue.point.x < -60 && nextCue.point.x > -73 && Math.abs(nextCue.point.y) < 0.01);
+  assert.equal(nextCue.kind, "left");
 });
 
 test("normal turn guidance does not blink during heading-source jitter", () => {

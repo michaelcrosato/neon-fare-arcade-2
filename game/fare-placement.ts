@@ -7,6 +7,7 @@ import {
   FARE_STOP_RULES,
   FARES_PER_CYCLE,
   MAX_FARE_TRIP_DISTANCE,
+  MAX_FLAT_REGIONAL_FARE_TRIP_DISTANCE,
   MAX_REGIONAL_FARE_TRIP_DISTANCE,
   MIN_FARE_HANDOFF_DISTANCE,
   MIN_REGIONAL_FARE_TRIP_DISTANCE,
@@ -21,7 +22,7 @@ import {
   WORLD_HEIGHT,
   WORLD_WIDTH,
 } from "./config";
-import { circleHitsBuilding, taxiNearBuilding } from "./collision";
+import { circleHitsBuilding, taxiNearBuilding, overlapsHeight } from "./collision";
 import { clamp, distance, nearestRoadX, nearestRoadY } from "./math";
 import type {
   CityChunk,
@@ -30,6 +31,7 @@ import type {
   SurfaceRegion,
   Vec2,
   WorldView,
+  WorldPoint,
 } from "./model";
 import { buildGpsRoute, routeLength } from "./route-geometry";
 import {
@@ -52,6 +54,9 @@ import {
   type WorldRegion,
 } from "./regions";
 
+import { atTerrainElevation, terrainHeightAt, terrainSupport } from "./terrain/surface";
+import { inNorthstarTerrain } from "./terrain/northstar-forms";
+
 type CurbSide = "north" | "east" | "south" | "west";
 
 type CurbCandidate = {
@@ -60,13 +65,13 @@ type CurbCandidate = {
   blockY: number;
   side: CurbSide;
   slot: number;
-  zone: Vec2;
+  zone: WorldPoint;
 };
 
 export type FareStopPlacement = {
   id: string;
-  zone: Vec2;
-  approach: Vec2;
+  zone: WorldPoint;
+  approach: WorldPoint;
   approachHeading: number;
   blockX: number;
   blockY: number;
@@ -89,7 +94,7 @@ export type FareStopPlacementReport = {
   venueClear: boolean;
   junctionClear: boolean;
   passengerClear: boolean;
-  approach: Vec2;
+  approach: WorldPoint;
   approachHeading: number;
   approachDistance: number;
   approachOnRoad: boolean;
@@ -129,9 +134,11 @@ function chunkForBlock(blockX: number, blockY: number) {
   return chunk;
 }
 
-function pointInCollider(point: Vec2, collider: Collider) {
-  return Math.abs(point.x - collider.x) <= collider.halfX
-    && Math.abs(point.y - collider.y) <= collider.halfY;
+function pointInCollider(point: WorldPoint, collider: Collider) {
+  if (!overlapsHeight(collider, point.z ?? terrainHeightAt(point.x, point.y), 2.4, point.x, point.y)) return false;
+  const dx = point.x - collider.x, dy = point.y - collider.y;
+  const c = Math.cos(collider.yaw ?? 0), s = Math.sin(collider.yaw ?? 0);
+  return Math.abs(c * dx + s * dy) <= collider.halfX && Math.abs(-s * dx + c * dy) <= collider.halfY;
 }
 
 export function pointInSurfaceRegion(point: Vec2, region: SurfaceRegion) {
@@ -165,7 +172,7 @@ export function sampledDiskFraction(
 }
 
 function samplePlacementDisk(
-  zone: Vec2,
+  zone: WorldPoint,
   radius: number,
   inCollider: (point: Vec2) => boolean,
   inWater: (point: Vec2) => boolean,
@@ -221,9 +228,10 @@ function junctionDistance(point: Vec2, heading: number) {
 }
 
 export function analyzeFareStopPlacement(
-  zone: Vec2,
+  zone: WorldPoint,
   radius = FARE_DROPOFF_RADIUS,
 ): FareStopPlacementReport {
+  zone = atTerrainElevation(zone);
   const blockX = Math.floor(zone.x / ROAD_SPACING);
   const blockY = Math.floor(zone.y / ROAD_SPACING);
   const chunk = chunkForBlock(blockX, blockY);
@@ -246,15 +254,17 @@ export function analyzeFareStopPlacement(
     ? { x: deltaX / centerDistance, y: deltaY / centerDistance }
     : { x: -Math.sin(projection.tangentYaw), y: Math.cos(projection.tangentYaw) };
   const approachOffset = Math.max(0, projection.halfWidth - FARE_STOP_RULES.taxiRoadInset);
-  const approach = {
+  const approach: WorldPoint = {
     x: projection.point.x + normal.x * approachOffset,
     y: projection.point.y + normal.y * approachOffset,
+    ...(inNorthstarTerrain(zone.x, zone.y) ? { z: (projection.point.z ?? 0) + 0.64 } : {}),
   };
   const approachDistance = distance(zone, approach);
   const tangent = { x: Math.cos(projection.tangentYaw), y: Math.sin(projection.tangentYaw) };
   const approachSamples = [-2.5, 0, 2.5].map((along) => ({
     x: approach.x + tangent.x * along,
     y: approach.y + tangent.y * along,
+    ...(approach.z !== undefined ? { z: approach.z } : {}),
   }));
   const approachOnRoad = approachSamples.every((point) => isRoadSurface(point));
   const approachClear = approachSamples.every((point) => (
@@ -264,6 +274,7 @@ export function analyzeFareStopPlacement(
       point.y,
       projection.tangentYaw,
       FARE_STOP_RULES.taxiClearance,
+      point.z,
     )
   ));
   const centerOnRoad = isRoadSurface(zone);
@@ -290,7 +301,11 @@ export function analyzeFareStopPlacement(
       zone.y,
       FARE_STOP_RULES.passengerClearance,
     );
+  const terrainAccessible = !inNorthstarTerrain(zone.x, zone.y)
+    || (Math.abs((zone.z ?? 0) - (approach.z ?? 0)) < 1.5
+      && terrainSupport(zone).normal.z > 0.8);
   const safe = withinWorld
+    && terrainAccessible
     && !centerOnRoad
     && !centerInCollider
     && !centerInWater
@@ -364,6 +379,7 @@ function candidateAdjacentGridRoadEnabled(candidate: CurbCandidate) {
 
 const REGIONAL_ROADSIDE_IDS = new Set([
   "northstar-highway",
+  "spruce-gorge-viaduct",
   "pinehook-loop",
   "mirror-lake-road",
   "silver-run-switchbacks",
@@ -502,7 +518,7 @@ function asPlacement(candidate: CurbCandidate, radius: number): FareStopPlacemen
   const code = stopCode(candidate.blockX, candidate.blockY, candidate.side, candidate.slot);
   return {
     id: candidate.id,
-    zone: { ...candidate.zone },
+    zone: atTerrainElevation({ ...candidate.zone }),
     approach: { ...report.approach },
     approachHeading: report.approachHeading,
     blockX: candidate.blockX,
@@ -768,6 +784,8 @@ function selectRegionalDestinationStop(
   );
   const originBounds = regionRoadBounds(origin);
   const targetBounds = regionRoadBounds(target);
+  const maxDistance = origin.id === "northstar-range" || target.id === "northstar-range"
+    ? MAX_REGIONAL_FARE_TRIP_DISTANCE : MAX_FLAT_REGIONAL_FARE_TRIP_DISTANCE;
   const originCenter = {
     x: (originBounds.minX + originBounds.maxX) / 2,
     y: (originBounds.minY + originBounds.maxY) / 2,
@@ -795,7 +813,7 @@ function selectRegionalDestinationStop(
       && stopBelongsToRegion(stop, target)
       && reachesInterior(stop)
       && routeDistance >= MIN_REGIONAL_FARE_TRIP_DISTANCE
-      && routeDistance <= MAX_REGIONAL_FARE_TRIP_DISTANCE
+      && routeDistance <= maxDistance
       && avoidsPreviousStops(stop, previousIds, previousPoints);
   }, 1);
   return output[0] ?? null;

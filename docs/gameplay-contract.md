@@ -1,7 +1,8 @@
 # Gameplay contract
 
 These are compatibility rules, not suggestions. Tests intentionally freeze them
-so refactors cannot silently change game feel.
+so refactors cannot silently change game feel. The engine rebuild deliberately
+updates the arcade launch, steering, road elevation and contact rules below.
 
 ## Coordinates and roads
 
@@ -13,6 +14,11 @@ so refactors cannot silently change game feel.
   desert roads, and wetland causeways complete the shared graph. Pavement,
   physics, routes, traffic, fares, pedestrians, and both GPS maps consume the
   same enabled-street topology.
+- Authored curves carry height, width and bank through one compiled surface.
+  The Neon Beltway centerline is at z=8; eight ramps connect it to the ground
+  network. Its tire-contact plane is z=8.64. Equal XY coordinates on different
+  decks do not form a junction. Northstar uses physical terrain and sustained
+  road grades; the other regions retain their established ground plane.
 - Horizontal right-hand traffic: `laneY = roadY + dir * 2.25`.
 - Vertical right-hand traffic: `laneX = roadX - dir * 2.25`.
 - The player taxi starts at `(0, 2)`, heading north (`-π/2`). This centered
@@ -25,8 +31,9 @@ so refactors cannot silently change game feel.
   opens the Crown Cab specification instead and never exposes arcade traits.
   Run kind and driving model are orthogonal, run-scoped selections, but the
   simulation model is authoritatively normalized back to arcade for timed runs.
-- Street Ace preserves the baseline launch, braking, and reverse tuning while
-  using the shared progressive steering and drift model. Drift
+- Street Ace uses the shared responsive arcade launch, braking, steering and
+  drift model. Launch acceleration tapers from 23.5 to 20 world units/s²;
+  service braking is 34. Reverse tuning is preserved. Drift
   Demon changes drift rotation, charge, and style scoring; Redline Rush changes
   launch, boost acceleration, boost supply, and high-speed control. Passenger
   and courier payout formulas remain package-neutral.
@@ -78,6 +85,20 @@ so refactors cannot silently change game feel.
   yaw, tire grip, smoke, drift charge, and drift score scale with that angle and
   speed. Releasing steering restores grip; countersteering restores it faster
   and actively pulls the taxi back into line.
+- A 50 ms steering tap reaches about half lock; a 300 ms hold reaches full lock.
+  Rotation follows a damped yaw rate, while countersteer responds faster than
+  ordinary steering. Acceleration/braking and lateral load drive bounded body
+  pitch/roll. The Street Ace one-second launch reaches 20.225 world units/s
+  (previously 16.267); Redline reaches 22.634. Boost activates at the same speed
+  threshold and drains at the same rate, so the faster launch starts it earlier.
+- Tire contact follows the actual pavement triangles. At a fast crest the cab
+  may leave the surface, retain its horizontal momentum and land with a damped
+  suspension impulse. Air steering is limited and airborne slides earn no drift
+  score or charge. Bridge decks and rails have vertical collision intervals;
+  traffic and arrival dwell must be on the same level as the taxi.
+- The simulation cab also requires ground contact for tire, brake, rolling
+  resistance and terrain-trip forces. Its airborne body retains momentum under
+  aerodynamic drag until the shared road-contact controller lands it.
 - Tapping brake while committed to a turn above roughly 31 km/h creates one
   short trail-brake rotation pulse in the steering direction. Its yaw, rear
   grip release, smoke, and momentum cost scale with speed and steering angle.
@@ -95,8 +116,8 @@ so refactors cannot silently change game feel.
   boosting, it replaces that governor with a cap exactly 60 km/h above the
   selected package's normal cap on the same road, reaching at most 235 km/h.
   Two-lane parkways, ramps, roundabouts, shoulders,
-  and local streets do not qualify. Reverse speed, acceleration, braking,
-  low-speed steering, trait modifiers, and payout formulas remain unchanged; a
+  and local streets do not qualify. Reverse speed, trait modifiers, and payout
+  formulas remain unchanged; a
   faster trip may still earn a larger existing quick-time bonus. High-speed
   movement uses additional collision substeps so the taxi cannot tunnel through
   ordinary world colliders.
@@ -112,7 +133,7 @@ so refactors cannot silently change game feel.
 
 ## Player activity and interactions
 
-- `Game.x/y/vx/vy/heading/speed` always belong to the taxi. The walking actor is
+- `Game.x/y/z/vx/vy/heading/speed` always belong to the taxi. The walking actor is
   the discriminated `Game.player` state; use `controlledPose(game)` for camera
   and streaming focus.
 - E is a context action with a simulation-owned held-input latch. A stopped
@@ -125,8 +146,9 @@ so refactors cannot silently change game feel.
   without changing the exterior selection.
 - Walking uses the same fixed 60 Hz step and a swept circular collision body.
   X/Y resolution allows wall sliding without reusing the taxi OBB. Collision
-  remains two-dimensional and solid during a jump, so vertical presentation
-  cannot bypass buildings, props, vehicles, water boundaries, or region edges.
+  uses each solid's height interval, including bridge undersides and guardrails.
+  Walking follows the same supporting road deck as driving, and jumping cannot
+  pass through a low ceiling. Semantic water and active-region edges remain solid.
 - W/S walk forward/backward, A/D turn, Shift runs, Space jumps, and either C or
   Ctrl crouches. Ground motion accelerates and brakes instead of snapping to a
   speed. Running reaches 8.2 world units/second, normal walking 4.5, crouching
@@ -134,11 +156,12 @@ so refactors cannot silently change game feel.
   limited so a running jump preserves momentum while remaining correctable.
 - Jump presses are edge-triggered with a 120 ms input buffer and 100 ms coyote
   window. Holding Space produces the full jump arc; releasing early increases
-  gravity for a shorter hop. Landing returns elevation exactly to zero and a
+  gravity for a shorter hop. Landing returns elevation to the supporting deck and a
   held key cannot cause automatic bunny hops. Context interactions are hidden
   and rejected until the actor is grounded.
 - Crouching eases into a lower visual stance and first-person eye height while
-  retaining the stable circular collision footprint. Reduced-motion mode
+  retaining the stable circular collision footprint. Low overhead clearance
+  keeps the actor crouched until standing fits. Reduced-motion mode
   removes gait bob, body lean, and landing shake but preserves movement rules,
   jump height, and crouch height.
 - Fare pickup/dropoff is disabled outside the taxi. Traffic and fixed-step
@@ -196,9 +219,9 @@ so refactors cannot silently change game feel.
 ## Navigation
 
 - Route generation begins in the taxi's current travel direction.
-- Five active equal-size cells occupy the center, north, east, south, and
-  southeast slots: Neon City, Northstar Range, Cedar Vale, Copper Mesa, and
-  Cypress Reach. A* graph routing must keep every segment in an active cell;
+- Six active equal-size cells occupy the center, north, east, south, southeast
+  and west slots: Neon City, Northstar Range, Cedar Vale, Copper Mesa, Cypress
+  Reach and Solana Coast. A* graph routing must keep every segment in an active cell;
   Cypress connects through Cedar or Copper and routes never cut across an
   inactive diagonal cell.
 - A reverse departure is allowed only when it saves at least one road spacing
@@ -207,6 +230,11 @@ so refactors cannot silently change game feel.
   flicker while the taxi rotates.
 - The minimap, instruction copy, and 3D cue consume the same
   `NavigationPlan`/`TurnCue` semantics.
+- All routes use one directed 3D road graph with physical crossing splits,
+  virtual origin/destination projections, corridor weights and a small turn
+  cost. Arrival direction is part of the search state, so sample vertices cannot
+  manufacture U-turns. Height remains attached to route points through both GPS
+  maps, the controller and world-space route markers.
 
 ## Street life
 
@@ -254,9 +282,13 @@ so refactors cannot silently change game feel.
   Old Spruce Mill, Mirror Lake, Silver Run Resort, and Aurora Lookout. Mirror
   Lake is semantic, impassable water; every enterable anchor keeps one clear
   exterior portal.
-- All driveable Northstar surfaces remain on the engine's flat physical plane.
-  Cliffs, rock shelves, snowfields, trees, lifts, and resort silhouettes create
-  visual relief without introducing renderer-only grades or mismatched physics.
+- Northstar terrain uses shared 9-unit triangles for rendering and contact.
+  Road cuts, graded building benches, bridges, cliffs, and elevated water are
+  physical. Steep uphill faces block taxi/foot movement; downhill drops permit
+  falling and landing. The five authored roads connect the city, village, lake,
+  and summit, with level merge landings and no invented northern perimeter road.
+  Fares, interaction prompts, interior returns, gas proximity, cameras, and
+  traffic respect elevation. All nine named anchor IDs and services remain.
 - Cypress Reach adds ten anchors, from Lantern Bay Market and Bayou Belle to
   Stormwall Locks, Cypress Crown Preserve, and Blackwater Shipyard. Its visible
   marsh and open water are semantic and physically impassable; causeways,
@@ -339,7 +371,8 @@ so refactors cannot silently change game feel.
 - Promoting fare six preserves its existing rider, pickup ring, and validated
   curb; only the destination changes. The destination belongs to an active
   cardinal-neighbor region, sits at least eight blocks beyond the seam, and
-  keeps the canonical leg between 360 and 2,160 route units. Fare six remains
+  keeps the canonical leg between 360 and 2,160 route units, or up to 3,960 when
+  Northstar is either endpoint to accommodate the real mountain road. Fare six remains
   GPS-prioritized until collected. On arrival, the old market is retired and
   the next six fares are generated locally in the destination region, where the
   same five-local-plus-one-regional cycle repeats. Region exclusivity governs

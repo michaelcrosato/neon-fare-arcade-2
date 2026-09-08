@@ -41,6 +41,7 @@ export function replayDiagnosticSegment(segment: DiagnosticSegment) {
       boxes: world.boxes.length,
       colliders: world.colliders.length,
       interactions: world.interactions.length,
+      ...(tick.stream.counts.surfaceQuads === undefined ? {} : { surfaceQuads: world.surfaces?.length ?? 0 }),
     };
     if (stableData(counts) !== stableData(tick.stream.counts)) mismatch(`world counts at tick ${tick.tick}`);
 

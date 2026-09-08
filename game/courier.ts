@@ -13,7 +13,7 @@ import { creditRunTime, quickTimeBonus } from "./run-rules";
 
 export type CourierStop = {
   venue: VenueRef;
-  entrance: Vec2;
+  entrance: import("./model").WorldPoint;
 };
 
 export type CourierContract = {

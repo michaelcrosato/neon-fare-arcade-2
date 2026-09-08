@@ -447,3 +447,22 @@ test("Simulation Free Run keeps the shared fare loop and never awards arcade boo
   assert.equal(game.timeLeft, 75);
   assert.equal(game.boost, 0);
 });
+
+test("an airborne Crown cab has no tire acceleration, service braking or steering grip", () => {
+  const coasting = makeGame("street-ace", 108, "free-run", "simulation");
+  coasting.heading = 0; coasting.vx = 30; coasting.vy = 0;
+  coasting.z = 10; coasting.roadMotion.grounded = false;
+  const powered = structuredClone(coasting);
+  const braked = structuredClone(coasting);
+  stepFor(coasting, 0.5, {});
+  stepFor(powered, 0.5, { up: true, right: true });
+  stepFor(braked, 0.5, { down: true, left: true, boost: true });
+  for (const game of [powered, braked]) {
+    assertFiniteVehicleState(game);
+    assert.equal(game.vx, coasting.vx);
+    assert.equal(game.vy, coasting.vy);
+    assert.equal(game.heading, coasting.heading);
+    assert.ok(game.speed > 29.5 && game.speed < 30, "only aerodynamic drag slows the airborne body");
+    assert.equal(game.boost, 0);
+  }
+});

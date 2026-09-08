@@ -1,8 +1,8 @@
 import { NAVIGATION_ARRIVAL_RADIUS, ROAD_HALF, ROAD_SPACING } from "./config";
 import { distance } from "./math";
-import type { Game, Vec2 } from "./model";
+import type { Game, Vec2, WorldPoint } from "./model";
 import { clampPointToActiveRegions, isPlayablePoint } from "./regions";
-import { isRoadSurface, nearestRoadProjection } from "./road-network";
+import { isRoadSurface, nearestRoadProjection, nearestSpecialRoadProjection } from "./road-network";
 
 export type MapViewBox = {
   minX: number;
@@ -63,24 +63,28 @@ export function mapClientPointToWorld(
 }
 
 /** A map pin always resolves onto the centerline of an authored drivable road. */
-export function customDestinationForMapPoint(point: Vec2): Vec2 | null {
+export function customDestinationForMapPoint(point: WorldPoint): WorldPoint | null {
   if (!isPlayablePoint(point.x, point.y)) return null;
-  const projection = nearestRoadProjection(point);
+  const nearest = nearestRoadProjection(point);
+  const special = point.z === undefined ? nearestSpecialRoadProjection(point) : null;
+  const projection = special && special.centerDistance < nearest.centerDistance && special.surfaceDistance <= 0
+    ? special : nearest;
   if (!isRoadSurface(projection.point)) return null;
   if (!isPlayablePoint(projection.point.x, projection.point.y, ROAD_HALF)) return null;
   return {
     x: Math.round(projection.point.x * 100) / 100,
     y: Math.round(projection.point.y * 100) / 100,
+    ...((projection.point.z ?? 0) === 0 ? {} : { z: projection.point.z }),
   };
 }
 
 /** Keyboard map movement stays on the active-region union and re-snaps to roads. */
-export function moveCustomDestination(point: Vec2, dx: number, dy: number): Vec2 {
+export function moveCustomDestination(point: WorldPoint, dx: number, dy: number): WorldPoint {
   const candidate = clampPointToActiveRegions({ x: point.x + dx, y: point.y + dy }, ROAD_HALF);
   return customDestinationForMapPoint(candidate) ?? point;
 }
 
-export function setCustomDestination(game: Game, point: Vec2) {
+export function setCustomDestination(game: Game, point: WorldPoint) {
   const destination = customDestinationForMapPoint(point);
   if (!destination) return null;
   game.customDestination = destination;
@@ -96,6 +100,7 @@ export function clearCustomDestination(game: Game) {
 export function customDestinationReached(game: Game) {
   return Boolean(
     game.customDestination
+    && Math.abs((game.z ?? 0) - (game.customDestination.z ?? 0)) < 1.4
     && distance({ x: game.x, y: game.y }, game.customDestination) <= NAVIGATION_ARRIVAL_RADIUS,
   );
 }

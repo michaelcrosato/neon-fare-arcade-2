@@ -231,6 +231,7 @@ export function useGameRuntime(options: GameRuntimeOptions) {
                   boxes: currentCityWorld.boxes.length,
                   colliders: currentCityWorld.colliders.length,
                   interactions: currentCityWorld.interactions.length,
+                  surfaceQuads: currentCityWorld.surfaces?.length ?? 0,
                 },
               });
             }
@@ -313,8 +314,8 @@ export function useGameRuntime(options: GameRuntimeOptions) {
         else camera.heading += normalizeAngle(cameraTargetHeading - camera.heading) * (1 - Math.exp(-headingRate * elapsed));
         const targetHeightOffset = game.player.kind === "walking"
           ? walkingCameraHeightOffset(game.player.actor, camera.mode, reducedMotion)
-          : 0;
-        if (sceneChanged) camera.heightOffset = targetHeightOffset;
+          : game.z + (reducedMotion ? 0 : game.roadMotion.heave);
+        if (sceneChanged || (camera.mode === "cab" && isDriving(game))) camera.heightOffset = targetHeightOffset;
         else {
           const heightRate = targetHeightOffset < camera.heightOffset ? 18 : 12;
           camera.heightOffset += (targetHeightOffset - camera.heightOffset)

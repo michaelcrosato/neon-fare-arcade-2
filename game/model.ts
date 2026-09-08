@@ -87,9 +87,12 @@ export type VenueServiceId =
   | "gas-counter";
 
 export type Vec2 = { x: number; y: number };
+/** A world/map point with an optional deck height; omitted height means ground. */
+export type WorldPoint = Vec2 & { z?: number };
+export type Vec3 = Vec2 & { z: number };
 export type Color = readonly [number, number, number, number];
 
-export type ActorPose = Vec2 & {
+export type ActorPose = WorldPoint & {
   vx: number;
   vy: number;
   heading: number;
@@ -133,7 +136,7 @@ export type PlayerActivity =
         | {
             kind: "interior";
             venue: VenueRef;
-            returnPose: Vec2 & { heading: number };
+            returnPose: WorldPoint & { heading: number };
           };
     };
 
@@ -142,6 +145,7 @@ type WorldInteractionBase = {
   label: string;
   x: number;
   y: number;
+  z?: number;
   heading: number;
   radius: number;
 };
@@ -318,7 +322,7 @@ export type LotKind =
   | "coast-coastwatch";
 
 export type TurnCue = {
-  point: Vec2;
+  point: WorldPoint;
   incomingYaw: number;
   yaw: number;
   kind: "left" | "right";
@@ -326,7 +330,7 @@ export type TurnCue = {
 };
 
 export type NavigationPlan = {
-  route: Vec2[];
+  route: WorldPoint[];
   requiresUTurn: boolean;
   departureYaw: number;
   travelHeading: number;
@@ -365,9 +369,13 @@ export type MaterialId =
   | 12
   | 13
   | 14
-  | 15;
+  | 15
+  | 16
+  | 17
+  | 18;
 
 export type Box = {
+  groundAnchor?: Vec2;
   x: number;
   y: number;
   z: number;
@@ -385,6 +393,22 @@ export type Box = {
   material?: MaterialId;
 };
 
+/** Shared swept-road surface. Corners wind along left edge, then back on right. */
+export type SurfaceQuad = {
+  corners: readonly [Vec3, Vec3, Vec3, Vec3];
+  color: Color;
+  material: MaterialId;
+};
+
+/** Static terrain/architecture shares the road vertex protocol, including triangles. */
+export type MeshFace = {
+  groundAnchor?: Vec2;
+  corners: readonly [Vec3, Vec3, Vec3] | readonly [Vec3, Vec3, Vec3, Vec3];
+  color: Color;
+  material: MaterialId;
+  kind?: "terrain" | "architecture";
+};
+
 export type SurfaceRegion = {
   id: string;
   kind: "water";
@@ -396,12 +420,18 @@ export type SurfaceRegion = {
 };
 
 export type Collider = {
+  groundAnchor?: Vec2;
   id: string;
   x: number;
   y: number;
   halfX: number;
   halfY: number;
   height: number;
+  /** Bottom of the solid interval. Older ground props default to zero. */
+  baseZ?: number;
+  yaw?: number;
+  /** Sloped deck top, used to test clearance below ramps without blocking their tires. */
+  roadDeck?: { a: Vec3; b: Vec3; thickness: number };
 };
 
 export type CityChunk = {
@@ -409,6 +439,7 @@ export type CityChunk = {
   cx: number;
   cy: number;
   boxes: Box[];
+  surfaces?: MeshFace[];
   colliders: Collider[];
   surfaceRegions: SurfaceRegion[];
   interactions: WorldInteraction[];
@@ -416,6 +447,7 @@ export type CityChunk = {
 
 export type LotContext = {
   boxes: Box[];
+  surfaces?: MeshFace[];
   colliders: Collider[];
   surfaceRegions: SurfaceRegion[];
   centerX: number;
@@ -428,6 +460,8 @@ export type LotContext = {
 export type WorldView = {
   key: string;
   boxes: Box[];
+  surfaces?: MeshFace[];
+  landscapeSurfaces?: MeshFace[];
   colliders: Collider[];
   chunks: CityChunk[];
   interactions: WorldInteraction[];
@@ -437,10 +471,12 @@ export type TrafficMotion =
   | { kind: "grid"; axis: "x" | "y" }
   | { kind: "path"; roadId: string; progress: number };
 
-export type TrafficCar = {
+export type TrafficCar = WorldPoint & {
   x: number;
   y: number;
   heading: number;
+  pitch?: number;
+  roll?: number;
   motion: TrafficMotion;
   dir: 1 | -1;
   speed: number;
@@ -452,6 +488,7 @@ export type TrafficCar = {
 export type Particle = {
   x: number;
   y: number;
+  z?: number;
   vx: number;
   vy: number;
   life: number;
@@ -466,14 +503,14 @@ export type Job = {
   destinationArtCell: number;
   pickupStopId: string;
   /** Off-road fare-zone center used by world markers and dwell checks. */
-  pickup: Vec2;
+  pickup: WorldPoint;
   /** Collision-checked road pose used by routing and distance economy. */
-  pickupApproach: Vec2;
+  pickupApproach: WorldPoint;
   dropoffStopId: string;
   /** Off-road fare-zone center used by world markers and dwell checks. */
-  dropoff: Vec2;
+  dropoff: WorldPoint;
   /** Collision-checked road pose used by routing and distance economy. */
-  dropoffApproach: Vec2;
+  dropoffApproach: WorldPoint;
   destination: string;
   /** Present when dispatch deliberately sends this fare into another region. */
   regionalTransfer: {
@@ -498,10 +535,33 @@ export type ActiveCourier = {
   loadedInTaxi: boolean;
 };
 
+export type VehicleRoadMotion = {
+  verticalSpeed: number;
+  grounded: boolean;
+  roadId: string | null;
+  pitch: number;
+  roll: number;
+  heave: number;
+  heaveSpeed: number;
+  landingImpact: number;
+};
+
+export type ArcadeVehicleState = {
+  yawRate: number;
+  bodyPitch: number;
+  pitchRate: number;
+  bodyRoll: number;
+  rollRate: number;
+};
+
 export type Game = {
   /** The taxi pose. Never repurpose these fields for the walking avatar. */
   x: number;
   y: number;
+  /** Height of the tire contact plane, shared by driving, collision and rendering. */
+  z: number;
+  roadMotion: VehicleRoadMotion;
+  arcadeVehicle: ArcadeVehicleState;
   vx: number;
   vy: number;
   heading: number;
@@ -557,7 +617,7 @@ export type Game = {
   /** Optional courier assignment. Passenger and courier state never alias. */
   activeCourier: ActiveCourier | null;
   /** Player-authored GPS waypoint. It overrides guidance without cancelling jobs. */
-  customDestination: Vec2 | null;
+  customDestination: WorldPoint | null;
   /** Bitset of courier offers remaining in the current contract cycle. */
   availableCourierMask: number;
   /** Seeded board ordering makes each contract cycle read differently. */
@@ -645,18 +705,18 @@ export type Hud = {
   boosting: boolean;
   objectiveType: "pickup" | "drop" | "courier-pickup" | "courier-drop" | "waypoint" | "roam";
   objectiveAngle: number;
-  player: Vec2;
+  player: WorldPoint;
   walker: Vec2 | null;
   target: Vec2;
   missionType: "pickup" | "drop" | "courier-pickup" | "courier-drop" | "roam";
   /** The actual route endpoint, which may be a player-authored waypoint. */
-  navigationTarget: Vec2;
-  customDestination: Vec2 | null;
+  navigationTarget: WorldPoint;
+  customDestination: WorldPoint | null;
   availablePickups: FarePickupMarker[];
   fareDestinations: FareDestinationMarker[];
   courierMarkers: CourierMapMarker[];
   heading: number;
-  route: Vec2[];
+  route: WorldPoint[];
   routeDistance: number;
   gpsInstruction: string;
   gpsTurnDistance: number;

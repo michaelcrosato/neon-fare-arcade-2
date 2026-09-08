@@ -40,11 +40,10 @@ test("Northstar replaces the city lattice with one shared sparse-road policy", (
   assert.equal(isRoadSurface({ x: 72, y: -1782 }), false);
 
   const townChunk = generateCityChunk(0, -10);
-  assert.ok(townChunk.boxes.some((box) => (
-    Math.abs(box.x - 18) < 0.01
-    && Math.abs(box.y + 1440) < 0.01
-    && Math.abs(box.sx - ROAD_SPACING) < 0.01
-    && Math.abs(box.sy - 12) < 0.01
+  assert.ok(townChunk.surfaces?.some((surface) => (
+    surface.corners.length === 4
+    && surface.corners.every((point) => point.x >= 0 && point.x <= 36 && Math.abs(point.y + 1440) <= 6)
+    && surface.corners.every((point) => point.z > 44.5 && point.z < 44.8)
   )));
   const woodsChunk = generateCityChunk(1, -12);
   assert.equal(woodsChunk.boxes.some((box) => (
@@ -61,6 +60,7 @@ test("every authored Northstar road stays playable and joins the shared graph", 
     "pinehook-loop",
     "mirror-lake-road",
     "silver-run-switchbacks",
+    "spruce-gorge-viaduct",
   ]);
   const segments = SPECIAL_ROAD_SEGMENTS.filter((segment) => northRoadIds.has(segment.pathId));
   assert.ok(segments.length > 300);

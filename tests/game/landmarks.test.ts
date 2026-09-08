@@ -24,6 +24,7 @@ import {
 import { CEDAR_VALE_ANCHORS } from "../../game/residential";
 import { buildGpsRoute } from "../../game/route-geometry";
 import { buildNavigationPlan } from "../../game/navigation";
+import { gridStreetPointEnabled } from "../../game/road-topology";
 import { isRoadSurface, specialRoadIntersectsSquare } from "../../game/road-network";
 import type { WorldInteraction } from "../../game/model";
 import { districtForBlock, generateCityChunk, lotForBlock } from "../../game/world";
@@ -179,10 +180,10 @@ test("flagship campuses replace only their internal grid streets", () => {
     );
     assert.equal(routeUsesCampusStreetClosure(horizontalPlan.route), false, `${campus.id} horizontal route`);
     if (campus.width > 1) {
-      assert.equal(isRoadSurface({ x: verticalX, y: (campus.originY + 0.5) * ROAD_SPACING }), false);
+      assert.equal(gridStreetPointEnabled({ x: verticalX, y: (campus.originY + 0.5) * ROAD_SPACING }, "vertical"), false);
     }
     if (campus.height > 1) {
-      assert.equal(isRoadSurface({ x: (campus.originX + 0.5) * ROAD_SPACING, y: horizontalY }), false);
+      assert.equal(gridStreetPointEnabled({ x: (campus.originX + 0.5) * ROAD_SPACING, y: horizontalY }, "horizontal"), false);
     }
     if (campus.source !== "mountain" && campus.source !== "desert" && campus.source !== "wetland" && campus.source !== "coastal") {
       assert.equal(isRoadSurface({ x: campus.originX * ROAD_SPACING, y: (campus.originY + 0.5) * ROAD_SPACING }), true);

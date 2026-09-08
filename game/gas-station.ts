@@ -66,7 +66,8 @@ export function isTaxiNearGasStation(game: Game) {
   return distance(
     { x: game.x, y: game.y },
     game.player.location.returnPose,
-  ) <= GAS_STATION_TAXI_RADIUS;
+  ) <= GAS_STATION_TAXI_RADIUS
+    && Math.abs(game.z - (game.player.location.returnPose.z ?? 0)) < 2;
 }
 
 /** Gas is sold by the second near the 99-second cap, so a top-off never wastes banked fare. */

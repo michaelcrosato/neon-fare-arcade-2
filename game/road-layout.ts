@@ -1,4 +1,6 @@
 import type { Vec2 } from "./model";
+import { sampleRoadCurve, roadDistance, type RoadControlPoint } from "./roads/geometry";
+import { atRoadElevation, drapeNorthstarRoad, inNorthstarTerrain } from "./terrain/northstar-forms";
 
 export type RoadKind =
   | "boulevard"
@@ -17,11 +19,11 @@ export type RoadPathDefinition = {
   lanes: number;
   /** Lower values make fast roads attractive without changing physical distance. */
   travelWeight: number;
-  points: readonly Vec2[];
+  points: readonly RoadControlPoint[];
   closed?: boolean;
   oneWay?: boolean;
   connectGrid: GridConnectionMode;
-  junctions: readonly Vec2[];
+  junctions: readonly RoadControlPoint[];
 };
 
 export type RoundaboutDefinition = {
@@ -31,73 +33,30 @@ export type RoundaboutDefinition = {
   islandHalfSize: number;
 };
 
-const point = (x: number, y: number): Vec2 => ({ x, y });
+const point = (x: number, y: number, z?: number): RoadControlPoint => z === undefined ? { x, y } : { x, y, z };
 
-function samePoint(a: Vec2, b: Vec2) {
-  return Math.hypot(a.x - b.x, a.y - b.y) < 0.01;
+function samePoint(a: RoadControlPoint, b: RoadControlPoint) {
+  return roadDistance(a, b) < 0.01;
 }
 
-function catmullRomPath(
-  controls: readonly Vec2[],
-  closed = false,
-  targetSpacing = 15,
-) {
-  const output: Vec2[] = [];
-  const segmentCount = closed ? controls.length : controls.length - 1;
-  for (let index = 0; index < segmentCount; index += 1) {
-    const p1 = controls[index];
-    const p2 = controls[(index + 1) % controls.length];
-    const p3 = controls[(index + 2) % controls.length] ?? controls[controls.length - 1];
-    const startControl = closed
-      ? controls[(index - 1 + controls.length) % controls.length]
-      : controls[Math.max(0, index - 1)];
-    const endControl = closed ? p3 : controls[Math.min(controls.length - 1, index + 2)];
-    const steps = Math.max(2, Math.ceil(Math.hypot(p2.x - p1.x, p2.y - p1.y) / targetSpacing));
-    for (let step = 0; step < steps; step += 1) {
-      const t = step / steps;
-      const t2 = t * t;
-      const t3 = t2 * t;
-      output.push({
-        x: 0.5 * (
-          2 * p1.x
-          + (-startControl.x + p2.x) * t
-          + (2 * startControl.x - 5 * p1.x + 4 * p2.x - endControl.x) * t2
-          + (-startControl.x + 3 * p1.x - 3 * p2.x + endControl.x) * t3
-        ),
-        y: 0.5 * (
-          2 * p1.y
-          + (-startControl.y + p2.y) * t
-          + (2 * startControl.y - 5 * p1.y + 4 * p2.y - endControl.y) * t2
-          + (-startControl.y + 3 * p1.y - 3 * p2.y + endControl.y) * t3
-        ),
-      });
-    }
-  }
-  if (!closed) output.push({ ...controls[controls.length - 1] });
-  return output;
+function catmullRomPath(controls: readonly RoadControlPoint[], closed = false, targetSpacing = 15) {
+  const samples = sampleRoadCurve({ kind: "catmull-rom", points: controls, closed },
+    { maxSegmentLength: targetSpacing, maxChordError: 0.08 });
+  if (!controls.some((point) => inNorthstarTerrain(point.x, point.y))) return samples;
+  const lifted = drapeNorthstarRoad(closed ? [...samples, samples[0]] : samples);
+  if (closed) lifted.pop();
+  return lifted;
 }
 
-function bezierPath(
-  start: Vec2,
-  controlA: Vec2,
-  controlB: Vec2,
-  end: Vec2,
-  steps = 9,
-) {
-  return Array.from({ length: steps + 1 }, (_, index) => {
-    const t = index / steps;
-    const inverse = 1 - t;
-    return {
-      x: inverse ** 3 * start.x
-        + 3 * inverse ** 2 * t * controlA.x
-        + 3 * inverse * t ** 2 * controlB.x
-        + t ** 3 * end.x,
-      y: inverse ** 3 * start.y
-        + 3 * inverse ** 2 * t * controlA.y
-        + 3 * inverse * t ** 2 * controlB.y
-        + t ** 3 * end.y,
-    };
-  });
+function rampPath(start: RoadControlPoint, controlA: RoadControlPoint, controlB: RoadControlPoint, end: RoadControlPoint) {
+  // De Casteljau preserves the interchange's XY curve while a flat merge apron
+  // keeps the climbing lane clear of the beltway underside before it joins.
+  const mix = (a: RoadControlPoint, b: RoadControlPoint): RoadControlPoint => ({ x: a.x + (b.x - a.x) * 0.35, y: a.y + (b.y - a.y) * 0.35 });
+  const q0 = mix(start, controlA), q1 = mix(controlA, controlB), q2 = mix(controlB, end);
+  const r0 = mix(q0, q1), r1 = mix(q1, q2), join = mix(r0, r1);
+  const upper = (p: RoadControlPoint) => ({ ...p, z: BELTWAY_ELEVATION });
+  return sampleRoadCurve({ kind: "bezier", points: [upper(start), upper(q0), upper(r0), upper(join), upper(r1), { ...q2, z: 0 }, { ...end, z: 0 }] },
+    { maxSegmentLength: 8, maxChordError: 0.06 });
 }
 
 function roundaboutPath(center: Vec2, radius: number, segments = 20) {
@@ -130,24 +89,27 @@ const harborControls = [
   point(324, 504), point(504, 432), point(684, 468),
 ] as const;
 
+export const BELTWAY_ELEVATION = 8;
 const beltwayControls = [
   point(0, -576), point(324, -540), point(504, -396),
   point(576, -72), point(576, 72), point(504, 396),
   point(324, 540), point(0, 576), point(-324, 540),
   point(-504, 396), point(-576, 72), point(-576, -72),
   point(-504, -396), point(-324, -540),
-] as const;
+].map((control) => ({ ...control, z: BELTWAY_ELEVATION }));
 
 const northstarHighwayControls = [
-  point(0, -792), point(0, -828), point(72, -936), point(144, -1080),
-  point(216, -1188), point(216, -1332), point(144, -1476), point(72, -1620),
-  point(144, -1764), point(0, -1908), point(-180, -2052), point(216, -2196),
-  point(216, -2304),
+  point(0, -792), point(0, -864), point(72, -972), point(216, -1008),
+  point(432, -1080), point(396, -1224), point(216, -1296), point(144, -1404),
+  point(144, -1512), point(72, -1620), point(0, -1728), point(-144, -1872),
+  point(-36, -1980), point(-36, -2124), point(-36, -2160),
 ] as const;
 
 const pinehookLoopControls = [
-  point(-288, -1512), point(-360, -1440), point(-576, -1512), point(-684, -1692),
-  point(-684, -1908), point(-540, -2016), point(-324, -1944), point(-252, -1728),
+  point(-144, -1404), point(-288, -1404), point(-468, -1440), point(-576, -1512),
+  point(-648, -1620), point(-648, -1746), point(-612, -1836), point(-468, -1908),
+  point(-324, -1872), point(-324, -1764), point(-360, -1620), point(-252, -1512),
+  point(-144, -1476), point(-108, -1458), point(-108, -1422),
 ] as const;
 
 const mirrorLakeRoadControls = [
@@ -156,8 +118,18 @@ const mirrorLakeRoadControls = [
 ] as const;
 
 const silverRunControls = [
-  point(216, -1908), point(360, -2016), point(108, -2088),
-  point(324, -2160), point(108, -2232), point(324, -2304), point(144, -2340),
+  point(-36, -1980), point(252, -1980), point(360, -2016), point(432, -2034),
+  point(468, -2052), point(468, -2088), point(432, -2106), point(252, -2124),
+  point(144, -2142), point(90, -2160), point(72, -2180), point(90, -2200), point(144, -2214),
+  point(252, -2232), point(432, -2232), point(486, -2250), point(516, -2268),
+  point(516, -2304), point(480, -2322), point(324, -2322), point(216, -2304),
+  point(72, -2322), point(-144, -2322), point(-216, -2250), point(-216, -2196),
+  point(-144, -2160), point(-36, -2160),
+] as const;
+
+const gorgeViaductControls = [
+  point(-324, -1764), point(-216, -1782), point(-108, -1782), point(0, -1764),
+  point(144, -1764), point(288, -1728), point(360, -1728),
 ] as const;
 
 const sundownHighwayControls = [
@@ -219,10 +191,10 @@ export const ROUNDABOUTS: readonly RoundaboutDefinition[] = [
 const ramp = (
   id: string,
   name: string,
-  start: Vec2,
-  controlA: Vec2,
-  controlB: Vec2,
-  end: Vec2,
+  start: RoadControlPoint,
+  controlA: RoadControlPoint,
+  controlB: RoadControlPoint,
+  end: RoadControlPoint,
 ): RoadPathDefinition => ({
   id,
   name,
@@ -230,9 +202,9 @@ const ramp = (
   halfWidth: 5.1,
   lanes: 2,
   travelWeight: 0.78,
-  points: bezierPath(start, controlA, controlB, end),
+  points: rampPath(start, controlA, controlB, end),
   connectGrid: "explicit",
-  junctions: [start, end],
+  junctions: [{ ...start, z: BELTWAY_ELEVATION }, { ...end, z: 0 }],
 });
 
 export const SPECIAL_ROADS: readonly RoadPathDefinition[] = [
@@ -290,7 +262,7 @@ export const SPECIAL_ROADS: readonly RoadPathDefinition[] = [
     travelWeight: 0.74,
     points: catmullRomPath(northstarHighwayControls, false, 12),
     connectGrid: "crossings",
-    junctions: northstarHighwayControls,
+    junctions: northstarHighwayControls.map(atRoadElevation),
   },
   {
     id: "pinehook-loop",
@@ -302,7 +274,7 @@ export const SPECIAL_ROADS: readonly RoadPathDefinition[] = [
     points: catmullRomPath(pinehookLoopControls, true, 12),
     closed: true,
     connectGrid: "crossings",
-    junctions: pinehookLoopControls,
+    junctions: pinehookLoopControls.map(atRoadElevation),
   },
   {
     id: "mirror-lake-road",
@@ -314,7 +286,7 @@ export const SPECIAL_ROADS: readonly RoadPathDefinition[] = [
     points: catmullRomPath(mirrorLakeRoadControls, true, 12),
     closed: true,
     connectGrid: "crossings",
-    junctions: mirrorLakeRoadControls,
+    junctions: mirrorLakeRoadControls.map(atRoadElevation),
   },
   {
     id: "silver-run-switchbacks",
@@ -325,7 +297,18 @@ export const SPECIAL_ROADS: readonly RoadPathDefinition[] = [
     travelWeight: 0.86,
     points: catmullRomPath(silverRunControls, false, 10),
     connectGrid: "crossings",
-    junctions: silverRunControls,
+    junctions: silverRunControls.map(atRoadElevation),
+  },
+  {
+    id: "spruce-gorge-viaduct",
+    name: "SPRUCE GORGE VIADUCT",
+    kind: "parkway",
+    halfWidth: 6.8,
+    lanes: 2,
+    travelWeight: 0.8,
+    points: catmullRomPath(gorgeViaductControls, false, 10),
+    connectGrid: "crossings",
+    junctions: gorgeViaductControls.map(atRoadElevation),
   },
   {
     id: "sundown-highway",
@@ -449,7 +432,7 @@ export const SPECIAL_ROADS: readonly RoadPathDefinition[] = [
   ),
   ramp(
     "northwest-outer-ramp", "NORTHWEST INTERCHANGE",
-    point(-504, -396), point(-540, -378), point(-540, -342), point(-504, -324),
+    point(-504, -396), point(-576, -378), point(-576, -342), point(-504, -324),
   ),
   ramp(
     "northeast-inner-ramp", "NORTHEAST INTERCHANGE",
@@ -457,7 +440,7 @@ export const SPECIAL_ROADS: readonly RoadPathDefinition[] = [
   ),
   ramp(
     "northeast-outer-ramp", "NORTHEAST INTERCHANGE",
-    point(504, -396), point(540, -378), point(540, -342), point(504, -324),
+    point(504, -396), point(576, -378), point(576, -342), point(504, -324),
   ),
   ramp(
     "southwest-inner-ramp", "SOUTHWEST INTERCHANGE",
@@ -465,7 +448,7 @@ export const SPECIAL_ROADS: readonly RoadPathDefinition[] = [
   ),
   ramp(
     "southwest-outer-ramp", "SOUTHWEST INTERCHANGE",
-    point(-504, 396), point(-540, 378), point(-540, 342), point(-504, 324),
+    point(-504, 396), point(-576, 378), point(-576, 342), point(-504, 324),
   ),
   ramp(
     "southeast-inner-ramp", "SOUTHEAST INTERCHANGE",
@@ -473,7 +456,7 @@ export const SPECIAL_ROADS: readonly RoadPathDefinition[] = [
   ),
   ramp(
     "southeast-outer-ramp", "SOUTHEAST INTERCHANGE",
-    point(504, 396), point(540, 378), point(540, 342), point(504, 324),
+    point(504, 396), point(576, 378), point(576, 342), point(504, 324),
   ),
   ...ROUNDABOUTS.map<RoadPathDefinition>((definition) => {
     const { center, radius } = definition;
@@ -503,6 +486,6 @@ export function roadPathById(id: string) {
   return SPECIAL_ROADS.find((road) => road.id === id) ?? null;
 }
 
-export function isRoadJunctionDefinition(road: RoadPathDefinition, candidate: Vec2) {
+export function isRoadJunctionDefinition(road: RoadPathDefinition, candidate: RoadControlPoint) {
   return road.junctions.some((junction) => samePoint(junction, candidate));
 }

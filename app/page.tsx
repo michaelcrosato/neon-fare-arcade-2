@@ -155,7 +155,7 @@ export default function Home() {
   const [diagnostics] = useState(() => new DiagnosticsRecorder());
   const [diagnosticsActive] = useState(() => diagnosticsEnabled());
   const [diagnosticsNotice, setDiagnosticsNotice] = useState("");
-  const { career, careerRef, bankRun, buyItem, buyGasStationOffer } = useCareer();
+  const { career, careerRef, ready: careerReady, bankRun, buyItem, buyGasStationOffer } = useCareer();
   const {
     history: fareCards,
     docked: dockedFareCards,
@@ -825,16 +825,16 @@ export default function Home() {
   return (
     <main className={`arcade-shell mode-${mode}`}>
       <header className="topbar" inert={modal ? true : undefined} aria-hidden={modal ? true : undefined}>
-        <button className="brand" onClick={returnHome} aria-label="Neon Fare home">
+        <button className="brand" onClick={returnHome} aria-label="Neon Fare home" disabled={!careerReady}>
           <span>NEON FARE</span>
           <i aria-hidden="true"><b /><b /><b /><b /><b /><b /></i>
         </button>
         <nav aria-label="Game navigation">
-          <button onClick={() => openModal("how")}>HOW TO PLAY</button>
+          <button onClick={() => openModal("how")} disabled={!careerReady}>HOW TO PLAY</button>
           <span aria-hidden="true" />
-          <button onClick={() => openModal("scores")}>RUN LOG</button>
+          <button onClick={() => openModal("scores")} disabled={!careerReady}>RUN LOG</button>
           <span aria-hidden="true" />
-          <button onClick={toggleMute}>{muted ? "AUDIO OFF" : "AUDIO ON"}</button>
+          <button onClick={toggleMute} disabled={!careerReady}>{muted ? "AUDIO OFF" : "AUDIO ON"}</button>
         </nav>
       </header>
 
@@ -880,6 +880,7 @@ export default function Home() {
         />
         {mode === "menu" && (
           <GameModeMenu
+            ready={careerReady}
             rendererKind={rendererKind}
             careerBank={career.bank}
             best={best}

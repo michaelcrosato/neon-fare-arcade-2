@@ -1,5 +1,6 @@
 import { chaseCameraPreset } from "../config";
 import type { Camera, CameraMode, Hud, WorldView } from "../model";
+import { terrainHeightAt } from "../terrain/surface";
 
 type PlayerMode = Hud["playerMode"];
 
@@ -143,20 +144,39 @@ export function cameraBoomLimit(
   ];
   let nearest = 1;
 
+  if (!world.key.startsWith("interior:")) {
+    const samples = Math.ceil(distance / 0.5);
+    for (let i = 1; i <= samples; i += 1) {
+      const t = i / samples;
+      const x = start[0] + (end[0] - start[0]) * t;
+      const y = start[1] + (end[1] - start[1]) * t;
+      if (terrainHeightAt(x, y) + 0.45 >= start[2] + (end[2] - start[2]) * t) {
+        nearest = Math.max(0, (i - 1) / samples);
+        break;
+      }
+    }
+  }
+
   for (const collider of world.colliders) {
-    const mins = [collider.x - collider.halfX - 0.32, collider.y - collider.halfY - 0.32, 0];
-    const maxs = [collider.x + collider.halfX + 0.32, collider.y + collider.halfY + 0.32, collider.height + 0.35];
+    const cosine = Math.cos(collider.yaw ?? 0), sine = Math.sin(collider.yaw ?? 0);
+    const local = (point: [number, number, number]) => [
+      cosine * (point[0] - collider.x) + sine * (point[1] - collider.y),
+      -sine * (point[0] - collider.x) + cosine * (point[1] - collider.y), point[2],
+    ];
+    const localStart = local(start), localEnd = local(end);
+    const mins = [-collider.halfX - 0.32, -collider.halfY - 0.32, collider.baseZ ?? 0];
+    const maxs = [collider.halfX + 0.32, collider.halfY + 0.32, (collider.baseZ ?? 0) + collider.height + 0.35];
     let enter = 0;
     let exit = 1;
     let hit = true;
     for (let axis = 0; axis < 3; axis += 1) {
-      const delta = end[axis] - start[axis];
+      const delta = localEnd[axis] - localStart[axis];
       if (Math.abs(delta) < 0.0001) {
-        if (start[axis] < mins[axis] || start[axis] > maxs[axis]) hit = false;
+        if (localStart[axis] < mins[axis] || localStart[axis] > maxs[axis]) hit = false;
         continue;
       }
-      const first = (mins[axis] - start[axis]) / delta;
-      const second = (maxs[axis] - start[axis]) / delta;
+      const first = (mins[axis] - localStart[axis]) / delta;
+      const second = (maxs[axis] - localStart[axis]) / delta;
       enter = Math.max(enter, Math.min(first, second));
       exit = Math.min(exit, Math.max(first, second));
       if (enter > exit) hit = false;

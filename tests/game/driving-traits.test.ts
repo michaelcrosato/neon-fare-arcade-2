@@ -68,11 +68,11 @@ test("the driver draft exposes exactly three complete and finite packages", () =
   }
 });
 
-test("Street Ace preserves straight launch and reverse tuning under progressive steering", () => {
+test("Street Ace has the responsive arcade launch with progressive steering", () => {
   const forward = runTrait("street-ace", { ...IDLE_INPUT, up: true });
   approximate(forward.x, 0);
-  approximate(forward.y, -6.298771745502387);
-  approximate(forward.speed, 16.266791511819967);
+  approximate(forward.y, -8.564251392839362);
+  approximate(forward.speed, 20.22547181610342);
   approximate(forward.boost, 45);
 
   const steering = runTrait("street-ace", { ...IDLE_INPUT, up: true, right: true });
@@ -84,7 +84,7 @@ test("Street Ace preserves straight launch and reverse tuning under progressive 
 
   const boosted = runTrait("street-ace", { ...IDLE_INPUT, up: true, boost: true });
   assert.ok(boosted.speed > 32);
-  approximate(boosted.boost, 20);
+  approximate(boosted.boost, 19);
 });
 
 test("Drift Demon holds a larger slip angle and converts it into more charge and score", () => {
@@ -155,12 +155,12 @@ test("Redline Rush starts hotter and shares the realistic boost ceiling without 
   const redline = runTrait("redline-rush", { ...IDLE_INPUT, up: true });
   assert.equal(redline.boost, 60);
   assert.ok(redline.speed > street.speed + 2);
-  approximate(redline.y, -7.388496154265946);
-  approximate(redline.speed, 18.40280878115924);
+  approximate(redline.y, -9.855203689225307);
+  approximate(redline.speed, 22.633785568123802);
 
   const boosted = runTrait("redline-rush", { ...IDLE_INPUT, up: true, boost: true });
   assert.ok(boosted.speed > 36);
-  approximate(boosted.boost, 30.674999999999866);
+  approximate(boosted.boost, 29.524999999999867);
 
   const reverse = runTrait("redline-rush", { ...IDLE_INPUT, down: true });
   approximate(reverse.y, 5.745953882470124);

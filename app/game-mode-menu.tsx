@@ -1,6 +1,7 @@
 import type { DrivingModel, RunKind } from "@/game/model";
 
 type GameModeMenuProps = Readonly<{
+  ready: boolean;
   rendererKind: string;
   careerBank: number;
   best: number;
@@ -8,6 +9,7 @@ type GameModeMenuProps = Readonly<{
 }>;
 
 export function GameModeMenu({
+  ready,
   rendererKind,
   careerBank,
   best,
@@ -28,6 +30,7 @@ export function GameModeMenu({
           <div>
             <button
               className="start-mode-button is-timed"
+              disabled={!ready}
               onClick={() => onRequestStartRun("timed")}
               aria-label="Start an Arcade Shift. 75 second score attack."
             >
@@ -35,6 +38,7 @@ export function GameModeMenu({
             </button>
             <button
               className="start-mode-button is-free-run"
+              disabled={!ready}
               onClick={() => onRequestStartRun("free-run", "arcade")}
               aria-label="Start Free Run with arcade handling. No timer. Explore, take fares, and deliver courier packages."
             >
@@ -42,6 +46,7 @@ export function GameModeMenu({
             </button>
             <button
               className="start-mode-button is-simulation"
+              disabled={!ready}
               onClick={() => onRequestStartRun("free-run", "simulation")}
               aria-label="Start Simulation Free Run. Drive a 1990s Crown Victoria-style taxi with realistic vehicle physics."
             >

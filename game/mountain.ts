@@ -3,7 +3,10 @@ import {
   BONE,
   CYAN,
   INK,
-  MAT_BUILDING,
+  MAT_TIMBER,
+  MAT_STONE,
+  MAT_SNOW,
+  MAT_GENERIC,
   MAT_FOLIAGE,
   MAT_GRASS,
   MAT_LAMP,
@@ -20,6 +23,9 @@ import {
   WHITE,
   YELLOW,
 } from "./config";
+import { gabledRoof, taperedSpire, facetedBoulder, observatoryDome } from "./architecture";
+import { northstarSettlementPlan } from "./terrain/settlement";
+import { naturalTerrainHeight, northstarStationReserved, northstarSnowRun } from "./terrain/northstar-forms";
 import { blockRandom } from "./random";
 import type { Color, LotContext, LotKind, VenueKind } from "./model";
 import { northstarRangeAreaForBlock } from "./regions";
@@ -29,6 +35,7 @@ export const RANGE_SPRUCE: Color = [0.045, 0.2, 0.14, 1];
 export const RANGE_PINE: Color = [0.09, 0.31, 0.2, 1];
 export const RANGE_MOSS: Color = [0.29, 0.43, 0.25, 1];
 export const RANGE_GRANITE: Color = [0.34, 0.38, 0.39, 1];
+export const RANGE_SLATE: Color = [0.18, 0.29, 0.33, 1];
 export const RANGE_SNOW: Color = [0.9, 0.92, 0.86, 1];
 export const RANGE_TIMBER: Color = [0.31, 0.16, 0.09, 1];
 export const RANGE_BERRY: Color = [0.58, 0.08, 0.12, 1];
@@ -111,6 +118,12 @@ const SILVER_LOTS = [
 export function mountainLotForBlock(blockX: number, blockY: number): LotKind {
   const anchor = mountainAnchorForBlock(blockX, blockY);
   if (anchor) return anchor.definition.lot;
+  if (!northstarSettlementPlan(blockX, blockY)) {
+    const height = naturalTerrainHeight(blockX * 36 + 18, blockY * 36 + 18);
+    const wilderness = blockRandom(blockX, blockY, 0x4d544e)();
+    return height > 154 ? "range-snowfield" : wilderness < 0.14 ? "range-rocky-grove"
+      : wilderness < 0.28 ? "range-meadow" : "range-forest-clearing";
+  }
   const area = northstarRangeAreaForBlock(blockX, blockY);
   const deck = area === "NORTHSTAR VILLAGE"
     ? VILLAGE_LOTS
@@ -179,48 +192,30 @@ function addGround(ctx: LotContext, color: Color = RANGE_MOSS, size = 23.2) {
 }
 
 function addPine(ctx: LotContext, x: number, y: number, scale = 1, solid = false, snowy = false) {
-  ctx.boxes.push({ x, y, z: 1.65 * scale + 0.3, sx: 0.48 * scale, sy: 0.48 * scale, sz: 3.3 * scale, yaw: 0, color: RANGE_TIMBER, material: MAT_BUILDING });
-  for (let tier = 0; tier < 3; tier += 1) {
-    const width = (3.2 - tier * 0.72) * scale;
-    ctx.boxes.push({ x, y, z: (3.05 + tier * 1.22) * scale + 0.3, sx: width, sy: width, sz: 1.5 * scale, yaw: Math.PI / 4, color: tier % 2 ? RANGE_PINE : RANGE_SPRUCE, material: MAT_FOLIAGE });
+  const groundAnchor = { x, y };
+  const height = (snowy ? 9 : 13) * scale;
+  ctx.boxes.push({ x, y, z: height * 0.28, sx: 0.65 * scale, sy: 0.65 * scale, sz: height * 0.56,
+    yaw: 0, color: RANGE_TIMBER, material: MAT_FOLIAGE, groundAnchor });
+  for (let tier = 0; tier < 2; tier += 1) {
+    ctx.surfaces?.push(...taperedSpire({ x, y, z: height * (0.19 + tier * 0.3) },
+      (3.6 - tier) * scale, height * 0.55, tier ? RANGE_PINE : RANGE_SPRUCE, 4, MAT_FOLIAGE, groundAnchor));
   }
-  if (snowy) ctx.boxes.push({ x, y, z: 6.05 * scale + 0.3, sx: 1.25 * scale, sy: 1.25 * scale, sz: 0.35 * scale, yaw: Math.PI / 4, color: RANGE_SNOW, material: MAT_FOLIAGE });
-  if (solid) addSolid(ctx, `pine-${ctx.boxes.length}`, x, y, 0.8 * scale, 0.8 * scale, 6.2 * scale);
+  if (snowy) ctx.surfaces?.push(...taperedSpire({ x, y, z: height * 0.81 }, 1.05 * scale, height * 0.23, RANGE_SNOW, 4, MAT_SNOW, groundAnchor));
+  if (solid) ctx.colliders.push({ id: `pine:${ctx.blockX}:${ctx.blockY}:${ctx.boxes.length}`,
+    x, y, halfX: 0.4 * scale, halfY: 0.4 * scale, height, groundAnchor });
 }
 
 function addBoulder(ctx: LotContext, x: number, y: number, scale = 1, solid = false) {
-  ctx.boxes.push({ x, y, z: 0.8 * scale + 0.25, sx: 2.1 * scale, sy: 1.7 * scale, sz: 1.55 * scale, yaw: Math.PI / 4, color: RANGE_GRANITE, material: MAT_BUILDING });
-  if (solid) addSolid(ctx, `boulder-${ctx.boxes.length}`, x, y, 1.8 * scale, 1.5 * scale, 1.8 * scale);
+  ctx.surfaces?.push(...facetedBoulder({ x, y, z: 0 }, 3.2 * scale, 2.5 * scale, 2.2 * scale, RANGE_GRANITE));
+  if (solid) ctx.colliders.push({ id: `rock:${ctx.blockX}:${ctx.blockY}:${ctx.colliders.length}`,
+    x, y, halfX: 1.45 * scale, halfY: 1.15 * scale, height: 2.2 * scale, groundAnchor: { x, y } });
 }
 
 function addRockShelf(ctx: LotContext, snowy = false) {
-  const x = ctx.centerX + (ctx.blockX % 2 === 0 ? 2.4 : -2.4);
-  const y = ctx.centerY + 3.2;
-  const tiers = [
-    { sx: 12.5, sy: 9.5, sz: 3.2 },
-    { sx: 9.2, sy: 7.2, sz: 3.4 },
-    { sx: 6.1, sy: 4.9, sz: 3.2 },
-  ] as const;
-  let base = 0.32;
-  for (let tier = 0; tier < tiers.length; tier += 1) {
-    const { sx, sy, sz } = tiers[tier];
-    ctx.boxes.push({
-      x: x + tier * 0.55,
-      y: y + tier * 0.35,
-      z: base + sz / 2,
-      sx,
-      sy,
-      sz,
-      yaw: tier % 2 === 0 ? 0.06 : -0.08,
-      color: tier === 1 ? [0.29, 0.34, 0.34, 1] : RANGE_GRANITE,
-      material: MAT_BUILDING,
-    });
-    base += sz * 0.78;
-  }
-  if (snowy) {
-    ctx.boxes.push({ x: x + 1.1, y: y + 0.7, z: base + 0.4, sx: 6.6, sy: 5.3, sz: 0.65, yaw: -0.08, color: RANGE_SNOW, material: MAT_GRASS });
-  }
-  addSolid(ctx, "range-rock-shelf", x, y, 12.8, 9.8, base + 1);
+  const x = ctx.centerX + 2.4, y = ctx.centerY + 3.2;
+  ctx.surfaces?.push(...facetedBoulder({ x, y, z: -1 }, 15, 10, 8, RANGE_GRANITE));
+  if (snowy) ctx.surfaces?.push(...taperedSpire({ x: x + 1, y, z: 5.5 }, 4, 2.4, RANGE_SNOW, 5, MAT_SNOW, { x, y }));
+  ctx.colliders.push({ id: `rock-shelf:${ctx.blockX}:${ctx.blockY}`, x, y, halfX: 5.5, halfY: 3.5, height: 7, groundAnchor: { x, y } });
 }
 
 function addMountainBuilding(
@@ -232,14 +227,23 @@ function addMountainBuilding(
   sy: number,
   height: number,
   wall: Color = RANGE_TIMBER,
-  roof: Color = INK,
+  roof: Color = RANGE_SLATE,
 ) {
-  ctx.boxes.push({ x: x + 0.35, y: y + 0.35, z: height / 2 + 0.45, sx: sx + 0.5, sy: sy + 0.5, sz: height, yaw: 0, color: INK, material: MAT_BUILDING });
-  ctx.boxes.push({ x, y, z: height / 2 + 0.5, sx, sy, sz: height, yaw: 0, color: wall, material: MAT_BUILDING });
-  ctx.boxes.push({ x, y: y - sy / 2 - 0.06, z: height * 0.57, sx: sx * 0.7, sy: 0.16, sz: 1.05, yaw: 0, color: RANGE_AMBER, material: MAT_WINDOW });
-  ctx.boxes.push({ x, y, z: height + 1, sx: sx + 1.4, sy: sy + 1.4, sz: 1.35, yaw: 0, color: roof, material: MAT_BUILDING });
-  ctx.boxes.push({ x: x + sx * 0.28, y: y + sy * 0.1, z: height + 2.25, sx: 1, sy: 1, sz: 2.2, yaw: 0, color: RANGE_GRANITE, material: MAT_BUILDING });
-  addSolid(ctx, id, x, y, sx, sy, height + 1.8);
+  ctx.boxes.push({ x, y, z: height / 2 + 0.5, sx, sy, sz: height, yaw: 0, color: wall, material: MAT_TIMBER });
+  ctx.boxes.push({ x, y: y - sy / 2 - 0.06, z: height * 0.57, sx: sx * 0.7, sy: 0.16, sz: 1.05, yaw: 0, color: RANGE_AMBER, material: MAT_LAMP });
+  const roofRise = id.includes("a-frame") ? sx * 0.62 : Math.min(7, sx * 0.3);
+  ctx.surfaces?.push(...gabledRoof(x, y, height + 0.5, sx + 2.2, sy + 2.4, roofRise, roof, wall));
+  ctx.boxes.push({ x, y, z: 0.55, sx: sx + 0.5, sy: sy + 0.5, sz: 1.05, yaw: 0, color: RANGE_GRANITE, material: MAT_STONE });
+  for (const side of [-1, 1]) {
+    ctx.boxes.push({ x: x + side * sx * 0.43, y: y - sy / 2 - 0.12, z: height / 2 + 0.5,
+      sx: 0.28, sy: 0.24, sz: height, yaw: 0, color: RANGE_TIMBER, material: MAT_TIMBER });
+    ctx.boxes.push({ x: x + side * sx * 0.27, y: y - sy / 2 - 0.15, z: height * 0.63,
+      sx: sx * 0.2, sy: 0.2, sz: Math.min(1.65, height * 0.3), yaw: 0, color: RANGE_AMBER, material: MAT_LAMP });
+  }
+  ctx.boxes.push({ x, y: y - sy / 2 - 0.25, z: height + 0.35, sx: sx + 1.1, sy: 0.28, sz: 0.4,
+    yaw: 0, color: RANGE_TIMBER, material: MAT_TIMBER });
+  ctx.boxes.push({ x: x + sx * 0.28, y: y + sy * 0.1, z: height + roofRise + 0.5, sx: 1, sy: 1, sz: 2.2, yaw: 0, color: RANGE_GRANITE, material: MAT_STONE });
+  addSolid(ctx, id, x, y, sx, sy, height + roofRise + 0.5);
 }
 
 function addPerson(ctx: LotContext, x: number, y: number, color: Color) {
@@ -259,17 +263,18 @@ function addForest(ctx: LotContext, count = 7, snowy = false) {
   ] as const;
   for (let index = 0; index < Math.min(count, positions.length); index += 1) {
     const [x, y] = positions[(index + Math.abs(ctx.blockX + ctx.blockY)) % positions.length];
-    addPine(ctx, ctx.centerX + x, ctx.centerY + y, 0.72 + ctx.random() * 0.32, index < 2, snowy);
+    addPine(ctx, ctx.centerX + x + (ctx.random() - 0.5) * 3, ctx.centerY + y + (ctx.random() - 0.5) * 3,
+      0.65 + ctx.random() * 0.6, index < 2, snowy);
   }
 }
 
 function buildHomeLot(ctx: LotContext, lot: LotKind) {
   addGround(ctx, lot === "range-lakeside-home" ? [0.21, 0.38, 0.31, 1] : RANGE_MOSS);
   const wall = lot === "range-a-frame" ? RANGE_BERRY : lot === "range-chalet" ? BONE : RANGE_TIMBER;
-  addMountainBuilding(ctx, lot, ctx.centerX, ctx.centerY + 3, lot === "range-farmstead" ? 13 : 10.5, 8.5, lot === "range-chalet" ? 6.5 : 4.5, wall, lot === "range-chalet" ? RANGE_BERRY : INK);
+  addMountainBuilding(ctx, lot, ctx.centerX, ctx.centerY + 3, lot === "range-farmstead" ? 13 : 10.5, 8.5, lot === "range-chalet" ? 6.5 : 4.5, wall, lot === "range-chalet" ? RANGE_BERRY : RANGE_SLATE);
   ctx.boxes.push({ x: ctx.centerX, y: ctx.centerY - 1.55, z: 0.68, sx: 8.5, sy: 2.4, sz: 0.25, yaw: 0, color: RANGE_TIMBER, material: MAT_SIDEWALK });
   if (lot === "range-farmstead") {
-    addMountainBuilding(ctx, "range-barn", ctx.centerX - 7, ctx.centerY - 4.5, 6, 6, 4, RANGE_BERRY, INK);
+    addMountainBuilding(ctx, "range-barn", ctx.centerX - 7, ctx.centerY - 4.5, 6, 6, 4, RANGE_BERRY, RANGE_SLATE);
     addPickup(ctx, "range-farm-truck", ctx.centerX + 7.5, ctx.centerY - 6.5, RANGE_MOSS);
   } else {
     addPine(ctx, ctx.centerX - 8, ctx.centerY + 7, 0.8, true, lot === "range-chalet");
@@ -278,7 +283,7 @@ function buildHomeLot(ctx: LotContext, lot: LotKind) {
 }
 
 function buildNatureLot(ctx: LotContext, lot: LotKind) {
-  addGround(ctx, lot === "range-snowfield" ? RANGE_SNOW : lot === "range-rocky-grove" ? RANGE_GRANITE : RANGE_MOSS, 24);
+
   if (lot === "range-meadow") {
     for (const [x, y, color] of [[-6, -4, YELLOW], [4, -6, WHITE], [-2, 5, RED], [7, 4, CYAN]] as const) {
       ctx.boxes.push({ x: ctx.centerX + x, y: ctx.centerY + y, z: 0.58, sx: 0.38, sy: 0.38, sz: 0.7, yaw: 0, color, material: MAT_FOLIAGE });
@@ -286,7 +291,8 @@ function buildNatureLot(ctx: LotContext, lot: LotKind) {
     addPine(ctx, ctx.centerX + 8, ctx.centerY + 7, 0.78, true);
     return;
   }
-  addForest(ctx, lot === "range-forest-clearing" ? 8 : 5, lot === "range-snowfield");
+  const altitude = naturalTerrainHeight(ctx.centerX, ctx.centerY);
+  addForest(ctx, lot === "range-forest-clearing" ? 5 : altitude > 185 ? 0 : lot === "range-snowfield" ? 1 : 3, lot === "range-snowfield");
   if (lot === "range-rocky-grove" || lot === "range-snowfield") {
     addRockShelf(ctx, lot === "range-snowfield");
     addBoulder(ctx, ctx.centerX + 7.2, ctx.centerY - 5.4, 1.05, true);
@@ -295,7 +301,7 @@ function buildNatureLot(ctx: LotContext, lot: LotKind) {
     for (const side of [-1, 1]) {
       ctx.boxes.push({ x: ctx.centerX + side * 4.5, y: ctx.centerY + 1, z: 1.15, sx: 4.4, sy: 3.2, sz: 2, yaw: side * 0.15, color: side > 0 ? ORANGE : BLUE, material: MAT_SIGN });
     }
-    ctx.boxes.push({ x: ctx.centerX, y: ctx.centerY - 5, z: 0.72, sx: 1.8, sy: 1.8, sz: 0.35, yaw: Math.PI / 4, color: RANGE_GRANITE, material: MAT_BUILDING });
+    ctx.boxes.push({ x: ctx.centerX, y: ctx.centerY - 5, z: 0.72, sx: 1.8, sy: 1.8, sz: 0.35, yaw: Math.PI / 4, color: RANGE_GRANITE, material: MAT_STONE });
     ctx.boxes.push({ x: ctx.centerX, y: ctx.centerY - 5, z: 1.35, sx: 0.6, sy: 0.6, sz: 1.2, yaw: Math.PI / 4, color: ORANGE, material: MAT_LAMP });
   }
   if (lot === "range-trailhead") {
@@ -305,8 +311,8 @@ function buildNatureLot(ctx: LotContext, lot: LotKind) {
     addPerson(ctx, ctx.centerX + 1, ctx.centerY - 2, ORANGE);
   }
   if (lot === "range-lift-support") {
-    for (const x of [-3.2, 3.2]) ctx.boxes.push({ x: ctx.centerX + x, y: ctx.centerY, z: 5, sx: 0.55, sy: 0.55, sz: 9.2, yaw: 0, color: STEEL, material: MAT_BUILDING });
-    ctx.boxes.push({ x: ctx.centerX, y: ctx.centerY, z: 9.2, sx: 9, sy: 0.5, sz: 0.55, yaw: 0, color: INK, material: MAT_BUILDING });
+    for (const x of [-3.2, 3.2]) ctx.boxes.push({ x: ctx.centerX + x, y: ctx.centerY, z: 5, sx: 0.55, sy: 0.55, sz: 9.2, yaw: 0, color: STEEL, material: MAT_GENERIC });
+    ctx.boxes.push({ x: ctx.centerX, y: ctx.centerY, z: 9.2, sx: 9, sy: 0.5, sz: 0.55, yaw: 0, color: INK, material: MAT_TIMBER });
     ctx.boxes.push({ x: ctx.centerX, y: ctx.centerY + 2.5, z: 8.8, sx: 3.2, sy: 1.5, sz: 1, yaw: 0, color: RED, material: MAT_VEHICLE });
     addSolid(ctx, "range-lift", ctx.centerX, ctx.centerY, 7.2, 1.2, 9.8);
   }
@@ -328,12 +334,12 @@ function buildBusinessLot(ctx: LotContext, lot: LotKind) {
   if (lot === "range-gas-stop") {
     addMountainBuilding(ctx, lot, ctx.centerX + 5.8, ctx.centerY + 3, 9, 7, 4, BONE, RANGE_BERRY);
     ctx.boxes.push({ x: ctx.centerX - 4.5, y: ctx.centerY - 1.5, z: 3.6, sx: 10, sy: 6.5, sz: 0.55, yaw: 0, color: RANGE_BERRY, material: MAT_SIGN });
-    for (const x of [-7, -2]) ctx.boxes.push({ x: ctx.centerX + x, y: ctx.centerY - 1, z: 1.2, sx: 1, sy: 1.2, sz: 1.8, yaw: 0, color: YELLOW, material: MAT_BUILDING });
+    for (const x of [-7, -2]) ctx.boxes.push({ x: ctx.centerX + x, y: ctx.centerY - 1, z: 1.2, sx: 1, sy: 1.2, sz: 1.8, yaw: 0, color: YELLOW, material: MAT_TIMBER });
   } else if (lot === "range-roadside-motel") {
     addMountainBuilding(ctx, lot, ctx.centerX, ctx.centerY + 3.5, 18, 7.5, 4.2, BONE, RANGE_BERRY);
     addPickup(ctx, "motel-pickup", ctx.centerX - 7, ctx.centerY - 6.5, BLUE);
   } else {
-    addMountainBuilding(ctx, lot, ctx.centerX, ctx.centerY + 3, lot === "range-main-street" ? 18 : 13, 8.4, lot === "range-main-street" ? 6 : 4.8, lot === "range-outfitter" ? RANGE_GRANITE : BONE, INK);
+    addMountainBuilding(ctx, lot, ctx.centerX, ctx.centerY + 3, lot === "range-main-street" ? 18 : 13, 8.4, lot === "range-main-street" ? 6 : 4.8, lot === "range-outfitter" ? RANGE_GRANITE : BONE, RANGE_SLATE);
   }
   ctx.boxes.push({ x: ctx.centerX, y: ctx.centerY - 1.35, z: 3.1, sx: lot === "range-main-street" ? 15 : 9, sy: 0.3, sz: 1.05, yaw: 0, color: face, material: MAT_SIGN });
   if (lot === "range-workshop") addPickup(ctx, "range-service-truck", ctx.centerX - 7, ctx.centerY - 6.2, RANGE_MOSS);
@@ -360,7 +366,7 @@ function buildAnchorLot(ctx: LotContext, anchor: NorthstarAnchorTile) {
   if (definition.lot === "range-northstar-gate") {
     addGround(ctx, RANGE_MOSS);
     for (const x of [-5.5, 5.5]) {
-      ctx.boxes.push({ x: ctx.centerX + x, y: ctx.centerY - 1, z: 5.2, sx: 1.5, sy: 1.5, sz: 9.5, yaw: 0, color: RANGE_GRANITE, material: MAT_BUILDING });
+      ctx.boxes.push({ x: ctx.centerX + x, y: ctx.centerY - 1, z: 5.2, sx: 1.5, sy: 1.5, sz: 9.5, yaw: 0, color: RANGE_GRANITE, material: MAT_STONE });
       addSolid(ctx, `northstar-gate-${x}`, ctx.centerX + x, ctx.centerY - 1, 1.5, 1.5, 10);
     }
     ctx.boxes.push({ x: ctx.centerX, y: ctx.centerY - 1, z: 9.1, sx: 13, sy: 1.7, sz: 1.7, yaw: 0, color: RANGE_TIMBER, material: MAT_SIGN });
@@ -376,10 +382,10 @@ function buildAnchorLot(ctx: LotContext, anchor: NorthstarAnchorTile) {
   }
   if (definition.lot === "range-village-square") {
     addAnchorGround(ctx, anchor, tileX === 1 && tileY === 0 ? BONE : RANGE_MOSS);
-    if (tileY === 0) addMountainBuilding(ctx, `village-shop-${tileX}`, ctx.centerX, ctx.centerY + 4, 20, 8.5, 6 + (tileX === 1 ? 2 : 0), tileX === 1 ? RANGE_BERRY : BONE, INK);
+    if (tileY === 0) addMountainBuilding(ctx, `village-shop-${tileX}`, ctx.centerX, ctx.centerY + 4, 20, 8.5, 6 + (tileX === 1 ? 2 : 0), tileX === 1 ? RANGE_BERRY : BONE, RANGE_SLATE);
     if (tileX === 1 && tileY === 1) {
-      ctx.boxes.push({ x: ctx.centerX, y: ctx.centerY - 1, z: 6.5, sx: 3.2, sy: 3.2, sz: 11.8, yaw: 0, color: RANGE_TIMBER, material: MAT_BUILDING });
-      ctx.boxes.push({ x: ctx.centerX, y: ctx.centerY - 1, z: 13.2, sx: 5.2, sy: 5.2, sz: 1.8, yaw: Math.PI / 4, color: RANGE_BERRY, material: MAT_BUILDING });
+      ctx.boxes.push({ x: ctx.centerX, y: ctx.centerY - 1, z: 6.5, sx: 3.2, sy: 3.2, sz: 11.8, yaw: 0, color: RANGE_TIMBER, material: MAT_TIMBER });
+      ctx.boxes.push({ x: ctx.centerX, y: ctx.centerY - 1, z: 13.2, sx: 5.2, sy: 5.2, sz: 1.8, yaw: Math.PI / 4, color: RANGE_BERRY, material: MAT_TIMBER });
       ctx.boxes.push({ x: ctx.centerX, y: ctx.centerY - 2.7, z: 9, sx: 2.2, sy: 0.18, sz: 2.2, yaw: 0, color: WHITE, material: MAT_SIGN });
       addSolid(ctx, "northstar-clock", ctx.centerX, ctx.centerY - 1, 3.2, 3.2, 14);
     }
@@ -392,7 +398,7 @@ function buildAnchorLot(ctx: LotContext, anchor: NorthstarAnchorTile) {
     const y = ctx.centerY + (tileY === 0 ? 7 : -7);
     addMountainBuilding(ctx, `timberline-${tileX}-${tileY}`, x, y, 22, 20, 9 + (tileY === 0 ? 2 : 0), BONE, RANGE_BERRY);
     if (tileX === 0 && tileY === 1) {
-      ctx.boxes.push({ x: ctx.centerX + 5.8, y: ctx.centerY + 8.2, z: 2.3, sx: 7, sy: 3.5, sz: 3.6, yaw: 0, color: RANGE_TIMBER, material: MAT_BUILDING });
+      ctx.boxes.push({ x: ctx.centerX + 5.8, y: ctx.centerY + 8.2, z: 2.3, sx: 7, sy: 3.5, sz: 3.6, yaw: 0, color: RANGE_TIMBER, material: MAT_TIMBER });
       addPerson(ctx, ctx.centerX + 1.5, ctx.centerY + 7, RED);
     }
     return;
@@ -401,15 +407,15 @@ function buildAnchorLot(ctx: LotContext, anchor: NorthstarAnchorTile) {
     addGround(ctx, RANGE_MOSS);
     addMountainBuilding(ctx, "pinewatch-station", ctx.centerX, ctx.centerY + 3, 14, 9, 5, RANGE_TIMBER, RANGE_BERRY);
     addPickup(ctx, "ranger-truck", ctx.centerX - 7.8, ctx.centerY - 6.3, RANGE_MOSS);
-    ctx.boxes.push({ x: ctx.centerX + 8, y: ctx.centerY + 6, z: 8, sx: 0.55, sy: 0.55, sz: 14, yaw: 0, color: STEEL, material: MAT_BUILDING });
+    ctx.boxes.push({ x: ctx.centerX + 8, y: ctx.centerY + 6, z: 8, sx: 0.55, sy: 0.55, sz: 14, yaw: 0, color: STEEL, material: MAT_GENERIC });
     ctx.boxes.push({ x: ctx.centerX + 8, y: ctx.centerY + 6, z: 15, sx: 3.2, sy: 3.2, sz: 1, yaw: 0, color: RANGE_BERRY, material: MAT_SIGN });
     addSolid(ctx, "pinewatch-tower", ctx.centerX + 8, ctx.centerY + 6, 0.8, 0.8, 15.5);
     return;
   }
   if (definition.lot === "range-old-spruce-mill") {
     addAnchorGround(ctx, anchor, RANGE_GRANITE);
-    if (tileY === 0) addMountainBuilding(ctx, `spruce-mill-${tileX}`, ctx.centerX, ctx.centerY + 2, 21, 13, 7, RANGE_TIMBER, INK);
-    for (const y of [-7, -2, 3, 8]) ctx.boxes.push({ x: ctx.centerX + (tileX ? -2 : 2), y: ctx.centerY + y, z: 1.1, sx: 16, sy: 1.4, sz: 1.5, yaw: 0, color: RANGE_TIMBER, material: MAT_BUILDING });
+    if (tileY === 0) addMountainBuilding(ctx, `spruce-mill-${tileX}`, ctx.centerX, ctx.centerY + 2, 21, 13, 7, RANGE_TIMBER, RANGE_SLATE);
+    for (const y of [-7, -2, 3, 8]) ctx.boxes.push({ x: ctx.centerX + (tileX ? -2 : 2), y: ctx.centerY + y, z: 1.1, sx: 16, sy: 1.4, sz: 1.5, yaw: 0, color: RANGE_TIMBER, material: MAT_TIMBER });
     if (tileX === 1 && tileY === 1) addPickup(ctx, "mill-truck", ctx.centerX + 5, ctx.centerY + 4, ORANGE);
     return;
   }
@@ -433,8 +439,8 @@ function buildAnchorLot(ctx: LotContext, anchor: NorthstarAnchorTile) {
     } else if (tileY <= 1) {
       for (const offset of [-7, 0, 7]) ctx.boxes.push({ x: ctx.centerX + offset, y: ctx.centerY, z: 0.52, sx: 1.2, sy: 22, sz: 0.16, yaw: 0.18 * (tileX - 2), color: tileX % 2 ? CYAN : RED, material: MAT_SIGN });
       if (tileY === 0 && (tileX === 0 || tileX === 2 || tileX === 4)) {
-        ctx.boxes.push({ x: ctx.centerX, y: ctx.centerY, z: 8, sx: 0.6, sy: 0.6, sz: 14, yaw: 0, color: STEEL, material: MAT_BUILDING });
-        ctx.boxes.push({ x: ctx.centerX, y: ctx.centerY, z: 15, sx: 10, sy: 0.5, sz: 0.5, yaw: 0, color: INK, material: MAT_BUILDING });
+        ctx.boxes.push({ x: ctx.centerX, y: ctx.centerY, z: 8, sx: 0.6, sy: 0.6, sz: 14, yaw: 0, color: STEEL, material: MAT_GENERIC });
+        ctx.boxes.push({ x: ctx.centerX, y: ctx.centerY, z: 15, sx: 10, sy: 0.5, sz: 0.5, yaw: 0, color: INK, material: MAT_TIMBER });
         ctx.boxes.push({ x: ctx.centerX, y: ctx.centerY + 3, z: 13.5, sx: 3.5, sy: 1.5, sz: 1.1, yaw: 0, color: RANGE_BERRY, material: MAT_VEHICLE });
         addSolid(ctx, `silver-lift-${tileX}`, ctx.centerX, ctx.centerY, 0.8, 0.8, 15.5);
       }
@@ -442,24 +448,43 @@ function buildAnchorLot(ctx: LotContext, anchor: NorthstarAnchorTile) {
       addForest(ctx, 4, true);
     }
     if (tileX === 2 && tileY === 2) {
-      ctx.boxes.push({ x: ctx.centerX, y: ctx.centerY + 8, z: 2.8, sx: 12, sy: 2.6, sz: 4.2, yaw: 0, color: RANGE_TIMBER, material: MAT_BUILDING });
+      ctx.boxes.push({ x: ctx.centerX, y: ctx.centerY + 8, z: 2.8, sx: 12, sy: 2.6, sz: 4.2, yaw: 0, color: RANGE_TIMBER, material: MAT_TIMBER });
       addPerson(ctx, ctx.centerX - 4, ctx.centerY + 7, RED);
       addPerson(ctx, ctx.centerX + 4, ctx.centerY + 7, CYAN);
     }
     return;
   }
   addAnchorGround(ctx, anchor, RANGE_GRANITE);
-  // Aurora Lookout: layered cliff shelves, a public deck, and a weather mast.
-  ctx.boxes.push({ x: ctx.centerX, y: ctx.centerY + 2, z: 2, sx: 23, sy: 18, sz: 3.5, yaw: 0, color: RANGE_GRANITE, material: MAT_BUILDING });
-  addSolid(ctx, `lookout-cliff-${tileX}-${tileY}`, ctx.centerX, ctx.centerY + 2, 23, 18, 4);
+  // Aurora Observatory occupies the existing lookout campus and public entrance.
+  ctx.boxes.push({ x: ctx.centerX, y: ctx.centerY, z: 0.28, sx: 31, sy: 31, sz: 0.55,
+    yaw: 0, color: BONE, material: MAT_STONE });
+  if (tileX === 1 && tileY === 0) {
+    ctx.boxes.push({ x: ctx.centerX, y: ctx.centerY, z: 3.4, sx: 18, sy: 18, sz: 6.2,
+      yaw: 0, color: BONE, material: MAT_STONE });
+    ctx.surfaces?.push(...observatoryDome({ x: ctx.centerX, y: ctx.centerY, z: 6.5 }, 10.2, RANGE_SNOW));
+    ctx.boxes.push({ x: ctx.centerX, y: ctx.centerY - 9.1, z: 3.9, sx: 12, sy: 0.22, sz: 1.2,
+      yaw: 0, color: CYAN, material: MAT_WINDOW });
+    addSolid(ctx, "aurora-observatory", ctx.centerX, ctx.centerY, 18, 18, 16.7);
+  }
   if (tileX === 0 && tileY === 1) {
-    ctx.boxes.push({ x: ctx.centerX - 5.5, y: ctx.centerY + 7, z: 4.2, sx: 10, sy: 5, sz: 0.45, yaw: 0, color: RANGE_TIMBER, material: MAT_SIDEWALK });
-    ctx.boxes.push({ x: ctx.centerX + 6, y: ctx.centerY, z: 11, sx: 0.55, sy: 0.55, sz: 18, yaw: 0, color: STEEL, material: MAT_BUILDING });
-    ctx.boxes.push({ x: ctx.centerX + 6, y: ctx.centerY, z: 20, sx: 4.5, sy: 0.4, sz: 0.4, yaw: 0, color: RANGE_BERRY, material: MAT_SIGN });
+    addMountainBuilding(ctx, "aurora-visitor-center", ctx.centerX - 5.5, ctx.centerY + 8, 10, 6, 5, BONE, RANGE_BERRY);
+    ctx.boxes.push({ x: ctx.centerX - 5.5, y: ctx.centerY + 11.1, z: 1.8, sx: 2, sy: 0.22, sz: 2.8,
+      yaw: 0, color: RANGE_AMBER, material: MAT_LAMP });
+    ctx.boxes.push({ x: ctx.centerX + 7, y: ctx.centerY - 7, z: 2, sx: 0.65, sy: 0.65, sz: 3.5,
+      yaw: 0, color: INK, material: MAT_GENERIC });
+    ctx.boxes.push({ x: ctx.centerX + 7, y: ctx.centerY - 7, z: 3.4, sx: 3.2, sy: 0.85, sz: 0.8,
+      yaw: -0.5, tilt: -0.3, color: RANGE_AMBER, material: MAT_GENERIC });
+    addPerson(ctx, ctx.centerX + 5, ctx.centerY - 6, RANGE_BERRY);
+  }
+  if (tileY === 0) {
+    ctx.boxes.push({ x: ctx.centerX, y: ctx.centerY - 15, z: 1.05, sx: 31, sy: 0.25, sz: 1.7,
+      yaw: 0, color: RANGE_TIMBER, material: MAT_TIMBER });
+    addSolid(ctx, "aurora-north-balustrade", ctx.centerX, ctx.centerY - 15, 31, 0.25, 1.9);
   }
 }
 
 export function buildMountainLot(ctx: LotContext, lot: LotKind) {
+  if (northstarStationReserved(ctx.centerX, ctx.centerY) || northstarSnowRun(ctx.centerX, ctx.centerY)) return;
   const anchor = mountainAnchorForBlock(ctx.blockX, ctx.blockY);
   if (anchor) {
     buildAnchorLot(ctx, anchor);
@@ -475,9 +500,19 @@ export function buildMountainLot(ctx: LotContext, lot: LotKind) {
 }
 
 export function northstarPedestrianCountForBlock(blockX: number, blockY: number) {
+  if (!northstarSettlementPlan(blockX, blockY)) return 0;
   const area = northstarRangeAreaForBlock(blockX, blockY);
   if (area === "NORTHSTAR VILLAGE") return 6;
   if (area === "SILVER RUN") return 5;
   if (area === "TIMBER PASS") return 3;
   return 2;
+}
+
+/** Road cuts stay open; scattered trees replace the old floating verge squares. */
+export function buildMountainVerge(ctx: LotContext, isClear: (x: number, y: number) => boolean) {
+  const snowy = naturalTerrainHeight(ctx.centerX, ctx.centerY) > 148;
+  for (const [dx, dy] of [[-12, -11], [12, -9], [-11, 12], [11, 13]]) {
+    const x = ctx.centerX + dx, y = ctx.centerY + dy;
+    if (isClear(x, y)) addPine(ctx, x, y, 0.8 + ctx.random() * 0.4, true, snowy);
+  }
 }

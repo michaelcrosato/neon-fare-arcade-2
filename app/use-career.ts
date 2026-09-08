@@ -28,6 +28,7 @@ function storeCareer(career: CareerState) {
  */
 export function useCareer() {
   const [career, setCareer] = useState<CareerState>(() => makeCareerState());
+  const [ready, setReady] = useState(false);
   const careerRef = useRef(career);
 
   const commitCareer = useCallback((next: CareerState) => {
@@ -54,7 +55,10 @@ export function useCareer() {
     }
     careerRef.current = next;
     if (shouldPersist) storeCareer(next);
-    const frame = window.requestAnimationFrame(() => setCareer(next));
+    const frame = window.requestAnimationFrame(() => {
+      setCareer(next);
+      setReady(true);
+    });
     return () => window.cancelAnimationFrame(frame);
   }, []);
 
@@ -74,5 +78,5 @@ export function useCareer() {
     return result;
   }, [commitCareer]);
 
-  return { career, careerRef, bankRun, buyItem, buyGasStationOffer };
+  return { career, careerRef, ready, bankRun, buyItem, buyGasStationOffer };
 }

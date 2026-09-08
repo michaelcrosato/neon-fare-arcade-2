@@ -139,7 +139,7 @@ export function makeHud(game: Game, navigation?: NavigationPlan, world?: WorldVi
   const driving = isDriving(game);
   const target = getObjective(game);
   const navigationTarget = getNavigationTarget(game);
-  const player = { x: game.x, y: game.y };
+  const player = { x: game.x, y: game.y, ...(game.z ? { z: game.z } : {}) };
   const plan = navigation ?? buildNavigationPlan(player, navigationTarget, game.heading);
   const navigationSuppressed = !game.fareDispatchEnabled
     && !game.onboard

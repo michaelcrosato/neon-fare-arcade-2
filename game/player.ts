@@ -1,4 +1,4 @@
-import { circleHitsBuilding } from "./collision";
+import { circleHitsBuilding, ceilingHeightAt } from "./collision";
 import { WALKING_TUNING } from "./config";
 import { clamp, distance, localPoint, normalizeAngle } from "./math";
 import type {
@@ -8,10 +8,13 @@ import type {
   InputState,
   OnFootAction,
   Vec2,
+  WorldPoint,
   WalkingActor,
   WorldView,
 } from "./model";
 import { clampPointToActiveRegions } from "./regions";
+import { groundAt } from "./vehicle-road-contact";
+import { terrainBarrier } from "./terrain/surface";
 
 export const WALKER_RADIUS = WALKING_TUNING.radius;
 export const TAXI_EXIT_SPEED = 1.2;
@@ -90,13 +93,14 @@ function writeWalkingMotion(actor: WalkingActor, motion: WalkingMotion) {
 
 /** Create a grounded, standing actor for taxi/interior transitions. */
 export function makeWalkingActor(pose: ActorPose): WalkingActor {
-  return { ...pose, ...DEFAULT_WALKING_MOTION };
+  return { ...pose, ...DEFAULT_WALKING_MOTION, elevation: pose.z ?? 0 };
 }
 
 export function taxiPose(game: Game): ActorPose {
   return {
     x: game.x,
     y: game.y,
+    z: game.z ?? 0,
     vx: game.vx,
     vy: game.vy,
     heading: game.heading,
@@ -105,7 +109,9 @@ export function taxiPose(game: Game): ActorPose {
 }
 
 export function controlledPose(game: Game): ActorPose {
-  return game.player.kind === "walking" ? game.player.actor : taxiPose(game);
+  return game.player.kind === "walking"
+    ? { ...game.player.actor, z: game.player.actor.elevation ?? 0 }
+    : taxiPose(game);
 }
 
 export function isDriving(game: Game) {
@@ -130,8 +136,9 @@ export function walkingCameraHeightOffset(
   mode: CameraMode,
   reducedMotion = false,
 ) {
-  if (mode === "fixed") return 0;
   const motion = walkingMotion(actor);
+  const groundHeight = groundAt({ x: actor.x, y: actor.y, z: motion.elevation }).height;
+  if (mode === "fixed") return groundHeight;
   const speedMix = clamp(actor.speed / WALKING_TUNING.runSpeed, 0, 1);
   const bob = reducedMotion || !motion.grounded
     ? 0
@@ -140,16 +147,20 @@ export function walkingCameraHeightOffset(
   if (mode === "cab") {
     return motion.elevation - motion.crouchAmount * 0.62 + bob - landing;
   }
-  return motion.elevation * 0.28 - motion.crouchAmount * 0.18 + bob * 0.45 - landing * 0.4;
+  return groundHeight + (motion.elevation - groundHeight) * 0.28 - motion.crouchAmount * 0.18 + bob * 0.45 - landing * 0.4;
 }
 
 function exitPoseIsClear(game: Game, world: WorldView, point: Vec2) {
-  if (circleHitsBuilding(world, point.x, point.y, WALKER_RADIUS)) return false;
-  return !game.traffic.some((car) => game.elapsed >= car.activeAt && distance(point, car) < 2.15);
+  const support = groundAt({ ...point, z: game.z }, 0.85);
+  if (Math.abs(support.height - game.z) > 0.85) return false;
+  if (circleHitsBuilding(world, point.x, point.y, WALKER_RADIUS, support.height)) return false;
+  return !game.traffic.some((car) => game.elapsed >= car.activeAt
+    && Math.abs((car.z ?? 0) - support.height) < 2 && distance(point, car) < 2.15);
 }
 
 /** Driver side first, then passenger side, rear, and front. */
 export function findTaxiExitPose(game: Game, world: WorldView): WalkingActor | null {
+  if (game.roadMotion && !game.roadMotion.grounded) return null;
   const candidates = [
     localPoint(game.x, game.y, game.heading, -0.35, -2.05),
     localPoint(game.x, game.y, game.heading, -0.35, 2.05),
@@ -158,15 +169,19 @@ export function findTaxiExitPose(game: Game, world: WorldView): WalkingActor | n
   ];
   const point = candidates.find((candidate) => exitPoseIsClear(game, world, candidate));
   return point
-    ? makeWalkingActor({ ...point, vx: 0, vy: 0, heading: game.heading, speed: 0 })
+    ? makeWalkingActor({ ...point, z: groundAt({ ...point, z: game.z }, 0.85).height, vx: 0, vy: 0, heading: game.heading, speed: 0 })
     : null;
 }
 
-export function canEnterTaxi(game: Game, point: Vec2) {
-  return distance(point, { x: game.x, y: game.y }) <= TAXI_ENTER_RADIUS;
+export function canEnterTaxi(game: Game, point: WorldPoint) {
+  return Math.abs((point.z ?? 0) - (game.z ?? 0)) < 1
+    && distance(point, game) <= TAXI_ENTER_RADIUS;
 }
 
 function moveCircle(actor: WalkingActor, moveX: number, moveY: number, world: WorldView) {
+  const height = 2.4 - (actor.crouchAmount ?? 0) * 0.7;
+  const blockedTerrain = (x: number, y: number) => !world.key.startsWith("interior:")
+    && terrainBarrier({ ...actor, z: actor.elevation ?? 0 }, { x, y }, 0.9);
   const steps = Math.max(1, Math.ceil(Math.hypot(moveX, moveY) / WALKING_TUNING.collisionSubstep));
   const stepX = moveX / steps;
   const stepY = moveY / steps;
@@ -175,13 +190,13 @@ function moveCircle(actor: WalkingActor, moveX: number, moveY: number, world: Wo
       { x: actor.x + stepX, y: actor.y },
       WALKER_RADIUS,
     ).x;
-    if (!circleHitsBuilding(world, nextX, actor.y, WALKER_RADIUS)) actor.x = nextX;
+    if (!blockedTerrain(nextX, actor.y) && !circleHitsBuilding(world, nextX, actor.y, WALKER_RADIUS, actor.elevation ?? 0, height)) actor.x = nextX;
     else actor.vx = 0;
     const nextY = clampPointToActiveRegions(
       { x: actor.x, y: actor.y + stepY },
       WALKER_RADIUS,
     ).y;
-    if (!circleHitsBuilding(world, actor.x, nextY, WALKER_RADIUS)) actor.y = nextY;
+    if (!blockedTerrain(actor.x, nextY) && !circleHitsBuilding(world, actor.x, nextY, WALKER_RADIUS, actor.elevation ?? 0, height)) actor.y = nextY;
     else actor.vy = 0;
   }
 }
@@ -212,7 +227,9 @@ export function stepWalkingActor(
   if (motion.grounded) motion.coyoteTime = WALKING_TUNING.coyoteSeconds;
   else motion.coyoteTime = Math.max(0, motion.coyoteTime - dt);
 
-  const crouchTarget = crouchRequested && !jumpPressed ? 1 : 0;
+  const clearance = ceilingHeightAt(world, actor.x, actor.y, motion.elevation, WALKER_RADIUS) - motion.elevation;
+  const forcedCrouch = clamp((2.4 - clearance) / 0.7, 0, 1);
+  const crouchTarget = Math.max(crouchRequested && !jumpPressed ? 1 : 0, forcedCrouch);
   motion.crouchAmount += (crouchTarget - motion.crouchAmount)
     * (1 - Math.exp(-WALKING_TUNING.crouchResponse * dt));
   if (Math.abs(motion.crouchAmount - crouchTarget) < 0.001) motion.crouchAmount = crouchTarget;
@@ -271,23 +288,34 @@ export function stepWalkingActor(
   const traveled = Math.hypot(actor.x - startX, actor.y - startY);
   actor.speed = Math.hypot(actor.vx, actor.vy);
 
+  const support = world.key.startsWith("interior:")
+    ? { height: 0 }
+    : groundAt({ x: actor.x, y: actor.y, z: motion.elevation }, motion.grounded ? 0.85 : 0);
+  if (motion.grounded && Math.abs(support.height - motion.elevation) > 0.85) motion.grounded = false;
   if (!motion.grounded) {
     const gravity = motion.verticalSpeed > 0
       ? jumpDown ? WALKING_TUNING.riseGravity : WALKING_TUNING.releaseGravity
       : WALKING_TUNING.fallGravity;
     motion.verticalSpeed -= gravity * dt;
+    const previousElevation = motion.elevation;
     motion.elevation += motion.verticalSpeed * dt;
-    if (motion.elevation <= 0) {
+    const actorHeight = 2.4 - motion.crouchAmount * 0.7;
+    const ceiling = ceilingHeightAt(world, actor.x, actor.y, previousElevation, WALKER_RADIUS);
+    if (motion.verticalSpeed > 0 && motion.elevation + actorHeight > ceiling) {
+      motion.elevation = Math.max(support.height, ceiling - actorHeight);
+      motion.verticalSpeed = 0;
+    }
+    if (motion.elevation <= support.height) {
       result.landed = true;
       result.landingSpeed = Math.max(0, -motion.verticalSpeed);
-      motion.elevation = 0;
+      motion.elevation = support.height;
       motion.verticalSpeed = 0;
       motion.grounded = true;
       motion.coyoteTime = WALKING_TUNING.coyoteSeconds;
       motion.landingImpact = clamp(result.landingSpeed / 8, 0, 1);
     }
   } else {
-    motion.elevation = 0;
+    motion.elevation = support.height;
     motion.verticalSpeed = 0;
   }
 

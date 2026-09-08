@@ -1,9 +1,50 @@
 import type { Collider, WorldView } from "./model";
+import { terrainHeightAt } from "./terrain/surface";
 
 export type Obb = { x: number; y: number; halfLength: number; halfWidth: number; heading: number };
 export type ObbContact = { normalX: number; normalY: number; depth: number };
 export type BuildingContact = ObbContact & { collider: Collider };
 export type CircleContact = { normalX: number; normalY: number; depth: number; collider: Collider };
+
+export function colliderHeightInterval(collider: Collider, x: number, y: number) {
+  if (collider.roadDeck) {
+    const { a, b, thickness } = collider.roadDeck;
+    const dx = b.x - a.x, dy = b.y - a.y;
+    const t = Math.max(0, Math.min(1, ((x - a.x) * dx + (y - a.y) * dy) / Math.max(1e-8, dx * dx + dy * dy)));
+    const top = a.z + (b.z - a.z) * t;
+    return { bottom: top - thickness, top };
+  }
+  const bottom = collider.baseZ ?? 0;
+  return { bottom, top: bottom + collider.height };
+}
+
+export function overlapsHeight(collider: Collider, bottom: number, height: number, x = collider.x, y = collider.y) {
+  const interval = colliderHeightInterval(collider, x, y);
+  // Tires may climb a reachable ramp. The deck's underside still blocks actors below it.
+  if (collider.roadDeck && bottom >= interval.top - 0.85) return false;
+  return bottom < interval.top - 0.025 && bottom + height > interval.bottom + 0.025;
+}
+
+function nearby(collider: Collider, x: number, y: number, margin: number) {
+  const c = Math.abs(Math.cos(collider.yaw ?? 0)), s = Math.abs(Math.sin(collider.yaw ?? 0));
+  return Math.abs(collider.x - x) <= c * collider.halfX + s * collider.halfY + margin
+    && Math.abs(collider.y - y) <= s * collider.halfX + c * collider.halfY + margin;
+}
+
+/** First solid ceiling above the actor's feet, including sloped bridge undersides. */
+export function ceilingHeightAt(world: WorldView, x: number, y: number, z: number, radius: number) {
+  let ceiling = Infinity;
+  for (const collider of world.colliders) {
+    if (!nearby(collider, x, y, radius)) continue;
+    const interval = colliderHeightInterval(collider, x, y);
+    if (interval.bottom <= z + 0.1 || interval.bottom >= ceiling) continue;
+    const c = Math.cos(collider.yaw ?? 0), s = Math.sin(collider.yaw ?? 0);
+    const localX = c * (x - collider.x) + s * (y - collider.y);
+    const localY = -s * (x - collider.x) + c * (y - collider.y);
+    if (Math.hypot(Math.max(0, Math.abs(localX) - collider.halfX), Math.max(0, Math.abs(localY) - collider.halfY)) <= radius) ceiling = interval.bottom;
+  }
+  return ceiling;
+}
 
 function obbAxes(a: Obb, b: Obb) {
   return [
@@ -43,22 +84,22 @@ export function obbOverlap(a: Obb, b: Obb) {
   return obbContact(a, b) !== null;
 }
 
-export function taxiBuildingContact(world: WorldView, x: number, y: number, heading: number): BuildingContact | null {
+export function taxiBuildingContact(world: WorldView, x: number, y: number, heading: number, z = terrainHeightAt(x, y)): BuildingContact | null {
   const taxi: Obb = { x, y, heading, halfLength: 2.25, halfWidth: 1.03 };
   let deepest: BuildingContact | null = null;
   for (const collider of world.colliders) {
-    if (Math.abs(collider.x - x) > collider.halfX + 3 || Math.abs(collider.y - y) > collider.halfY + 3) continue;
-    const contact = obbContact(taxi, { x: collider.x, y: collider.y, heading: 0, halfLength: collider.halfX, halfWidth: collider.halfY });
+    if (!nearby(collider, x, y, 3) || !overlapsHeight(collider, z, 1.9, x, y)) continue;
+    const contact = obbContact(taxi, { x: collider.x, y: collider.y, heading: collider.yaw ?? 0, halfLength: collider.halfX, halfWidth: collider.halfY });
     if (contact && (!deepest || contact.depth > deepest.depth)) deepest = { ...contact, collider };
   }
   return deepest;
 }
 
-export function taxiHitsBuilding(world: WorldView, x: number, y: number, heading: number) {
-  return taxiBuildingContact(world, x, y, heading)?.collider;
+export function taxiHitsBuilding(world: WorldView, x: number, y: number, heading: number, z = terrainHeightAt(x, y)) {
+  return taxiBuildingContact(world, x, y, heading, z)?.collider;
 }
 
-export function taxiNearBuilding(world: WorldView, x: number, y: number, heading: number, margin = 0.65) {
+export function taxiNearBuilding(world: WorldView, x: number, y: number, heading: number, margin = 0.65, z = terrainHeightAt(x, y)) {
   const taxi: Obb = {
     x,
     y,
@@ -67,11 +108,11 @@ export function taxiNearBuilding(world: WorldView, x: number, y: number, heading
     halfWidth: 1.03 + margin,
   };
   return world.colliders.some((collider) => {
-    if (Math.abs(collider.x - x) > collider.halfX + 3 + margin || Math.abs(collider.y - y) > collider.halfY + 3 + margin) return false;
+    if (!nearby(collider, x, y, 3 + margin) || !overlapsHeight(collider, z, 1.9, x, y)) return false;
     return obbOverlap(taxi, {
       x: collider.x,
       y: collider.y,
-      heading: 0,
+      heading: collider.yaw ?? 0,
       halfLength: collider.halfX,
       halfWidth: collider.halfY,
     });
@@ -84,15 +125,19 @@ export function circleBuildingContact(
   x: number,
   y: number,
   radius: number,
+  z = terrainHeightAt(x, y),
+  height = 2.4,
 ): CircleContact | null {
   let deepest: CircleContact | null = null;
   for (const collider of world.colliders) {
-    if (Math.abs(collider.x - x) > collider.halfX + radius + 0.1
-      || Math.abs(collider.y - y) > collider.halfY + radius + 0.1) continue;
-    const nearestX = Math.max(collider.x - collider.halfX, Math.min(x, collider.x + collider.halfX));
-    const nearestY = Math.max(collider.y - collider.halfY, Math.min(y, collider.y + collider.halfY));
-    const deltaX = x - nearestX;
-    const deltaY = y - nearestY;
+    if (!nearby(collider, x, y, radius + 0.1) || !overlapsHeight(collider, z, height, x, y)) continue;
+    const cosine = Math.cos(collider.yaw ?? 0), sine = Math.sin(collider.yaw ?? 0);
+    const localX = cosine * (x - collider.x) + sine * (y - collider.y);
+    const localY = -sine * (x - collider.x) + cosine * (y - collider.y);
+    const nearestX = Math.max(-collider.halfX, Math.min(localX, collider.halfX));
+    const nearestY = Math.max(-collider.halfY, Math.min(localY, collider.halfY));
+    const deltaX = localX - nearestX;
+    const deltaY = localY - nearestY;
     const distance = Math.hypot(deltaX, deltaY);
     let contact: CircleContact | null = null;
     if (distance > 1e-8 && distance < radius) {
@@ -103,31 +148,35 @@ export function circleBuildingContact(
         collider,
       };
     } else if (distance <= 1e-8) {
-      const left = x - (collider.x - collider.halfX);
-      const right = collider.x + collider.halfX - x;
-      const top = y - (collider.y - collider.halfY);
-      const bottom = collider.y + collider.halfY - y;
+      const left = localX + collider.halfX;
+      const right = collider.halfX - localX;
+      const top = localY + collider.halfY;
+      const bottom = collider.halfY - localY;
       const shallowest = Math.min(left, right, top, bottom);
       if (shallowest === left) contact = { normalX: -1, normalY: 0, depth: radius + left, collider };
       else if (shallowest === right) contact = { normalX: 1, normalY: 0, depth: radius + right, collider };
       else if (shallowest === top) contact = { normalX: 0, normalY: -1, depth: radius + top, collider };
       else contact = { normalX: 0, normalY: 1, depth: radius + bottom, collider };
     }
-    if (contact && (!deepest || contact.depth > deepest.depth)) deepest = contact;
+    if (contact && (!deepest || contact.depth > deepest.depth)) deepest = {
+      ...contact,
+      normalX: cosine * contact.normalX - sine * contact.normalY,
+      normalY: sine * contact.normalX + cosine * contact.normalY,
+    };
   }
   return deepest;
 }
 
-export function circleHitsBuilding(world: WorldView, x: number, y: number, radius: number) {
-  return circleBuildingContact(world, x, y, radius)?.collider;
+export function circleHitsBuilding(world: WorldView, x: number, y: number, radius: number, z = terrainHeightAt(x, y), height = 2.4) {
+  return circleBuildingContact(world, x, y, radius, z, height)?.collider;
 }
 
-export function depenetrateTaxi(world: WorldView, x: number, y: number, heading: number, iterations = 8) {
+export function depenetrateTaxi(world: WorldView, x: number, y: number, heading: number, iterations = 8, z = terrainHeightAt(x, y)) {
   let resolvedX = x;
   let resolvedY = y;
   let moved = false;
   for (let iteration = 0; iteration < iterations; iteration += 1) {
-    const contact = taxiBuildingContact(world, resolvedX, resolvedY, heading);
+    const contact = taxiBuildingContact(world, resolvedX, resolvedY, heading, z);
     if (!contact) return { x: resolvedX, y: resolvedY, moved, resolved: true };
     const separation = contact.depth + 0.025;
     resolvedX += contact.normalX * separation;
@@ -138,6 +187,6 @@ export function depenetrateTaxi(world: WorldView, x: number, y: number, heading:
     x: resolvedX,
     y: resolvedY,
     moved,
-    resolved: !taxiBuildingContact(world, resolvedX, resolvedY, heading),
+    resolved: !taxiBuildingContact(world, resolvedX, resolvedY, heading, z),
   };
 }
