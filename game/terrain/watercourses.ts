@@ -1,4 +1,10 @@
 import type { Vec3 } from "../model";
+import { copperCanyonWaterHeight, copperCanyonY } from "./copper-forms";
+
+export const COPPER_RIVER: readonly Vec3[] = Array.from({ length: 79 }, (_, i) => {
+  const x = -792 + i * 18;
+  return { x, y: copperCanyonY(x), z: copperCanyonWaterHeight(x) };
+});
 
 /** Mirror Lake drains through a cascade into Spruce Gorge. Heights are authored water levels. */
 export const MIRROR_SPILLWAY: readonly Vec3[] = [
@@ -11,10 +17,12 @@ export const MIRROR_SPILLWAY: readonly Vec3[] = [
 ];
 
 export function watercourseAt(x: number, y: number) {
-  if (x < -250 || x > 450 || y < -1944 || y > -1700) return null;
+  const copper = x >= -792 && x <= 612 && Math.abs(y - copperCanyonY(x)) < 40;
+  if (!copper && (x < -250 || x > 450 || y < -1944 || y > -1700)) return null;
+  const points = copper ? COPPER_RIVER : MIRROR_SPILLWAY;
   let nearest: { distance: number; height: number } | null = null;
-  for (let i = 1; i < MIRROR_SPILLWAY.length; i += 1) {
-    const a = MIRROR_SPILLWAY[i - 1], b = MIRROR_SPILLWAY[i];
+  for (let i = 1; i < points.length; i += 1) {
+    const a = points[i - 1], b = points[i];
     const dx = b.x - a.x, dy = b.y - a.y;
     const t = Math.max(0, Math.min(1, ((x - a.x) * dx + (y - a.y) * dy) / (dx * dx + dy * dy)));
     const distance = Math.hypot(x - a.x - dx * t, y - a.y - dy * t);

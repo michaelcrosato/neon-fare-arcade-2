@@ -1,10 +1,14 @@
-import { northstarSettlementPlan } from "./terrain/settlement";
+import { regionalSettlementPlan } from "./terrain/settlement";
 import { mountainRoadStructures } from "./roads/mountain-structures";
+import { copperRoadStructures } from "./roads/copper-structures";
 import { addMountainScenery } from "./mountain-scenery";
-import { northstarLandscape } from "./terrain/landscape";
+import { addCopperScenery } from "./copper-scenery";
+import { northstarLandscape, copperLandscape } from "./terrain/landscape";
 import type { MeshFace, Vec3 } from "./model";
-import { inNorthstarTerrain, atRoadElevation } from "./terrain/northstar-forms";
-import { northstarTerrainMesh, terrainHeightAt } from "./terrain/surface";
+import { inNorthstarTerrain } from "./terrain/northstar-forms";
+import { inElevatedTerrain, atRoadElevation } from "./terrain/region-forms";
+import { inCopperTerrain } from "./terrain/copper-forms";
+import { regionalTerrainMesh, terrainHeightAt } from "./terrain/surface";
 import { compileRoad } from "./roads/geometry";
 import { compiledSpecialRoad } from "./road-network";
 import { roadStripQuad, MAX_CHUNK_SURFACE_QUADS, MAX_STREAM_SURFACE_QUADS } from "./render/surfaces";
@@ -88,6 +92,7 @@ import {
   MESA_SAND,
   MESA_TURQUOISE,
   buildDesertLot,
+  buildDesertVerge,
   desertAnchorForBlock,
   desertLotForBlock,
   desertPortalSpecs,
@@ -189,7 +194,7 @@ export function lotForBlock(blockX: number, blockY: number, district: DistrictKi
 }
 
 export function lotOrientationForBlock(blockX: number, blockY: number) {
-  const mountain = northstarSettlementPlan(blockX, blockY);
+  const mountain = regionalSettlementPlan(blockX, blockY);
   if (mountain) return mountain.orientation;
   return Math.floor(blockRandom(blockX, blockY, 0x0a71e)() * 4);
 }
@@ -2333,6 +2338,13 @@ function buildLot(ctx: LotContext, district: DistrictKind, lot: LotKind) {
 }
 
 function addCorridorVerge(ctx: LotContext, district: DistrictKind) {
+  if (district === "desert") {
+    buildDesertVerge(ctx, (x, y) => {
+      const road = nearestSpecialRoadProjection({ x, y });
+      return !!road && road.surfaceDistance > 5 && !isRoadSurface({ x, y }, 4);
+    });
+    return;
+  }
   if (district === "mountain") {
     buildMountainVerge(ctx, (x, y) => {
       const road = nearestSpecialRoadProjection({ x, y });
@@ -2342,8 +2354,6 @@ function addCorridorVerge(ctx: LotContext, district: DistrictKind) {
   }
   const vergeColor = district === "industrial"
     ? STEEL
-    : district === "desert"
-      ? MESA_SAND
     : district === "wetland"
       ? REACH_MOSS
     : district === "coastal"
@@ -2373,7 +2383,7 @@ function addCorridorVerge(ctx: LotContext, district: DistrictKind) {
     sz: 0.22,
     yaw: 0,
     color: vergeColor,
-    material: district === "suburb" || district === "townhomes" || district === "desert" || district === "wetland" ? MAT_GRASS : MAT_SIDEWALK,
+    material: district === "suburb" || district === "townhomes" || district === "wetland" ? MAT_GRASS : MAT_SIDEWALK,
   });
   const corners = [
     [-7.6, -7.6], [7.6, -7.6], [-7.6, 7.6], [7.6, 7.6],
@@ -2391,13 +2401,11 @@ function addCorridorVerge(ctx: LotContext, district: DistrictKind) {
       sy: 5.4,
       sz: 0.16,
       yaw: 0,
-      color: district === "industrial" ? ROAD : district === "desert" ? MESA_SAND : district === "wetland" ? REACH_MOSS : GRASS,
+      color: district === "industrial" ? ROAD : district === "wetland" ? REACH_MOSS : GRASS,
       material: district === "industrial" ? MAT_ROAD : MAT_GRASS,
     });
     if (district === "coastal") {
       addCoastalPalm(ctx, x, y, 0.8);
-    } else if (district === "desert" && ((ctx.blockX + ctx.blockY + offsetX) % 3 !== 0)) {
-      ctx.boxes.push({ x, y, z: 2.4, sx: 0.55, sy: 0.55, sz: 4.4, yaw: 0, color: MESA_SAGUARO, material: MAT_FOLIAGE });
     } else if (district !== "industrial" && ((ctx.blockX + ctx.blockY + offsetX) % 3 !== 0)) {
       addTree(ctx, x, y, 0.48);
     }
@@ -2425,6 +2433,10 @@ function addSpecialRoadGeometry(boxes: Box[], surfaces: MeshFace[], colliders: C
     boxes.push(...mountainStructure.boxes);
     colliders.push(...mountainStructure.colliders);
     surfaces.push(...mountainStructure.surfaces);
+    const copperStructure = copperRoadStructures(segment);
+    boxes.push(...copperStructure.boxes);
+    colliders.push(...copperStructure.colliders);
+    surfaces.push(...copperStructure.surfaces);
     const geometry = compiledSpecialRoad(segment.pathId)!;
     const strip = (lateral: number, width: number, z: number, height: number, color: Color, material: NonNullable<Box["material"]>) => {
       const a = geometry.sections[segment.index];
@@ -2452,7 +2464,7 @@ function addSpecialRoadGeometry(boxes: Box[], surfaces: MeshFace[], colliders: C
       || segment.pathId === "pinehook-loop"
       || segment.pathId === "mirror-lake-road"
       || segment.pathId === "silver-run-switchbacks";
-    const desertRoad = segment.pathId === "sundown-highway"
+    const desertRoad = inCopperTerrain(segment.a.x, segment.a.y) || segment.pathId === "sundown-highway"
       || segment.pathId === "copper-loop"
       || segment.pathId === "arroyo-road"
       || segment.pathId === "painted-canyon-drive";
@@ -2486,7 +2498,7 @@ function addSpecialRoadGeometry(boxes: Box[], surfaces: MeshFace[], colliders: C
         for (const side of [-1, 1]) {
           const x = (segment.a.x + segment.b.x) / 2 - Math.sin(yaw) * side * (segment.halfWidth + 3.1);
           const y = (segment.a.y + segment.b.y) / 2 + Math.cos(yaw) * side * (segment.halfWidth + 3.1);
-          if (northstarRoad) {
+          if (northstarRoad || desertRoad) {
             const z = ((segment.a.z ?? 0) + (segment.b.z ?? 0)) / 2;
             if (Math.abs(terrainHeightAt(x, y) - z) < 1.5) {
               boxes.push({ x, y, z: z + 1.1, sx: 0.22, sy: 0.22, sz: 1.8, yaw,
@@ -2572,7 +2584,7 @@ export function generateCityChunk(cx: number, cy: number): CityChunk {
   const streetCommerceBlocks: StreetCommerceBlock[] = [];
   const originX = cx * CHUNK_SIZE - CHUNK_SIZE / 2;
   const originY = cy * CHUNK_SIZE - CHUNK_SIZE / 2;
-  if (region.id === "northstar-range") surfaces.push(...northstarTerrainMesh(originX, originY, CHUNK_SIZE));
+  if (region.id === "northstar-range" || region.id === "copper-mesa") surfaces.push(...regionalTerrainMesh(originX, originY, CHUNK_SIZE));
   boxes.push({
     x: originX + CHUNK_SIZE / 2,
     y: originY + CHUNK_SIZE / 2,
@@ -2596,7 +2608,7 @@ export function generateCityChunk(cx: number, cy: number): CityChunk {
   });
 
   const addRoadSegment = (roadX: number, roadY: number, vertical: boolean) => {
-    if (inNorthstarTerrain(roadX, roadY)) {
+    if (inElevatedTerrain(roadX, roadY)) {
       const a = atRoadElevation({ x: roadX - (vertical ? 0 : ROAD_SPACING / 2), y: roadY - (vertical ? ROAD_SPACING / 2 : 0) });
       const b = atRoadElevation({ x: roadX + (vertical ? 0 : ROAD_SPACING / 2), y: roadY + (vertical ? ROAD_SPACING / 2 : 0) });
       const road = compileRoad(`grid:${roadX}:${roadY}`, [a, b], ROAD_HALF);
@@ -2702,8 +2714,9 @@ export function generateCityChunk(cx: number, cy: number): CityChunk {
           streetCommerceBlocks.push({ blockX, blockY, centerX, centerY, district, lot });
         }
       }
-      if (district === "mountain") {
-        const floor = mountainAnchorForBlock(blockX, blockY) ? atRoadElevation({ x: centerX, y: centerY, z: 0 }).z : terrainHeightAt(centerX, centerY);
+      if (district === "mountain" || district === "desert") {
+        const floor = mountainAnchorForBlock(blockX, blockY) || desertAnchorForBlock(blockX, blockY)
+          ? atRoadElevation({ x: centerX, y: centerY, z: 0 }).z : terrainHeightAt(centerX, centerY);
         for (let i = terrainBoxStart; i < boxes.length; i += 1) {
           const box = boxes[i];
           const height = box.groundAnchor ? terrainHeightAt(box.groundAnchor.x, box.groundAnchor.y)
@@ -2718,7 +2731,8 @@ export function generateCityChunk(cx: number, cy: number): CityChunk {
         }
         for (let i = terrainColliderStart; i < colliders.length; i += 1) {
           const collider = colliders[i];
-          collider.baseZ = collider.groundAnchor ? terrainHeightAt(collider.groundAnchor.x, collider.groundAnchor.y) : floor;
+          collider.baseZ = (district === "desert" ? collider.baseZ ?? 0 : 0)
+            + (collider.groundAnchor ? terrainHeightAt(collider.groundAnchor.x, collider.groundAnchor.y) : floor);
           if (collider.id.startsWith("mirror-water")) { collider.baseZ = (collider.baseZ ?? 0) - 4; collider.height += 5; }
         }
         for (let i = terrainInteractionStart; i < interactions.length; i += 1) interactions[i].z = floor;
@@ -2749,6 +2763,7 @@ export function generateCityChunk(cx: number, cy: number): CityChunk {
 
   addSpecialRoadGeometry(boxes, surfaces, colliders, cx, cy);
   if (region.id === "northstar-range") addMountainScenery({ boxes, surfaces, colliders, surfaceRegions }, cx, cy);
+  if (region.id === "copper-mesa") addCopperScenery({ boxes, surfaces, colliders, surfaceRegions }, cx, cy);
   addStreetCommerceForChunk({ boxes, colliders, surfaceRegions }, interactions, streetCommerceBlocks);
 
   if (boxes.length > MAX_CHUNK_BOXES) throw new Error(`City chunk ${cx},${cy} exceeded ${MAX_CHUNK_BOXES} instances`);
@@ -2802,7 +2817,8 @@ export class CityStream {
     const streamInteractions = chunks.flatMap((chunk) => chunk.interactions);
     if (streamInteractions.length > MAX_STREAM_INTERACTIONS) throw new Error(`Streamed city exceeded ${MAX_STREAM_INTERACTIONS} interactions`);
     const surfaces = chunks.flatMap((chunk) => chunk.surfaces ?? []);
-    const landscapeSurfaces = centerY <= -5 && centerX >= -5 && centerX <= 5 ? northstarLandscape(chunks) : [];
+    const landscapeSurfaces = centerX >= -5 && centerX <= 5
+      ? centerY <= -5 ? northstarLandscape(chunks) : centerY >= 5 ? copperLandscape(chunks) : [] : [];
     if (surfaces.length + landscapeSurfaces.length > MAX_STREAM_SURFACE_QUADS) throw new Error("Streamed surface budget exceeded");
     this.current = {
       surfaces,

@@ -1,4 +1,5 @@
 import { northstarGridStreetEnabled } from "./terrain/northstar-forms";
+import { copperGridStreetEnabled } from "./terrain/copper-forms";
 import { ROAD_SPACING } from "./config";
 import {
   campusBlocksGridStreetPoint,
@@ -25,10 +26,10 @@ export const NORTHSTAR_VILLAGE_GRID = {
 
 /** Copper Junction is the only dense South grid; the desert beyond is rural. */
 export const COPPER_JUNCTION_GRID = {
-  minX: -ROAD_SPACING * 8,
-  maxX: ROAD_SPACING * 8,
-  minY: ROAD_SPACING * 33,
-  maxY: ROAD_SPACING * 45,
+  minX: -144,
+  maxX: 144,
+  minY: 1260,
+  maxY: 1440,
 } as const;
 
 /** Lantern Bay is Cypress Reach's compact, walkable town center. */
@@ -38,23 +39,6 @@ export const LANTERN_BAY_GRID = {
   minY: ROAD_SPACING * 30,
   maxY: ROAD_SPACING * 48,
 } as const;
-
-const COPPER_MESA_VERTICAL_SPINES = new Set([
-  -ROAD_SPACING * 16,
-  0,
-  ROAD_SPACING * 16,
-]);
-
-const COPPER_MESA_HORIZONTAL_LINKS = new Set([
-  ROAD_SPACING * 22,
-  ROAD_SPACING * 30,
-  ROAD_SPACING * 36,
-  ROAD_SPACING * 42,
-  ROAD_SPACING * 48,
-  ROAD_SPACING * 54,
-  ROAD_SPACING * 60,
-  ROAD_SPACING * 66,
-]);
 
 const CYPRESS_REACH_VERTICAL_SPINES = new Set([
   ROAD_SPACING * 22,
@@ -80,34 +64,11 @@ function nearestGridLine(value: number) {
   return Math.round(value / ROAD_SPACING) * ROAD_SPACING;
 }
 
-function insideCopperJunction(point: Vec2) {
-  return point.x >= COPPER_JUNCTION_GRID.minX - EPSILON
-    && point.x <= COPPER_JUNCTION_GRID.maxX + EPSILON
-    && point.y >= COPPER_JUNCTION_GRID.minY - EPSILON
-    && point.y <= COPPER_JUNCTION_GRID.maxY + EPSILON;
-}
-
 function insideLanternBay(point: Vec2) {
   return point.x >= LANTERN_BAY_GRID.minX - EPSILON
     && point.x <= LANTERN_BAY_GRID.maxX + EPSILON
     && point.y >= LANTERN_BAY_GRID.minY - EPSILON
     && point.y <= LANTERN_BAY_GRID.maxY + EPSILON;
-}
-
-function copperMesaGridStreetEnabled(point: Vec2, axis: GridStreetAxis) {
-  if (insideCopperJunction(point)) return true;
-  if (axis === "vertical") {
-    const roadX = nearestGridLine(point.x);
-    if (COPPER_MESA_VERTICAL_SPINES.has(roadX)) return true;
-    if (roadX === -ROAD_SPACING * 10) {
-      return point.y >= ROAD_SPACING * 38 && point.y <= ROAD_SPACING * 58;
-    }
-    if (roadX === ROAD_SPACING * 10) {
-      return point.y >= ROAD_SPACING * 36 && point.y <= ROAD_SPACING * 60;
-    }
-    return false;
-  }
-  return COPPER_MESA_HORIZONTAL_LINKS.has(nearestGridLine(point.y));
 }
 
 function cypressReachGridStreetEnabled(point: Vec2, axis: GridStreetAxis) {
@@ -147,7 +108,7 @@ export function gridStreetPointEnabled(point: Vec2, axis: GridStreetAxis) {
   if (campusBlocksGridStreetPoint(point, axis)) return false;
   const region = containingRegionForPosition(point.x, point.y);
   if (region?.id === "northstar-range") return northstarGridStreetEnabled(point, axis);
-  if (region?.id === "copper-mesa") return copperMesaGridStreetEnabled(point, axis);
+  if (region?.id === "copper-mesa") return copperGridStreetEnabled(point, axis);
   if (region?.id === "cypress-reach") return cypressReachGridStreetEnabled(point, axis);
   if (region?.id === "solana-coast") return solanaCoastGridStreetEnabled(point, axis);
   return true;
@@ -196,9 +157,9 @@ export function routeStaysOnEnabledRoads(route: readonly Vec2[]) {
     const b = route[index];
     const dx = b.x - a.x;
     const dy = b.y - a.y;
-    const axis: GridStreetAxis | null = Math.abs(dx) < EPSILON
+    const axis: GridStreetAxis | null = Math.abs(dx) < 1e-8
       ? "vertical"
-      : Math.abs(dy) < EPSILON
+      : Math.abs(dy) < 1e-8
         ? "horizontal"
         : null;
     const length = Math.hypot(dx, dy);

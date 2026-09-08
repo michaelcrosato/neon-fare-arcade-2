@@ -3,7 +3,6 @@ import {
   BONE,
   CYAN,
   INK,
-  MAT_BUILDING,
   MAT_FOLIAGE,
   MAT_GRASS,
   MAT_LAMP,
@@ -22,6 +21,12 @@ import {
 import { blockRandom } from "./random";
 import type { Color, LotContext, LotKind, VenueKind } from "./model";
 import { copperMesaAreaForBlock } from "./regions";
+import { copperSettlementPlan } from "./terrain/settlement";
+import { copperCanyonY, copperCinderField, copperNaturalHeight, copperSaltFlat } from "./terrain/copper-forms";
+import { facetedBoulder } from "./architecture";
+import { MAT_ADOBE, MAT_SANDSTONE, MAT_TIMBER } from "./config";
+import { adobeBuilding as addAdobeBuilding, desertSaguaro as addSaguaro, desertAgave as addAgave,
+  desertOcotillo as addOcotillo, desertBarrel, desertPaloVerde, stratifiedRock, adobeArcade } from "./copper-assets";
 
 export const MESA_SAND: Color = [0.72, 0.49, 0.27, 1];
 export const MESA_CREAM: Color = [0.86, 0.68, 0.45, 1];
@@ -110,6 +115,10 @@ const CANYON_LOTS = [
 export function desertLotForBlock(blockX: number, blockY: number): LotKind {
   const anchor = desertAnchorForBlock(blockX, blockY);
   if (anchor) return anchor.definition.lot;
+  if (!copperSettlementPlan(blockX, blockY)) {
+    const wilderness: readonly LotKind[] = ["mesa-saguaro-scrub", "mesa-creosote-flat", "mesa-rock-garden", "mesa-dry-wash"];
+    return wilderness[Math.floor(blockRandom(blockX, blockY, 0x6a20)() * wilderness.length)];
+  }
   const area = copperMesaAreaForBlock(blockX, blockY);
   const deck = area === "COPPER JUNCTION"
     ? TOWN_LOTS
@@ -169,29 +178,12 @@ function addSolid(ctx: LotContext, id: string, x: number, y: number, sx: number,
 }
 
 function addGround(ctx: LotContext, color: Color = MESA_SAND, size = 24) {
-  ctx.boxes.push({ x: ctx.centerX, y: ctx.centerY, z: 0.19, sx: size, sy: size, sz: 0.22, yaw: 0, color, material: MAT_GRASS });
-}
-
-function addSaguaro(ctx: LotContext, x: number, y: number, scale = 1, solid = false) {
-  ctx.boxes.push({ x, y, z: 2.9 * scale + 0.25, sx: 0.72 * scale, sy: 0.72 * scale, sz: 5.8 * scale, yaw: 0, color: MESA_SAGUARO, material: MAT_FOLIAGE });
-  for (const side of [-1, 1]) {
-    const armX = x + side * 0.72 * scale;
-    const armZ = (2.3 + (side > 0 ? 0.6 : 0)) * scale + 0.25;
-    ctx.boxes.push({ x: armX, y, z: armZ, sx: 1.35 * scale, sy: 0.54 * scale, sz: 0.54 * scale, yaw: 0, color: MESA_SAGUARO, material: MAT_FOLIAGE });
-    ctx.boxes.push({ x: x + side * 1.28 * scale, y, z: armZ + 0.7 * scale, sx: 0.54 * scale, sy: 0.54 * scale, sz: 1.7 * scale, yaw: 0, color: MESA_SAGUARO, material: MAT_FOLIAGE });
-  }
-  if (solid) addSolid(ctx, `saguaro-${ctx.boxes.length}`, x, y, 0.8 * scale, 0.8 * scale, 6 * scale);
-}
-
-function addAgave(ctx: LotContext, x: number, y: number, color: Color = MESA_TURQUOISE) {
-  for (let leaf = 0; leaf < 5; leaf += 1) {
-    const yaw = leaf * Math.PI / 2.5;
-    ctx.boxes.push({ x: x + Math.cos(yaw) * 0.45, y: y + Math.sin(yaw) * 0.45, z: 0.55, sx: 1.4, sy: 0.28, sz: 0.32, yaw, color, material: MAT_FOLIAGE });
-  }
+  ctx.boxes.push({ x: ctx.centerX, y: ctx.centerY, z: 0.19, sx: size, sy: size, sz: 0.22, yaw: 0, color, material: MAT_SANDSTONE });
 }
 
 function addCreosote(ctx: LotContext, x: number, y: number, scale = 1) {
-  const green: Color = [0.24, 0.34, 0.16, 1];
+  const start = ctx.boxes.length;
+  const green: Color = [0.36, 0.43, 0.24, 1];
   ctx.boxes.push({ x, y, z: 0.8 * scale, sx: 0.32 * scale, sy: 0.32 * scale, sz: 1.4 * scale, yaw: 0, color: MESA_TERRA, material: MAT_FOLIAGE });
   for (let branch = 0; branch < 5; branch += 1) {
     const yaw = branch * 1.27;
@@ -207,72 +199,16 @@ function addCreosote(ctx: LotContext, x: number, y: number, scale = 1) {
       material: MAT_FOLIAGE,
     });
   }
-}
-
-function addOcotillo(ctx: LotContext, x: number, y: number, scale = 1) {
-  for (let stalk = 0; stalk < 6; stalk += 1) {
-    const offset = (stalk - 2.5) * 0.38 * scale;
-    const lean = (stalk - 2.5) * 0.045;
-    ctx.boxes.push({ x: x + offset, y, z: 2.1 * scale, sx: 0.18 * scale, sy: 0.18 * scale, sz: 4.1 * scale, yaw: lean, color: MESA_SAGUARO, material: MAT_FOLIAGE });
-    ctx.boxes.push({ x: x + offset + lean * 3, y, z: 4.2 * scale, sx: 0.32 * scale, sy: 0.32 * scale, sz: 0.42 * scale, yaw: 0, color: MESA_MAGENTA, material: MAT_FOLIAGE });
-  }
+  for (let i = start; i < ctx.boxes.length; i += 1) ctx.boxes[i].groundAnchor = { x, y };
 }
 
 function addPricklyPear(ctx: LotContext, x: number, y: number, scale = 1) {
+  const start = ctx.boxes.length;
   for (const [offsetX, offsetY, height] of [[-0.65, 0, 1.1], [0, 0.2, 1.55], [0.7, -0.1, 1.25]] as const) {
     ctx.boxes.push({ x: x + offsetX * scale, y: y + offsetY * scale, z: height * 0.55 * scale, sx: 0.75 * scale, sy: 0.28 * scale, sz: height * scale, yaw: offsetX * 0.15, color: MESA_SAGUARO, material: MAT_FOLIAGE });
     ctx.boxes.push({ x: x + offsetX * scale, y: y + offsetY * scale, z: height * scale + 0.22, sx: 0.26, sy: 0.26, sz: 0.3, yaw: 0, color: MESA_MAGENTA, material: MAT_FOLIAGE });
   }
-}
-
-function addMesaShelf(ctx: LotContext, x = ctx.centerX, y = ctx.centerY + 2, scale = 1) {
-  const tiers = [[18, 14, 3.2], [14.5, 11, 3.1], [10.5, 8, 2.7]] as const;
-  let base = 0.28;
-  for (let tier = 0; tier < tiers.length; tier += 1) {
-    const [sx, sy, sz] = tiers[tier];
-    ctx.boxes.push({ x: x + tier * 0.5, y: y + tier * 0.35, z: base + sz * scale / 2, sx: sx * scale, sy: sy * scale, sz: sz * scale, yaw: tier % 2 ? -0.06 : 0.08, color: tier === 1 ? MESA_TERRA : MESA_REDROCK, material: MAT_BUILDING });
-    base += sz * scale * 0.78;
-  }
-  ctx.boxes.push({ x: x + 1.2 * scale, y: y + 0.7 * scale, z: base + 0.28, sx: 10.2 * scale, sy: 7.4 * scale, sz: 0.5, yaw: -0.06, color: MESA_SAND, material: MAT_GRASS });
-  addSolid(ctx, `mesa-shelf-${ctx.boxes.length}`, x, y, 18 * scale, 14 * scale, base + 1);
-}
-
-function addCanyonCampusShelf(ctx: LotContext, tileX: number, tileY: number) {
-  const visitorTile = tileX === 1 && tileY === 2;
-  const centerY = ctx.centerY + (visitorTile ? -6 : 0);
-  const footprintY = visitorTile ? 24 : 38;
-  const tiers = [
-    { inset: 0, height: 3.8, color: MESA_REDROCK },
-    { inset: 5.5, height: 3.5, color: MESA_TERRA },
-    { inset: 10, height: 3.1, color: MESA_REDROCK },
-  ] as const;
-  let base = 0.3;
-  for (let tier = 0; tier < tiers.length; tier += 1) {
-    const layer = tiers[tier];
-    ctx.boxes.push({
-      x: ctx.centerX + (tileX < 2 ? 1.6 : -1.6) * tier,
-      y: centerY + (tileY < 1 ? 1.2 : -1.2) * tier,
-      z: base + layer.height / 2,
-      sx: Math.max(13, 38 - layer.inset * 2),
-      sy: Math.max(10, footprintY - layer.inset * 2),
-      sz: layer.height,
-      yaw: tier % 2 ? -0.025 : 0.02,
-      color: layer.color,
-      material: MAT_BUILDING,
-    });
-    base += layer.height * 0.78;
-  }
-  ctx.boxes.push({ x: ctx.centerX, y: centerY, z: base + 0.3, sx: 18, sy: Math.min(16, footprintY - 6), sz: 0.48, yaw: 0, color: MESA_SAND, material: MAT_GRASS });
-  addSolid(ctx, `painted-canyon-shelf-${tileX}-${tileY}`, ctx.centerX, centerY, 38, footprintY, base + 0.8);
-}
-
-function addAdobeBuilding(ctx: LotContext, id: string, x: number, y: number, sx: number, sy: number, height: number, wall: Color = MESA_CREAM, accent: Color = MESA_TURQUOISE) {
-  ctx.boxes.push({ x: x + 0.35, y: y + 0.35, z: height / 2 + 0.35, sx: sx + 0.6, sy: sy + 0.6, sz: height, yaw: 0, color: INK, material: MAT_BUILDING });
-  ctx.boxes.push({ x, y, z: height / 2 + 0.4, sx, sy, sz: height, yaw: 0, color: wall, material: MAT_BUILDING });
-  ctx.boxes.push({ x, y: y - sy / 2 - 0.06, z: height * 0.58, sx: sx * 0.62, sy: 0.16, sz: 1, yaw: 0, color: accent, material: MAT_WINDOW });
-  ctx.boxes.push({ x, y, z: height + 0.52, sx: sx + 0.7, sy: sy + 0.7, sz: 0.48, yaw: 0, color: MESA_TERRA, material: MAT_BUILDING });
-  for (const side of [-1, 1]) ctx.boxes.push({ x: x + side * (sx / 2 - 0.6), y, z: height + 1.05, sx: 0.3, sy: 0.3, sz: 1.6, yaw: 0, color: MESA_TERRA, material: MAT_BUILDING });
-  addSolid(ctx, id, x, y, sx, sy, height + 0.7);
+  for (let i = start; i < ctx.boxes.length; i += 1) ctx.boxes[i].groundAnchor = { x, y };
 }
 
 function addPerson(ctx: LotContext, x: number, y: number, color: Color) {
@@ -291,7 +227,7 @@ function buildHomeLot(ctx: LotContext, lot: LotKind) {
   if (lot === "mesa-trailer-court") {
     for (const side of [-1, 1]) {
       const y = ctx.centerY + side * 5;
-      ctx.boxes.push({ x: ctx.centerX + side * 2, y, z: 1.9, sx: 12, sy: 4.4, sz: 3.3, yaw: side * 0.03, color: side > 0 ? BONE : MESA_CREAM, material: MAT_BUILDING });
+      ctx.boxes.push({ x: ctx.centerX + side * 2, y, z: 1.9, sx: 12, sy: 4.4, sz: 3.3, yaw: side * 0.03, color: side > 0 ? BONE : MESA_CREAM, material: MAT_ADOBE });
       ctx.boxes.push({ x: ctx.centerX - 3, y: y - 2.25, z: 1.9, sx: 3.4, sy: 0.15, sz: 1.1, yaw: 0, color: MESA_TURQUOISE, material: MAT_WINDOW });
       addSolid(ctx, `mesa-trailer-${side}`, ctx.centerX + side * 2, y, 12, 4.4, 3.6);
     }
@@ -301,42 +237,55 @@ function buildHomeLot(ctx: LotContext, lot: LotKind) {
   const wall = lot === "mesa-casita" ? MESA_TERRA : lot === "mesa-courtyard-home" ? MESA_CREAM : BONE;
   addAdobeBuilding(ctx, lot, ctx.centerX, ctx.centerY + 3, lot === "mesa-desert-ranch" ? 15 : 11.5, 9, lot === "mesa-courtyard-home" ? 6.2 : 4.7, wall, lot === "mesa-casita" ? MESA_GOLD : MESA_TURQUOISE);
   ctx.boxes.push({ x: ctx.centerX, y: ctx.centerY - 2, z: 1.15, sx: 10, sy: 4, sz: 0.32, yaw: 0, color: MESA_CREAM, material: MAT_SIDEWALK });
-  for (const x of [-4.5, 4.5]) ctx.boxes.push({ x: ctx.centerX + x, y: ctx.centerY - 2, z: 2.4, sx: 0.32, sy: 0.32, sz: 4.3, yaw: 0, color: MESA_TERRA, material: MAT_BUILDING });
-  ctx.boxes.push({ x: ctx.centerX, y: ctx.centerY - 2, z: 4.45, sx: 10.3, sy: 4.3, sz: 0.38, yaw: 0, color: MESA_TERRA, material: MAT_BUILDING });
+  for (const x of [-4.5, 4.5]) ctx.boxes.push({ x: ctx.centerX + x, y: ctx.centerY - 2, z: 2.4, sx: 0.32, sy: 0.32, sz: 4.3, yaw: 0, color: MESA_TERRA, material: MAT_ADOBE });
+  ctx.boxes.push({ x: ctx.centerX, y: ctx.centerY - 2, z: 4.45, sx: 10.3, sy: 4.3, sz: 0.38, yaw: 0, color: MESA_TERRA, material: MAT_ADOBE });
   addSaguaro(ctx, ctx.centerX - 8.5, ctx.centerY + 7, 0.8, true);
   addAgave(ctx, ctx.centerX + 8, ctx.centerY + 6);
   if (lot === "mesa-desert-ranch") addPickup(ctx, "mesa-ranch-truck", ctx.centerX + 7.5, ctx.centerY - 6.2, MESA_REDROCK);
 }
 
 function buildNatureLot(ctx: LotContext, lot: LotKind) {
-  addGround(ctx, lot === "mesa-dry-wash" ? [0.63, 0.4, 0.23, 1] : lot === "mesa-redrock-shelf" ? MESA_TERRA : MESA_SAND, 24);
-  if (lot === "mesa-redrock-shelf") {
-    addMesaShelf(ctx);
-    addSaguaro(ctx, ctx.centerX - 9, ctx.centerY - 7, 0.7, true);
-    return;
+  const cinder = copperCinderField(ctx.centerX, ctx.centerY) < 1.12;
+  const count = cinder ? 2 : 3 + Math.floor(ctx.random() * 2);
+  for (let index = 0; index < count; index += 1) {
+    const x = ctx.centerX + (ctx.random() - 0.5) * 19, y = ctx.centerY + (ctx.random() - 0.5) * 19;
+    if (Math.abs(y - copperCanyonY(x)) < 20 || copperSaltFlat(x, y) < 0.9) continue;
+    const slope = Math.hypot(copperNaturalHeight(x + 1, y) - copperNaturalHeight(x - 1, y),
+      copperNaturalHeight(x, y + 1) - copperNaturalHeight(x, y - 1)) / 2;
+    if (slope > 1.05) continue;
+    const scale = 0.7 + ctx.random() * 0.6;
+    if (cinder) {
+      ctx.surfaces?.push(...facetedBoulder({ x, y, z: 0 }, 2.6 * scale, 2.2 * scale, 1.4 * scale, [0.3, 0.25, 0.25, 1]));
+      continue;
+    }
+    const roll = ctx.random();
+    if (roll < 0.2) addSaguaro(ctx, x, y, scale, true);
+    else if (roll < 0.34) desertBarrel(ctx, x, y, scale);
+    else if (roll < 0.49) addOcotillo(ctx, x, y, scale);
+    else if (roll < 0.62) addPricklyPear(ctx, x, y, scale);
+    else if (roll < 0.76) addAgave(ctx, x, y);
+    else if (roll < 0.87 && y < 1872) desertPaloVerde(ctx, x, y, scale * 0.7);
+    else addCreosote(ctx, x, y, scale);
   }
-  const placements = [[-8, -7], [7.5, -6], [-7, 5.5], [7.8, 7], [0, 2]] as const;
-  for (let index = 0; index < placements.length; index += 1) {
-    const [x, y] = placements[index];
-    const worldX = ctx.centerX + x;
-    const worldY = ctx.centerY + y;
-    if (lot === "mesa-creosote-flat") addCreosote(ctx, worldX, worldY, 0.7 + ctx.random() * 0.45);
-    else if (index % 4 === 0) addOcotillo(ctx, worldX, worldY, 0.65 + ctx.random() * 0.28);
-    else if (index % 3 === 0) addPricklyPear(ctx, worldX, worldY, 0.7 + ctx.random() * 0.3);
-    else if ((index + ctx.blockX + ctx.blockY) % 2 === 0) addSaguaro(ctx, worldX, worldY, 0.58 + ctx.random() * 0.3, index < 1);
-    else addAgave(ctx, worldX, worldY, index % 3 ? MESA_SAGUARO : MESA_TURQUOISE);
-  }
-  if (lot === "mesa-dry-wash") {
-    for (const offset of [-7, -2, 3, 8]) ctx.boxes.push({ x: ctx.centerX + offset, y: ctx.centerY + Math.sin(offset) * 2, z: 0.42, sx: 5, sy: 2.2, sz: 0.25, yaw: 0.28, color: MESA_CREAM, material: MAT_ROAD });
-  }
-  if (lot === "mesa-rock-garden") {
-    for (const [x, y, scale] of [[-5, 1, 1], [1, 4, 1.25], [6, -2, 0.8]] as const) ctx.boxes.push({ x: ctx.centerX + x, y: ctx.centerY + y, z: 0.8 * scale, sx: 3 * scale, sy: 2.4 * scale, sz: 1.5 * scale, yaw: 0.3, color: MESA_REDROCK, material: MAT_BUILDING });
-    addSolid(ctx, "mesa-rock-cluster", ctx.centerX + 1, ctx.centerY + 2, 14, 9, 2.5);
+  if (lot === "mesa-rock-garden" || lot === "mesa-redrock-shelf") {
+    if (Math.abs(ctx.centerY - copperCanyonY(ctx.centerX)) > 25) stratifiedRock(ctx, ctx.centerX, ctx.centerY, 2.2, 3.8);
   }
   if (lot === "mesa-trailhead") {
-    ctx.boxes.push({ x: ctx.centerX, y: ctx.centerY - 2, z: 0.55, sx: 12, sy: 7, sz: 0.2, yaw: 0, color: MESA_CREAM, material: MAT_SIDEWALK });
-    ctx.boxes.push({ x: ctx.centerX - 2.5, y: ctx.centerY - 1, z: 2.5, sx: 5.5, sy: 0.35, sz: 3.5, yaw: 0, color: MESA_TERRA, material: MAT_SIGN });
-    addPerson(ctx, ctx.centerX + 2.5, ctx.centerY - 2, ORANGE);
+    ctx.boxes.push({ x: ctx.centerX, y: ctx.centerY - 3, z: 2.1, sx: 5, sy: 0.3, sz: 2.6, yaw: 0,
+      color: MESA_TURQUOISE, material: MAT_SIGN, groundAnchor: { x: ctx.centerX, y: ctx.centerY - 3 } });
+  }
+}
+
+/** Road cuts keep their terrain visible; plants are individually grounded and lane-clear. */
+export function buildDesertVerge(ctx: LotContext, available: (x: number, y: number) => boolean) {
+  for (const [dx, dy] of [[-10, -9], [9, -8], [-8, 10], [10, 9]]) {
+    const x = ctx.centerX + dx, y = ctx.centerY + dy;
+    if (!available(x, y) || Math.abs(y - copperCanyonY(x)) < 22) continue;
+    if (copperCinderField(x, y) < 1.12) {
+      ctx.surfaces?.push(...facetedBoulder({ x, y, z: 0 }, 2.2, 1.9, 1.4, [0.32, 0.26, 0.25, 1]));
+    } else if (ctx.random() < 0.42) addSaguaro(ctx, x, y, 0.9 + ctx.random() * 0.5);
+    else if (ctx.random() < 0.5) addOcotillo(ctx, x, y);
+    else addAgave(ctx, x, y);
   }
 }
 
@@ -346,15 +295,15 @@ function buildBusinessLot(ctx: LotContext, lot: LotKind) {
   if (lot === "mesa-gas-stop") {
     addAdobeBuilding(ctx, lot, ctx.centerX + 5.8, ctx.centerY + 3, 9, 7, 4, MESA_CREAM, MESA_TURQUOISE);
     ctx.boxes.push({ x: ctx.centerX - 4.5, y: ctx.centerY - 1.5, z: 3.6, sx: 10, sy: 6.5, sz: 0.55, yaw: 0, color: MESA_TERRA, material: MAT_SIGN });
-    for (const x of [-7, -2]) ctx.boxes.push({ x: ctx.centerX + x, y: ctx.centerY - 1, z: 1.2, sx: 1, sy: 1.2, sz: 1.8, yaw: 0, color: MESA_GOLD, material: MAT_BUILDING });
+    for (const x of [-7, -2]) ctx.boxes.push({ x: ctx.centerX + x, y: ctx.centerY - 1, z: 1.2, sx: 1, sy: 1.2, sz: 1.8, yaw: 0, color: MESA_GOLD, material: MAT_ADOBE });
   } else if (lot === "mesa-motor-court") {
     addAdobeBuilding(ctx, lot, ctx.centerX, ctx.centerY + 3.5, 18, 7.5, 4.2, MESA_CREAM, MESA_MAGENTA);
     addPickup(ctx, "mesa-motel-pickup", ctx.centerX - 7, ctx.centerY - 6.5, BLUE);
   } else if (lot === "mesa-shade-plaza") {
     ctx.boxes.push({ x: ctx.centerX, y: ctx.centerY, z: 0.48, sx: 19, sy: 17, sz: 0.18, yaw: 0, color: MESA_CREAM, material: MAT_SIDEWALK });
     for (const x of [-6, 0, 6]) {
-      ctx.boxes.push({ x: ctx.centerX + x, y: ctx.centerY, z: 2.7, sx: 0.34, sy: 0.34, sz: 4.7, yaw: 0, color: MESA_TERRA, material: MAT_BUILDING });
-      ctx.boxes.push({ x: ctx.centerX + x, y: ctx.centerY, z: 5, sx: 5.2, sy: 6.5, sz: 0.32, yaw: 0, color: MESA_TERRA, material: MAT_BUILDING });
+      ctx.boxes.push({ x: ctx.centerX + x, y: ctx.centerY, z: 2.7, sx: 0.34, sy: 0.34, sz: 4.7, yaw: 0, color: MESA_TERRA, material: MAT_ADOBE });
+      ctx.boxes.push({ x: ctx.centerX + x, y: ctx.centerY, z: 5, sx: 5.2, sy: 6.5, sz: 0.32, yaw: 0, color: MESA_TERRA, material: MAT_ADOBE });
     }
   } else {
     addAdobeBuilding(ctx, lot, ctx.centerX, ctx.centerY + 3, lot === "mesa-main-street" ? 18 : 13, 8.4, lot === "mesa-main-street" ? 6 : 4.8, lot === "mesa-pottery-market" ? MESA_TERRA : MESA_CREAM, face);
@@ -378,7 +327,7 @@ function buildAnchorLot(ctx: LotContext, anchor: CopperMesaAnchorTile) {
   addAnchorGround(ctx, anchor, definition.lot === "mesa-painted-canyon" ? MESA_TERRA : MESA_SAND);
   if (definition.lot === "mesa-sundown-gate") {
     for (const x of [-5.5, 5.5]) {
-      ctx.boxes.push({ x: ctx.centerX + x, y: ctx.centerY - 1, z: 5.2, sx: 2, sy: 2, sz: 9.5, yaw: 0, color: MESA_REDROCK, material: MAT_BUILDING });
+      ctx.boxes.push({ x: ctx.centerX + x, y: ctx.centerY - 1, z: 5.2, sx: 2, sy: 2, sz: 9.5, yaw: 0, color: MESA_REDROCK, material: MAT_ADOBE });
       addSolid(ctx, `sundown-gate-${x}`, ctx.centerX + x, ctx.centerY - 1, 2, 2, 10);
     }
     ctx.boxes.push({ x: ctx.centerX, y: ctx.centerY - 1, z: 9.4, sx: 13.5, sy: 1.5, sz: 1.6, yaw: 0, color: MESA_TURQUOISE, material: MAT_SIGN });
@@ -396,13 +345,16 @@ function buildAnchorLot(ctx: LotContext, anchor: CopperMesaAnchorTile) {
   if (definition.lot === "mesa-copper-junction") {
     ctx.boxes.push({ x: ctx.centerX, y: ctx.centerY + (tileY ? -5 : 9), z: 0.48, sx: 38, sy: tileY ? 16 : 8, sz: 0.22, yaw: 0, color: MESA_CREAM, material: MAT_SIDEWALK });
     for (const x of [-14, -7, 0, 7, 14]) {
-      ctx.boxes.push({ x: ctx.centerX + x, y: ctx.centerY + (tileY ? -5 : 9), z: 3.2, sx: 0.3, sy: 0.3, sz: 5.4, yaw: 0, color: MESA_TERRA, material: MAT_BUILDING });
+      ctx.boxes.push({ x: ctx.centerX + x, y: ctx.centerY + (tileY ? -5 : 9), z: 3.2, sx: 0.3, sy: 0.3, sz: 5.4, yaw: 0, color: MESA_TERRA, material: MAT_ADOBE });
       ctx.boxes.push({ x: ctx.centerX + x + 3.5, y: ctx.centerY + (tileY ? -5 : 9), z: 5.8, sx: 6.9, sy: 0.3, sz: 0.3, yaw: 0, color: tileX % 2 ? MESA_TURQUOISE : MESA_MAGENTA, material: MAT_LAMP });
     }
-    if (tileY === 0) addAdobeBuilding(ctx, `junction-${tileX}`, ctx.centerX, ctx.centerY + 4, 22, 9, 6 + (tileX === 1 ? 2 : 0), tileX === 1 ? MESA_TERRA : MESA_CREAM, MESA_TURQUOISE);
+    if (tileY === 0) {
+      addAdobeBuilding(ctx, `junction-${tileX}`, ctx.centerX, ctx.centerY + 4, 22, 9, 6 + (tileX === 1 ? 2 : 0), tileX === 1 ? MESA_TERRA : MESA_CREAM, MESA_TURQUOISE);
+      adobeArcade(ctx, ctx.centerX, ctx.centerY - 3, 21, 3);
+    }
     if (tileX === 1 && tileY === 1) {
-      ctx.boxes.push({ x: ctx.centerX, y: ctx.centerY - 1, z: 7, sx: 4.2, sy: 4.2, sz: 12.5, yaw: 0, color: MESA_CREAM, material: MAT_BUILDING });
-      ctx.boxes.push({ x: ctx.centerX, y: ctx.centerY - 1, z: 14, sx: 5.5, sy: 5.5, sz: 1.4, yaw: Math.PI / 4, color: MESA_TERRA, material: MAT_BUILDING });
+      ctx.boxes.push({ x: ctx.centerX, y: ctx.centerY - 1, z: 7, sx: 4.2, sy: 4.2, sz: 12.5, yaw: 0, color: MESA_CREAM, material: MAT_ADOBE });
+      ctx.boxes.push({ x: ctx.centerX, y: ctx.centerY - 1, z: 14, sx: 5.5, sy: 5.5, sz: 1.4, yaw: Math.PI / 4, color: MESA_TERRA, material: MAT_ADOBE });
       ctx.boxes.push({ x: ctx.centerX, y: ctx.centerY - 3.2, z: 9.5, sx: 2.5, sy: 0.2, sz: 2.5, yaw: 0, color: MESA_GOLD, material: MAT_SIGN });
       addSolid(ctx, "junction-bell-tower", ctx.centerX, ctx.centerY - 1, 4.2, 4.2, 15);
     }
@@ -449,7 +401,7 @@ function buildAnchorLot(ctx: LotContext, anchor: CopperMesaAnchorTile) {
     if (tileX === 0 && tileY === 2) addAdobeBuilding(ctx, "solar-ops", ctx.centerX - 5, ctx.centerY + 5, 11, 8, 4.5, MESA_CREAM, MESA_TURQUOISE);
     else for (const y of [-7, 0, 7]) for (const x of [-7, 0, 7]) ctx.boxes.push({ x: ctx.centerX + x, y: ctx.centerY + y, z: 1.4, sx: 5.2, sy: 3.3, sz: 0.35, yaw: -0.18, pitch: -0.35, color: BLUE, material: MAT_SIGN });
     if (tileX === 2 && tileY === 1) {
-      ctx.boxes.push({ x: ctx.centerX, y: ctx.centerY, z: 11, sx: 1, sy: 1, sz: 20, yaw: 0, color: STEEL, material: MAT_BUILDING });
+      ctx.boxes.push({ x: ctx.centerX, y: ctx.centerY, z: 11, sx: 1, sy: 1, sz: 20, yaw: 0, color: STEEL, material: MAT_ADOBE });
       ctx.boxes.push({ x: ctx.centerX, y: ctx.centerY, z: 21, sx: 4.5, sy: 4.5, sz: 1.1, yaw: Math.PI / 4, color: MESA_GOLD, material: MAT_LAMP });
       addSolid(ctx, "solar-tower", ctx.centerX, ctx.centerY, 1.2, 1.2, 22);
     }
@@ -458,14 +410,23 @@ function buildAnchorLot(ctx: LotContext, anchor: CopperMesaAnchorTile) {
   if (definition.lot === "mesa-saguaro-rodeo") {
     if (tileX === 1) {
       ctx.boxes.push({ x: ctx.centerX, y: ctx.centerY, z: 0.5, sx: 30, sy: 38, sz: 0.25, yaw: 0, color: MESA_CREAM, material: MAT_ROAD });
-      for (const side of [-1, 1]) ctx.boxes.push({ x: ctx.centerX + side * 13, y: ctx.centerY, z: 3, sx: 3, sy: 38, sz: 4.8, yaw: 0, color: MESA_TERRA, material: MAT_BUILDING });
+      for (const side of [-1, 1]) ctx.boxes.push({ x: ctx.centerX + side * 13, y: ctx.centerY, z: 3, sx: 3, sy: 38, sz: 4.8, yaw: 0, color: MESA_TERRA, material: MAT_ADOBE });
     } else addAdobeBuilding(ctx, `rodeo-${tileX}-${tileY}`, ctx.centerX, ctx.centerY + (tileY ? 4 : 0), 19, 14, 6, MESA_TERRA, MESA_GOLD);
     if (tileX === 1 && tileY === 1) for (const x of [-5, 0, 5]) addPerson(ctx, ctx.centerX + x, ctx.centerY + 8, x ? CYAN : RED);
     return;
   }
-  // Painted Canyon is one continuous apparent-elevation campus. It remains
-  // physically flat at the perimeter road and visitor portal.
-  addCanyonCampusShelf(ctx, tileX, tileY);
+  // A real rim-top visitor campus overlooks the physical canyon and its river.
+  if (tileY === 2 && tileX !== 1) {
+    for (const dx of [-8, 8]) ctx.boxes.push({ x: ctx.centerX + dx, y: ctx.centerY + 7, z: 2.5,
+      sx: 0.45, sy: 0.45, sz: 5, yaw: 0, color: MESA_TERRA, material: MAT_ADOBE });
+    for (let dx = -9; dx <= 9; dx += 1.5) ctx.boxes.push({ x: ctx.centerX + dx, y: ctx.centerY + 7, z: 5.1,
+      sx: 0.4, sy: 9, sz: 0.3, yaw: 0, color: [0.4, 0.26, 0.17, 1], material: MAT_TIMBER });
+    ctx.boxes.push({ x: ctx.centerX, y: ctx.centerY + 9, z: 0.7, sx: 8, sy: 0.8, sz: 0.4, yaw: 0, color: MESA_CREAM, material: MAT_ADOBE });
+  } else if (tileY < 2) {
+    if (tileX % 2 === 0) stratifiedRock(ctx, ctx.centerX - 4, ctx.centerY - 4, 3.6, 5.8);
+    else desertPaloVerde(ctx, ctx.centerX, ctx.centerY, 1.2);
+    addAgave(ctx, ctx.centerX + 7, ctx.centerY + 5);
+  }
   if (tileX === 1 && tileY === 2) {
     ctx.boxes.push({ x: ctx.centerX - 4.5, y: ctx.centerY + 8, z: 0.85, sx: 13, sy: 6, sz: 0.55, yaw: 0, color: MESA_CREAM, material: MAT_SIDEWALK });
     addAdobeBuilding(ctx, "painted-visitor", ctx.centerX - 4.5, ctx.centerY + 3, 12, 7, 4, MESA_CREAM, MESA_TURQUOISE);
@@ -484,6 +445,7 @@ export function buildDesertLot(ctx: LotContext, lot: LotKind) {
 }
 
 export function copperMesaPedestrianCountForBlock(blockX: number, blockY: number) {
+  if (!desertAnchorForBlock(blockX, blockY) && !copperSettlementPlan(blockX, blockY)) return 0;
   const area = copperMesaAreaForBlock(blockX, blockY);
   if (area === "COPPER JUNCTION") return 6;
   if (area === "ARROYO VISTA") return 4;

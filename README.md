@@ -16,6 +16,12 @@ summit hairpins, an observatory, and an animated gondola above a snow run.
 Terrain, roads, buildings, fares, traffic, walking, cameras, and GPS share the
 same elevations in WebGPU and Canvas.
 
+Copper Mesa is an Arizona-inspired road trip across saguaro flats, dark cinder
+country, striped mesas, salt flats, and a deep turquoise river canyon. Seven
+scenic roads climb real terrain, pass through a natural rock arch, and cross
+rust-red bridges. Adobe arcades, neon motor courts, windmills, roadrunners, and
+hot-air balloons give the ten established destinations a distinct desert setting.
+
 Drivers can leave a stopped cab and explore the city on foot. In Arcade Shift,
 the meter pauses only while the taxi is empty; Free Run is always untimed. Neon
 Lofts provides the device-local career and garage home base, and banked run
@@ -38,6 +44,7 @@ fares fund persistent upgrades.
 - `docs/road-authoring.md`: how to author curves, grades, widths and junctions
 - `docs/rebuild-plan.md`: rebuild scope and verification evidence
 - `docs/northstar-reimagining.md`: mountain expansion and verification evidence
+- `docs/copper-mesa-reimagining.md`: desert expansion and verification evidence
 - `docs/assets.md`: fare-art atlas manifest and provenance requirements
 - `docs/change-recipes.md`: safe paths for common modifications
 - `AGENTS.md`, `app/AGENTS.md`, `game/AGENTS.md`, `tests/AGENTS.md`: scoped
@@ -61,6 +68,10 @@ Follow the route onto an interchange; C cycles through the four cameras.
 For the mountain region, select **N · RANGE** in the full GPS and set a waypoint
 near Mirror Lake or Aurora Lookout. Follow Northstar Highway out of the city's
 north edge, then climb the Silver Run Switchbacks to the summit.
+For the desert, select **S · MESA** and head toward Copper Junction or Painted
+Canyon. Sundown Highway leads south from the city; detour west onto Cinder Cone
+Loop for the rock arch, then follow Canyon Rim Road and Painted Canyon Scenic
+Drive for the mesas and river bridges.
 
 ## Quality commands
 
@@ -72,7 +83,7 @@ north edge, then climb the Silver Run Switchbacks to the summit.
 - `npm run check:fast`: lint, typecheck, architecture checks, and core tests
 - `npm run check`: the complete test, production-build, and rendered-output gate
 - `npm run test:browser -- --workers=1`: desktop/mobile play, both renderers,
-  and 24 elevated-road camera captures (requires Playwright Chromium)
+  and elevated-road, mountain, and desert camera captures (requires Playwright Chromium)
 - `npm run build`: build and validate the deployable Sites artifact
 - `npm run validate:artifact`: validate an existing production artifact
 

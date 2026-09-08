@@ -33,7 +33,9 @@ Hard budgets:
 48 bytes per vertex: position xyz/material, normal xyz/face light, and RGBA.
 Surface budgets are independent: 2,048 faces per chunk and 65,536 per visual
 stream, including distant landscape. The worst-case vertex allocation is
-393,216 vertices. Timber, stone, and snow use material IDs 16, 17, and 18.
+393,216 vertices. Timber, stone, and snow use material IDs 16, 17, and 18;
+adobe, cactus, and sandstone use 19, 20, and 21. Desert shaders add plaster
+grain, cactus ribs, and sandstone strata to the original procedural geometry.
 The WebGPU road pipeline shares the scene's lighting, fog and depth buffer;
 static road vertices upload only when the streamed world key changes. Interior
 switches clear this buffer. Device loss and disposal release it with the other
@@ -42,9 +44,12 @@ GPU resources.
 Pavement and lane strips use the same mitered cross sections as tire contact
 and traffic. Deck sidewalls, undersides, guardrails and supports are generated
 with matching collision geometry. Canvas projects those same surfaces, culls
-back faces, and draws actors/routes on their decks. Northstar additionally uses
-full cuboid faces for static structures and orthographic depth ordering so
-pitched roofs meet their walls and elevated terrain occludes consistently.
+back faces, and draws actors/routes on their decks. Northstar and Copper use
+full cuboid faces and `app/terrain-raster.ts` for per-pixel orthographic depth
+across terrain, structures, animated scenery, and the taxi. Intersecting faces
+resolve by pixel depth instead of a face's average depth, so large ground
+triangles cannot paint over nearer roads or vehicles. The reusable color/depth
+buffer is capped at 1.2 million pixels and scales back to the Canvas surface.
 It remains an overhead graphic fallback. An outline preserves taxi visibility
 under an elevated road.
 
@@ -172,11 +177,14 @@ on the supporting deck while an airborne taxi rises above them.
 ## World streaming
 
 Perspective views draw visual chunks out to radius 3 and keep collision chunks
-at radius 1. The normal far plane is 400. Northstar adds cached 36-unit distant
-terrain patches and road strips beyond the loaded chunks, reaching a 1,200-unit
-far plane. Chunk borders retain 9-unit vertices to meet near terrain without
-cracks. Near terrain has 256 faces per chunk. The same terrain supplies GPS
-contours, and painted background geography is suppressed inside Northstar.
+at radius 1. The normal far plane is 400. Northstar and Copper add cached
+36-unit distant terrain patches and road strips beyond the loaded chunks,
+reaching a 1,200-unit far plane. Chunk borders retain 9-unit vertices to meet
+near terrain without cracks. Near terrain has 256 faces per chunk. Copper
+also continues its west/south horizon with a render-only terrain skirt; those
+patches count toward the surface budget and never expand the playable union.
+The same final terrain supplies GPS contours, and painted background geography
+is suppressed inside both elevated regions.
 Increasing draw distance requires checking:
 
 1. `DISTANT_STREAM_RADIUS` and `CACHE_RADIUS` together;

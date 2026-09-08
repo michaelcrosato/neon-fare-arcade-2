@@ -17,8 +17,8 @@ updates the arcade launch, steering, road elevation and contact rules below.
 - Authored curves carry height, width and bank through one compiled surface.
   The Neon Beltway centerline is at z=8; eight ramps connect it to the ground
   network. Its tire-contact plane is z=8.64. Equal XY coordinates on different
-  decks do not form a junction. Northstar uses physical terrain and sustained
-  road grades; the other regions retain their established ground plane.
+  decks do not form a junction. Northstar and Copper use physical terrain and
+  sustained road grades; the other regions retain their established ground plane.
 - Horizontal right-hand traffic: `laneY = roadY + dir * 2.25`.
 - Vertical right-hand traffic: `laneX = roadX - dir * 2.25`.
 - The player taxi starts at `(0, 2)`, heading north (`-π/2`). This centered
@@ -289,6 +289,13 @@ updates the arcade launch, steering, road elevation and contact rules below.
   and summit, with level merge landings and no invented northern perimeter road.
   Fares, interaction prompts, interior returns, gas proximity, cameras, and
   traffic respect elevation. All nine named anchor IDs and services remain.
+- Copper Mesa uses the same terrain/contact engine with desert mesas, a cinder
+  cone, dry washes, a river canyon, seven scenic roads, and ten level destination
+  terraces. The city and Cypress seams meet z=0; the south edge has no perimeter
+  road. The rock arch has a solid crown and an open road passage; river water
+  has an excavated bed and matching collision. All ten named anchors and their
+  services remain, with elevated fare approaches, portals, gas proximity,
+  walking, traffic, and GPS using the same ground heights.
 - Cypress Reach adds ten anchors, from Lantern Bay Market and Bayou Belle to
   Stormwall Locks, Cypress Crown Preserve, and Blackwater Shipyard. Its visible
   marsh and open water are semantic and physically impassable; causeways,
@@ -372,7 +379,8 @@ updates the arcade launch, steering, road elevation and contact rules below.
   curb; only the destination changes. The destination belongs to an active
   cardinal-neighbor region, sits at least eight blocks beyond the seam, and
   keeps the canonical leg between 360 and 2,160 route units, or up to 3,960 when
-  Northstar is either endpoint to accommodate the real mountain road. Fare six remains
+  Northstar or Copper is either endpoint to accommodate the winding graded
+  roads. Fare six remains
   GPS-prioritized until collected. On arrival, the old market is retired and
   the next six fares are generated locally in the destination region, where the
   same five-local-plus-one-regional cycle repeats. Region exclusivity governs

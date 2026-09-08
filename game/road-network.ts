@@ -13,7 +13,7 @@ import { RoadGraph, roadNodeKey, type RoadGraphSegment } from "./roads/graph";
 import { RoadSpatialIndex } from "./roads/spatial-index";
 import { splitRoadIntersections } from "./roads/intersections";
 import { isPlayablePoint } from "./regions";
-import { atRoadElevation, inNorthstarTerrain, northstarRoadHeight } from "./terrain/northstar-forms";
+import { atRoadElevation, inElevatedTerrain, roadDesignHeight } from "./terrain/region-forms";
 import {
   gridStreetPointEnabled,
   gridStreetSegmentEnabled,
@@ -189,7 +189,7 @@ const gridJunctions = new Map<string, WorldPoint>();
 
 function registerGridJunction(point: WorldPoint) {
   // Local streets follow the engineered terrain; bridges keep their own deck.
-  if (Math.abs((point.z ?? 0) - northstarRoadHeight(point.x, point.y)) > 0.001) return;
+  if (Math.abs((point.z ?? 0) - roadDesignHeight(point.x, point.y)) > 0.001) return;
   gridJunctions.set(pointKey(point), { ...point });
 }
 
@@ -332,7 +332,7 @@ export function isRoadSurface(point: WorldPoint, margin = 0) {
     && sample.surfaceDistance <= Math.max(0.025, margin)
     && Math.abs(sample.lateralOffset) <= sample.halfWidth + margin
   ))) return true;
-  if (inNorthstarTerrain(point.x, point.y) || Math.abs(point.z ?? 0) > 1.25) return false;
+  if (inElevatedTerrain(point.x, point.y) || Math.abs(point.z ?? 0) > 1.25) return false;
   if (pointInRoundaboutIsland(point, -0.4 + margin)) return false;
   const vertical = Math.abs(point.x - nearestGridRoadX(point.x)) <= ROAD_HALF + margin
     && point.y >= WORLD_ROAD_MIN_Y - ROAD_HALF - margin
@@ -428,14 +428,14 @@ export function routeRoadNetworkShortest(start: WorldPoint, target: WorldPoint):
 
 const pathMetrics = new Map(SPECIAL_ROADS.map((road) => {
   const geometry = compileRoad(road.id, road.points, road.halfWidth, road.closed,
-    road.points.some((point) => inNorthstarTerrain(point.x, point.y)) ? 4 : 0);
+    road.points.some((point) => inElevatedTerrain(point.x, point.y)) ? 4 : 0);
   return [road.id, { road, geometry, length: geometry.length }] as const;
 }));
 
 export const specialRoadSurfaceIndex = new RoadSpatialIndex([...pathMetrics.values()].map(({ geometry }) => geometry));
 
 export const elevatedGridRoads = physicalSegments.filter((segment) => segment.kind === "street"
-  && inNorthstarTerrain((segment.a.x + segment.b.x) / 2, (segment.a.y + segment.b.y) / 2))
+  && inElevatedTerrain((segment.a.x + segment.b.x) / 2, (segment.a.y + segment.b.y) / 2))
   .map((segment) => compileRoad(segment.id, [segment.a, segment.b], ROAD_HALF));
 export const roadSurfaceIndex = new RoadSpatialIndex([
   ...[...pathMetrics.values()].map(({ geometry }) => geometry), ...elevatedGridRoads,

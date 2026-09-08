@@ -372,7 +372,10 @@ export type MaterialId =
   | 15
   | 16
   | 17
-  | 18;
+  | 18
+  | 19
+  | 20
+  | 21;
 
 export type Box = {
   groundAnchor?: Vec2;

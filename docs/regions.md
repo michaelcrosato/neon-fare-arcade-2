@@ -28,8 +28,9 @@ The active footprint is 726 chunks: 121 per region.
 
 The center/E seam is the road at `x = 792`, and the N/center seam is the road at
 `y = -792`. Cedar Vale's outer road is `x = 2376`; Northstar Range ends in
-mountain wilderness at `y = -2376`, with no perimeter street. The center/S seam is `y = 792`, and Copper Mesa's outer road is
-`y = 2376`. Cypress Reach fills the southeast cell, sharing `y = 792` with
+mountain wilderness at `y = -2376`, with no perimeter street. The center/S seam
+is `y = 792`; Copper Mesa ends in canyon wilderness at `y = 2376`, also without
+a perimeter street. Cypress Reach fills the southeast cell, sharing `y = 792` with
 Cedar Vale and `x = 792` with Copper Mesa; its outer roads are `x = 2376` and
 `y = 2376`. Solana Coast shares `x = -792` with Neon City; its outer west
 edge at `x = -2376` is ocean, with no perimeter road. Northeast, southwest,
@@ -46,12 +47,16 @@ registry rather than infer playable space from one symmetric radius or hull.
   registry.
 - `game/mountain.ts` owns Northstar Range's area deck, rural building families,
   terrain dressing, portals, and authored anchor registry.
-- `game/terrain/` owns Northstar's landforms, settlement benches, shared terrain
-  mesh/contact, watercourse beds, distant terrain, and GPS contours.
+- `game/terrain/` owns Northstar and Copper landforms, settlement benches, shared
+  terrain mesh/contact, watercourse beds, distant terrain, and GPS contours.
+  Pure `region-forms.ts` dispatches road-design and natural height fields before
+  the road network and final cut terrain are built.
 - `game/mountain-scenery.ts` owns the spillway and gondola; `game/architecture.ts`
   supplies pitched roofs, faceted rocks, conifer crowns, and the observatory dome.
-- `game/desert.ts` owns Copper Mesa's area deck, desert vegetation and apparent
-  terrain, adobe/roadside families, portals, and authored anchor registry.
+- `game/desert.ts` owns Copper Mesa's area deck, roadside families, portals, and
+  authored anchor registry. `copper-assets.ts` supplies faceted desert plants,
+  stratified rocks, adobe buildings, and open arcades; `copper-scenery.ts` owns
+  the canyon river, drive-through rock arch, windmills, balloons, and roadrunners.
 - `game/wetland.ts` owns Cypress Reach's town, bayou, coast, water, stilt-house,
   dock, portal, and authored-anchor vocabulary.
 - `game/coastal.ts` owns Solana Coast's shore, architecture, palms, pier,
@@ -147,10 +152,11 @@ height field as nearby mountains, so they remain in place throughout the climb.
 
 Copper Mesa is a Sonoran-inspired desert region with sunbaked sand, adobe cream,
 terracotta, red rock, turquoise, saguaro green, and roadside-neon accents. It
-combines a compact tourism town with ranch country, isolated homes, trading
-posts, dry washes, cactus flats, and a broad scenic badlands edge. Four authored
-roads—Sundown Highway, Copper Loop, Arroyo Road, and Painted Canyon Scenic
-Drive—connect a sparse rural skeleton to Neon City's south seam.
+combines a compact tourism town with ranch country, trading posts, dry washes,
+cactus flats, volcanic cinders, pale salt flats, and striped mesa country.
+Seven authored roads—Sundown Highway, Copper Loop, Arroyo Road, Painted Canyon
+Scenic Drive, Saguaro Trail, Cinder Cone Loop, and Canyon Rim Road—connect short
+service lanes to Neon City's south seam and Cypress Reach's west edge.
 
 Its five named areas are:
 
@@ -171,9 +177,26 @@ Arts Center, Sunstone Solar Field, Saguaro Rodeo Grounds, and Painted Canyon.
 Multi-block anchors are continuous campuses whose internal grid streets are
 removed from pavement, routing, traffic, fares, pedestrians, physics, and GPS.
 
-Copper Mesa also stays on the engine's shared physical plane. Layered mesas,
-canyon shelves, overlooks, road cuts, solar towers, signs, and the south skyline
-create apparent elevation without introducing unsafe road grades.
+Copper Mesa uses the same physical 9-unit terrain triangles as Northstar, with
+its own road-design heights, capped mesas, scalloped cliffs, cinder cone,
+crater, wash, and river canyon. The ten destination terraces range from z=5 at
+Sundown Gate to z=74 at the visitor center; Copper Junction is z=24. Road tops
+add 0.64. Level road junctions prevent abrupt steps between overlapping curves.
+Grades meet z=0 at the city and Cypress seams. Southern circuits turn back
+through the playable region; distant west/south terrain continues the horizon
+without adding playable cells or invisible roads.
+
+Saguaro Trail winds through varied cactus country. Cinder Cone Loop passes
+through an open natural rock arch, while Painted Canyon Scenic Drive crosses
+the river on rust-red arches and sandstone piers. The river has a shared cut
+bed and matching impassable-water collision. Shaded adobe arcades, exposed
+timbers, inset windows, neon motor courts, agave, ocotillo, barrel cacti, and
+palo verde trees replace the old repeated box scenery. Windmills, an airpark
+windsock, three balloons, and small roadrunners animate in both renderers.
+
+Terrain, roads, walking, portals, gas service, fares, traffic, cameras, and both
+GPS views share elevation. The full map and minimap display sandstone contour
+bands, the river, crater, and altitude. All ten anchor IDs and services remain.
 
 ## Cypress Reach: Southeast region
 
@@ -266,10 +289,11 @@ Every new theme should provide:
 Hard live budgets remain independent of total geography because streaming stays
 local:
 
-- 760 boxes, 128 colliders, and 32 interactions per chunk.
+- 760 boxes, 256 colliders, 2,048 surface faces, and 32 interactions per chunk.
 - Radius 3 / at most 49 visual chunks.
 - Radius 1 / at most 9 collision chunks.
-- 37,240 streamed boxes, 920 streamed colliders, and 720 streamed interactions.
+- 37,240 streamed boxes, 1,536 streamed colliders, and 720 streamed interactions.
+- 65,536 surface faces per stream, including distant terrain.
 
 New region targets should be lower than the hard caps: approximately 700 boxes
 and 105 colliders per chunk, with no more than 12 interactions per chunk on

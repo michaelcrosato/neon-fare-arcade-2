@@ -21,10 +21,12 @@ import type {
   WorldPoint,
 } from "@/game/model";
 import { mountainAnimatedBoxes } from "@/game/mountain-scenery";
+import { copperAnimatedBoxes } from "@/game/copper-scenery";
 import { getObjective } from "@/game/state";
 import { waitingFares } from "@/game/fare-selection";
 import {
   ambientPeopleBoxes,
+  dynamicBoxes,
   addCarBoxes,
   boostTrailBoxes,
   farePassengerAppearance,
@@ -36,7 +38,7 @@ import {
 } from "@/game/render/scene";
 import { placeBoxesOnRoad } from "@/game/render/road-pose";
 import { boxSurfaceFaces } from "@/game/render/surfaces";
-import { inNorthstarTerrain } from "@/game/terrain/northstar-forms";
+import { inElevatedTerrain } from "@/game/terrain/region-forms";
 import { groundAt } from "@/game/vehicle-road-contact";
 import { groundShadowOffset, litBoxTopColor, litSurfaceColor } from "@/game/render/lighting";
 import { renderTargetSize } from "@/game/render/resolution";
@@ -51,6 +53,7 @@ import {
   isInterior,
   walkingMotion,
 } from "@/game/player";
+import { TerrainRaster } from "./terrain-raster";
 
 export class Canvas2DRenderer implements Renderer {
   kind = "Canvas 2D" as const;
@@ -62,6 +65,8 @@ export class Canvas2DRenderer implements Renderer {
   private skyGradient!: CanvasGradient;
   private vignette!: CanvasGradient;
   private boxFaces = new WeakMap<Box, MeshFace[]>();
+  private terrainRaster = new TerrainRaster();
+  private terrainCanvas = document.createElement("canvas");
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -289,7 +294,45 @@ export class Canvas2DRenderer implements Renderer {
       };
     };
     const screenYaw = (yaw: number) => directional ? yaw - camera.heading - Math.PI / 2 : yaw;
-    const mountainFrame = inNorthstarTerrain(camera.x, camera.y) && !interior;
+    const mountainFrame = inElevatedTerrain(camera.x, camera.y) && !interior;
+    if (mountainFrame) {
+      const raster = this.terrainRaster;
+      const rasterScale = Math.min(1, Math.sqrt(1_200_000 / (this.width * this.height)));
+      const width = Math.ceil(this.width * rasterScale), height = Math.ceil(this.height * rasterScale);
+      raster.begin(width, height);
+      const face = (surface: MeshFace) => {
+        const vertices = surface.corners.map(p => {
+          const screen = project(p.x, p.y, p.z);
+          return { x: screen.x * rasterScale, y: screen.y * rasterScale, depth: p.z + (directional
+            ? -0.6 * (forwardX * (p.x - camera.x) + forwardY * (p.y - camera.y)) : 0.6 * (p.y - camera.y)) };
+        });
+        if (vertices.every(p => p.x < 0) || vertices.every(p => p.x > width) || vertices.every(p => p.y < 0) || vertices.every(p => p.y > height)) return;
+        const [a, b, c] = surface.corners;
+        const nx = (b.y - a.y) * (c.z - a.z) - (b.z - a.z) * (c.y - a.y);
+        const ny = (b.z - a.z) * (c.x - a.x) - (b.x - a.x) * (c.z - a.z);
+        const nz = (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
+        const length = Math.hypot(nx, ny, nz) || 1;
+        const color = litSurfaceColor(surface.color, nx / length, ny / length, nz / length);
+        raster.triangle(vertices[0], vertices[1], vertices[2], color);
+        if (vertices.length === 4) raster.triangle(vertices[0], vertices[2], vertices[3], color);
+      };
+      for (const surface of world.landscapeSurfaces ?? []) face(surface);
+      for (const surface of world.surfaces ?? []) face(surface);
+      for (const box of world.boxes) {
+        let faces = this.boxFaces.get(box);
+        if (!faces) { faces = boxSurfaceFaces(box); this.boxFaces.set(box, faces); }
+        for (const surface of faces) face(surface);
+      }
+      const actorBoxes = dynamicBoxes(game, seconds, navigationPlan.route, world,
+        { showPlayerAvatar: shouldRenderPlayerAvatar(driving ? "driving" : "walking", camera.mode) });
+      if (shouldRenderTaxi(driving ? "driving" : "walking", camera.mode)) actorBoxes.push(...taxiBoxes(game));
+      for (const box of actorBoxes) for (const surface of boxSurfaceFaces(box)) face(surface);
+      if (this.terrainCanvas.width !== width || this.terrainCanvas.height !== height) {
+        this.terrainCanvas.width = width; this.terrainCanvas.height = height;
+      }
+      this.terrainCanvas.getContext("2d")!.putImageData(new ImageData(raster.pixels, width, height), 0, 0);
+      ctx.drawImage(this.terrainCanvas, 0, 0, this.width, this.height);
+    }
     const deckDraws: Array<{ height: number; draw: () => void }> = [];
     const drawOnDeck = (height: number, draw: () => void, point: WorldPoint = camera) => {
       if (!mountainFrame && height <= 1) draw();
@@ -303,6 +346,7 @@ export class Canvas2DRenderer implements Renderer {
 
     // Two small ellipses give contact and a soft edge without per-actor blur.
     const drawGroundShadow = (x: number, y: number, sx: number, sy: number, yaw: number, alpha = 0.22, z = 0) => {
+      if (mountainFrame) return;
       const p = project(x, y, z);
       const radius = Math.max(sx, sy) * scale * 0.55;
       if (p.x < -radius || p.x > this.width + radius || p.y < -radius || p.y > this.height + radius) return;
@@ -321,6 +365,7 @@ export class Canvas2DRenderer implements Renderer {
     };
 
     const drawBox = (box: Box) => {
+      if (mountainFrame) return;
       if (box.z < -0.4) return;
       const p = project(box.x, box.y, box.screenLift ?? 0);
       const roll = box.pitch ?? 0;
@@ -395,6 +440,7 @@ export class Canvas2DRenderer implements Renderer {
     };
 
     const drawSurface = (surface: MeshFace) => {
+      if (mountainFrame) return;
       const [a, b, c] = surface.corners;
       const points = surface.corners.map((point) => project(point.x, point.y, point.z));
       const [pa, pb, pc] = points;
@@ -421,7 +467,7 @@ export class Canvas2DRenderer implements Renderer {
       }, center);
     };
     for (const box of world.boxes) {
-      if (mountainFrame && inNorthstarTerrain(box.x, box.y)) {
+      if (mountainFrame && inElevatedTerrain(box.x, box.y)) {
         let faces = this.boxFaces.get(box);
         if (!faces) { faces = boxSurfaceFaces(box); this.boxFaces.set(box, faces); }
         for (const face of faces) drawSurface(face);
@@ -431,6 +477,9 @@ export class Canvas2DRenderer implements Renderer {
     if (!interior) {
       for (const box of ambientPeopleBoxes(game, seconds, controlledPose(game))) drawOnDeck(box.z, () => drawBox(box));
       for (const box of mountainAnimatedBoxes(seconds, controlledPose(game))) drawOnDeck(box.z, () => drawBox(box));
+      for (const box of copperAnimatedBoxes(seconds, controlledPose(game))) {
+        for (const face of boxSurfaceFaces(box)) drawSurface(face);
+      }
     }
 
     const fareWaiters = interior ? [] : waitingFares(game);
@@ -530,6 +579,7 @@ export class Canvas2DRenderer implements Renderer {
       selected: boolean,
       z = 0,
     ) => {
+      if (mountainFrame) return;
       const point = project(x, y, z);
       const height = Math.max(26, Math.min(62, scale * 2.65));
       const width = height * 0.42;
@@ -601,6 +651,7 @@ export class Canvas2DRenderer implements Renderer {
     }
 
     const drawPlayerAvatar = () => {
+      if (mountainFrame) return;
       if (game.player.kind !== "walking") return;
       const { actor } = game.player;
       const motion = walkingMotion(actor);

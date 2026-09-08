@@ -31,7 +31,7 @@ returns position, heading, grade, bank and width at distance/lane offset.
 Surface projection evaluates the same two pavement triangles used for drawing,
 including twisted/banked patches. The spatial index queries all nearby decks.
 
-Northstar drapes curves onto a 36-unit design field, splitting them at each
+Northstar and Copper drape curves onto regional 36-unit design fields, splitting them at each
 height-field triangle boundary so crossing centerlines agree in z. A four-unit
 physical tangent window (`compileRoad`'s fifth argument) prevents very short
 height-field cuts from pinching the swept ribbon. Other roads use the original
@@ -43,6 +43,14 @@ landings at the lake and gorge junctions keep overlapping ribbons from forming
 steps as a cab changes roads. The gorge landing changes road grade only, leaving
 the valley below it intact. Bridge piers start on final terrain; covered-gallery
 ceilings and columns use the same solid height intervals as other structures.
+
+Copper's pure height and enabled-street policies live in
+`terrain/copper-forms.ts`; `terrain/region-forms.ts` dispatches both regions.
+Do not import the final terrain or road network from those design modules or
+from a theme's basic asset builders. The final terrain depends on the compiled
+roads. Copper's mesa and solar junction benches change road height without
+filling the underlying canyon, and `roads/copper-structures.ts` builds its
+rust-red arch ribs and retaining faces after the final terrain is available.
 
 ## Junctions and structures
 
@@ -86,3 +94,10 @@ terrain clearance, all named entrances, safe fare approaches, traffic, cable
 clearance, and normal-control trips along the highway, switchbacks, and gorge.
 `mountain-world.spec.ts` captures all four cameras in both renderers at nine
 locations and verifies full/compact mountain GPS at desktop and mobile sizes.
+
+Copper's terrain and gameplay suites cover both road lanes, ten elevated venue
+returns, gas service, fare arrival, traffic, river collision, and the rock arch.
+`copper-driving.test.ts` drives all seven roads end to end in both directions
+and both vehicle models with ordinary controls. `copper-world.spec.ts` captures
+ten desktop and three mobile locations in all four cameras and both renderers,
+plus the full and compact desert GPS.

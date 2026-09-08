@@ -1,5 +1,6 @@
 import { atTerrainElevation } from "../terrain/surface";
 import { mountainAnimatedBoxes } from "../mountain-scenery";
+import { copperAnimatedBoxes } from "../copper-scenery";
 import {
   AMBIENT_PEDESTRIANS_PER_BLOCK,
   BLUE,
@@ -860,6 +861,7 @@ export function dynamicBoxes(
 
   boxes.push(...boostTrailBoxes(game, seconds));
   boxes.push(...mountainAnimatedBoxes(seconds, controlledPose(game)));
+  boxes.push(...copperAnimatedBoxes(seconds, controlledPose(game)));
 
   boxes.push(...ambientPeopleBoxes(game, seconds, controlledPose(game)));
 

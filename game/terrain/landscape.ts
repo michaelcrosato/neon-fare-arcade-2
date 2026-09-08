@@ -1,8 +1,9 @@
 import type { CityChunk, MeshFace, Vec3 } from "../model";
-import { MAT_GRASS, MAT_SNOW, MAT_STONE, MAT_ROAD, ROAD } from "../config";
+import { MAT_GRASS, MAT_SNOW, MAT_STONE, MAT_ROAD, MAT_SANDSTONE, ROAD } from "../config";
 import { SPECIAL_ROAD_SEGMENTS, compiledSpecialRoad } from "../road-network";
 import { terrainHeightAt } from "./surface";
 import { roadStripQuad } from "../render/surfaces";
+import { copperBackdropHeight, copperTerrainColor, inCopperTerrain } from "./copper-forms";
 
 const cache = new Map<string, MeshFace[]>();
 
@@ -25,9 +26,10 @@ function distantChunk(cx: number, cy: number) {
     }
     const slope = (Math.max(...corners.map((p) => p.z)) - Math.min(...corners.map((p) => p.z))) / 36;
     const snow = center.z > 165 && slope < 0.9, rock = slope > 0.5 || center.z > 145;
+    const copper = inCopperTerrain(center.x, center.y);
     for (let i = 0; i < ring.length; i += 1) faces.push({ corners: [center, ring[i], ring[(i + 1) % ring.length]],
-      color: snow ? [0.87, 0.92, 0.94, 1] : rock ? [0.39, 0.43, 0.43, 1] : [0.2, 0.34, 0.24, 1],
-      material: snow ? MAT_SNOW : rock ? MAT_STONE : MAT_GRASS, kind: "terrain" });
+      color: copper ? copperTerrainColor(center.x, center.y, center.z, slope) : snow ? [0.87, 0.92, 0.94, 1] : rock ? [0.39, 0.43, 0.43, 1] : [0.2, 0.34, 0.24, 1],
+      material: copper ? MAT_SANDSTONE : snow ? MAT_SNOW : rock ? MAT_STONE : MAT_GRASS, kind: "terrain" });
   }
   for (const segment of SPECIAL_ROAD_SEGMENTS) {
     const x = (segment.a.x + segment.b.x) / 2, y = (segment.a.y + segment.b.y) / 2;
@@ -45,5 +47,34 @@ export function northstarLandscape(chunks: readonly CityChunk[]): MeshFace[] {
   for (let cx = -5; cx <= 5; cx += 1) for (let cy = -16; cy <= -6; cy += 1) {
     if (!loaded.has(`${cx},${cy}`)) faces.push(...distantChunk(cx, cy));
   }
+  return faces;
+}
+
+export function copperLandscape(chunks: readonly CityChunk[]): MeshFace[] {
+  const loaded = new Set(chunks.map((chunk) => chunk.key)), faces: MeshFace[] = [];
+  for (let cx = -5; cx <= 5; cx += 1) for (let cy = 6; cy <= 16; cy += 1) {
+    if (!loaded.has(`${cx},${cy}`)) faces.push(...distantChunk(cx, cy));
+  }
+  return faces.concat(copperHorizon());
+}
+
+let copperHorizonCache: MeshFace[] | null = null;
+function copperHorizon(): MeshFace[] {
+  if (copperHorizonCache) return copperHorizonCache;
+  const faces: MeshFace[] = [];
+  const vertex = (x: number, y: number): Vec3 => ({ x, y,
+    z: x >= -792 && x <= 792 && y <= 2376 ? terrainHeightAt(x, y) : copperBackdropHeight(x, y) });
+  const patch = (left: number, top: number, width: number, depth: number) => {
+    const corners = [vertex(left, top), vertex(left + width, top), vertex(left + width, top + depth), vertex(left, top + depth)] as const;
+    const z = corners.reduce((total, p) => total + p.z, 0) / 4;
+    faces.push({ corners, color: copperTerrainColor(left + width / 2, top + depth / 2, z, 0), material: MAT_SANDSTONE, kind: "terrain" });
+  };
+  // Fine shared boundary vertices avoid cracks without loading unplayable chunks.
+  for (let layer = 0; layer < 4; layer += 1) {
+    for (let y = 792; y < 2376; y += 9) patch(-792 - (layer + 1) * 144, y, 144, 9);
+    for (let x = -792; x < 792; x += 9) patch(x, 2376 + layer * 144, 9, 144);
+    for (let row = 0; row < 4; row += 1) patch(-792 - (layer + 1) * 144, 2376 + row * 144, 144, 144);
+  }
+  copperHorizonCache = faces;
   return faces;
 }

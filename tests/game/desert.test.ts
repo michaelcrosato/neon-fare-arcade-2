@@ -11,7 +11,6 @@ import { ambientPedestrianPointForBlock } from "../../game/render/scene";
 import { SPECIAL_ROADS } from "../../game/road-layout";
 import {
   isRoadSurface,
-  nearestSpecialRoadProjection,
   specialRoadIntersectsSquare,
 } from "../../game/road-network";
 import { gridStreetPointEnabled, routeStaysOnEnabledRoads } from "../../game/road-topology";
@@ -30,13 +29,16 @@ const DESERT_ROAD_IDS = [
   "copper-loop",
   "arroyo-road",
   "painted-canyon-drive",
+  "saguaro-trail",
+  "cinder-cone-loop",
+  "canyon-rim-road",
 ] as const;
 
 test("Copper Mesa replaces the city lattice with a connected desert road hierarchy", () => {
   assert.equal(gridStreetPointEnabled({ x: 0, y: 36 * ROAD_SPACING }, "vertical"), true);
   assert.equal(gridStreetPointEnabled({ x: 3 * ROAD_SPACING, y: 38 * ROAD_SPACING }, "vertical"), true);
   assert.equal(gridStreetPointEnabled({ x: 3 * ROAD_SPACING, y: 58 * ROAD_SPACING }, "vertical"), false);
-  assert.equal(gridStreetPointEnabled({ x: 16 * ROAD_SPACING, y: 58 * ROAD_SPACING }, "vertical"), true);
+  assert.equal(gridStreetPointEnabled({ x: 16 * ROAD_SPACING, y: 58 * ROAD_SPACING }, "vertical"), false);
 
   const roads = SPECIAL_ROADS.filter((road) => DESERT_ROAD_IDS.includes(road.id as typeof DESERT_ROAD_IDS[number]));
   assert.deepEqual(roads.map((road) => road.id), DESERT_ROAD_IDS);
@@ -119,18 +121,7 @@ test("every Copper Mesa landmark and traffic lane stays clear of authored desert
     }
   }
 
-  for (const collider of world.colliders) {
-    const projection = nearestSpecialRoadProjection(collider);
-    assert.ok(projection);
-    const normalX = -Math.sin(projection.tangentYaw);
-    const normalY = Math.cos(projection.tangentYaw);
-    const radius = Math.abs(normalX) * collider.halfX + Math.abs(normalY) * collider.halfY;
-    assert.ok(
-      projection.centerDistance - radius >= projection.halfWidth + 1.5,
-      `${collider.id} intrudes on ${projection.roadId}`,
-    );
-  }
-
+  // Real taxi volumes validate rails, overhead arches, bridges and the river at their actual elevation.
   for (const road of SPECIAL_ROADS.filter((candidate) => DESERT_ROAD_IDS.includes(candidate.id as typeof DESERT_ROAD_IDS[number]))) {
     for (let segment = 1; segment < road.points.length; segment += 1) {
       const a = road.points[segment - 1];
@@ -145,7 +136,8 @@ test("every Copper Mesa landmark and traffic lane stays clear of authored desert
         for (const laneOffset of [-2.25, 0, 2.25]) {
           const x = a.x + (b.x - a.x) * t + normalX * laneOffset;
           const y = a.y + (b.y - a.y) * t + normalY * laneOffset;
-          assert.equal(Boolean(taxiHitsBuilding(world, x, y, heading)), false, `${road.id} blocked at ${x.toFixed(1)},${y.toFixed(1)}`);
+          const z = (a.z ?? 0) + ((b.z ?? 0) - (a.z ?? 0)) * t + 0.64;
+          assert.equal(Boolean(taxiHitsBuilding(world, x, y, heading, z)), false, `${road.id} blocked at ${x.toFixed(1)},${y.toFixed(1)}`);
         }
       }
     }
@@ -157,7 +149,7 @@ test("Copper Mesa keeps town foot traffic lively and wilderness traffic sparse",
   let wilderness = 0;
   for (let seconds = 0; seconds < 20; seconds += 2) {
     for (let pedestrian = 0; pedestrian < 6; pedestrian += 1) {
-      if (ambientPedestrianPointForBlock(6, 40, seconds, pedestrian)) town += 1;
+      if (ambientPedestrianPointForBlock(1, 38, seconds, pedestrian)) town += 1;
       if (ambientPedestrianPointForBlock(18, 58, seconds, pedestrian)) wilderness += 1;
     }
   }

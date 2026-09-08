@@ -55,7 +55,7 @@ import {
 } from "./regions";
 
 import { atTerrainElevation, terrainHeightAt, terrainSupport } from "./terrain/surface";
-import { inNorthstarTerrain } from "./terrain/northstar-forms";
+import { inElevatedTerrain } from "./terrain/region-forms";
 
 type CurbSide = "north" | "east" | "south" | "west";
 
@@ -257,7 +257,7 @@ export function analyzeFareStopPlacement(
   const approach: WorldPoint = {
     x: projection.point.x + normal.x * approachOffset,
     y: projection.point.y + normal.y * approachOffset,
-    ...(inNorthstarTerrain(zone.x, zone.y) ? { z: (projection.point.z ?? 0) + 0.64 } : {}),
+    ...(inElevatedTerrain(zone.x, zone.y) ? { z: (projection.point.z ?? 0) + 0.64 } : {}),
   };
   const approachDistance = distance(zone, approach);
   const tangent = { x: Math.cos(projection.tangentYaw), y: Math.sin(projection.tangentYaw) };
@@ -301,7 +301,7 @@ export function analyzeFareStopPlacement(
       zone.y,
       FARE_STOP_RULES.passengerClearance,
     );
-  const terrainAccessible = !inNorthstarTerrain(zone.x, zone.y)
+  const terrainAccessible = !inElevatedTerrain(zone.x, zone.y)
     || (Math.abs((zone.z ?? 0) - (approach.z ?? 0)) < 1.5
       && terrainSupport(zone).normal.z > 0.8);
   const safe = withinWorld
@@ -387,6 +387,9 @@ const REGIONAL_ROADSIDE_IDS = new Set([
   "copper-loop",
   "arroyo-road",
   "painted-canyon-drive",
+  "saguaro-trail",
+  "cinder-cone-loop",
+  "canyon-rim-road",
   "cypress-causeway",
   "lantern-bay-loop",
   "blackwater-trace",
@@ -742,10 +745,14 @@ export function createProceduralFareStopPairs(
   if (count < 1 || count > FARES_PER_CYCLE) {
     throw new Error(`Fare stop-pair count ${count} is outside the six-slot contract`);
   }
-  const anchor = options.anchor ?? previousJobs.at(-1)?.dropoffApproach ?? {
+  const anchor = options.anchor ?? previousJobs.at(-1)?.dropoffApproach ?? (region?.id === "copper-mesa" ? {
+    // An initial desert market starts around its connected service town. Live
+    // rolling markets continue from the actual previous dropoff above.
+    x: 0, y: 1332, z: 24,
+  } : {
     x: TAXI_START.x,
     y: TAXI_START.y,
-  };
+  });
   const pickups = selectPickupStops(
     stableHash("pickup-stream", seed),
     anchor,
@@ -784,7 +791,7 @@ function selectRegionalDestinationStop(
   );
   const originBounds = regionRoadBounds(origin);
   const targetBounds = regionRoadBounds(target);
-  const maxDistance = origin.id === "northstar-range" || target.id === "northstar-range"
+  const maxDistance = [origin.id, target.id].some(id => id === "northstar-range" || id === "copper-mesa")
     ? MAX_REGIONAL_FARE_TRIP_DISTANCE : MAX_FLAT_REGIONAL_FARE_TRIP_DISTANCE;
   const originCenter = {
     x: (originBounds.minX + originBounds.maxX) / 2,

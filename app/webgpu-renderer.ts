@@ -235,7 +235,7 @@ fn sunRayMask(point: vec2<f32>, thickness: f32, inner: f32, outer: f32) -> f32 {
     color = paintWorldCloud(color, azimuth, elevation, 1.08, 0.17, 0.95);
     color = paintWorldCloud(color, azimuth, elevation, -2.55, 0.25, 0.82);
 
-    if (camera.params.z > -792.0 || abs(camera.params.y) > 792.0) {
+    if (abs(camera.params.z) < 792.0 || abs(camera.params.y) > 792.0) {
     // NORTH: separated mountain ranges, snow, pines and a radio mast.
     let northFar = wrapAngle(azimuth - (-1.5707963 - camera.params.y / 6000.0));
     let northGate = max(max(angularWindow(northFar + 0.48, 0.1, 0.18), angularWindow(northFar, 0.17, 0.25)), angularWindow(northFar - 0.48, 0.1, 0.18));
@@ -493,8 +493,22 @@ struct SurfaceVertexIn {
   if (v.material > 17.5 && v.material < 18.5) {
     color = mix(color, vec3<f32>(0.74, 0.86, 0.94), (1.0 - direct) * 0.15);
   }
+  if (v.material > 18.5 && v.material < 19.5) {
+    let plaster = fract(sin(dot(floor(v.worldPos.xyz * 8.0), vec3<f32>(12.7, 39.1, 18.3))) * 21941.7);
+    color *= 0.95 + plaster * 0.05;
+  }
+  if (v.material > 19.5 && v.material < 20.5) {
+    let rib = sin((v.worldPos.x + v.worldPos.y) * 19.0);
+    color *= 0.9 + rib * 0.08;
+  }
+  if (v.material > 20.5 && v.material < 21.5) {
+    let band = sin(v.worldPos.z * 0.94 + sin(v.worldPos.x * 0.013) + v.worldPos.y * 0.004);
+    let grain = fract(sin(dot(floor(v.worldPos.xy * 1.8), vec2<f32>(19.7, 53.1))) * 19241.7);
+    color *= 0.94 + band * 0.04 + grain * 0.025;
+  }
   let fog = smoothstep(camera.sky.w * 0.58, camera.sky.w * 0.94, worldDistance);
-  color = mix(color, vec3<f32>(0.72, 0.88, 0.93), fog * 0.84);
+  let desert = camera.params.z > 792.0 && abs(camera.params.y) < 792.0;
+  color = mix(color, select(vec3<f32>(0.72, 0.88, 0.93), vec3<f32>(0.87, 0.77, 0.64), desert), fog * 0.84);
   return vec4<f32>(color, 1.0);
 }
 @fragment fn fsGhost(v: VertexOut) -> @location(0) vec4<f32> {

@@ -1,6 +1,6 @@
 import type { Vec2 } from "./model";
 import { sampleRoadCurve, roadDistance, type RoadControlPoint } from "./roads/geometry";
-import { atRoadElevation, drapeNorthstarRoad, inNorthstarTerrain } from "./terrain/northstar-forms";
+import { atRoadElevation, drapeRegionalRoad, inElevatedTerrain } from "./terrain/region-forms";
 
 export type RoadKind =
   | "boulevard"
@@ -42,8 +42,8 @@ function samePoint(a: RoadControlPoint, b: RoadControlPoint) {
 function catmullRomPath(controls: readonly RoadControlPoint[], closed = false, targetSpacing = 15) {
   const samples = sampleRoadCurve({ kind: "catmull-rom", points: controls, closed },
     { maxSegmentLength: targetSpacing, maxChordError: 0.08 });
-  if (!controls.some((point) => inNorthstarTerrain(point.x, point.y))) return samples;
-  const lifted = drapeNorthstarRoad(closed ? [...samples, samples[0]] : samples);
+  if (!controls.some((point) => inElevatedTerrain(point.x, point.y))) return samples;
+  const lifted = drapeRegionalRoad(closed ? [...samples, samples[0]] : samples);
   if (closed) lifted.pop();
   return lifted;
 }
@@ -133,15 +133,15 @@ const gorgeViaductControls = [
 ] as const;
 
 const sundownHighwayControls = [
-  point(0, 828), point(-36, 936), point(-180, 1080),
-  point(-360, 1188), point(-468, 1332), point(-432, 1476), point(-252, 1584),
-  point(-36, 1692), point(180, 1800), point(360, 1944), point(432, 2088),
-  point(324, 2232), point(108, 2340),
+  point(0, 828), point(0, 900), point(-36, 972), point(-216, 1116),
+  point(-432, 1224), point(-468, 1368), point(-432, 1476), point(-252, 1548),
+  point(-36, 1692), point(108, 1800), point(252, 1872), point(360, 1944),
+  point(396, 2052), point(360, 2160), point(180, 2268), point(36, 2340), point(-144, 2304),
 ] as const;
 
 const copperLoopControls = [
-  point(-180, 1296), point(-396, 1260), point(-612, 1368), point(-684, 1548),
-  point(-576, 1692), point(-324, 1728), point(-144, 1584), point(-108, 1404),
+  point(-180, 1296), point(-396, 1260), point(-612, 1368), point(-684, 1512),
+  point(-612, 1620), point(-540, 1728), point(-324, 1728), point(-144, 1584), point(-108, 1404),
 ] as const;
 
 const arroyoRoadControls = [
@@ -150,8 +150,25 @@ const arroyoRoadControls = [
 ] as const;
 
 const paintedCanyonControls = [
-  point(540, 1836), point(396, 1908), point(576, 2016),
-  point(324, 2088), point(540, 2196), point(252, 2268), point(396, 2340),
+  point(108, 1800), point(-72, 1836), point(-252, 1908), point(-432, 1980),
+  point(-468, 2160), point(-360, 2268), point(-144, 2304), point(72, 2268),
+  point(252, 2268), point(468, 2304), point(612, 2196), point(648, 1980),
+  point(540, 1836), point(360, 1800),
+] as const;
+
+const saguaroTrailControls = [
+  point(-36, 972), point(144, 1008), point(324, 1080), point(468, 1098),
+  point(576, 1098), point(684, 1224), point(684, 1368), point(684, 1404),
+] as const;
+
+const cinderConeControls = [
+  point(-216, 1116), point(-396, 1008), point(-576, 1008),
+  point(-684, 1152), point(-648, 1296), point(-612, 1368),
+] as const;
+
+const canyonRimControls = [
+  point(-468, 2160), point(-360, 2232), point(-216, 2232), point(-72, 2232),
+  point(72, 2160), point(180, 2052), point(360, 1944),
 ] as const;
 
 const cypressCausewayControls = [
@@ -319,7 +336,7 @@ export const SPECIAL_ROADS: readonly RoadPathDefinition[] = [
     travelWeight: 0.74,
     points: catmullRomPath(sundownHighwayControls, false, 12),
     connectGrid: "crossings",
-    junctions: sundownHighwayControls,
+    junctions: sundownHighwayControls.map(atRoadElevation),
   },
   {
     id: "copper-loop",
@@ -331,7 +348,7 @@ export const SPECIAL_ROADS: readonly RoadPathDefinition[] = [
     points: catmullRomPath(copperLoopControls, true, 12),
     closed: true,
     connectGrid: "crossings",
-    junctions: copperLoopControls,
+    junctions: copperLoopControls.map(atRoadElevation),
   },
   {
     id: "arroyo-road",
@@ -343,7 +360,7 @@ export const SPECIAL_ROADS: readonly RoadPathDefinition[] = [
     points: catmullRomPath(arroyoRoadControls, true, 12),
     closed: true,
     connectGrid: "crossings",
-    junctions: arroyoRoadControls,
+    junctions: arroyoRoadControls.map(atRoadElevation),
   },
   {
     id: "painted-canyon-drive",
@@ -354,7 +371,22 @@ export const SPECIAL_ROADS: readonly RoadPathDefinition[] = [
     travelWeight: 0.86,
     points: catmullRomPath(paintedCanyonControls, false, 10),
     connectGrid: "crossings",
-    junctions: paintedCanyonControls,
+    junctions: paintedCanyonControls.map(atRoadElevation),
+  },
+  {
+    id: "saguaro-trail", name: "SAGUARO TRAIL", kind: "parkway", halfWidth: 6, lanes: 2,
+    travelWeight: 0.86, points: catmullRomPath(saguaroTrailControls, false, 12),
+    connectGrid: "crossings", junctions: saguaroTrailControls.map(atRoadElevation),
+  },
+  {
+    id: "cinder-cone-loop", name: "CINDER CONE LOOP", kind: "parkway", halfWidth: 5.6, lanes: 2,
+    travelWeight: 0.94, points: catmullRomPath(cinderConeControls, false, 10),
+    connectGrid: "crossings", junctions: cinderConeControls.map(atRoadElevation),
+  },
+  {
+    id: "canyon-rim-road", name: "CANYON RIM ROAD", kind: "parkway", halfWidth: 5.8, lanes: 2,
+    travelWeight: 0.92, points: catmullRomPath(canyonRimControls, false, 10),
+    connectGrid: "crossings", junctions: canyonRimControls.map(atRoadElevation),
   },
   {
     id: "cypress-causeway",

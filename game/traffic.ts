@@ -3,12 +3,12 @@ import type { TrafficCar } from "./model";
 import { nearestRoadProjection, sampleSpecialRoad, specialRoadLength, specialRoadSurfaceIndex } from "./road-network";
 import { gridStreetPointEnabled } from "./road-topology";
 import { ROAD_SURFACE_HEIGHT } from "./roads/contact";
-import { inNorthstarTerrain, northstarRoadHeight } from "./terrain/northstar-forms";
+import { inElevatedTerrain, roadDesignHeight } from "./terrain/region-forms";
 import { groundAt } from "./vehicle-road-contact";
 
 export function alignGridTraffic(car: TrafficCar) {
   if (car.motion.kind !== "grid") return;
-  if (!inNorthstarTerrain(car.x, car.y)) { car.z = 0; car.pitch = 0; car.roll = 0; return; }
+  if (!inElevatedTerrain(car.x, car.y)) { car.z = 0; car.pitch = 0; car.roll = 0; return; }
   const axis = car.motion.axis === "x" ? "horizontal" : "vertical";
   if (!gridStreetPointEnabled(car, axis)) {
     const projection = nearestRoadProjection({ x: car.x, y: car.y }, car.heading);
@@ -24,7 +24,7 @@ export function alignGridTraffic(car: TrafficCar) {
       }
     }
   }
-  const support = groundAt({ x: car.x, y: car.y, z: northstarRoadHeight(car.x, car.y) + ROAD_SURFACE_HEIGHT }, 0.85);
+  const support = groundAt({ x: car.x, y: car.y, z: roadDesignHeight(car.x, car.y) + ROAD_SURFACE_HEIGHT }, 0.85);
   car.z = support.height;
   car.pitch = Math.atan2(support.normal.x * Math.cos(car.heading) + support.normal.y * Math.sin(car.heading), support.normal.z);
   car.roll = Math.atan2(support.normal.x * Math.sin(car.heading) - support.normal.y * Math.cos(car.heading), support.normal.z);

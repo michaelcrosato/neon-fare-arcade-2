@@ -293,7 +293,8 @@ test("seam roads have one owner and Northstar ends in wilderness at its northern
   const farSouth = generateCityChunk(0, 16);
   assert.equal(horizontalRoadsAt(citySouth, 792), 4);
   assert.equal(horizontalRoadsAt(southGateway, 792), 0);
-  assert.equal(horizontalRoadsAt(farSouth, WORLD_ROAD_MAX_Y), 4);
+  assert.equal(horizontalRoadsAt(farSouth, WORLD_ROAD_MAX_Y), 0);
+  assert.ok(farSouth.surfaces?.some((surface) => surface.kind === "terrain"));
 });
 
 test("deep regional roads route through the city while the inactive northeast cell stays blank", () => {
