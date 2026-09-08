@@ -134,6 +134,10 @@ Linux CI uses an explicit SwiftShader Vulkan adapter under Xvfb so WebGPU is
 actually rendered and captured. All shader, device-loss, and frame-error
 assertions remain active. Regional scene cases receive a larger time allowance
 on the CPU renderer; desktop Windows continues to exercise the native GPU.
+Scene fixtures copy the app's styles into a separate test page before mounting
+their renderer, so the menu's continuously animated world does not compete
+with each captured scene. The application renderer and lifecycle still run
+unmodified in the end-to-end road and gameplay tests.
 
 ## Final budget measurements
 

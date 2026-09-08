@@ -4,6 +4,7 @@ import path from "node:path";
 import type { CameraMode } from "../../game/model";
 import type {} from "./fixtures/copper-scene";
 import { SCENE_TEST_TIMEOUT, WEBGPU_TEST_OPTIONS } from "./browser-options";
+import { openScenePage } from "./scene-page";
 
 test.use(WEBGPU_TEST_OPTIONS);
 test.setTimeout(SCENE_TEST_TIMEOUT);
@@ -20,9 +21,7 @@ for (const mobile of [false, true]) for (const kind of ["WebGPU", "Canvas 2D"] a
     const errors: string[] = [];
     page.on("pageerror", (error) => errors.push(error.message));
     page.on("console", (message) => { if (message.type() === "error") errors.push(message.text()); });
-    await page.goto("/");
-    await expect(page.getByRole("button", { name: /Start Free Run with arcade/i })).toBeEnabled();
-    await page.addScriptTag({ content: bundle });
+    await openScenePage(page, bundle);
     expect(await page.evaluate((renderer) => window.copperScene.mount(renderer), kind)).toBe(kind);
     const scenes = mobile ? ["saguaro", "arch", "canyon"] as const
       : ["gateway", "saguaro", "arch", "town", "motel", "airpark", "mesa", "canyon", "salt", "visitor"] as const;
@@ -41,9 +40,7 @@ for (const mobile of [false, true]) for (const kind of ["WebGPU", "Canvas 2D"] a
 
 for (const mobile of [false, true]) test(`desert GPS shows terrain and altitude at ${mobile ? "mobile" : "desktop"} size`, async ({ page }, testInfo) => {
   if (mobile) await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/");
-  await expect(page.getByRole("button", { name: /Start Free Run with arcade/i })).toBeEnabled();
-  await page.addScriptTag({ content: bundle });
+  await openScenePage(page, bundle);
   await page.evaluate(async () => {
     await window.copperScene.mount("Canvas 2D");
     window.copperScene.render("visitor", "fixed");

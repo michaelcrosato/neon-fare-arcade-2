@@ -4,6 +4,7 @@ import path from "node:path";
 import type { CameraMode } from "../../game/model";
 import type {} from "./fixtures/elevated-scene";
 import { SCENE_TEST_TIMEOUT, WEBGPU_TEST_OPTIONS } from "./browser-options";
+import { openScenePage } from "./scene-page";
 
 test.use(WEBGPU_TEST_OPTIONS);
 test.setTimeout(SCENE_TEST_TIMEOUT);
@@ -19,9 +20,7 @@ for (const kind of ["WebGPU", "Canvas 2D"] as const) {
     const errors: string[] = [];
     page.on("pageerror", (error) => errors.push(error.message));
     page.on("console", (message) => { if (message.type() === "error") errors.push(message.text()); });
-    await page.goto("/");
-    await expect(page.getByRole("button", { name: /Start Free Run with arcade/i })).toBeEnabled();
-    await page.addScriptTag({ content: bundle });
+    await openScenePage(page, bundle);
     expect(await page.evaluate((renderer) => window.roadScene.mount(renderer), kind)).toBe(kind);
     for (const scene of ["ramp", "bridge", "underpass"] as const) {
       for (const mode of ["fixed", "chase-high", "chase-low", "cab"] as CameraMode[]) {
