@@ -19,3 +19,7 @@ export const WEBGPU_TEST_OPTIONS = {
 
 // Each regional case captures up to forty full world frames on a CPU renderer.
 export const SCENE_TEST_TIMEOUT = linuxCi ? 120_000 : 30_000;
+
+// A presented software-GPU frame can delay the live countdown's next update.
+// Keep waiting for the real playing UI within the scene's overall deadline.
+export const SCENE_START_TIMEOUT = linuxCi ? 45_000 : 9_000;

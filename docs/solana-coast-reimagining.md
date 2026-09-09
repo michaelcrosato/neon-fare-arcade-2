@@ -89,6 +89,9 @@ slots, passenger/art indices, active-cardinal transfers, and hard stream limits.
   and bridge surface overlap, an aquarium approach plaza, and avatar hatching.
   Desktop coastal captures run in three shorter tours per renderer to avoid
   timing out when software rendering competes with the full game suite.
+  All coastal captures also passed on Linux. The live WebGPU smoke test allows
+  longer startup on software-rendered CI while still requiring the real playing
+  UI and checking every camera, walking, and browser errors.
 - The [Quality workflow](https://github.com/michaelcrosato/neon-fare-arcade-2/actions/workflows/quality.yml)
   repeats the full checks on Ubuntu and retains browser artifacts for seven days.
 
