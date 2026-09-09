@@ -65,7 +65,7 @@ test("the expanded cast contains 48 shared riders and five 24-rider regional cas
   assert.equal(SOLANA_COAST_FARE_RIDERS.length, 24);
   assert.equal(FARE_RIDERS.length, 168);
   assert.equal(PASSENGER_ART_CELL_COUNT, 168);
-  assert.equal(DESTINATION_ART_CELL_COUNT, 30);
+  assert.equal(DESTINATION_ART_CELL_COUNT, 36);
   assert.equal(new Set(FARE_RIDERS.map((rider) => rider.id)).size, FARE_RIDERS.length);
   assert.equal(new Set(FARE_RIDERS.map((rider) => rider.rider)).size, FARE_RIDERS.length);
   assert.deepEqual(
@@ -188,7 +188,7 @@ test("regional histories persist independently through a City-Cedar-City round t
   assert.equal(secondCity.usedFareRiderIdsByRegion[cedar.id]?.length, 6);
 });
 
-test("passenger art scales to twenty-eight portrait sheets and five destination sheets", () => {
+test("passenger art scales to twenty-eight portrait sheets and six destination sheets", () => {
   assert.deepEqual(fareArtFrame(143), { sheet: 23, backgroundPosition: "100% 100%" });
   assert.equal(fareArtAsset("pickup", 0), "/fare-passengers.webp");
   assert.equal(fareArtAsset("pickup", 15), "/fare-passengers-16.webp");

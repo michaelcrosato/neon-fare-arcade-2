@@ -23,6 +23,7 @@ import type {
 import { mountainAnimatedBoxes } from "@/game/mountain-scenery";
 import { copperAnimatedBoxes } from "@/game/copper-scenery";
 import { coastAnimatedBoxes } from "@/game/coast-scenery";
+import { reachAnimatedBoxes } from "@/game/reach-scenery";
 import { getObjective } from "@/game/state";
 import { waitingFares } from "@/game/fare-selection";
 import {
@@ -220,6 +221,7 @@ export class Canvas2DRenderer implements Renderer {
         ctx.stroke();
       };
 
+      if (!(camera.x >= 792 && camera.y >= 792)) {
       // Regional compass sectors, drawn over the celestial layer.
       const north = -Math.PI / 2 - camera.x / 6000;
       drawMountain(north - 0.46, 0.17, 0.18, "#709baa");
@@ -262,20 +264,7 @@ export class Canvas2DRenderer implements Renderer {
       drawAngularRect(east - 0.5, 0.075, 0.015, 0.11, "#f4edd8");
       }
 
-      const reachDepth = Math.max(0, Math.min(1, (Math.min(camera.x, camera.y) - 720) / 660));
-      if (reachDepth > 0) {
-        const reach = Math.PI / 4 + (camera.x - camera.y) / 7200;
-        ctx.globalAlpha = reachDepth;
-        drawAngularRect(reach, -0.035, 0.48, 0.02, "#0b5557");
-        for (let index = -6; index <= 6; index += 1) {
-          const tree = reach + index * 0.072;
-          const top = 0.07 + ((index * index * 13 + 29) % 7) * 0.012;
-          drawAngularRect(tree, (top - 0.05) / 2, 0.014, (top + 0.05) / 2, "#123b2c");
-          drawAngularRect(tree, top - 0.02, 0.034, 0.024, "#225b3c");
-        }
-        drawAngularRect(reach + 0.28, 0.095, 0.014, 0.15, "#e74729");
-        drawAngularRect(reach + 0.28, 0.238, 0.052, 0.012, "#ffb019");
-        ctx.globalAlpha = 1;
+
       }
     }
     const denominator = camera.mode === "chase-high"
@@ -303,7 +292,7 @@ export class Canvas2DRenderer implements Renderer {
       };
     };
     const screenYaw = (yaw: number) => directional ? yaw - camera.heading - Math.PI / 2 : yaw;
-    const mountainFrame = (inElevatedTerrain(camera.x, camera.y) || (camera.x > 792 && Math.abs(camera.y) < 792)) && !interior;
+    const mountainFrame = (inElevatedTerrain(camera.x, camera.y) || camera.x > 792) && !interior;
     if (mountainFrame) {
       const raster = this.terrainRaster;
       const rasterScale = Math.min(1, Math.sqrt(1_200_000 / (this.width * this.height)));
@@ -490,6 +479,9 @@ export class Canvas2DRenderer implements Renderer {
         for (const face of boxSurfaceFaces(box)) drawSurface(face);
       }
       for (const box of coastAnimatedBoxes(seconds, controlledPose(game))) {
+        for (const face of boxSurfaceFaces(box)) drawSurface(face);
+      }
+      for (const box of reachAnimatedBoxes(seconds, controlledPose(game))) {
         for (const face of boxSurfaceFaces(box)) drawSurface(face);
       }
     }

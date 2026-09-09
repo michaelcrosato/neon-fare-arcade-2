@@ -2,6 +2,7 @@ import type { Vec2 } from "./model";
 import { sampleRoadCurve, roadDistance, type RoadControlPoint } from "./roads/geometry";
 import { atRoadElevation, drapeRegionalRoad, inElevatedTerrain } from "./terrain/region-forms";
 import { CEDAR_ROADS } from "./cedar-layout";
+import { REACH_ROADS } from "./reach-roads";
 
 import type { RoadPathDefinition } from "./roads/types";
 export type { RoadKind, GridConnectionMode, RoadPathDefinition } from "./roads/types";
@@ -149,30 +150,6 @@ const cinderConeControls = [
 const canyonRimControls = [
   point(-468, 2160), point(-360, 2232), point(-216, 2232), point(-72, 2232),
   point(72, 2160), point(180, 2052), point(360, 1944),
-] as const;
-
-const cypressCausewayControls = [
-  point(1368, 792), point(1368, 900), point(1440, 1008),
-  point(1512, 1116), point(1440, 1224), point(1512, 1332),
-  point(1584, 1440), point(1656, 1512),
-] as const;
-
-const lanternBayLoopControls = [
-  point(1152, 1188), point(1368, 1116), point(1584, 1188),
-  point(1692, 1368), point(1656, 1584), point(1476, 1692),
-  point(1260, 1656), point(1116, 1476),
-] as const;
-
-const blackwaterTraceControls = [
-  point(1728, 1116), point(1908, 1008), point(2160, 1080),
-  point(2304, 1260), point(2268, 1476), point(2088, 1620),
-  point(1872, 1584), point(1764, 1404),
-] as const;
-
-const stormwallLeveeControls = [
-  point(792, 1728), point(972, 1728), point(1152, 1800),
-  point(1368, 1872), point(1584, 1944), point(1800, 2052),
-  point(2016, 2124), point(2196, 2232), point(2304, 2304),
 ] as const;
 
 const pacificDriveControls = [point(-1980, -684), point(-2032, -540), point(-1998, -330), point(-2016, -144),
@@ -378,52 +355,7 @@ export const SPECIAL_ROADS: readonly RoadPathDefinition[] = [
     travelWeight: 0.92, points: catmullRomPath(canyonRimControls, false, 10),
     connectGrid: "crossings", junctions: canyonRimControls.map(atRoadElevation),
   },
-  {
-    id: "cypress-causeway",
-    name: "CYPRESS CAUSEWAY",
-    kind: "parkway",
-    halfWidth: 7,
-    lanes: 2,
-    travelWeight: 0.76,
-    points: catmullRomPath(cypressCausewayControls, false, 11),
-    connectGrid: "crossings",
-    junctions: cypressCausewayControls,
-  },
-  {
-    id: "lantern-bay-loop",
-    name: "LANTERN BAY LOOP",
-    kind: "parkway",
-    halfWidth: 6.4,
-    lanes: 2,
-    travelWeight: 0.82,
-    points: catmullRomPath(lanternBayLoopControls, true, 11),
-    closed: true,
-    connectGrid: "crossings",
-    junctions: lanternBayLoopControls,
-  },
-  {
-    id: "blackwater-trace",
-    name: "BLACKWATER TRACE",
-    kind: "parkway",
-    halfWidth: 6.1,
-    lanes: 2,
-    travelWeight: 0.86,
-    points: catmullRomPath(blackwaterTraceControls, true, 10),
-    closed: true,
-    connectGrid: "crossings",
-    junctions: blackwaterTraceControls,
-  },
-  {
-    id: "stormwall-levee-road",
-    name: "STORMWALL LEVEE ROAD",
-    kind: "parkway",
-    halfWidth: 6.6,
-    lanes: 2,
-    travelWeight: 0.8,
-    points: catmullRomPath(stormwallLeveeControls, false, 11),
-    connectGrid: "crossings",
-    junctions: stormwallLeveeControls,
-  },
+  ...REACH_ROADS,
   {
     id: "pacific-coast-drive", name: "PACIFIC COAST DRIVE", kind: "parkway",
     halfWidth: 6, lanes: 2, travelWeight: 0.8,

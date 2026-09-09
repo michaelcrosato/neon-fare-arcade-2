@@ -23,7 +23,7 @@ test("regional GPS reserves one stable 3x3 footprint before all nine regions exi
     minX: -2376,
     maxX: 2376,
     minY: -2376,
-    maxY: 2376,
+    maxY: 3384,
   });
   assert.equal(REGIONAL_MAP_CELL_SIZE, 1584);
 });
@@ -71,4 +71,5 @@ test("map pan and zoom clamp to planned bounds and deterministic detail levels",
   assert.equal(regionalMapDetail(REGIONAL_MAP_CELL_SIZE * 2), "overview");
   assert.equal(regionalMapDetail(REGIONAL_MAP_CELL_SIZE), "region");
   assert.equal(regionalMapDetail(500), "local");
+  assert.equal(regionalMapDetail(2693, 2592), "region", "the complete peninsula retains road and destination detail");
 });

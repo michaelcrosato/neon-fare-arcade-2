@@ -319,22 +319,14 @@ test("the production scheduler reaches deep destinations from every active regio
 
       const originBounds = regionRoadBounds(origin);
       const targetBounds = regionRoadBounds(target);
-      const originCenter = {
-        x: (originBounds.minX + originBounds.maxX) / 2,
-        y: (originBounds.minY + originBounds.maxY) / 2,
-      };
-      const targetCenter = {
-        x: (targetBounds.minX + targetBounds.maxX) / 2,
-        y: (targetBounds.minY + targetBounds.maxY) / 2,
-      };
-      if (targetCenter.x > originCenter.x) {
+      if (targetBounds.minX >= originBounds.maxX) {
         assert.ok(transfer.dropoff.x >= targetBounds.minX + REGIONAL_FARE_DESTINATION_DEPTH);
-      } else if (targetCenter.x < originCenter.x) {
+      } else if (targetBounds.maxX <= originBounds.minX) {
         assert.ok(transfer.dropoff.x <= targetBounds.maxX - REGIONAL_FARE_DESTINATION_DEPTH);
       }
-      if (targetCenter.y > originCenter.y) {
+      if (targetBounds.minY >= originBounds.maxY) {
         assert.ok(transfer.dropoff.y >= targetBounds.minY + REGIONAL_FARE_DESTINATION_DEPTH);
-      } else if (targetCenter.y < originCenter.y) {
+      } else if (targetBounds.maxY <= originBounds.minY) {
         assert.ok(transfer.dropoff.y <= targetBounds.maxY - REGIONAL_FARE_DESTINATION_DEPTH);
       }
     }

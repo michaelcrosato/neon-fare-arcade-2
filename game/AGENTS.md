@@ -24,8 +24,11 @@ fixed-step cadence and returns semantic events.
   `regional-content.ts`; regional map math: `regional-map.ts`.
 - Cedar parcels/data/portals: `residential.ts`; street plan: `cedar-layout.ts`;
   buildings/campuses: `residential-buildings.ts`; meshes/palette: `cedar-assets.ts`.
-  Northstar, Copper, and Cypress data/builders live in
-  `mountain.ts`, `desert.ts`, and `wetland.ts`. Solana Coast owns its data,
+  Northstar and Copper data/builders live in `mountain.ts` and `desert.ts`.
+  Palm Reach uses `palm-reach.ts` with `wetland.ts` compatibility exports;
+  `reach-layout.ts`, `reach-roads.ts`, and `reach-destinations.ts` own its plan,
+  while `reach-assets.ts`, `reach-buildings.ts`, `reach-landscape.ts`,
+  `reach-distant.ts`, and `reach-scenery.ts` own geometry and animation. Solana Coast owns its data,
   shore, and builders in `coastal.ts`; shared shore coordinates live in
   `coastal-layout.ts`.
 - Neon City landmark definitions: `landmarks.ts`; grid-interrupting footprints:

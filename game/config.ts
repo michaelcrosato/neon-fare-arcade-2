@@ -93,10 +93,9 @@ export const TRAFFIC_LANE_OFFSET = 2.25;
 export const BLOCKS_PER_CHUNK = 4;
 export const CHUNK_SIZE = ROAD_SPACING * BLOCKS_PER_CHUNK;
 /**
- * Every regional theme owns an 11 x 11 chunk cell in the planned 3 x 3
- * world. The original city remains the center cell; Cedar Vale occupies east,
- * Northstar Range occupies north, Copper Mesa occupies south, and Cypress
- * Reach occupies the southeast corner. Solana Coast occupies west.
+ * Five regions occupy 11 x 11 cells. Palm Reach extends the southeast cell
+ * seven rows south into an 11 x 18 peninsula. The center, north, east, south,
+ * and west regions retain their original bounds.
  */
 export const REGION_CHUNK_SPAN = 11;
 export const CENTER_REGION_CHUNK_MIN = -5;
@@ -110,13 +109,13 @@ export const SOUTH_REGION_CHUNK_MAX_Y = SOUTH_REGION_CHUNK_MIN_Y + REGION_CHUNK_
 export const SOUTHEAST_REGION_CHUNK_MIN_X = EAST_REGION_CHUNK_MIN_X;
 export const SOUTHEAST_REGION_CHUNK_MAX_X = EAST_REGION_CHUNK_MAX_X;
 export const SOUTHEAST_REGION_CHUNK_MIN_Y = SOUTH_REGION_CHUNK_MIN_Y;
-export const SOUTHEAST_REGION_CHUNK_MAX_Y = SOUTH_REGION_CHUNK_MAX_Y;
+export const SOUTHEAST_REGION_CHUNK_MAX_Y = SOUTH_REGION_CHUNK_MAX_Y + 7;
 export const WEST_REGION_CHUNK_MAX_X = CENTER_REGION_CHUNK_MIN - 1;
 export const WEST_REGION_CHUNK_MIN_X = WEST_REGION_CHUNK_MAX_X - REGION_CHUNK_SPAN + 1;
 export const WORLD_CHUNK_MIN_X = WEST_REGION_CHUNK_MIN_X;
 export const WORLD_CHUNK_MAX_X = EAST_REGION_CHUNK_MAX_X;
 export const WORLD_CHUNK_MIN_Y = NORTH_REGION_CHUNK_MIN_Y;
-export const WORLD_CHUNK_MAX_Y = SOUTH_REGION_CHUNK_MAX_Y;
+export const WORLD_CHUNK_MAX_Y = SOUTHEAST_REGION_CHUNK_MAX_Y;
 
 /** @deprecated Center-region aliases retained for stable authored-city tests. */
 export const CHUNK_MIN = -5;
@@ -249,7 +248,7 @@ export const MAT_SANDSTONE = MATERIAL.SANDSTONE;
 
 /** Passenger and destination atlases scale independently. */
 export const PASSENGER_ART_CELL_COUNT = 168;
-export const DESTINATION_ART_CELL_COUNT = 30;
+export const DESTINATION_ART_CELL_COUNT = 36;
 
 /** A challenger must save half a block before the live GPS changes fares. */
 export const FARE_TARGET_SWITCH_MARGIN = ROAD_SPACING / 2;
@@ -267,7 +266,7 @@ export const MIN_FARE_HANDOFF_DISTANCE = ROAD_SPACING * 2;
 export const MAX_FARE_TRIP_DISTANCE = ROAD_SPACING * 42;
 /** Regional fares may cross a full 11-chunk cell before reaching a neighbor. */
 export const MAX_FLAT_REGIONAL_FARE_TRIP_DISTANCE = ROAD_SPACING * 60;
-// The summit road takes a longer route around real ridges and switchbacks.
+// Scenic terrain and peninsula transfers follow longer winding approaches.
 export const MAX_REGIONAL_FARE_TRIP_DISTANCE = ROAD_SPACING * 110;
 export const MIN_REGIONAL_FARE_TRIP_DISTANCE = ROAD_SPACING * 10;
 /** Long-haul dropoffs land well inside the new region, not just over its seam. */
@@ -315,7 +314,7 @@ export const DISTRICT_LABELS: Record<DistrictKind, string> = {
   residential: "CEDAR VALE",
   mountain: "NORTHSTAR RANGE",
   desert: "COPPER MESA",
-  wetland: "CYPRESS REACH",
+  wetland: "PALM REACH",
   coastal: "SOLANA COAST",
   market: "INK MARKET",
   industrial: "SOUTH TERMINAL",

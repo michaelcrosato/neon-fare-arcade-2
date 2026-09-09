@@ -1,4 +1,8 @@
 import { coastCanalBlock, COAST_PIER, onCoastPier } from "./coastal-layout";
+import { addReachGround, reachLandscape } from "./reach-landscape";
+import { REACH_ROAD_IDS } from "./reach-roads";
+import { reachIsLandAt, reachIsPromenadeAt } from "./reach-layout";
+import { reachPalm } from "./reach-assets";
 import { CEDAR_ROADS, CEDAR_COURTS } from "./cedar-layout";
 import { regionalSettlementPlan } from "./terrain/settlement";
 import { mountainRoadStructures } from "./roads/mountain-structures";
@@ -142,11 +146,12 @@ import {
   REACH_MOSS,
   REACH_MUD,
   REACH_REED,
-  REACH_TIMBER,
   buildWetlandLot,
   wetlandAnchorForBlock,
   wetlandLotForBlock,
   wetlandPortalSpecs,
+  wetlandLotOrientation,
+  buildReachVerge,
 } from "./wetland";
 import {
   buildCoastalLot, buildCoastalVerge, coastalAnchorForBlock, coastalLotForBlock,
@@ -231,6 +236,7 @@ export function transformLotPose(
 }
 
 type PortalSpec = {
+  id?: string;
   suffix: string;
   kind: VenueKind;
   label: string;
@@ -317,9 +323,10 @@ function addLotInteractions(
   const wetlandAnchor = wetlandAnchorForBlock(blockX, blockY);
   const coastal = regionForBlock(blockX, blockY)?.theme === "coastal";
   const cedar = regionForBlock(blockX, blockY)?.theme === "residential";
+  const wetland = regionForBlock(blockX, blockY)?.theme === "wetland";
   const fixedCoastal = coastal && (blockX < -56 || coastalAnchorForBlock(blockX, blockY) || coastCanalBlock(blockX, blockY));
-  const orientation = landmark?.definition.orientation ?? (residentialAnchor || mountainAnchor || desertAnchor || wetlandAnchor || fixedCoastal || cedar ? 0 : lotOrientationForBlock(blockX, blockY));
-  const contentScale = landmark || residentialAnchor || mountainAnchor || desertAnchor || wetlandAnchor || coastal || cedar ? 1 : GENERIC_LOT_CONTENT_SCALE;
+  const orientation = landmark?.definition.orientation ?? (residentialAnchor || mountainAnchor || desertAnchor || wetlandAnchor || fixedCoastal || cedar ? 0 : wetland ? wetlandLotOrientation(blockX, blockY) : lotOrientationForBlock(blockX, blockY));
+  const contentScale = landmark || residentialAnchor || mountainAnchor || desertAnchor || wetlandAnchor || coastal || cedar || wetland ? 1 : GENERIC_LOT_CONTENT_SCALE;
   for (const spec of portalSpecsForLot(lot, centerX, centerY, blockX, blockY)) {
     const pose = transformLotPose(
       centerX,
@@ -330,7 +337,7 @@ function addLotInteractions(
       orientation,
       contentScale,
     );
-    const id = `venue:${blockX}:${blockY}:${spec.suffix}`;
+    const id = spec.id ?? `venue:${blockX}:${blockY}:${spec.suffix}`;
     interactions.push({
       id,
       kind: "venue-entrance",
@@ -1847,6 +1854,8 @@ function buildLot(ctx: LotContext, district: DistrictKind, lot: LotKind) {
     addLandmarkLot(lotCtx, landmark);
   } else if (district === "coastal") {
     buildCoastalLot(lotCtx, lot);
+  } else if (district === "wetland") {
+    buildWetlandLot(lotCtx, lot);
   } else {
     switch (lot) {
       case "tower": addTowerLot(lotCtx); break;
@@ -1978,8 +1987,8 @@ function buildLot(ctx: LotContext, district: DistrictKind, lot: LotKind) {
   if (!landmark && !residentialAnchor && !mountainAnchor && !desertAnchor && !wetlandAnchor && district !== "mountain" && district !== "desert" && district !== "wetland" && district !== "coastal" && district !== "residential") addCornerKit(lotCtx, district);
 
   const fixedCoastal = district === "coastal" && (ctx.blockX < -56 || coastalAnchorForBlock(ctx.blockX, ctx.blockY) || coastCanalBlock(ctx.blockX, ctx.blockY));
-  const orientation = landmark?.definition.orientation ?? (residentialAnchor || mountainAnchor || desertAnchor || wetlandAnchor || fixedCoastal || district === "residential" ? 0 : lotOrientationForBlock(ctx.blockX, ctx.blockY));
-  const contentScale = landmark || residentialAnchor || mountainAnchor || desertAnchor || wetlandAnchor || district === "coastal" || district === "residential" ? 1 : GENERIC_LOT_CONTENT_SCALE;
+  const orientation = landmark?.definition.orientation ?? (residentialAnchor || mountainAnchor || desertAnchor || wetlandAnchor || fixedCoastal || district === "residential" ? 0 : district === "wetland" ? wetlandLotOrientation(ctx.blockX, ctx.blockY) : lotOrientationForBlock(ctx.blockX, ctx.blockY));
+  const contentScale = landmark || residentialAnchor || mountainAnchor || desertAnchor || wetlandAnchor || district === "coastal" || district === "residential" || district === "wetland" ? 1 : GENERIC_LOT_CONTENT_SCALE;
   for (const box of lotBoxes) {
     const offsetX = (box.x - ctx.centerX) * contentScale;
     const offsetY = (box.y - ctx.centerY) * contentScale;
@@ -2205,10 +2214,7 @@ function addSpecialRoadGeometry(boxes: Box[], surfaces: MeshFace[], colliders: C
       || segment.pathId === "copper-loop"
       || segment.pathId === "arroyo-road"
       || segment.pathId === "painted-canyon-drive";
-    const wetlandRoad = segment.pathId === "cypress-causeway"
-      || segment.pathId === "lantern-bay-loop"
-      || segment.pathId === "blackwater-trace"
-      || segment.pathId === "stormwall-levee-road";
+    const wetlandRoad = REACH_ROAD_IDS.has(segment.pathId);
     const coastalRoad = inCoastTerrain(segment.a.x, segment.a.y);
     const edgeColor = segment.kind === "parkway" && !northstarRoad && !desertRoad && !wetlandRoad && !coastalRoad ? CYAN : wetlandRoad ? REACH_MINT : WHITE;
     const edgeOffset = Math.max(2.5, segment.halfWidth - 0.58);
@@ -2234,8 +2240,9 @@ function addSpecialRoadGeometry(boxes: Box[], surfaces: MeshFace[], colliders: C
       if (segment.index % 6 === 0) {
         const yaw = Math.atan2(segment.b.y - segment.a.y, segment.b.x - segment.a.x);
         for (const side of [-1, 1]) {
-          const x = (segment.a.x + segment.b.x) / 2 - Math.sin(yaw) * side * (segment.halfWidth + 3.1);
-          const y = (segment.a.y + segment.b.y) / 2 + Math.cos(yaw) * side * (segment.halfWidth + 3.1);
+          const plantingOffset = segment.halfWidth + (wetlandRoad ? 6.2 : 3.1);
+          const x = (segment.a.x + segment.b.x) / 2 - Math.sin(yaw) * side * plantingOffset;
+          const y = (segment.a.y + segment.b.y) / 2 + Math.cos(yaw) * side * plantingOffset;
           if (northstarRoad || desertRoad || coastalRoad) {
             const z = ((segment.a.z ?? 0) + (segment.b.z ?? 0)) / 2;
             if (Math.abs(terrainHeightAt(x, y) - z) < 1.5) {
@@ -2250,9 +2257,8 @@ function addSpecialRoadGeometry(boxes: Box[], surfaces: MeshFace[], colliders: C
             boxes.push({ x, y, z: 2.5, sx: 0.58, sy: 0.58, sz: 4.7, yaw: 0, color: MESA_SAGUARO, material: MAT_FOLIAGE });
             boxes.push({ x: x + 0.6 * side, y, z: 2.45, sx: 1.25, sy: 0.4, sz: 0.42, yaw: 0, color: MESA_SAGUARO, material: MAT_FOLIAGE });
           } else if (wetlandRoad) {
-            boxes.push({ x, y, z: 1.35, sx: 0.55, sy: 0.55, sz: 2.3, yaw: 0, color: REACH_TIMBER, material: MAT_FOLIAGE });
-            boxes.push({ x, y, z: 3.2, sx: 3, sy: 3, sz: 1.8, yaw: Math.PI / 4, color: REACH_CYPRESS, material: MAT_FOLIAGE });
-            boxes.push({ x: x + 1.1 * side, y, z: 1.1, sx: 0.18, sy: 0.18, sz: 1.8, yaw: 0, color: REACH_REED, material: MAT_FOLIAGE });
+            if (reachIsLandAt(x, y, 3) && !reachIsPromenadeAt(x, y, 2) && !isRoadSurface({ x, y }, 4) && !campusTileForBlock(Math.floor(x / 36), Math.floor(y / 36)) && (segment.a.z ?? 0) < 1) reachPalm({ boxes, surfaces, colliders, surfaceRegions: [],
+              centerX: x, centerY: y, blockX: Math.floor(x / 36), blockY: Math.floor(y / 36), random: () => .5 }, x, y, .86, true);
           } else {
             boxes.push({ x, y, z: 1.1, sx: 0.48, sy: 0.48, sz: 1.8, yaw: 0, color: northstarRoad ? RANGE_TIMBER : BRICK, material: MAT_FOLIAGE });
             boxes.push({ x, y, z: 2.35, sx: 2.1, sy: 2.1, sz: 1.25, yaw: 0, color: northstarRoad ? RANGE_SPRUCE : LEAF, material: MAT_FOLIAGE });
@@ -2323,7 +2329,8 @@ export function generateCityChunk(cx: number, cy: number): CityChunk {
   const originX = cx * CHUNK_SIZE - CHUNK_SIZE / 2;
   const originY = cy * CHUNK_SIZE - CHUNK_SIZE / 2;
   if (region.id === "northstar-range" || region.id === "copper-mesa" || region.id === "solana-coast") surfaces.push(...regionalTerrainMesh(originX, originY, CHUNK_SIZE));
-  boxes.push({
+  if (region.id === "cypress-reach") addReachGround(surfaces, colliders, surfaceRegions, originX, originY);
+  else boxes.push({
     x: originX + CHUNK_SIZE / 2,
     y: originY + CHUNK_SIZE / 2,
     z: -0.72,
@@ -2337,8 +2344,6 @@ export function generateCityChunk(cx: number, cy: number): CityChunk {
         ? RANGE_GROUND
         : region.theme === "desert"
           ? MESA_SAND
-          : region.theme === "wetland"
-            ? REACH_MUD
           : region.theme === "coastal"
             ? COAST_SAND
         : PAPER,
@@ -2440,7 +2445,9 @@ export function generateCityChunk(cx: number, cy: number): CityChunk {
       const terrainFaceStart = surfaces.length;
       const terrainInteractionStart = interactions.length;
       if (corridorBlock) {
-        addCorridorVerge({ boxes, surfaces, colliders, surfaceRegions, centerX, centerY, blockX, blockY, random }, district);
+        if (district === "wetland") buildReachVerge({ boxes, surfaces, colliders, surfaceRegions, centerX, centerY, blockX, blockY, random },
+          (x, y) => !isRoadSurface({ x, y }, 5));
+        else addCorridorVerge({ boxes, surfaces, colliders, surfaceRegions, centerX, centerY, blockX, blockY, random }, district);
       } else if (district === "mountain" || district === "desert" || district === "wetland" || district === "coastal" || district === "residential") {
         buildLot({ boxes, surfaces, colliders, surfaceRegions, centerX, centerY, blockX, blockY, random }, district, lot);
         addLotInteractions(interactions, blockX, blockY, centerX, centerY, lot);
@@ -2534,7 +2541,7 @@ export function generateCityChunk(cx: number, cy: number): CityChunk {
   if (colliders.length > MAX_CHUNK_COLLIDERS) throw new Error(`City chunk ${cx},${cy} exceeded ${MAX_CHUNK_COLLIDERS} colliders`);
   if (interactions.length > MAX_CHUNK_INTERACTIONS) throw new Error(`City chunk ${cx},${cy} exceeded ${MAX_CHUNK_INTERACTIONS} interactions`);
 
-  if (surfaces.length > MAX_CHUNK_SURFACE_QUADS) throw new Error("Chunk road surface budget exceeded");
+  if (surfaces.length > MAX_CHUNK_SURFACE_QUADS) throw new Error(`City chunk ${cx},${cy} has ${surfaces.length} surface faces, exceeding ${MAX_CHUNK_SURFACE_QUADS}`);
   return { key: `${cx},${cy}`, cx, cy, boxes, surfaces, colliders, surfaceRegions, interactions };
 }
 
@@ -2581,7 +2588,8 @@ export class CityStream {
     const streamInteractions = chunks.flatMap((chunk) => chunk.interactions);
     if (streamInteractions.length > MAX_STREAM_INTERACTIONS) throw new Error(`Streamed city exceeded ${MAX_STREAM_INTERACTIONS} interactions`);
     const surfaces = chunks.flatMap((chunk) => chunk.surfaces ?? []);
-    const landscapeSurfaces = centerX <= -6 && centerY >= -5 && centerY <= 5 ? coastLandscape(chunks)
+    const landscapeSurfaces = centerX >= 6 && centerY >= 6 ? reachLandscape(chunks)
+      : centerX <= -6 && centerY >= -5 && centerY <= 5 ? coastLandscape(chunks)
       : centerX >= -5 && centerX <= 5
         ? centerY <= -5 ? northstarLandscape(chunks) : centerY >= 5 ? copperLandscape(chunks) : [] : [];
     if (surfaces.length + landscapeSurfaces.length > MAX_STREAM_SURFACE_QUADS) throw new Error("Streamed surface budget exceeded");

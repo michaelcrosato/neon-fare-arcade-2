@@ -236,6 +236,7 @@ fn sunRayMask(point: vec2<f32>, thickness: f32, inner: f32, outer: f32) -> f32 {
     color = paintWorldCloud(color, azimuth, elevation, -2.55, 0.25, 0.82);
 
     if ((abs(camera.params.z) < 792.0 || abs(camera.params.y) > 792.0)
+      && !(camera.params.y >= 792.0 && camera.params.z >= 792.0)
       && !(camera.params.y < -792.0 && abs(camera.params.z) <= 792.0)) {
     // NORTH: separated mountain ranges, snow, pines and a radio mast.
     let northFar = wrapAngle(azimuth - (-1.5707963 - camera.params.y / 6000.0));
@@ -338,33 +339,13 @@ fn sunRayMask(point: vec2<f32>, thickness: f32, inner: f32, outer: f32) -> f32 {
     color = mix(color, vec3<f32>(0.95, 0.92, 0.82), lighthouse);
     }
 
-    // SOUTHEAST: Cypress Reach emerges only after both regional coordinates
-    // are positive, with blackwater, cypress crowns, lanterns, and lock towers.
-    let reachDepth = smoothstep(720.0, 1380.0, min(camera.params.y, camera.params.z));
-    let reachBearing = 0.7853982 + (camera.params.y - camera.params.z) / 7200.0;
-    let reachFar = wrapAngle(azimuth - reachBearing);
-    let reachGate = angularWindow(reachFar, 0.39, 0.53);
-    let reachWater = reachDepth * reachGate * heightBand(elevation, -0.058, -0.016, 0.004);
-    color = mix(color, vec3<f32>(0.03, 0.30, 0.32), reachWater * 0.92);
-    let reachCell = floor((reachFar + 0.54) / 0.072);
-    let reachCenter = (reachCell + 0.5) * 0.072 - 0.54;
-    let reachTreeTop = 0.055 + hash1(reachCell + 71.0) * 0.085;
-    let reachTree = reachDepth * reachGate * step(0.14, hash1(reachCell + 19.0))
-      * (1.0 - smoothstep(0.024, 0.033, abs(reachFar - reachCenter)))
-      * heightBand(elevation, -0.052, reachTreeTop, 0.004);
-    color = mix(color, vec3<f32>(0.04, 0.18, 0.14), reachTree);
-    let reachCrown = reachDepth * reachGate
-      * (1.0 - smoothstep(0.038, 0.052, abs(reachFar - reachCenter)))
-      * heightBand(elevation, reachTreeTop - 0.035, reachTreeTop + 0.006, 0.004);
-    color = mix(color, vec3<f32>(0.12, 0.35, 0.22), reachCrown);
-    let lockTower = reachDepth * max(
-      angularRect(azimuth, elevation, reachBearing + 0.28, 0.095, vec2<f32>(0.014, 0.15), 0.003),
-      angularRect(azimuth, elevation, reachBearing + 0.28, 0.238, vec2<f32>(0.052, 0.012), 0.003)
-    );
-    color = mix(color, vec3<f32>(0.93, 0.28, 0.16), lockTower);
-    let reachLantern = reachDepth * ellipseMask(vec2<f32>(wrapAngle(azimuth - (reachBearing - 0.22)), elevation), vec2<f32>(0.0, 0.09), vec2<f32>(0.018, 0.024));
-    color = mix(color, vec3<f32>(1.0, 0.69, 0.08), reachLantern);
+
     }
+    // Palm Reach uses its physical shoreline and skyline meshes. A warm
+    // marine haze keeps the open horizon legible without a false land silhouette.
+    let reachDepth = smoothstep(792.0, 1120.0, min(camera.params.y, camera.params.z));
+    let marineHaze = reachDepth * heightBand(elevation, -0.055, 0.07, 0.045);
+    color = mix(color, vec3<f32>(0.83, 0.66, 0.71), marineHaze * 0.38);
   }
 
   let dotCell = floor(v.position.xy / vec2<f32>(9.0));

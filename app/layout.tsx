@@ -8,7 +8,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Neon Fare — Comic Overdrive",
   description:
-    "Pick up fares, deliver parcels, and explore six distinct regions—from Solana Coast to Cypress Reach—in Arcade Shift or Free Run.",
+    "Pick up fares, deliver parcels, and explore six distinct regions—from Solana Coast to Palm Reach—in Arcade Shift or Free Run.",
   other: {
     "codex-preview": "development",
   },

@@ -1,151 +1,165 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-
-import { CHUNK_SIZE, ROAD_SPACING, WORLD_ROAD_MAX_X, WORLD_ROAD_MAX_Y } from "../../game/config";
+import { CHUNK_SIZE, ROAD_SPACING } from "../../game/config";
 import { circleHitsBuilding, taxiHitsBuilding } from "../../game/collision";
 import { createFareMarket } from "../../game/fare-market";
 import { scheduleSixthFareTransfer } from "../../game/regional-fares";
 import { buildGpsRoute } from "../../game/navigation";
 import { ambientPedestrianPointForBlock } from "../../game/render/scene";
-import { SPECIAL_ROADS } from "../../game/road-layout";
-import {
-  isRoadSurface,
-  specialRoadIntersectsSquare,
-} from "../../game/road-network";
-import { gridStreetPointEnabled, routeStaysOnEnabledRoads } from "../../game/road-topology";
-import {
-  ACTIVE_WORLD_REGIONS,
-  containingRegionForPosition,
-  isPlayablePoint,
-} from "../../game/regions";
+import { isRoadSurface, sampleSpecialRoad, specialRoadLength, nearestRoadProjection } from "../../game/road-network";
+import { gridStreetPointEnabled, gridStreetSegmentEnabled } from "../../game/road-topology";
+import { ACTIVE_WORLD_REGIONS, containingRegionForPosition, isPlayablePoint } from "../../game/regions";
 import { makeGame, makeTraffic } from "../../game/state";
-import type { WorldView } from "../../game/model";
-import { CYPRESS_REACH_ANCHORS } from "../../game/wetland";
-import { generateCityChunk } from "../../game/world";
+import type { CityChunk, WorldView, Vec2 } from "../../game/model";
+import { PALM_REACH_ANCHORS } from "../../game/reach-destinations";
+import { REACH_ROADS, REACH_ROAD_IDS } from "../../game/reach-roads";
+import { REACH_BOUNDS, reachIsLandAt, reachShoreAt } from "../../game/reach-layout";
+import { CityStream, generateCityChunk } from "../../game/world";
 
-const cypressReach = ACTIVE_WORLD_REGIONS.find((region) => region.id === "cypress-reach")!;
-const WETLAND_ROAD_IDS = [
-  "cypress-causeway",
-  "lantern-bay-loop",
-  "blackwater-trace",
-  "stormwall-levee-road",
-] as const;
+const cypressReach = ACTIVE_WORLD_REGIONS.find(region => region.id === "cypress-reach")!;
+const chunks: CityChunk[] = [];
+for (let cx = 6; cx <= 16; cx++) for (let cy = 6; cy <= 23; cy++) chunks.push(generateCityChunk(cx, cy));
+const world: WorldView = { key: "palm-reach-sweep", chunks, boxes: [],
+  colliders: chunks.flatMap(chunk => chunk.colliders), interactions: chunks.flatMap(chunk => chunk.interactions) };
 
-function cypressWorld(): WorldView {
-  const chunks = [];
-  for (let cx = cypressReach.chunkMinX; cx <= cypressReach.chunkMaxX; cx += 1) {
-    for (let cy = cypressReach.chunkMinY; cy <= cypressReach.chunkMaxY; cy += 1) {
-      chunks.push(generateCityChunk(cx, cy));
+function assertPavedRoute(from: Vec2, to: Vec2) {
+  const route = buildGpsRoute(from, to);
+  assert.ok(route.length > 1);
+  assert.ok(Math.hypot(route.at(-1)!.x - to.x, route.at(-1)!.y - to.y) <= .1,
+    `route ${JSON.stringify(from)} to ${JSON.stringify(to)} ended at ${JSON.stringify(route.at(-1))}`);
+  for (let i = 1; i < route.length; i++) {
+    const a = route[i - 1], b = route[i], count = Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / 3));
+    for (let j = 0; j <= count; j++) {
+      const p = { x: a.x + (b.x - a.x) * j / count, y: a.y + (b.y - a.y) * j / count,
+        z: (a.z ?? 0) + ((b.z ?? 0) - (a.z ?? 0)) * j / count };
+      assert.ok(isPlayablePoint(p.x, p.y) && isRoadSurface(p), `route left pavement at ${p.x},${p.y}`);
     }
   }
-  return {
-    key: "cypress-reach-sweep",
-    boxes: chunks.flatMap((chunk) => chunk.boxes),
-    colliders: chunks.flatMap((chunk) => chunk.colliders),
-    chunks,
-    interactions: chunks.flatMap((chunk) => chunk.interactions),
-  };
+  return route;
 }
 
-test("Cypress Reach combines a compact town grid with four connected wetland roads", () => {
-  assert.equal(gridStreetPointEnabled({ x: 38 * ROAD_SPACING, y: 38 * ROAD_SPACING }, "vertical"), true);
-  assert.equal(gridStreetPointEnabled({ x: 50 * ROAD_SPACING, y: 50 * ROAD_SPACING }, "vertical"), false);
-  assert.equal(gridStreetPointEnabled({ x: 54 * ROAD_SPACING, y: 58 * ROAD_SPACING }, "vertical"), true);
-
-  const roads = SPECIAL_ROADS.filter((road) => WETLAND_ROAD_IDS.includes(road.id as typeof WETLAND_ROAD_IDS[number]));
-  assert.deepEqual(roads.map((road) => road.id), WETLAND_ROAD_IDS);
-  for (const road of roads) {
-    for (const point of road.points) {
-      assert.equal(isPlayablePoint(point.x, point.y), true, `${road.id} left Cypress Reach`);
-      assert.equal(isRoadSurface(point), true, `${road.id} point is not paved`);
-    }
+test("Palm Reach extends seven rows into a tapered peninsula with open water on both sides", () => {
+  assert.equal(chunks.length, 198);
+  assert.equal(cypressReach.name, "PALM REACH");
+  assert.equal(cypressReach.chunkMinX * CHUNK_SIZE - CHUNK_SIZE / 2, 792);
+  assert.equal(REACH_BOUNDS.maxY, 3384);
+  for (const [y, maxWidth] of [[2376, 550], [2952, 400], [3222, 185]]) {
+    const shore = reachShoreAt(y);
+    assert.ok(shore.east - shore.west < maxWidth);
+    assert.ok(reachIsLandAt((shore.west + shore.east) / 2, y));
+    assert.ok(!reachIsLandAt(shore.west - 10, y) && !reachIsLandAt(shore.east + 10, y));
   }
-
-  const route = buildGpsRoute({ x: 1368, y: 792 }, { x: 2200, y: 2250 });
-  assert.equal(routeStaysOnEnabledRoads(route), true);
-  assert.ok(route.some((point) => point.x > 2000 && point.y > 2000));
-  assert.ok(route.every((point) => isPlayablePoint(point.x, point.y)));
+  assert.equal(reachIsLandAt(1683, 3300), false);
+  for (const p of [{ x: 2376, y: 2000 }, { x: 1800, y: 3384 }, { x: 1100, y: 2200 }]) {
+    assert.equal(isRoadSurface(p), false);
+    assert.equal(gridStreetPointEnabled(p, "vertical"), false);
+    assert.equal(gridStreetPointEnabled(p, "horizontal"), false);
+  }
 });
 
-test("Cypress Reach anchors, water, portals, and traffic lanes share one collision contract", () => {
-  const world = cypressWorld();
-  assert.equal(
-    world.colliders.some((collider) => collider.id.startsWith("street-commerce:")),
-    false,
-    "wetland street-commerce density remains intentionally disabled",
-  );
-  const portals = CYPRESS_REACH_ANCHORS.flatMap((anchor) => world.interactions.filter((interaction) => (
-    interaction.label === anchor.label && interaction.id.endsWith(`:${anchor.portal.suffix}`)
-  )));
-  assert.equal(portals.length, CYPRESS_REACH_ANCHORS.length);
-  assert.equal(new Set(portals.map((portal) => portal.label)).size, CYPRESS_REACH_ANCHORS.length);
-  for (const portal of world.interactions) {
-    assert.equal(Boolean(circleHitsBuilding(world, portal.x, portal.y, 0.44)), false, `${portal.id} entrance`);
-    const returnX = portal.x + Math.cos(portal.heading) * 1.15;
-    const returnY = portal.y + Math.sin(portal.heading) * 1.15;
-    assert.equal(Boolean(circleHitsBuilding(world, returnX, returnY, 0.44)), false, `${portal.id} return pose`);
+test("all eight roads and ten destinations connect to both neighbors and the southern tip", () => {
+  assert.equal(REACH_ROADS.length, 8);
+  for (const road of REACH_ROADS) {
+    const target = sampleSpecialRoad(road.id, specialRoadLength(road.id) * .57)!.point;
+    assertPavedRoute({ x: 1368, y: 792 }, target);
+    const westRoute = assertPavedRoute({ x: 756, y: 1944 }, target);
+    assert.ok(westRoute.some(point => Math.abs(point.x - 792) < .1 && Math.abs(point.y - 1944) < .1));
   }
+  for (const anchor of PALM_REACH_ANCHORS) {
+    const portal = world.interactions.find(p => p.id === anchor.venueId);
+    assert.ok(portal, anchor.id);
+    const approach = nearestRoadProjection(portal).point;
+    assert.ok(Math.hypot(approach.x - portal.x, approach.y - portal.y) < 30, anchor.id);
+    assertPavedRoute({ x: 1368, y: 792 }, approach);
+  }
+  const route = assertPavedRoute({ x: 0, y: 0 }, { x: 1692, y: 3132 });
+  const regions = new Set(route.map(p => containingRegionForPosition(p.x, p.y)?.id));
+  assert.ok(regions.has("cedar-vale") || regions.has("copper-mesa"));
+  assert.ok(regions.has("city-center") && regions.has("cypress-reach"));
+});
 
-  let wetlandWater = 0;
-  for (const chunk of world.chunks) {
-    for (const surface of chunk.surfaceRegions.filter((region) => region.id.startsWith("wetland-water-"))) {
-      wetlandWater += 1;
-      const collider = chunk.colliders.find((candidate) => candidate.id === surface.id);
-      assert.ok(collider, `${surface.id} lacks matching collision`);
-      const colliderExtents = [collider!.halfX, collider!.halfY].sort((a, b) => a - b);
-      const surfaceExtents = [surface.halfX, surface.halfY].sort((a, b) => a - b);
-      assert.ok(colliderExtents[0] >= surfaceExtents[0] && colliderExtents[1] >= surfaceExtents[1]);
+test("visible shoreline water matches collision, while entrances and their returns are dry and clear", () => {
+  let waterCount = 0;
+  for (const chunk of chunks) for (const surface of chunk.surfaceRegions) {
+    waterCount++;
+    const collider = chunk.colliders.find(candidate => candidate.id === surface.id);
+    assert.ok(collider, surface.id);
+    assert.deepEqual([collider.halfX, collider.halfY].sort((a, b) => a - b),
+      [surface.halfX, surface.halfY].sort((a, b) => a - b), surface.id);
+    if (surface.id.startsWith("wetland-water-shore:")) {
+      assert.ok(!reachIsLandAt(surface.x, surface.y), surface.id);
+      assert.ok(chunk.surfaces?.some(face => face.corners.some(p => Math.abs(p.x - (surface.x - surface.halfX)) < .001 && Math.abs(p.y - (surface.y - surface.halfY)) < .001)), surface.id);
     }
   }
-  assert.ok(wetlandWater > 250);
-
-  for (const anchor of CYPRESS_REACH_ANCHORS) {
-    for (let tileX = 0; tileX < anchor.width; tileX += 1) {
-      for (let tileY = 0; tileY < anchor.height; tileY += 1) {
-        const center = {
-          x: (anchor.originX + tileX) * ROAD_SPACING + ROAD_SPACING / 2,
-          y: (anchor.originY + tileY) * ROAD_SPACING + ROAD_SPACING / 2,
-        };
-        assert.equal(specialRoadIntersectsSquare(center, 12, 1.5), false, `${anchor.id}:${tileX}:${tileY}`);
-      }
-    }
+  assert.ok(waterCount > 600);
+  for (const portal of world.interactions) for (const offset of [0, 1.15]) {
+    const x = portal.x + Math.cos(portal.heading) * offset, y = portal.y + Math.sin(portal.heading) * offset;
+    assert.ok(reachIsLandAt(x, y, .5), portal.id);
+    assert.equal(Boolean(circleHitsBuilding(world, x, y, .44)), false, `${portal.id}:${offset}`);
   }
+  for (const anchor of PALM_REACH_ANCHORS) for (const road of REACH_ROADS) for (const point of road.points) {
+    const inside = point.x > anchor.originX * ROAD_SPACING + 6 && point.x < (anchor.originX + anchor.width) * ROAD_SPACING - 6
+      && point.y > anchor.originY * ROAD_SPACING + 6 && point.y < (anchor.originY + anchor.height) * ROAD_SPACING - 6;
+    assert.equal(inside, false, `${road.id} crosses ${anchor.id}`);
+  }
+});
 
-  for (const road of SPECIAL_ROADS.filter((candidate) => WETLAND_ROAD_IDS.includes(candidate.id as typeof WETLAND_ROAD_IDS[number]))) {
-    for (let segment = 1; segment < road.points.length; segment += 1) {
-      const a = road.points[segment - 1];
-      const b = road.points[segment];
-      const length = Math.hypot(b.x - a.x, b.y - a.y);
-      const heading = Math.atan2(b.y - a.y, b.x - a.x);
-      const normalX = -Math.sin(heading);
-      const normalY = Math.cos(heading);
-      const steps = Math.max(1, Math.ceil(length / 3));
-      for (let step = 0; step <= steps; step += 1) {
-        const t = step / steps;
-        for (const laneOffset of [-2.25, 0, 2.25]) {
-          const x = a.x + (b.x - a.x) * t + normalX * laneOffset;
-          const y = a.y + (b.y - a.y) * t + normalY * laneOffset;
-          assert.equal(Boolean(taxiHitsBuilding(world, x, y, heading)), false, `${road.id} blocked at ${x.toFixed(1)},${y.toFixed(1)}`);
+test("palms, buildings and water leave every authored driving lane clear, including the raised bay crossing", () => {
+  const stream = new CityStream();
+  for (const road of REACH_ROADS) for (let d = 1; d < specialRoadLength(road.id); d += 3) for (const lane of [-2.25, 0, 2.25]) {
+    const sample = sampleSpecialRoad(road.id, d, lane)!;
+    const local = stream.update(sample.point.x, sample.point.y, 1);
+    assert.equal(Boolean(taxiHitsBuilding(local, sample.point.x, sample.point.y, sample.heading, (sample.point.z ?? 0) + .64)), false, `${road.id}:${d}:${lane}`);
+  }
+  const bridge = nearestRoadProjection({ x: 1188, y: 1728, z: 9 });
+  assert.ok((bridge.point.z ?? 0) > 8);
+  assert.equal(reachIsLandAt(bridge.point.x, bridge.point.y), false);
+  const trafficRoads = new Set(makeTraffic().flatMap(car => car.motion.kind === "path" && REACH_ROAD_IDS.has(car.motion.roadId) ? [car.motion.roadId] : []));
+  assert.deepEqual([...trafficRoads].sort(), REACH_ROADS.slice(0, 4).map(road => road.id).sort());
+});
+
+test("both lanes of every enabled Palm Reach grid segment remain paved and collision-clear", () => {
+  const stream = new CityStream();
+  let segments = 0;
+  for (let x = REACH_BOUNDS.minX; x < REACH_BOUNDS.maxX; x += ROAD_SPACING) {
+    for (let y = REACH_BOUNDS.minY; y < REACH_BOUNDS.maxY; y += ROAD_SPACING) {
+      for (const axis of ["vertical", "horizontal"] as const) {
+        const vertical = axis === "vertical";
+        const end = { x: x + (vertical ? 0 : ROAD_SPACING), y: y + (vertical ? ROAD_SPACING : 0) };
+        if (!gridStreetSegmentEnabled({ x, y }, end)) continue;
+        segments++;
+        for (let distance = 3; distance < ROAD_SPACING; distance += 6) for (const lane of [-2.25, 2.25]) {
+          const point = { x: x + (vertical ? lane : distance), y: y + (vertical ? distance : lane) };
+          const label = `${axis} ${point.x},${point.y}`;
+          assert.ok(gridStreetPointEnabled(point, axis), label);
+          assert.ok(isRoadSurface(point), label);
+          assert.equal(taxiHitsBuilding(stream.update(point.x, point.y, 1), point.x, point.y, vertical ? Math.PI / 2 : 0, .64), undefined, label);
         }
       }
     }
   }
+  assert.ok(segments > 400);
 });
 
-test("Lantern Bay is lively while open-water blocks stay free of generic walkers", () => {
-  let town = 0;
-  let openWater = 0;
-  for (let seconds = 0; seconds < 20; seconds += 2) {
-    for (let pedestrian = 0; pedestrian < 6; pedestrian += 1) {
-      if (ambientPedestrianPointForBlock(38, 38, seconds, pedestrian)) town += 1;
-      if (ambientPedestrianPointForBlock(58, 40, seconds, pedestrian)) openWater += 1;
+test("street and promenade walkers stay on dry, collision-clear frontages", () => {
+  let count = 0, south = 0;
+  for (const chunk of chunks) {
+    const local: WorldView = { key: chunk.key, chunks: [chunk], boxes: [], colliders: chunk.colliders, interactions: [] };
+    for (let bx = chunk.cx * 4 - 2; bx < chunk.cx * 4 + 2; bx++) for (let by = chunk.cy * 4 - 2; by < chunk.cy * 4 + 2; by++) {
+      for (const seconds of [0, 10, 23]) for (let index = 0; index < 6; index++) {
+        const p = ambientPedestrianPointForBlock(bx, by, seconds, index);
+        if (!p) continue;
+        count++;
+        if (p.y > 2376) south++;
+        assert.ok(reachIsLandAt(p.x, p.y, .44), `${bx},${by}`);
+        assert.equal(Boolean(circleHitsBuilding(local, p.x, p.y, .44)), false, `${bx},${by}:${index}:${seconds}`);
+      }
     }
   }
-  assert.ok(town >= 40);
-  assert.equal(openWater, 0);
+  assert.ok(count > 1500 && south > 100);
 });
 
-test("Cypress Reach uses its local cast and fare six transfers only to a cardinal neighbor", () => {
+test("Palm Reach uses its local cast and fare six transfers only to a cardinal neighbor", () => {
   const game = makeGame("street-ace", 0x43595052, "free-run");
   const market = createFareMarket(game.runSeed, 0, [], cypressReach, {});
   game.fareJobs = market.jobs;
@@ -173,33 +187,4 @@ test("Cypress Reach uses its local cast and fare six transfers only to a cardina
     assert.ok(["cedar-vale", "copper-mesa"].includes(offer.destinationRegionId));
   }
   assert.deepEqual([...destinations].sort(), ["cedar-vale", "copper-mesa"]);
-});
-
-test("Cypress Reach occupies 121 chunks, owns both outer edges, and is never a City diagonal shortcut", () => {
-  assert.equal((cypressReach.chunkMaxX - cypressReach.chunkMinX + 1) * (cypressReach.chunkMaxY - cypressReach.chunkMinY + 1), 121);
-  assert.equal(cypressReach.chunkMinX * CHUNK_SIZE - CHUNK_SIZE / 2, 792);
-  assert.equal(cypressReach.chunkMinY * CHUNK_SIZE - CHUNK_SIZE / 2, 792);
-
-  const southeast = generateCityChunk(6, 6);
-  const far = generateCityChunk(16, 16);
-  const verticalRoadsAt = (x: number) => southeast.boxes.filter((box) => Math.abs(box.x - x) < 1e-8 && Math.abs(box.sx - 12) < 1e-8 && Math.abs(box.sy - ROAD_SPACING) < 1e-8).length;
-  const horizontalRoadsAt = (y: number) => southeast.boxes.filter((box) => Math.abs(box.y - y) < 1e-8 && Math.abs(box.sx - ROAD_SPACING) < 1e-8 && Math.abs(box.sy - 12) < 1e-8).length;
-  assert.equal(verticalRoadsAt(792), 0);
-  assert.equal(horizontalRoadsAt(792), 0);
-  assert.ok(far.boxes.some((box) => Math.abs(box.x - WORLD_ROAD_MAX_X) < 1e-8));
-  assert.ok(far.boxes.some((box) => Math.abs(box.y - WORLD_ROAD_MAX_Y) < 1e-8));
-
-  const route = buildGpsRoute({ x: 0, y: 0 }, { x: 1600, y: 1600 });
-  const regions = new Set(route.map((point) => containingRegionForPosition(point.x, point.y)?.id));
-  assert.ok(regions.has("city-center"));
-  assert.ok(regions.has("cypress-reach"));
-  assert.ok(regions.has("cedar-vale") || regions.has("copper-mesa"));
-  assert.equal([...regions].some((id) => id === undefined), false);
-
-  const cypressTrafficRoads = new Set(makeTraffic().flatMap((car) => (
-    car.motion.kind === "path" && WETLAND_ROAD_IDS.includes(car.motion.roadId as typeof WETLAND_ROAD_IDS[number])
-      ? [car.motion.roadId]
-      : []
-  )));
-  assert.deepEqual([...cypressTrafficRoads].sort(), [...WETLAND_ROAD_IDS].sort());
 });

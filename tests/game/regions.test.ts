@@ -44,7 +44,7 @@ import {
   lotForBlock,
 } from "../../game/world";
 
-test("the active region registry reserves nine compass cells and activates six equal worlds", () => {
+test("the active region registry reserves nine compass cells and activates five square regions and the extended southeast", () => {
   assert.equal(WORLD_REGION_SLOTS.length, 9);
   assert.equal(new Set(WORLD_REGION_SLOTS.map((slot) => slot.direction)).size, 9);
   assert.deepEqual(ACTIVE_WORLD_REGIONS.map((region) => ({
@@ -57,12 +57,12 @@ test("the active region registry reserves nine compass cells and activates six e
     { id: "cedar-vale", direction: "E", width: 11, height: 11 },
     { id: "northstar-range", direction: "N", width: 11, height: 11 },
     { id: "copper-mesa", direction: "S", width: 11, height: 11 },
-    { id: "cypress-reach", direction: "SE", width: 11, height: 11 },
+    { id: "cypress-reach", direction: "SE", width: 11, height: 18 },
     { id: "solana-coast", direction: "W", width: 11, height: 11 },
   ]);
   const active = activeChunkCoordinates();
-  assert.equal(active.length, 726);
-  assert.equal(new Set(active.map(([cx, cy]) => `${cx},${cy}`)).size, 726);
+  assert.equal(active.length, 803);
+  assert.equal(new Set(active.map(([cx, cy]) => `${cx},${cy}`)).size, 803);
   assert.equal(isActiveChunk(-5, -5), true);
   assert.equal(isActiveChunk(16, 5), true);
   assert.equal(isActiveChunk(0, -6), true);
@@ -117,8 +117,8 @@ test("playable containment activates southeast and west without inventing northe
     { x: 0, y: WORLD_MIN_Y + 2.4 },
   );
   assert.deepEqual(
-    clampPointToActiveRegions({ x: 0, y: WORLD_MAX_Y + 100 }, 2.4),
-    { x: 0, y: WORLD_MAX_Y - 2.4 },
+    clampPointToActiveRegions({ x: 1683, y: WORLD_MAX_Y + 100 }, 2.4),
+    { x: 1683, y: WORLD_MAX_Y - 2.4 },
   );
 });
 
@@ -209,10 +209,10 @@ test("Copper Mesa owns a deterministic desert-only lot deck and ten regional anc
   assert.equal(new Set(COPPER_MESA_ANCHORS.map((anchor) => anchor.id)).size, 10);
 });
 
-test("Cypress Reach owns a deterministic wetland-only lot deck and ten regional anchors", () => {
+test("Palm Reach owns a deterministic peninsula lot deck and ten regional anchors", () => {
   const counts = new Map<string, number>();
   for (let blockX = 22; blockX <= 65; blockX += 1) {
-    for (let blockY = 22; blockY <= 65; blockY += 1) {
+    for (let blockY = 22; blockY <= 93; blockY += 1) {
       const district = districtForBlock(blockX, blockY);
       const lot = lotForBlock(blockX, blockY, district);
       assert.equal(district, "wetland");
@@ -220,25 +220,18 @@ test("Cypress Reach owns a deterministic wetland-only lot deck and ten regional 
       counts.set(lot, (counts.get(lot) ?? 0) + 1);
     }
   }
-  assert.equal([...counts.values()].reduce((sum, count) => sum + count, 0), 1936);
-  assert.ok(counts.size >= 26);
+  assert.equal([...counts.values()].reduce((sum, count) => sum + count, 0), 3168);
+  assert.ok(counts.size >= 20);
   for (const kind of [
-    "reach-stilt-house",
-    "reach-fisher-cottage",
-    "reach-cypress-grove",
-    "reach-reed-marsh",
-    "reach-blackwater-pool",
-    "reach-boardwalk-trail",
-    "reach-fishing-dock",
-    "reach-main-street",
-    "reach-gas-stop",
-    "reach-marina",
+    "reach-deco-hotel", "reach-corner-cafe", "reach-condo", "reach-courtyard",
+    "reach-record-shop", "reach-pool-court", "reach-beach", "reach-promenade",
+    "reach-palm-hammock", "reach-ocean", "reach-gas-stop", "reach-motel",
   ]) assert.ok((counts.get(kind) ?? 0) > 0, kind);
   assert.equal(CYPRESS_REACH_ANCHORS.length, 10);
   assert.equal(new Set(CYPRESS_REACH_ANCHORS.map((anchor) => anchor.id)).size, 10);
 });
 
-test("all 726 chunks and every live regional window stay inside hard budgets", () => {
+test("all 803 chunks and every live regional window stay inside hard budgets", () => {
   const stream = new CityStream();
   let maxBoxes = 0;
   let maxColliders = 0;

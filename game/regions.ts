@@ -1,4 +1,5 @@
 import { cedarNeighborhoodForBlock } from "./residential";
+import { reachAreaAt } from "./reach-layout";
 import {
   BLOCKS_PER_CHUNK,
   CENTER_REGION_CHUNK_MAX,
@@ -96,14 +97,14 @@ export const ACTIVE_WORLD_REGIONS = [
   {
     id: "cypress-reach",
     direction: "SE",
-    name: "CYPRESS REACH",
-    shortName: "REACH",
+    name: "PALM REACH",
+    shortName: "PALM",
     theme: "wetland",
     chunkMinX: SOUTHEAST_REGION_CHUNK_MIN_X,
     chunkMaxX: SOUTHEAST_REGION_CHUNK_MAX_X,
     chunkMinY: SOUTHEAST_REGION_CHUNK_MIN_Y,
     chunkMaxY: SOUTHEAST_REGION_CHUNK_MAX_Y,
-    mapColor: "rgba(31, 143, 132, 0.18)",
+    mapColor: "rgba(238, 145, 174, 0.18)",
   },
   {
     id: "solana-coast",
@@ -294,13 +295,9 @@ export function copperMesaAreaForBlock(blockX: number, blockY: number) {
   return "SAGUARO FLATS";
 }
 
-/** Cypress Reach transitions from two regional seams into bayou town and coast. */
+/** Palm Reach runs from the café quarter to the southern lighthouse cape. */
 export function cypressReachAreaForBlock(blockX: number, blockY: number) {
-  if (blockX <= 30 || blockY <= 30) return "TWINWATER CROSSING";
-  if (blockX >= 32 && blockX <= 46 && blockY >= 32 && blockY <= 46) return "LANTERN BAY";
-  if (blockX >= 52 && blockY <= 50) return "BLACKWATER BASIN";
-  if (blockY >= 54) return "STORMWALL COAST";
-  return "CYPRESS REACH";
+  return reachAreaAt(blockX * ROAD_SPACING + ROAD_SPACING / 2, blockY * ROAD_SPACING + ROAD_SPACING / 2);
 }
 
 export function regionalPlaceName(x: number, y: number) {

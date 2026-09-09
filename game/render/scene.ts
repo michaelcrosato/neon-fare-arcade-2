@@ -2,6 +2,7 @@ import { atTerrainElevation } from "../terrain/surface";
 import { mountainAnimatedBoxes } from "../mountain-scenery";
 import { copperAnimatedBoxes } from "../copper-scenery";
 import { coastAnimatedBoxes } from "../coast-scenery";
+import { reachAnimatedBoxes } from "../reach-scenery";
 import { coastCanalBlock } from "../coastal-layout";
 import { residentialPedestrianPoint } from "../residential";
 import {
@@ -41,7 +42,7 @@ import { specialRoadIntersectsSquare } from "../road-network";
 import { controlledPose, isDriving, isInterior, walkingMotion } from "../player";
 import { northstarPedestrianCountForBlock } from "../mountain";
 import { copperMesaPedestrianCountForBlock } from "../desert";
-import { wetlandPedestrianCountForBlock } from "../wetland";
+import { reachPedestrianPoint } from "../palm-reach";
 import { coastalPedestrianCountForBlock } from "../coastal";
 import { isActiveBlock, regionForBlock } from "../regions";
 import type { WorldView } from "../model";
@@ -600,24 +601,21 @@ export function ambientPedestrianPointForBlock(
   const signature = (Math.imul(blockX + 79, 73856093) ^ Math.imul(blockY - 43, 19349663)) >>> 0;
   const regionId = regionForBlock(blockX, blockY)?.id;
   if (regionId === "cedar-vale") return residentialPedestrianPoint(blockX, blockY, seconds, pedestrianIndex);
+  if (regionId === "cypress-reach") return isPedestrianBlockWalkable(blockX, blockY)
+    ? reachPedestrianPoint(blockX, blockY, seconds, pedestrianIndex) : null;
   const northstar = regionId === "northstar-range";
   const copperMesa = regionId === "copper-mesa";
-  const cypressReach = regionId === "cypress-reach";
   const localCount = northstar
     ? northstarPedestrianCountForBlock(blockX, blockY)
     : copperMesa
       ? copperMesaPedestrianCountForBlock(blockX, blockY)
-      : cypressReach
-        ? wetlandPedestrianCountForBlock(blockX, blockY)
-        : regionId === "solana-coast"
+      : regionId === "solana-coast"
           ? coastalPedestrianCountForBlock(blockX, blockY)
           : AMBIENT_PEDESTRIANS_PER_BLOCK;
   const populatedChance = northstar
     ? localCount >= 6 ? 88 : localCount >= 5 ? 68 : localCount >= 3 ? 50 : 28
     : copperMesa
       ? localCount >= 6 ? 84 : localCount >= 4 ? 58 : localCount >= 3 ? 42 : 24
-      : cypressReach
-        ? localCount >= 6 ? 88 : localCount >= 4 ? 64 : localCount >= 2 ? 38 : localCount >= 1 ? 22 : 0
       : 74;
   if (signature % 100 >= populatedChance || !isPedestrianBlockWalkable(blockX, blockY)) return null;
   const centerX = blockX * ROAD_SPACING + ROAD_SPACING / 2;
@@ -871,6 +869,7 @@ export function dynamicBoxes(
   boxes.push(...mountainAnimatedBoxes(seconds, controlledPose(game)));
   boxes.push(...copperAnimatedBoxes(seconds, controlledPose(game)));
   boxes.push(...coastAnimatedBoxes(seconds, controlledPose(game)));
+  boxes.push(...reachAnimatedBoxes(seconds, controlledPose(game)));
 
   boxes.push(...ambientPeopleBoxes(game, seconds, controlledPose(game)));
 

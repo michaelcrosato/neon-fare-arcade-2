@@ -44,7 +44,7 @@ GPU resources.
 Pavement and lane strips use the same mitered cross sections as tire contact
 and traffic. Deck sidewalls, undersides, guardrails and supports are generated
 with matching collision geometry. Canvas projects those same surfaces, culls
-back faces, and draws actors/routes on their decks. Cedar, Northstar, Copper, and Solana Coast use
+back faces, and draws actors/routes on their decks. Cedar, Northstar, Copper, Solana Coast, and Palm Reach use
 full cuboid faces and `app/terrain-raster.ts` for per-pixel orthographic depth
 across terrain, structures, animated scenery, and the taxi. Intersecting faces
 resolve by pixel depth instead of a face's average depth, so large ground
@@ -63,7 +63,7 @@ Chunk collision capacity is 256 and stream capacity is 1,536; collision radius
 remains one chunk. The 121 central city chunks currently total 71,092 static
 boxes and 8,581 colliders. Their maximum radius-three view is 28,967 boxes;
 their maximum collision window is 888. The exhaustive tests also check every
-window across all 726 active regional chunks.
+window across all 803 active regional chunks.
 
 Pocket interiors replace the streamed city buffer instead of appending to it.
 Absolute buffer capacity is 512 static boxes, 96 colliders, and 32 interactions;
@@ -117,7 +117,7 @@ Camera matrices, collision-shortened boom, and perspective sky pitch are in
 
 - north: mountains, pines, radio landmark;
 - east: water, bridge, lighthouse, and the sun sector;
-- southeast: blackwater, cypress crowns, lock tower, and lantern;
+- southeast: warm marine haze behind the physical Palm Reach shore and skyline;
 - south: industrial terminal;
 - west: downtown skyline.
 
@@ -194,6 +194,14 @@ patches count toward the surface budget and never expand the playable union.
 The same final terrain supplies GPS contours, and painted background geography
 is suppressed inside these elevated regions. Solana continues the ocean beyond
 the active coast and keeps the wheel's frame and moving cabins visible together.
+Palm Reach uses matching 4.5-unit near-shore bands and coarser distant bands,
+with horizon water outside the active union. Cached distant condo and landmark
+proxies are derived from the real building builders and omitted when their
+owning chunks load. The same shared scene supplies surf, bay boats, seabirds,
+and lighthouse/radio beacons. Marine haze replaces painted southeast scenery;
+it never adds visual mountains or bridges unrelated to the physical world.
+These faces and actors remain inside the existing surface/actor budgets.
+
 Increasing draw distance requires checking:
 
 1. `DISTANT_STREAM_RADIUS` and `CACHE_RADIUS` together;
@@ -229,5 +237,8 @@ Generation is capped at two ten-box scenes per chunk.
   WebGPU and Canvas, including Cab View eye height and a nearby boom collider;
 - street vendors in a dense market/commercial block and a sparse residential
   block, including collision and pedestrian clearance;
+- Palm Reach's bay crossing, Deco hotel strip, yacht club, continuous beach
+  walk, lighthouse approach and southern loop in every camera and both renderers,
+  plus full and compact GPS at desktop/mobile sizes;
 - enter/exit an interior, verify the city does not leak into it, then confirm
   the same parked taxi and exterior scene return.

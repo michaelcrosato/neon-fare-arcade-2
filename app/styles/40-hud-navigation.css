@@ -289,7 +289,7 @@
 .gps-region--residential .gps-region-boundary { stroke: rgb(169 215 126 / 88%); }
 .gps-region--mountain .gps-region-boundary { stroke: rgb(112 196 178 / 90%); }
 .gps-region--desert .gps-region-boundary { stroke: rgb(245 155 71 / 92%); }
-.gps-region--wetland .gps-region-boundary { stroke: rgb(70 214 190 / 92%); }
+.gps-region--wetland .gps-region-boundary { stroke: rgb(244 140 170 / 92%); }
 .gps-region--coastal .gps-region-boundary { stroke: #58d7ed; }
 
 .gps-region-label rect {
@@ -302,7 +302,7 @@
 .gps-region--residential .gps-region-label rect { stroke: #a9d77e; }
 .gps-region--mountain .gps-region-label rect { stroke: #70c4b2; }
 .gps-region--desert .gps-region-label rect { stroke: #f59b47; }
-.gps-region--wetland .gps-region-label rect { stroke: #46d6be; }
+.gps-region--wetland .gps-region-label rect { stroke: #f48caa; }
 .gps-region--coastal .gps-region-label rect { stroke: #ff8063; }
 
 .gps-region-label text {
@@ -321,7 +321,7 @@
 .gps-region--residential .gps-region-label text { fill: #d8efbd; }
 .gps-region--mountain .gps-region-label text { fill: #c8eee5; }
 .gps-region--desert .gps-region-label text { fill: #ffd09b; }
-.gps-region--wetland .gps-region-label text { fill: #b7f4e9; }
+.gps-region--wetland .gps-region-label text { fill: #ffe4c6; }
 .gps-region--coastal .gps-region-label text { fill: #fff1c7; }
 
 .gps-roads line {
@@ -396,13 +396,13 @@
 .gps-landmarks .gps-landmark--desert text { fill: #ffd09b; }
 
 .gps-landmark--wetland .gps-landmark-footprint {
-  fill: rgb(22 116 108 / 24%);
-  stroke: #46d6be;
+  fill: rgb(244 140 170 / 24%);
+  stroke: #f48caa;
 }
 
 .gps-landmark--wetland .gps-landmark-marker { stroke: #ffd26a; }
 
-.gps-landmarks .gps-landmark--wetland text { fill: #b7f4e9; }
+.gps-landmarks .gps-landmark--wetland text { fill: #ffe4c6; }
 .gps-landmark--coastal .gps-landmark-footprint { fill: rgb(255 128 99 / 24%); stroke: #ff8063; }
 .gps-landmark--coastal .gps-landmark-marker { stroke: #58d7ed; }
 .gps-landmarks .gps-landmark--coastal text { fill: #fff1c7; }

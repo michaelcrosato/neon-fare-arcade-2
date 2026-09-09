@@ -64,7 +64,7 @@ Run Log.
 
 Passenger assignments are run-owned data rather than static config lookups.
 `game/passengers.ts` owns 48 shared identities plus four 24-rider pickup casts
-exclusive to Cedar Vale, Northstar Range, Copper Mesa, and Cypress Reach, with
+exclusive to Cedar Vale, Northstar Range, Copper Mesa, and Palm Reach, with
 independent regional usage windows. A market draws only fresh eligible
 identities until half of that region's deck has appeared; the window then resets
 while the immediately previous six remain blocked.
@@ -87,7 +87,7 @@ Rings and dwell use the zone; GPS and economy use the approach.
 `game/route-geometry.ts` holds the lower-level
 canonical route helpers so reward math does not create a dependency cycle
 through `game/state.ts`. City/Cedar trips retain the compact legacy street
-route where it is valid; a trip touching Northstar, Copper Mesa, or Cypress
+route where it is valid; a trip touching Northstar, Copper Mesa, or Palm
 Reach uses the same sparse-road graph and A* route as the regional systems.
 
 The first cycle has one extra presentation constraint: placement reserves a
@@ -107,14 +107,16 @@ topology is shared by road surfaces, graph routing, world pavement, traffic,
 fare guidance, pedestrians, and both GPS maps.
 
 Regional expansion is data-driven through `game/regions.ts`. Neon City is the
-center cell; Cedar Vale, Northstar Range, Copper Mesa, and Cypress Reach occupy
-east, north, south, and southeast while all nine compass-slot identities remain stable.
+center cell; Cedar Vale, Northstar Range, Copper Mesa, Palm Reach, and Solana
+Coast occupy east, north, south, southeast, and west. Palm Reach extends seven
+chunk rows farther south; all nine compass-slot identities remain stable.
 Inactive compass cells remain non-playable even inside the rectangular hull.
-Regional modules own their lot decks, anchors, and portals. Mountain, desert,
-and wetland also own their visual builders; Cedar's visual builders currently
-remain in `world.ts`. `game/regional-content.ts` provides the exhaustive shared
-metadata consumed by campus and map integration. `world.ts` owns center/Cedar
-construction plus cross-theme dispatch and streaming. See
+Regional modules own their lot decks, anchors, portals, and visual builders.
+Palm Reach separates shared shore/grid geometry, roads, destinations, buildings,
+landscape, distant skyline proxies, and animation into `reach-*` modules;
+`wetland.ts` remains the compatibility entry point. Cedar's homes and campuses
+live in `residential-buildings.ts`. `game/regional-content.ts` provides the exhaustive shared
+metadata consumed by campus and map integration. `world.ts` owns center construction plus cross-theme dispatch and streaming. See
 [regions.md](./regions.md) for coordinate ownership, active-cell rules, budgets,
 and the checklist for adding the next regional theme.
 

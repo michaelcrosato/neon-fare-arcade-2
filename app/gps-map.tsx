@@ -30,7 +30,7 @@ import {
 } from "@/game/custom-destination";
 import type { Hud, NavigationPlan, Vec2 } from "@/game/model";
 import { FEATURED_CITY_LANDMARKS, landmarkWorldCenter } from "@/game/landmarks";
-import { ACTIVE_WORLD_REGIONS, regionRoadBounds } from "@/game/regions";
+import { ACTIVE_WORLD_REGIONS, regionForPosition, regionRoadBounds } from "@/game/regions";
 import {
   REGIONAL_MAP_SLOTS,
   clampRegionalMapView,
@@ -47,7 +47,7 @@ import {
 import { REGIONAL_CONTENT } from "@/game/regional-content";
 import { gridStreetSegmentEnabled } from "@/game/road-topology";
 import { SPECIAL_ROADS } from "@/game/road-layout";
-import { NorthstarTopography, CopperTopography, CoastTopography } from "./gps-terrain";
+import { NorthstarTopography, CopperTopography, CoastTopography, ReachTopography } from "./gps-terrain";
 import { inCoastTerrain } from "@/game/terrain/coast-forms";
 import { inNorthstarTerrain } from "@/game/terrain/northstar-forms";
 import { inCopperTerrain } from "@/game/terrain/copper-forms";
@@ -81,6 +81,7 @@ export function GpsMap({
   } | null>(null);
   const [mapAspect, setMapAspect] = useState(1.68);
   const [mapView, setMapView] = useState(() => regionalMapPlayerView(hud.player, 1.68));
+  const [detailRegion, setDetailRegion] = useState(() => regionForPosition(hud.player.x, hud.player.y));
 
   useEffect(() => {
     if (!full || !svgRef.current) return;
@@ -252,7 +253,10 @@ export function GpsMap({
   const compactViewBox = { minX: -62, minY: -49, width: 124, height: 98 };
   const activeViewBox = full ? fullViewBox : compactViewBox;
   const viewBox = `${activeViewBox.minX} ${activeViewBox.minY} ${activeViewBox.width} ${activeViewBox.height}`;
-  const mapDetail = full ? regionalMapDetail(mapView.spanY) : "local";
+  // Clamping a tall coastal view can move its center into the neighboring bay
+  // or region. Detail follows the selected region's extent, not that center.
+  const focusBounds = regionRoadBounds(detailRegion);
+  const mapDetail = full ? regionalMapDetail(mapView.spanY, focusBounds.maxY - focusBounds.minY) : "local";
   const markerScale = full ? activeViewBox.height / 600 : 1;
   const centerRegionBounds = mappedRegions.find(({ region }) => region.id === "city-center")?.bounds;
 
@@ -278,7 +282,10 @@ export function GpsMap({
     if (destination) onDestinationDraft(destination);
   };
 
-  const focusPlayer = () => setMapView(regionalMapPlayerView(hud.player, mapAspect));
+  const focusPlayer = () => {
+    setDetailRegion(regionForPosition(hud.player.x, hud.player.y));
+    setMapView(regionalMapPlayerView(hud.player, mapAspect));
+  };
   const showOverview = () => setMapView(regionalMapOverviewView(mapAspect));
   const fitRoute = () => {
     const points = [...displayedRoute, hud.player];
@@ -458,6 +465,7 @@ export function GpsMap({
         {(full || mountainPlayer) && <g transform={terrainTransform}><NorthstarTopography /></g>}
         {(full || copperPlayer) && <g transform={terrainTransform}><CopperTopography /></g>}
         {(full || coastPlayer) && <g transform={terrainTransform}><CoastTopography /></g>}
+        {(full || (hud.player.x >= 792 && hud.player.y >= 792)) && <g transform={terrainTransform}><ReachTopography /></g>}
         {(!full || mapDetail !== "overview") && <g className="gps-roads">
           {roadLines.map((line) => {
             const a = pointFor(line.a);
@@ -644,7 +652,10 @@ export function GpsMap({
       </div>
       <div className="regional-map-regions" aria-label="Active regions">
         {ACTIVE_WORLD_REGIONS.map((region) => (
-          <button key={region.id} type="button" onClick={() => setMapView(regionalMapRegionView(region, mapAspect))}>
+          <button key={region.id} type="button" onClick={() => {
+            setDetailRegion(region);
+            setMapView(regionalMapRegionView(region, mapAspect));
+          }}>
             {region.direction === "C" ? "CENTER" : region.direction} · {region.shortName}
           </button>
         ))}

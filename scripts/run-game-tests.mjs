@@ -10,6 +10,8 @@ if (!new Set(["fast", "exhaustive", "all"]).has(mode)) {
 const exhaustive = new Set([
   "cedar-gameplay.test.ts",
   "cedar-driving.test.ts",
+  "reach-driving.test.ts",
+  "reach-gameplay.test.ts",
   "coastal.test.ts",
   "coast-driving.test.ts",
   "coast-terrain.test.ts",

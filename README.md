@@ -22,6 +22,14 @@ scenic roads climb real terrain, pass through a natural rock arch, and cross
 rust-red bridges. Adobe arcades, neon motor courts, windmills, roadrunners, and
 hot-air balloons give the ten established destinations a distinct desert setting.
 
+Palm Reach extends the southeast into a Miami-inspired peninsula with a late
+1980s atmosphere. Drive a curving causeway across Mirage Bay, cruise pastel Art
+Deco hotels on Ocean Ribbon, explore Calle Luna's café quarter, and continue
+past the yacht club to Sundial Lighthouse. A continuous beach promenade, neon
+signs, marina boats, a folded-roof marine stadium, and a compact bay skyline
+give the region its own identity. The extension adds 77 chunks; shoreline,
+collision, roads, traffic, walking, fares, and both GPS views share the same plan.
+
 Drivers can leave a stopped cab and explore the city on foot. In Arcade Shift,
 the meter pauses only while the taxi is empty; Free Run is always untimed. Neon
 Lofts provides the device-local career and garage home base, and banked run
@@ -46,6 +54,7 @@ fares fund persistent upgrades.
 - `docs/northstar-reimagining.md`: mountain expansion and verification evidence
 - `docs/copper-mesa-reimagining.md`: desert expansion and verification evidence
 - `docs/solana-coast-reimagining.md`: coastal expansion and verification evidence
+- `docs/palm-reach-reimagining.md`: peninsula design and verification evidence
 - `docs/assets.md`: fare-art atlas manifest and provenance requirements
 - `docs/change-recipes.md`: safe paths for common modifications
 - `AGENTS.md`, `app/AGENTS.md`, `game/AGENTS.md`, `tests/AGENTS.md`: scoped
@@ -77,6 +86,11 @@ For the coast, select **W · COAST** and follow Sunset Boulevard west to Pacific
 Coast Drive. Explore Solana Pier on foot, loop through the canals, or climb
 Palisades Overlook Drive and Laurel Canyon Run toward Citrus Heights.
 
+For the peninsula, select **SE · PALM** in the Regional GPS. Enter from Cedar
+Vale on Palm Reach Boulevard or from Copper Mesa's southern eastbound approach
+onto Mirage Bay Causeway. Follow Ocean Ribbon south to the lighthouse and
+return along Moonwater Drive. Park and press E to explore the beach promenade.
+
 To preview a production build, run `npm run build` and then
 `npm run start -- --host 127.0.0.1 --port 4173`. This uses Vite's Cloudflare
 preview so the built Worker and static assets run together on Windows and Linux.
@@ -101,7 +115,7 @@ To check Vercel's production build locally, run `npm run build:vercel`, then
 - `npm run check:fast`: lint, typecheck, architecture checks, and core tests
 - `npm run check`: the complete test, production-build, and rendered-output gate
 - `npm run test:browser -- --workers=1`: desktop/mobile play, both renderers,
-  and elevated-road, mountain, desert, and coastal camera captures (requires Playwright Chromium)
+  and elevated-road, mountain, desert, coastal, and peninsula camera captures (requires Playwright Chromium)
 - `npm run build`: build and validate the deployable Sites artifact
 - `npm run validate:artifact`: validate an existing production artifact
 

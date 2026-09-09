@@ -22,9 +22,15 @@ Solana Coast adds passenger sheets 25–28 (cells 144–167) and destination she
 format-conversion settings are in `assets/solana-coast-art-prompts.json`. No
 resize or crop was applied. Each new manifest entry points to that record.
 
+Palm Reach refreshes passenger sheets 21–24 (cells 120–143), preserving every
+rider identity and cell order, and adds destination sheet 6 (cells 30–35).
+`assets/palm-reach-art-prompts.json` records all five exact image-generation
+prompts, source/reference details, project-use record, conversion, and hashes.
+The 1536×1024 sheets were converted to WebP without resizing or cropping.
+
 ## Fonts
 
-The rebuild retains every fare atlas unchanged. The eleven original cached
+The engine rebuild originally retained the fare atlases. The eleven cached
 WOFF2 font files are also copied byte-for-byte to `public/fonts/`. Face names,
 weights and Unicode ranges remain in `app/fonts.css`; the existing Barlow
 Condensed package remains the display face. This removes generated font URLs
@@ -54,4 +60,5 @@ striped umbrella meshes, the aquarium vault, and the Sunset Bowl shell.
 and deterministic wheel cabins, surf bands, sailboats, and birds. These use the
 existing renderer-neutral box/mesh protocol and material IDs. The coastline,
 canals, and pier share authored dimensions with collision, terrain, and GPS.
-Passenger portraits and destination-card atlases remain byte-for-byte unchanged.
+The procedural coastal geometry uses no raster textures; its separate fare
++atlases and their provenance are recorded above.

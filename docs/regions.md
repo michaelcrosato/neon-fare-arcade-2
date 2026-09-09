@@ -1,6 +1,7 @@
 # Regional world plan
 
-Neon Fare's world is a planned 3 × 3 collection of equal-size regional cells.
+Neon Fare's world uses a planned 3 × 3 compass registry of regional cells,
+with Palm Reach extended south into a peninsula.
 The original procedural city owns the center cell. Each compass cell can carry
 its own theme, name, lot deck, landmarks, public realm, and ambient scenes while
 sharing one continuous driving, walking, fare, traffic, streaming, and GPS
@@ -8,9 +9,9 @@ simulation.
 
 ## Coordinate contract
 
-Each region is 11 × 11 chunks. A chunk is 4 × 4 blocks; a block is 36 world
-units square. One regional cell is therefore 44 × 44 blocks and 1,584 world
-units wide.
+The base regional cell is 11 × 11 chunks; Palm Reach is 11 × 18 chunks.
+A chunk is 4 × 4 blocks; a block is 36 world units square. One base cell is
+therefore 44 × 44 blocks and 1,584 world units wide. Palm Reach is 44 × 72 blocks.
 
 | Slot | Chunk X | Chunk Y | Status |
 | --- | ---: | ---: | --- |
@@ -22,17 +23,19 @@ units wide.
 | E | 6…16 | -5…5 | active: Cedar Vale |
 | SW | -16…-6 | 6…16 | reserved |
 | S | -5…5 | 6…16 | active: Copper Mesa |
-| SE | 6…16 | 6…16 | active: Cypress Reach |
+| SE | 6…16 | 6…23 | active: Palm Reach |
 
-The active footprint is 726 chunks: 121 per region.
+The active footprint is 803 chunks: 121 in each of five base cells and 198 in
+Palm Reach. Registered ocean chunks stream water and remain physically impassable.
 
 The center/E seam is the road at `x = 792`, and the N/center seam is the road at
 `y = -792`. Cedar Vale's outer road is `x = 2376`; Northstar Range ends in
 mountain wilderness at `y = -2376`, with no perimeter street. The center/S seam
 is `y = 792`; Copper Mesa ends in canyon wilderness at `y = 2376`, also without
-a perimeter street. Cypress Reach fills the southeast cell, sharing `y = 792` with
-Cedar Vale and `x = 792` with Copper Mesa; its outer roads are `x = 2376` and
-`y = 2376`. Solana Coast shares `x = -792` with Neon City; its outer west
+a perimeter street. Palm Reach shares `y = 792` with Cedar Vale and part of `x = 792` with Copper
+Mesa. Its registered bounds extend to `x = 2376` and `y = 3384`, but those
+outer edges are open water with no perimeter roads. Dry land tapers to a cape
+near `(1683, 3285)`. Solana Coast shares `x = -792` with Neon City; its outer west
 edge at `x = -2376` is ocean, with no perimeter road. Northeast, southwest,
 and northwest remain inactive even when
 they lie inside the world's rectangular hull. Region
@@ -59,15 +62,19 @@ registry rather than infer playable space from one symmetric radius or hull.
   authored anchor registry. `copper-assets.ts` supplies faceted desert plants,
   stratified rocks, adobe buildings, and open arcades; `copper-scenery.ts` owns
   the canyon river, drive-through rock arch, windmills, balloons, and roadrunners.
-- `game/wetland.ts` owns Cypress Reach's town, bayou, coast, water, stilt-house,
-  dock, portal, and authored-anchor vocabulary.
+- `game/palm-reach.ts` owns Palm Reach's lots, portals, and pedestrian policy;
+  `wetland.ts` preserves its compatibility exports. `reach-layout.ts` owns the
+  shore and grid; `reach-roads.ts` the authored drives; `reach-destinations.ts`
+  the anchors; `reach-assets.ts` and `reach-buildings.ts` their geometry.
+  `reach-landscape.ts`, `reach-distant.ts`, and `reach-scenery.ts` own shared
+  land/water, unloaded skyline proxies, and bounded waterfront animation.
 - `game/coastal.ts` owns Solana Coast's lots, portals, anchors, and pedestrian
   policy. `coast-assets.ts` supplies pure architectural meshes;
   `coast-scenery.ts` owns canal structures and deterministic coastal animation.
   `coastal-layout.ts` holds shoreline, pier, and canal coordinates for world and
   GPS; `terrain/coast-forms.ts` owns physical landforms and the street plan.
 - `game/road-topology.ts` owns enabled local-grid segments. Cedar, Northstar, Copper
-  Mesa, Cypress Reach, and Solana Coast use compact town lattices and sparse rural spines
+  Mesa, Palm Reach, and Solana Coast use compact town lattices and sparse rural spines
   instead of citywide grids.
 - `game/world.ts` dispatches from region to district/theme and generates chunks.
 - Roads, navigation, movement, fare placement, pedestrians, traffic, streaming,
@@ -171,7 +178,7 @@ combines a compact tourism town with ranch country, trading posts, dry washes,
 cactus flats, volcanic cinders, pale salt flats, and striped mesa country.
 Seven authored roads—Sundown Highway, Copper Loop, Arroyo Road, Painted Canyon
 Scenic Drive, Saguaro Trail, Cinder Cone Loop, and Canyon Rim Road—connect short
-service lanes to Neon City's south seam and Cypress Reach's west edge.
+service lanes to Neon City's south seam and Palm Reach's west edge.
 
 Its five named areas are:
 
@@ -197,7 +204,7 @@ its own road-design heights, capped mesas, scalloped cliffs, cinder cone,
 crater, wash, and river canyon. The ten destination terraces range from z=5 at
 Sundown Gate to z=74 at the visitor center; Copper Junction is z=24. Road tops
 add 0.64. Level road junctions prevent abrupt steps between overlapping curves.
-Grades meet z=0 at the city and Cypress seams. Southern circuits turn back
+Grades meet z=0 at the city and Palm Reach seams. Southern circuits turn back
 through the playable region; distant west/south terrain continues the horizon
 without adding playable cells or invisible roads.
 
@@ -213,36 +220,54 @@ Terrain, roads, walking, portals, gas service, fares, traffic, cameras, and both
 GPS views share elevation. The full map and minimap display sandstone contour
 bands, the river, crater, and altitude. All ten anchor IDs and services remain.
 
-## Cypress Reach: Southeast region
+## Palm Reach: Southeast peninsula
 
-Cypress Reach is a humid bayou-and-coast region built around Lantern Bay, a
-compact fishing town reached through Cedar Vale or Copper Mesa. Moss, blackwater
-teal, weathered timber, lantern amber, coral, and mint replace the neighboring
-regions' palettes. Stilt homes, shotgun houses, fishing cottages, houseboats,
-docks, reeds, cypress groves, fireflies, shrimp boats, and raised roadside
-businesses make it immediately recognizable.
+Palm Reach is a Miami-inspired peninsula with a late-1980s/early-1990s atmosphere.
+The public name changes while the `cypress-reach` region key, `wetland` theme,
+ten destination keys, existing venue IDs, and regional rider identities remain
+stable. Its 198 chunks include a southward extension and open water. The five
+other active regions keep their bounds.
 
-Its five named areas are:
+Five districts give the drive a clear sequence:
 
-- **Twinwater Crossing** — the two-region gateway, scattered homes, fuel, bait,
-  and the first stretches of raised causeway.
-- **Lantern Bay** — the social core, seafood market, roadhouse, motel, marina,
-  riverboat, boardwalks, and porch-lit main street.
-- **Blackwater Basin** — deep cypress forest, reed marsh, fishing docks,
-  preserves, mudflats, and the working shipyard.
-- **Stormwall Coast** — levees, locks, coast-guard facilities, houseboat yards,
-  open water, and storm-weathered services.
-- **Cypress Reach** — quiet rural wetland between the named hubs, with isolated
-  stilt homes, fishing camps, trails, and small roadside businesses.
+- **Calle Luna** — the northern gateway, café and record-shop quarter, low
+  stucco courtyards, striped awnings, market plaza, and Saint Lumina chapel.
+- **Mirage Bay** — the western waterfront, glass and coral condo skyline,
+  Channel 86 Studios, waterfront lawns, and folded-roof marine stadium.
+- **Ocean Ribbon** — pastel Art Deco hotels, stepped rooflines, rounded
+  corners, portholes, concrete window eyebrows, vertical neon, and pool decks.
+- **Moonwater Keys** — quiet southern villas, a yacht club with dry piers,
+  marina slips, a period motor inn, and open coastal drives beyond the old edge.
+- **Sundial Point** — a rounded, tapering cape with palms, white sand, an
+  accessible lighthouse campus, and a complete scenic return loop.
 
-Four authored roads—Cypress Causeway, Lantern Bay Loop, Blackwater Trace, and
-Stormwall Levee Road—join a sparse local skeleton and keep the region connected
-without recreating the city grid. Ten anchors provide distinct destinations:
-Twinwater Gate, Lantern Bay Market, Bayou Belle, Stormwall Locks, Cypress Crown
-Preserve, Gulfwatch Station, Moonwater Marina, Sunkissed Motor Lodge, Blackwater
-Shipyard, and Saint Lumina Chapel. Semantic water always has matching collision.
-The region stays on the shared flat driveable plane; raised buildings, bridges,
-levees, boats, tree canopies, and the southeast skyline provide visual depth.
+Eight authored roads connect the districts: Palm Reach Boulevard, Calle Luna,
+Ocean Ribbon, Mirage Bay Causeway, Mirage Bay Drive, Flamingo Parkway,
+Moonwater Drive, and Sundial Point Loop. The first four retain their historical
+road IDs for traffic compatibility. Compact local grids end before the shore;
+there is no perimeter road around the ocean. Lane-offset physics and traffic
+queries use the same street eligibility as pavement and GPS.
+
+The north entry meets Cedar Vale at `(1368, 792)`. The west bridge joins Copper
+Mesa's existing approach at `(792, 1944)`, bends across Mirage Bay, rises to a
+real deck at z=9, and lands on the urban waterfront. Both seams meet z=0.
+The rest of the peninsula is low, level land. Identical 4.5-unit shore bands
+define dry ground, semantic water, collision, and GPS. Reclaimed abutment,
+stadium, and yacht-club ground belong to that same layout. A seven-unit beach
+promenade runs continuously down the ocean side toward the cape.
+
+Ten destinations preserve their services: Palm Reach Gateway, Calle Luna
+Market, The Mirage Hotel, Mirage Marine Stadium, Flamingo Park, Sundial
+Lighthouse, Moonwater Yacht Club, Sun Kiss Motor Inn, Channel 86 Studios, and
+Saint Lumina. Tile-owned campuses keep every entrance and outward return pose
+dry and clear. Local fare placement reaches the southern extension; fare six
+still transfers only to Cedar Vale or Copper Mesa.
+
+Shared animation adds surf, five bay motorboats, seabirds, the lighthouse beam,
+and the Channel 86 beacon. Distant shoreline and skyline proxies continue the
+actual landform and buildings beyond loaded chunks in both renderers. The 24
+regional portraits have matching period art; six new destination cells are
+reserved for Palm Reach. See [the design and evidence record](palm-reach-reimagining.md).
 
 ## Solana Coast: West region
 
@@ -352,7 +377,7 @@ Before activating another compass cell:
 The shared road graph now uses A* for regional routes. Cross-region paths honor
 the exact active-cell union and enabled street topology, so Northstar-to-Cedar
 trips descend through Neon City instead of cutting across the inactive northeast
-cell, while Cypress Reach connects only through Cedar Vale and Copper Mesa. The
+cell, while Palm Reach connects only through Cedar Vale and Copper Mesa. The
 guaranteed sixth-fare transfer crosses only an active cardinal seam, ranks only
 its destination cell, and starts a new region-local six-job market after arrival.
 Future expansions must preserve those properties; any global fare fallback

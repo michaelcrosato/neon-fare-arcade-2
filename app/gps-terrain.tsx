@@ -5,6 +5,7 @@ import { northstarTopography, copperTopography, coastTopography } from "@/game/t
 import { MIRROR_SPILLWAY, COPPER_RIVER } from "@/game/terrain/watercourses";
 import { NORTHSTAR_GONDOLA } from "@/game/mountain-scenery";
 import { COAST_CANALS, COAST_PIER, COAST_WHEEL, COAST_PROMENADE_EAST_X, coastShoreXAt } from "@/game/coastal-layout";
+import { REACH_BOUNDS, REACH_SHORE_STEP, reachLandIntervalsAt, reachShoreAt } from "@/game/reach-layout";
 
 /** Static world coordinates let heading-up GPS move one group, not rebuild contours. */
 export const NorthstarTopography = memo(function NorthstarTopography() {
@@ -50,5 +51,36 @@ export const CoastTopography = memo(function CoastTopography() {
       width={canal.halfWidth * 2} height={canal.maxY - canal.minY} fill="#36baa9" stroke="#b3efcd" strokeWidth="2" />)}</g>
     <line x1={COAST_PIER.minX} y1={COAST_PIER.y} x2={COAST_PIER.maxX} y2={COAST_PIER.y} stroke="#cb9164" strokeWidth="18" />
     <circle cx={COAST_WHEEL.x} cy={COAST_WHEEL.y} r="11" fill="#ffab6f" stroke="#fff4c8" strokeWidth="3" />
+  </g>;
+});
+
+const reachMap = (() => {
+  let land = "", lawn = "", walk = "";
+  const rect = (x: number, y: number, width: number) => `M${x},${y}h${width}v${REACH_SHORE_STEP}h${-width}z`;
+  for (let y = REACH_BOUNDS.minY; y < REACH_BOUNDS.maxY; y += REACH_SHORE_STEP) {
+    const shore = reachShoreAt(y + REACH_SHORE_STEP / 2);
+    for (const interval of reachLandIntervalsAt(y)) {
+      land += rect(interval.min, y, interval.max - interval.min);
+      const left = Math.max(interval.min, shore.west + 15), right = Math.min(interval.max, shore.east - 62);
+      if (right > left) lawn += rect(left, y, right - left);
+      const a = Math.max(interval.min, shore.east - 66), b = Math.min(interval.max, shore.east - 59);
+      if (b > a) walk += rect(a, y, b - a);
+    }
+  }
+  return { land, lawn, walk };
+})();
+
+export const ReachTopography = memo(function ReachTopography() {
+  return <g aria-hidden="true" data-map-layer="reach-peninsula">
+    <rect x={REACH_BOUNDS.minX} y={REACH_BOUNDS.minY} width={REACH_BOUNDS.maxX - REACH_BOUNDS.minX}
+      height={REACH_BOUNDS.maxY - REACH_BOUNDS.minY} fill="#2198a5" />
+    <path d={reachMap.land} fill="#eeddb1" />
+    <path d={reachMap.lawn} fill="#adc98e" />
+    <path d={reachMap.walk} fill="#fff0ce" />
+    <g fontFamily="Barlow Condensed, sans-serif" fontSize="24" fontWeight="600" letterSpacing="4" fill="#0c5965" textAnchor="middle">
+      <text x="1100" y="2180" transform="rotate(-90 1100 2180)">MIRAGE BAY</text>
+      <text x="2290" y="2590" transform="rotate(90 2290 2590)">TURQUOISE ATLANTIC</text>
+    </g>
+    <circle cx="1674" cy="3150" r="10" fill="#fff8df" stroke="#ec6993" strokeWidth="4" />
   </g>;
 });

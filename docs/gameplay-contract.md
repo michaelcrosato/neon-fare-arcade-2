@@ -10,16 +10,17 @@ updates the arcade launch, steering, road elevation and contact rules below.
 - Local street coordinates use a 36-unit lattice with a 6-unit half width.
   Neon City exposes the full local grid. Cedar Vale uses neighborhood collectors,
   loops, planted turning courts and a compact town grid. Northstar Range, Copper
-  Mesa, Cypress Reach, and Solana Coast expose compact town grids and sparse rural spines.
+  Mesa, Palm Reach, and Solana Coast expose compact town grids and sparse rural spines.
   Authored boulevards, parkways, highways, ramps, roundabouts, mountain roads,
-  desert roads, coastal drives, and wetland causeways complete the shared graph. Pavement,
+  desert roads, coastal drives, and peninsula causeways complete the shared graph. Pavement,
   physics, routes, traffic, fares, pedestrians, and both GPS maps consume the
   same enabled-street topology.
 - Authored curves carry height, width and bank through one compiled surface.
   The Neon Beltway centerline is at z=8; eight ramps connect it to the ground
   network. Its tire-contact plane is z=8.64. Equal XY coordinates on different
   decks do not form a junction. Northstar, Copper, and Solana Coast use physical terrain and
-  sustained road grades; the other regions retain their established ground plane.
+  sustained road grades; Palm Reach adds a raised bay crossing while its land and the other flat
+  regions retain the established ground plane.
 - Horizontal right-hand traffic: `laneY = roadY + dir * 2.25`.
 - Vertical right-hand traffic: `laneX = roadX - dir * 2.25`.
 - The player taxi starts at `(0, 2)`, heading north (`-π/2`). This centered
@@ -223,10 +224,10 @@ updates the arcade launch, steering, road elevation and contact rules below.
 ## Navigation
 
 - Route generation begins in the taxi's current travel direction.
-- Six active equal-size cells occupy the center, north, east, south, southeast
-  and west slots: Neon City, Northstar Range, Cedar Vale, Copper Mesa, Cypress
+- Six active regions occupy the center, north, east, south, southeast
+  and west slots: Neon City, Northstar Range, Cedar Vale, Copper Mesa, Palm
   Reach and Solana Coast. A* graph routing must keep every segment in an active cell;
-  Cypress connects through Cedar or Copper and routes never cut across an
+  Palm Reach connects through Cedar or Copper and routes never cut across an
   inactive diagonal cell.
 - A reverse departure is allowed only when it saves at least one road spacing
   and the forward route is at least 1.4× longer.
@@ -295,15 +296,20 @@ updates the arcade launch, steering, road elevation and contact rules below.
   traffic respect elevation. All nine named anchor IDs and services remain.
 - Copper Mesa uses the same terrain/contact engine with desert mesas, a cinder
   cone, dry washes, a river canyon, seven scenic roads, and ten level destination
-  terraces. The city and Cypress seams meet z=0; the south edge has no perimeter
+  terraces. The city and Palm Reach seams meet z=0; the south edge has no perimeter
   road. The rock arch has a solid crown and an open road passage; river water
   has an excavated bed and matching collision. All ten named anchors and their
   services remain, with elevated fare approaches, portals, gas proximity,
   walking, traffic, and GPS using the same ground heights.
-- Cypress Reach adds ten anchors, from Lantern Bay Market and Bayou Belle to
-  Stormwall Locks, Cypress Crown Preserve, and Blackwater Shipyard. Its visible
-  marsh and open water are semantic and physically impassable; causeways,
-  levees, docks, and raised buildings remain on the shared flat driving plane.
+- Palm Reach extends southeast to 198 chunks, with a tapered peninsula,
+  open bay and ocean, a continuous beach promenade, eight connected scenic
+  roads, and ten redesigned destinations. The `cypress-reach` key, destination
+  keys, venue IDs, and service kinds remain stable. The north Cedar entry and
+  west Copper approach meet z=0; Mirage Bay Causeway rises to a physical z=9
+  bridge. All other land stays level. Shore meshes, semantic water, collision,
+  and both GPS views consume identical bands. Roadside palms, furniture,
+  entrances, pedestrian frontages, and both traffic lanes must stay clear.
+  Southern dispatch serves the extension without changing the six-fare market.
 - Solana Coast uses shared terrain/contact with a low beach, physical coastal
   bluffs, sage hills, a canyon climb, seven connected scenic roads, and ten level
   destination terraces. Its City seam stays exactly at z=0. The pier has an
@@ -317,10 +323,10 @@ updates the arcade launch, steering, road elevation and contact rules below.
   six identities from the current service region's eligible roster and pairs
   them with seeded procedural curb slots derived from the active region. The
   cast contains 48 shared identities plus 24 pickup identities exclusive to
-  each of Cedar Vale, Northstar Range, Copper Mesa, Cypress Reach, and Solana
+  each of Cedar Vale, Northstar Range, Copper Mesa, Palm Reach, and Solana
   Coast. Passenger cards have 168 stable art cells across twenty-eight physical
-  3x2 portrait sheets; destination cards have 30 cells across five sheets. Coast
-  stops use cells 24–29; other regions retain cells 0–23. They derive their
+  3x2 portrait sheets; destination cards have 36 cells across six sheets. Coast
+  stops use cells 24–29, Palm Reach uses 30–35, and the other regions use 0–23. They derive their
   art from the stop ID before snapshotting. There is no fixed pickup or
   destination catalog. Unit tests use
   explicit seeds for deterministic replay. The six-bit availability mask
@@ -328,7 +334,7 @@ updates the arcade launch, steering, road elevation and contact rules below.
 - Rider history is independent per service region. Selection excludes every
   identity already used in the active regional window until at least 50% of
   that region's eligible roster has appeared: 24 shared riders in Neon City or
-  36 eligible riders in Cedar Vale, Northstar Range, Copper Mesa, Cypress
+  36 eligible riders in Cedar Vale, Northstar Range, Copper Mesa, Palm
   Reach, or Solana Coast. The next market restarts
   the window while still blocking the immediately prior six, preventing an
   obvious refill duplicate. Leaving and returning to a region preserves its
@@ -389,14 +395,15 @@ updates the arcade launch, steering, road elevation and contact rules below.
   curb; only the destination changes. The destination belongs to an active
   cardinal-neighbor region, sits at least eight blocks beyond the seam, and
   keeps the canonical leg between 360 and 2,160 route units, or up to 3,960 when
-  Northstar, Copper, or Solana Coast is either endpoint to accommodate the winding graded
-  roads. Fare six remains
+  Northstar, Copper, Solana Coast, or Palm Reach is either endpoint to accommodate
+  winding roads and the extended peninsula. Depth is measured across the shared
+  cardinal seam, independently of region height. Fare six remains
   GPS-prioritized until collected. On arrival, the old market is retired and
   the next six fares are generated locally in the destination region, where the
   same five-local-plus-one-regional cycle repeats. Region exclusivity governs
   where a rider may be generated, not where an already selected fare may be
   delivered. The destination is always selected from the active cardinal
-  neighbors of the current service region; Cypress Reach therefore connects
+  neighbors of the current service region; Palm Reach therefore connects
   only to Cedar Vale or Copper Mesa and never diagonally to Neon City.
 - Every visible blue pickup remains actionable. GPS chooses the nearest
   available runtime assignment and must never fall back to landmark geometry or
@@ -466,7 +473,7 @@ High-value fixtures are in `tests/game/`:
 - pickup/dropoff state and semantic event payloads;
 - route and U-turn thresholds;
 - right-hand lane signs and deterministic traffic;
-- all 726 active chunks, plus byte-stable center-city characterization and
+- all 803 active chunks, plus byte-stable center-city characterization and
   streaming/collision budgets;
 - GPU packing and arrow instance counts.
 

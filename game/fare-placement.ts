@@ -1,4 +1,5 @@
 import { CEDAR_ROADS } from "./cedar-layout";
+import { REACH_ROAD_IDS } from "./reach-roads";
 import {
   BLOCKS_PER_CHUNK,
   DISTRICT_LABELS,
@@ -392,10 +393,7 @@ const REGIONAL_ROADSIDE_IDS = new Set([
   "saguaro-trail",
   "cinder-cone-loop",
   "canyon-rim-road",
-  "cypress-causeway",
-  "lantern-bay-loop",
-  "blackwater-trace",
-  "stormwall-levee-road",
+  ...REACH_ROAD_IDS,
   "pacific-coast-drive", "sunset-boulevard", "citrus-scenic-loop", "mariposa-drive",
   "palisades-overlook-drive", "laurel-canyon-run", "canal-cruise",
 ]);
@@ -531,10 +529,11 @@ function asPlacement(candidate: CurbCandidate, radius: number): FareStopPlacemen
     blockY: candidate.blockY,
     district,
     label: `${regionalPlaceName(candidate.zone.x, candidate.zone.y) ?? DISTRICT_LABELS[district]} · ${code}`,
-    // Coast imagery must not reshuffle the existing regions' destination art.
+    // Regional atlases have fixed ranges so new art never reshuffles other regions.
     artCell: district === "coastal"
-      ? 24 + stableHash(`destination-art:${candidate.id}`) % (DESTINATION_ART_CELL_COUNT - 24)
-      : stableHash(`destination-art:${candidate.id}`) % 24,
+      ? 24 + stableHash(`destination-art:${candidate.id}`) % 6
+      : district === "wetland" ? 30 + stableHash(`destination-art:${candidate.id}`) % (DESTINATION_ART_CELL_COUNT - 30)
+        : stableHash(`destination-art:${candidate.id}`) % 24,
   };
 }
 
@@ -752,7 +751,9 @@ export function createProceduralFareStopPairs(
     // An initial desert market starts around its connected service town. Live
     // rolling markets continue from the actual previous dropoff above.
     x: 0, y: 1332, z: 24,
-  } : region?.id === "solana-coast" ? { x: -1764, y: 0, z: 12 } : {
+  } : region?.id === "solana-coast" ? { x: -1764, y: 0, z: 12 }
+    : region?.id === "cypress-reach" ? { x: 1800, y: 1476, z: 0 }
+      : region?.id === "cedar-vale" ? { x: 1476, y: -72, z: 0 } : {
     x: TAXI_START.x,
     y: TAXI_START.y,
   });
@@ -794,25 +795,19 @@ function selectRegionalDestinationStop(
   );
   const originBounds = regionRoadBounds(origin);
   const targetBounds = regionRoadBounds(target);
-  const maxDistance = [origin.id, target.id].some(id => id === "northstar-range" || id === "copper-mesa" || id === "solana-coast")
+  const maxDistance = [origin.id, target.id].some(id => id === "northstar-range" || id === "copper-mesa" || id === "solana-coast" || id === "cypress-reach")
     ? MAX_REGIONAL_FARE_TRIP_DISTANCE : MAX_FLAT_REGIONAL_FARE_TRIP_DISTANCE;
-  const originCenter = {
-    x: (originBounds.minX + originBounds.maxX) / 2,
-    y: (originBounds.minY + originBounds.maxY) / 2,
-  };
-  const targetCenter = {
-    x: (targetBounds.minX + targetBounds.maxX) / 2,
-    y: (targetBounds.minY + targetBounds.maxY) / 2,
-  };
+  // Depth is measured across the shared cardinal seam. Region centers need
+  // not align now that Palm Reach extends farther south than Copper Mesa.
   const reachesInterior = (stop: FareStopPlacement) => {
-    const eastWest = targetCenter.x > originCenter.x
+    const eastWest = targetBounds.minX >= originBounds.maxX
       ? stop.zone.x >= targetBounds.minX + REGIONAL_FARE_DESTINATION_DEPTH
-      : targetCenter.x < originCenter.x
+      : targetBounds.maxX <= originBounds.minX
         ? stop.zone.x <= targetBounds.maxX - REGIONAL_FARE_DESTINATION_DEPTH
         : true;
-    const northSouth = targetCenter.y > originCenter.y
+    const northSouth = targetBounds.minY >= originBounds.maxY
       ? stop.zone.y >= targetBounds.minY + REGIONAL_FARE_DESTINATION_DEPTH
-      : targetCenter.y < originCenter.y
+      : targetBounds.maxY <= originBounds.minY
         ? stop.zone.y <= targetBounds.maxY - REGIONAL_FARE_DESTINATION_DEPTH
         : true;
     return eastWest && northSouth;

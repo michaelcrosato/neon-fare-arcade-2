@@ -9,8 +9,9 @@ import { containingRegionForPosition } from "./regions";
 
 export function alignGridTraffic(car: TrafficCar) {
   if (car.motion.kind !== "grid") return;
-  const cedar = containingRegionForPosition(car.x, car.y)?.id === "cedar-vale";
-  if (!inElevatedTerrain(car.x, car.y) && !cedar) { car.z = 0; car.pitch = 0; car.roll = 0; return; }
+  const region = containingRegionForPosition(car.x, car.y)?.id;
+  const flatCurves = region === "cedar-vale" || region === "cypress-reach";
+  if (!inElevatedTerrain(car.x, car.y) && !flatCurves) { car.z = 0; car.pitch = 0; car.roll = 0; return; }
   const axis = car.motion.axis === "x" ? "horizontal" : "vertical";
   if (!gridStreetPointEnabled(car, axis)) {
     const projection = nearestRoadProjection({ x: car.x, y: car.y }, car.heading);

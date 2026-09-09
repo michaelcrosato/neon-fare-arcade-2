@@ -31,14 +31,15 @@ export type RegionalMapSlot = {
   bounds: { minX: number; maxX: number; minY: number; maxY: number };
 };
 
-/** Stable nine-cell footprint; activating a future region never changes overview scale. */
+/** Future cells retain their footprint; active regions can extend beyond a cell. */
 export const REGIONAL_MAP_SLOTS: readonly RegionalMapSlot[] = WORLD_REGION_SLOTS.map((slot) => {
   const minX = CENTER_BOUNDS.minX + slot.gridX * REGIONAL_MAP_CELL_SIZE;
   const minY = CENTER_BOUNDS.minY + slot.gridY * REGIONAL_MAP_CELL_SIZE;
+  const activeRegion = ACTIVE_WORLD_REGIONS.find((region) => region.id === slot.activeRegionId) ?? null;
   return {
     direction: slot.direction,
-    activeRegion: ACTIVE_WORLD_REGIONS.find((region) => region.id === slot.activeRegionId) ?? null,
-    bounds: {
+    activeRegion,
+    bounds: activeRegion ? regionRoadBounds(activeRegion) : {
       minX,
       maxX: minX + REGIONAL_MAP_CELL_SIZE,
       minY,
@@ -159,8 +160,8 @@ export function panRegionalMapView(
   }, aspect);
 }
 
-export function regionalMapDetail(spanY: number): RegionalMapDetail {
-  if (spanY > REGIONAL_MAP_CELL_SIZE * 1.35) return "overview";
+export function regionalMapDetail(spanY: number, regionSpan = REGIONAL_MAP_CELL_SIZE): RegionalMapDetail {
+  if (spanY > regionSpan * 1.35) return "overview";
   if (spanY > CHUNK_SIZE * 4.5) return "region";
   return "local";
 }

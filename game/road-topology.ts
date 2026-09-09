@@ -2,6 +2,7 @@ import { northstarGridStreetEnabled } from "./terrain/northstar-forms";
 import { copperGridStreetEnabled } from "./terrain/copper-forms";
 import { coastGridStreetEnabled } from "./terrain/coast-forms";
 import { cedarGridStreetEnabled } from "./residential";
+import { reachGridStreetEnabled } from "./reach-layout";
 import { ROAD_SPACING } from "./config";
 import {
   campusBlocksGridStreetPoint,
@@ -34,60 +35,16 @@ export const COPPER_JUNCTION_GRID = {
   maxY: 1440,
 } as const;
 
-/** Lantern Bay is Cypress Reach's compact, walkable town center. */
+/** Historical export for the northern Calle Luna town grid. */
 export const LANTERN_BAY_GRID = {
-  minX: ROAD_SPACING * 30,
-  maxX: ROAD_SPACING * 48,
-  minY: ROAD_SPACING * 30,
-  maxY: ROAD_SPACING * 48,
+  minX: ROAD_SPACING * 24,
+  maxX: ROAD_SPACING * 49,
+  minY: ROAD_SPACING * 24,
+  maxY: ROAD_SPACING * 34,
 } as const;
-
-const CYPRESS_REACH_VERTICAL_SPINES = new Set([
-  ROAD_SPACING * 22,
-  ROAD_SPACING * 30,
-  ROAD_SPACING * 38,
-  ROAD_SPACING * 46,
-  ROAD_SPACING * 54,
-  ROAD_SPACING * 62,
-  ROAD_SPACING * 66,
-]);
-
-const CYPRESS_REACH_HORIZONTAL_LINKS = new Set([
-  ROAD_SPACING * 22,
-  ROAD_SPACING * 30,
-  ROAD_SPACING * 38,
-  ROAD_SPACING * 46,
-  ROAD_SPACING * 54,
-  ROAD_SPACING * 62,
-  ROAD_SPACING * 66,
-]);
 
 function nearestGridLine(value: number) {
   return Math.round(value / ROAD_SPACING) * ROAD_SPACING;
-}
-
-function insideLanternBay(point: Vec2) {
-  return point.x >= LANTERN_BAY_GRID.minX - EPSILON
-    && point.x <= LANTERN_BAY_GRID.maxX + EPSILON
-    && point.y >= LANTERN_BAY_GRID.minY - EPSILON
-    && point.y <= LANTERN_BAY_GRID.maxY + EPSILON;
-}
-
-function cypressReachGridStreetEnabled(point: Vec2, axis: GridStreetAxis) {
-  if (insideLanternBay(point)) return true;
-  if (axis === "vertical") {
-    const roadX = nearestGridLine(point.x);
-    if (CYPRESS_REACH_VERTICAL_SPINES.has(roadX)) return true;
-    // Short access roads end at isolated docks, homes, and preserve gates.
-    if (roadX === ROAD_SPACING * 34) {
-      return point.y >= ROAD_SPACING * 46 && point.y <= ROAD_SPACING * 62;
-    }
-    if (roadX === ROAD_SPACING * 58) {
-      return point.y >= ROAD_SPACING * 30 && point.y <= ROAD_SPACING * 58;
-    }
-    return false;
-  }
-  return CYPRESS_REACH_HORIZONTAL_LINKS.has(nearestGridLine(point.y));
 }
 
 export function regionUsesSparseRoadTopology(regionId: WorldRegionId | null | undefined) {
@@ -102,7 +59,7 @@ export function gridStreetPointEnabled(point: Vec2, axis: GridStreetAxis) {
   if (region?.id === "cedar-vale") return cedarGridStreetEnabled(point, axis);
   if (region?.id === "northstar-range") return northstarGridStreetEnabled(point, axis);
   if (region?.id === "copper-mesa") return copperGridStreetEnabled(point, axis);
-  if (region?.id === "cypress-reach") return cypressReachGridStreetEnabled(point, axis);
+  if (region?.id === "cypress-reach") return reachGridStreetEnabled(point, axis);
   if (region?.id === "solana-coast") return coastGridStreetEnabled(point, axis);
   return true;
 }
