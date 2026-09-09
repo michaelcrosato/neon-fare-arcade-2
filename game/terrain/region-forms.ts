@@ -7,18 +7,19 @@ import {
   northstarRoadHeight,
 } from "./northstar-forms";
 import { copperNaturalHeight, copperRoadHeight, inCopperTerrain } from "./copper-forms";
+import { coastNaturalHeight, coastRoadHeight, inCoastTerrain } from "./coast-forms";
 
 /** Dependency-neutral dispatch: road compilation must never import final terrain. */
 export function inElevatedTerrain(x: number, y: number) {
-  return inNorthstarTerrain(x, y) || inCopperTerrain(x, y);
+  return inNorthstarTerrain(x, y) || inCopperTerrain(x, y) || inCoastTerrain(x, y);
 }
 
 export function roadDesignHeight(x: number, y: number) {
-  return inCopperTerrain(x, y) ? copperRoadHeight(x, y) : northstarRoadHeight(x, y);
+  return inCoastTerrain(x, y) ? coastRoadHeight(x, y) : inCopperTerrain(x, y) ? copperRoadHeight(x, y) : northstarRoadHeight(x, y);
 }
 
 export function naturalWorldHeight(x: number, y: number) {
-  return inCopperTerrain(x, y) ? copperNaturalHeight(x, y) : naturalTerrainHeight(x, y);
+  return inCoastTerrain(x, y) ? coastNaturalHeight(x, y) : inCopperTerrain(x, y) ? copperNaturalHeight(x, y) : naturalTerrainHeight(x, y);
 }
 
 export function atRoadElevation<T extends WorldPoint>(point: T): T {

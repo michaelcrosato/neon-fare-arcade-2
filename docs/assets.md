@@ -42,3 +42,16 @@ stations, five supports, twin cables, eight animated cabins, a waterfall, and
 water collision. Road modules add a covered gallery, retaining faces, bridge
 ribs, piers, and rails. All geometry is seeded or authored deterministically;
 only renderer-neutral cabin and foam actors change with simulation time.
+
+## Solana Coast procedural assets
+
+The coastal reinvention uses original geometry authored in this repository,
+with no external model, texture, or raster downloads. `game/coast-assets.ts`
+builds tapered leaning palms and drooping fronds, sage, cypress, mission arcades
+and roofs, butterfly-roof glass houses, beveled Deco buildings, Googie canopies,
+striped umbrella meshes, the aquarium vault, and the Sunset Bowl shell.
+`game/coast-scenery.ts` builds canal banks and bridges, the pier wheel frame,
+and deterministic wheel cabins, surf bands, sailboats, and birds. These use the
+existing renderer-neutral box/mesh protocol and material IDs. The coastline,
+canals, and pier share authored dimensions with collision, terrain, and GPS.
+Passenger portraits and destination-card atlases remain byte-for-byte unchanged.

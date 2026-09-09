@@ -59,9 +59,11 @@ registry rather than infer playable space from one symmetric radius or hull.
   the canyon river, drive-through rock arch, windmills, balloons, and roadrunners.
 - `game/wetland.ts` owns Cypress Reach's town, bayou, coast, water, stilt-house,
   dock, portal, and authored-anchor vocabulary.
-- `game/coastal.ts` owns Solana Coast's shore, architecture, palms, pier,
-  portals, anchors, and pedestrian policy; `coastal-layout.ts` holds the shared
-  shoreline and coastal-drive coordinates for world and GPS.
+- `game/coastal.ts` owns Solana Coast's lots, portals, anchors, and pedestrian
+  policy. `coast-assets.ts` supplies pure architectural meshes;
+  `coast-scenery.ts` owns canal structures and deterministic coastal animation.
+  `coastal-layout.ts` holds shoreline, pier, and canal coordinates for world and
+  GPS; `terrain/coast-forms.ts` owns physical landforms and the street plan.
 - `game/road-topology.ts` owns enabled local-grid segments. Northstar, Copper
   Mesa, Cypress Reach, and Solana Coast use compact town lattices and sparse rural spines
   instead of citywide grids.
@@ -231,30 +233,35 @@ levees, boats, tree canopies, and the southeast skyline provide visual depth.
 
 ## Solana Coast: West region
 
-Solana Coast takes its cues from California beach towns. Golden sand and
-continuous turquoise water define its west edge. White stucco, coral, mint,
-cobalt blue, terracotta roofs, striped shop awnings, and tall palms replace the
-city's tower silhouettes. The streets remain on the shared flat driving plane;
-cliff gardens and raised terraces provide visual relief without hidden slopes.
+Solana Coast takes its cues from Los Angeles and Southern California beach
+towns. A scalloped turquoise shore meets golden sand, sandstone bluffs, dry
+sage hills, and a canyon climb. White stucco, coral, mint, glass, timber,
+terracotta roofs, mission arcades, Googie canopies, and sculpted palms give it
+a coastal identity. Terrain, pavement, tires, traffic, walking, fare stops,
+venues, and GPS share real elevation. The City seam stays exactly flat.
 
 Five named areas give the coast structure:
 
 - **Pacific Strand** — a broad beach, rescue towers, volleyball courts,
-  umbrellas, a palm promenade, and a walkable pier with a 3D Ferris wheel.
+  striped umbrella meshes, a palm promenade, and a 288-unit walkable pier with
+  a rotating wheel and upright cabins. Surf, sailboats, and birds animate offshore.
 - **Solana Village** — Spanish Revival courtyard homes, Art Deco shops,
-  surfboard workshops, motor inns, and small skate parks.
+  surfboard workshops, motor inns, and small skate parks. Three Venice-inspired
+  canals have solid water, bridge decks, narrow housing courts, and bank walks.
 - **Citrus Heights** — glass-fronted mid-century homes, overhanging roofs,
-  open palm gardens, and terraced rock gardens around a scenic loop.
+  butterfly roofs, sage scrub, and level destination terraces above the coast.
 - **Mariposa Arts** — the film studio, record shops, surf culture, and an
-  outdoor music venue.
+  outdoor music venue with a single broad shell stage.
 - **Sunset Gate** — the city transition, with the welcome arch, fuel stops,
   roadside businesses, and low-rise homes.
 
-Pacific Coast Drive follows the beach. Sunset Boulevard links it to the city.
-Citrus Scenic Loop serves the north, and Mariposa Drive curves through the
-south. A town grid and sparse rural links use the same topology as traffic,
-fares, road physics, and GPS. Four existing traffic slots use these roads;
-the total traffic population remains 36.
+Seven roads make a connected coastal circuit: Pacific Coast Drive follows the
+beach, Sunset Boulevard links it to the City, Citrus Scenic Loop serves the
+heights, and Mariposa Drive crosses the south. Palisades Overlook Drive climbs
+the bluff, Laurel Canyon Run winds inland, and Canal Cruise circles the canal
+district. A compact town grid and short service streets share topology with
+traffic, fares, physics, and GPS. Four existing traffic slots retain their
+original road IDs; the total traffic population remains 36.
 
 Ten authored destinations anchor the area: Sunset Gate, Solana Pier, Mission
 del Sol, Tidal Aquarium, Pacific Palms Club, Mariposa Pictures, Citrus House,
@@ -269,11 +276,13 @@ occupy cells 24–29 on a separate coastal sheet. Existing destination indices s
 stable in cells 0–23. The shared 48 riders can also appear here. Fare six returns
 to Neon City, the coast's only active cardinal neighbor.
 
-Shore geometry stays world-aligned and unscaled. Ocean tiles fill the full
-36-unit block width so former street seams cannot create gaps. Semantic water
-has matching collision. The pier splits water into side bands to leave a dry,
-continuous walking route. The beach and promenade have no road lattice or
-generic curb walkers. The full GPS shows the same ocean and sand bands.
+Shore geometry stays world-aligned and unscaled. Water tiles meet the shared
+shore curve and split around the pier's dry walking deck. Canal bridges have
+real undersides and rails, with low water collision below the road. The beach
+and promenade have no road lattice or generic curb walkers. Both GPS sizes show
+coastal terrain, contours, shore, canals, and pier; the full map reports taxi altitude. Distant
+landforms and an ocean horizon keep the loaded region grounded without adding
+active chunks. See `solana-coast-reimagining.md` for validation evidence.
 
 ## Content and budget contract
 

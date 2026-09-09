@@ -395,6 +395,7 @@ const REGIONAL_ROADSIDE_IDS = new Set([
   "blackwater-trace",
   "stormwall-levee-road",
   "pacific-coast-drive", "sunset-boulevard", "citrus-scenic-loop", "mariposa-drive",
+  "palisades-overlook-drive", "laurel-canyon-run", "canal-cruise",
 ]);
 
 function regionalRoadsideCandidates() {
@@ -749,7 +750,7 @@ export function createProceduralFareStopPairs(
     // An initial desert market starts around its connected service town. Live
     // rolling markets continue from the actual previous dropoff above.
     x: 0, y: 1332, z: 24,
-  } : {
+  } : region?.id === "solana-coast" ? { x: -1764, y: 0, z: 12 } : {
     x: TAXI_START.x,
     y: TAXI_START.y,
   });
@@ -791,7 +792,7 @@ function selectRegionalDestinationStop(
   );
   const originBounds = regionRoadBounds(origin);
   const targetBounds = regionRoadBounds(target);
-  const maxDistance = [origin.id, target.id].some(id => id === "northstar-range" || id === "copper-mesa")
+  const maxDistance = [origin.id, target.id].some(id => id === "northstar-range" || id === "copper-mesa" || id === "solana-coast")
     ? MAX_REGIONAL_FARE_TRIP_DISTANCE : MAX_FLAT_REGIONAL_FARE_TRIP_DISTANCE;
   const originCenter = {
     x: (originBounds.minX + originBounds.maxX) / 2,

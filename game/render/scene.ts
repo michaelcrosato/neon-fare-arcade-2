@@ -1,6 +1,8 @@
 import { atTerrainElevation } from "../terrain/surface";
 import { mountainAnimatedBoxes } from "../mountain-scenery";
 import { copperAnimatedBoxes } from "../copper-scenery";
+import { coastAnimatedBoxes } from "../coast-scenery";
+import { coastCanalBlock } from "../coastal-layout";
 import {
   AMBIENT_PEDESTRIANS_PER_BLOCK,
   BLUE,
@@ -621,6 +623,10 @@ export function ambientPedestrianPointForBlock(
   const pedestrianSlot = ((Math.trunc(pedestrianIndex) % AMBIENT_PEDESTRIANS_PER_BLOCK)
     + AMBIENT_PEDESTRIANS_PER_BLOCK) % AMBIENT_PEDESTRIANS_PER_BLOCK;
   if (pedestrianSlot >= localCount) return null;
+  if (regionId === "solana-coast" && coastCanalBlock(blockX, blockY)) {
+    return atTerrainElevation({ x: centerX + (pedestrianSlot % 2 ? 8.2 : -8.2),
+      y: centerY + Math.sin(seconds * 0.2 + pedestrianSlot * 2 + signature % 17) * 8, z: 0 });
+  }
   const loopEdge = PEDESTRIAN_LOOP_EDGE
     + (pedestrianSlot % 2 === 0 ? -PEDESTRIAN_LANE_OFFSET : PEDESTRIAN_LANE_OFFSET);
   const spacing = (pedestrianSlot * 4) / localCount;
@@ -862,6 +868,7 @@ export function dynamicBoxes(
   boxes.push(...boostTrailBoxes(game, seconds));
   boxes.push(...mountainAnimatedBoxes(seconds, controlledPose(game)));
   boxes.push(...copperAnimatedBoxes(seconds, controlledPose(game)));
+  boxes.push(...coastAnimatedBoxes(seconds, controlledPose(game)));
 
   boxes.push(...ambientPeopleBoxes(game, seconds, controlledPose(game)));
 

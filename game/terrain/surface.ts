@@ -3,6 +3,8 @@ import { MAT_STONE, MAT_SNOW, MAT_GRASS, MAT_SANDSTONE } from "../config";
 import { roadSurfaceIndex } from "../road-network";
 import { regionalSettlementPlan } from "./settlement";
 import { copperTerrainColor, inCopperTerrain } from "./copper-forms";
+import { coastTerrainColor, inCoastTerrain } from "./coast-forms";
+import { coastCanalDistance, COAST_PIER, onCoastPier } from "../coastal-layout";
 import { northstarSnowRun, NORTHSTAR_TERRAIN_STEP, triangularHeight } from "./northstar-forms";
 import { inElevatedTerrain, naturalWorldHeight, roadDesignHeight } from "./region-forms";
 import { watercourseAt } from "./watercourses";
@@ -41,6 +43,13 @@ export function terrainVertexHeight(x: number, y: number) {
     height += (Math.min(height, water.height - 2.5) - height) * weight;
     vertices.set(key, height);
   }
+  if (inCoastTerrain(x, y)) {
+    const canal = coastCanalDistance(x, y);
+    if (canal < 9) {
+      height += (Math.min(height, -1.4) - height) * (1 - smooth((canal - 4.5) / 4.5));
+      vertices.set(key, height);
+    }
+  }
   return height;
 }
 
@@ -55,6 +64,9 @@ export function atTerrainElevation<T extends WorldPoint>(point: T): T {
 }
 
 export function terrainSupport(point: WorldPoint) {
+  // The timber deck supplies its own flat support above the seabed. Raising
+  // terrain vertices here would create sand ramps outside the pier's edges.
+  if (onCoastPier(point.x, point.y)) return { height: COAST_PIER.deckHeight, roadId: null, normal: { x: 0, y: 0, z: 1 } };
   const height = terrainHeightAt(point.x, point.y);
   if (!inElevatedTerrain(point.x, point.y)) return { height, roadId: null, normal: { x: 0, y: 0, z: 1 } };
   const d = 0.025;
@@ -80,6 +92,7 @@ export function terrainBarrier(from: WorldPoint, to: WorldPoint, maxSlope = 0.65
 }
 
 function terrainColor(x: number, y: number, z: number, slope: number): Color {
+  if (inCoastTerrain(x, y)) return coastTerrainColor(x, y, z, slope);
   if (inCopperTerrain(x, y)) return copperTerrainColor(x, y, z, slope);
   const band = Math.sin(x * 0.023 + y * 0.017) > 0 ? 1 : 0;
   const snowline = 155 + 12 * Math.sin(x * 0.009);
@@ -99,8 +112,9 @@ export function northstarTerrainMesh(originX: number, originY: number, size: num
       const average = corners.reduce((sum, point) => sum + point.z, 0) / 4;
       const slope = (Math.max(...corners.map((point) => point.z)) - Math.min(...corners.map((point) => point.z))) / step;
       const copper = inCopperTerrain(x + step / 2, y + step / 2);
+      const coast = inCoastTerrain(x + step / 2, y + step / 2);
       faces.push({ corners, color: copper ? copperTerrainColor(x, y, average, slope) : terrainColor(x, y, average, slope),
-        material: copper ? MAT_SANDSTONE : average > 168 && slope < 0.9 ? MAT_SNOW : slope > 0.5 || average > 142 ? MAT_STONE : MAT_GRASS, kind: "terrain" });
+        material: copper ? MAT_SANDSTONE : coast ? slope > 0.4 ? MAT_STONE : MAT_GRASS : average > 168 && slope < 0.9 ? MAT_SNOW : slope > 0.5 || average > 142 ? MAT_STONE : MAT_GRASS, kind: "terrain" });
     }
   }
   return faces;

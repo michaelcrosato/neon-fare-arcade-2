@@ -45,6 +45,7 @@ fares fund persistent upgrades.
 - `docs/rebuild-plan.md`: rebuild scope and verification evidence
 - `docs/northstar-reimagining.md`: mountain expansion and verification evidence
 - `docs/copper-mesa-reimagining.md`: desert expansion and verification evidence
+- `docs/solana-coast-reimagining.md`: coastal expansion and verification evidence
 - `docs/assets.md`: fare-art atlas manifest and provenance requirements
 - `docs/change-recipes.md`: safe paths for common modifications
 - `AGENTS.md`, `app/AGENTS.md`, `game/AGENTS.md`, `tests/AGENTS.md`: scoped
@@ -72,6 +73,9 @@ For the desert, select **S · MESA** and head toward Copper Junction or Painted
 Canyon. Sundown Highway leads south from the city; detour west onto Cinder Cone
 Loop for the rock arch, then follow Canyon Rim Road and Painted Canyon Scenic
 Drive for the mesas and river bridges.
+For the coast, select **W · COAST** and follow Sunset Boulevard west to Pacific
+Coast Drive. Explore Solana Pier on foot, loop through the canals, or climb
+Palisades Overlook Drive and Laurel Canyon Run toward Citrus Heights.
 
 To preview a production build, run `npm run build` and then
 `npm run start -- --host 127.0.0.1 --port 4173`. This uses Vite's Cloudflare
@@ -87,7 +91,7 @@ preview so the built Worker and static assets run together on Windows and Linux.
 - `npm run check:fast`: lint, typecheck, architecture checks, and core tests
 - `npm run check`: the complete test, production-build, and rendered-output gate
 - `npm run test:browser -- --workers=1`: desktop/mobile play, both renderers,
-  and elevated-road, mountain, and desert camera captures (requires Playwright Chromium)
+  and elevated-road, mountain, desert, and coastal camera captures (requires Playwright Chromium)
 - `npm run build`: build and validate the deployable Sites artifact
 - `npm run validate:artifact`: validate an existing production artifact
 

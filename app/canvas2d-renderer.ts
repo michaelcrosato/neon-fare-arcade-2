@@ -22,6 +22,7 @@ import type {
 } from "@/game/model";
 import { mountainAnimatedBoxes } from "@/game/mountain-scenery";
 import { copperAnimatedBoxes } from "@/game/copper-scenery";
+import { coastAnimatedBoxes } from "@/game/coast-scenery";
 import { getObjective } from "@/game/state";
 import { waitingFares } from "@/game/fare-selection";
 import {
@@ -478,6 +479,9 @@ export class Canvas2DRenderer implements Renderer {
       for (const box of ambientPeopleBoxes(game, seconds, controlledPose(game))) drawOnDeck(box.z, () => drawBox(box));
       for (const box of mountainAnimatedBoxes(seconds, controlledPose(game))) drawOnDeck(box.z, () => drawBox(box));
       for (const box of copperAnimatedBoxes(seconds, controlledPose(game))) {
+        for (const face of boxSurfaceFaces(box)) drawSurface(face);
+      }
+      for (const box of coastAnimatedBoxes(seconds, controlledPose(game))) {
         for (const face of boxSurfaceFaces(box)) drawSurface(face);
       }
     }

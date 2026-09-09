@@ -9,15 +9,15 @@ updates the arcade launch, steering, road elevation and contact rules below.
 - `+x` points east, `+y` points south, and `+z` points up.
 - Local street coordinates use a 36-unit lattice with a 6-unit half width.
   Neon City and Cedar Vale expose the full local grid; Northstar Range, Copper
-  Mesa, and Cypress Reach expose compact town grids and sparse rural spines.
+  Mesa, Cypress Reach, and Solana Coast expose compact town grids and sparse rural spines.
   Authored boulevards, parkways, highways, ramps, roundabouts, mountain roads,
-  desert roads, and wetland causeways complete the shared graph. Pavement,
+  desert roads, coastal drives, and wetland causeways complete the shared graph. Pavement,
   physics, routes, traffic, fares, pedestrians, and both GPS maps consume the
   same enabled-street topology.
 - Authored curves carry height, width and bank through one compiled surface.
   The Neon Beltway centerline is at z=8; eight ramps connect it to the ground
   network. Its tire-contact plane is z=8.64. Equal XY coordinates on different
-  decks do not form a junction. Northstar and Copper use physical terrain and
+  decks do not form a junction. Northstar, Copper, and Solana Coast use physical terrain and
   sustained road grades; the other regions retain their established ground plane.
 - Horizontal right-hand traffic: `laneY = roadY + dir * 2.25`.
 - Vertical right-hand traffic: `laneX = roadX - dir * 2.25`.
@@ -300,6 +300,12 @@ updates the arcade launch, steering, road elevation and contact rules below.
   Stormwall Locks, Cypress Crown Preserve, and Blackwater Shipyard. Its visible
   marsh and open water are semantic and physically impassable; causeways,
   levees, docks, and raised buildings remain on the shared flat driving plane.
+- Solana Coast uses shared terrain/contact with a low beach, physical coastal
+  bluffs, sage hills, a canyon climb, seven connected scenic roads, and ten level
+  destination terraces. Its City seam stays exactly at z=0. The pier has an
+  uninterrupted 288-unit walking deck beneath an animated wheel; canal water
+  is solid below drivable bridge decks. All ten anchor services and the pier's
+  established entrance remain. Fares, walking, traffic, and GPS share elevation.
 
 ## Fares
 
@@ -379,7 +385,7 @@ updates the arcade launch, steering, road elevation and contact rules below.
   curb; only the destination changes. The destination belongs to an active
   cardinal-neighbor region, sits at least eight blocks beyond the seam, and
   keeps the canonical leg between 360 and 2,160 route units, or up to 3,960 when
-  Northstar or Copper is either endpoint to accommodate the winding graded
+  Northstar, Copper, or Solana Coast is either endpoint to accommodate the winding graded
   roads. Fare six remains
   GPS-prioritized until collected. On arrival, the old market is retired and
   the next six fares are generated locally in the destination region, where the

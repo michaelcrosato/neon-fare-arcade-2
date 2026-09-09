@@ -203,7 +203,9 @@ function addPhysicalSegment(
   allowAB = true,
   allowBA = true,
 ) {
-  if (distance(a, b) < 0.05) return;
+  // A terrain-cell cut can leave a very short span. Dropping distinct nodes
+  // disconnects an otherwise continuous road (and strands GPS and fare routes).
+  if (pointKey(a) === pointKey(b)) return;
   const samples = Math.max(1, Math.ceil(distance(a, b) / 12));
   for (let sample = 0; sample <= samples; sample += 1) {
     const t = sample / samples;

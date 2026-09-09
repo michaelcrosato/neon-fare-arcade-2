@@ -44,7 +44,7 @@ GPU resources.
 Pavement and lane strips use the same mitered cross sections as tire contact
 and traffic. Deck sidewalls, undersides, guardrails and supports are generated
 with matching collision geometry. Canvas projects those same surfaces, culls
-back faces, and draws actors/routes on their decks. Northstar and Copper use
+back faces, and draws actors/routes on their decks. Northstar, Copper, and Solana Coast use
 full cuboid faces and `app/terrain-raster.ts` for per-pixel orthographic depth
 across terrain, structures, animated scenery, and the taxi. Intersecting faces
 resolve by pixel depth instead of a face's average depth, so large ground
@@ -62,7 +62,9 @@ window across all 726 active regional chunks.
 Pocket interiors replace the streamed city buffer instead of appending to it.
 Absolute buffer capacity is 512 static boxes, 96 colliders, and 32 interactions;
 authored venues target and enforce 128 boxes, 24 colliders, and six interactions.
-Door beacons and the walking avatar use the actor buffer; never spend the
+Door beacons use the actor buffer. The walking avatar shares the taxi's ghost
+buffer for its silhouette and final opaque passes; drawing it after the ghost
+pass prevents its own rear faces from appearing occluded. Never spend the
 32-instance navigation buffer on exploration UI.
 
 ## Controlled player avatar
@@ -177,14 +179,15 @@ on the supporting deck while an airborne taxi rises above them.
 ## World streaming
 
 Perspective views draw visual chunks out to radius 3 and keep collision chunks
-at radius 1. The normal far plane is 400. Northstar and Copper add cached
+at radius 1. The normal far plane is 400. Northstar, Copper, and Solana Coast add cached
 36-unit distant terrain patches and road strips beyond the loaded chunks,
 reaching a 1,200-unit far plane. Chunk borders retain 9-unit vertices to meet
 near terrain without cracks. Near terrain has 256 faces per chunk. Copper
 also continues its west/south horizon with a render-only terrain skirt; those
 patches count toward the surface budget and never expand the playable union.
 The same final terrain supplies GPS contours, and painted background geography
-is suppressed inside both elevated regions.
+is suppressed inside these elevated regions. Solana continues the ocean beyond
+the active coast and keeps the wheel's frame and moving cabins visible together.
 Increasing draw distance requires checking:
 
 1. `DISTANT_STREAM_RADIUS` and `CACHE_RADIUS` together;

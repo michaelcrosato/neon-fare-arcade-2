@@ -7,6 +7,8 @@ import { inElevatedTerrain, naturalWorldHeight } from "../terrain/region-forms";
 import { terrainHeightAt } from "../terrain/surface";
 import { watercourseAt } from "../terrain/watercourses";
 import { inCopperTerrain } from "../terrain/copper-forms";
+import { inCoastTerrain } from "../terrain/coast-forms";
+import { coastCanalDistance } from "../coastal-layout";
 
 type RoadStructure = { boxes: Box[]; colliders: Collider[]; surfaces: SurfaceQuad[] };
 const cache = new Map<string, RoadStructure>();
@@ -18,7 +20,9 @@ export function roadStructure(segment: SpecialRoadSegment): RoadStructure {
   if (Math.max(segment.a.z ?? 0, segment.b.z ?? 0) < 1) return empty;
   const midpointX = (segment.a.x + segment.b.x) / 2, midpointY = (segment.a.y + segment.b.y) / 2;
   const river = watercourseAt(midpointX, midpointY);
-  const ground = Math.min(naturalWorldHeight(midpointX, midpointY), river && river.distance < 12 ? river.height - 2.5 : Infinity);
+  const coast = inCoastTerrain(midpointX, midpointY);
+  const ground = Math.min(naturalWorldHeight(midpointX, midpointY), river && river.distance < 12 ? river.height - 2.5 : Infinity,
+    coast && coastCanalDistance(midpointX, midpointY) < 12 ? -1.4 : Infinity);
   const mountainRoad = inElevatedTerrain(midpointX, midpointY);
   const copper = inCopperTerrain(midpointX, midpointY);
   if (mountainRoad && (Math.min(segment.a.z ?? 0, segment.b.z ?? 0) - ground) < 2.5) return empty;
@@ -62,7 +66,7 @@ export function roadStructure(segment: SpecialRoadSegment): RoadStructure {
     output.boxes.push({ ...middle, z: middle.z + 0.48, sx: length + 0.08, sy: 0.38, sz: 0.96,
       yaw: railYaw, tilt, color: copper ? [0.8, 0.61, 0.41, 1] : BONE, material: copper ? MAT_ADOBE : MAT_BUILDING, screenLift: middle.z });
     output.boxes.push({ ...middle, z: middle.z + 1, sx: length + 0.08, sy: 0.42, sz: 0.1,
-      yaw: railYaw, tilt, color: copper ? [0.58, 0.3, 0.2, 1] : YELLOW, material: MAT_SIGN, screenLift: middle.z });
+      yaw: railYaw, tilt, color: copper ? [0.58, 0.3, 0.2, 1] : coast ? [0.34, 0.78, 0.7, 1] : YELLOW, material: MAT_SIGN, screenLift: middle.z });
     output.colliders.push({ id: `road-rail:${segment.id}:${side}`, x: middle.x, y: middle.y,
       yaw: railYaw, halfX: Math.hypot(last.x - first.x, last.y - first.y) / 2 + 0.04, halfY: 0.19,
       baseZ: Math.min(first.z, last.z), height: Math.abs(last.z - first.z) + 0.96 });

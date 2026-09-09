@@ -47,8 +47,8 @@ import {
 import { REGIONAL_CONTENT } from "@/game/regional-content";
 import { gridStreetSegmentEnabled } from "@/game/road-topology";
 import { SPECIAL_ROADS } from "@/game/road-layout";
-import { COAST_SHORE_X, COAST_PROMENADE_EAST_X } from "@/game/coastal-layout";
-import { NorthstarTopography, CopperTopography } from "./gps-terrain";
+import { NorthstarTopography, CopperTopography, CoastTopography } from "./gps-terrain";
+import { inCoastTerrain } from "@/game/terrain/coast-forms";
 import { inNorthstarTerrain } from "@/game/terrain/northstar-forms";
 import { inCopperTerrain } from "@/game/terrain/copper-forms";
 
@@ -116,6 +116,7 @@ export function GpsMap({
   const terrainTransform = `matrix(${east.x - origin.x} ${east.y - origin.y} ${south.x - origin.x} ${south.y - origin.y} ${origin.x} ${origin.y})`;
   const mountainPlayer = inNorthstarTerrain(hud.player.x, hud.player.y);
   const copperPlayer = inCopperTerrain(hud.player.x, hud.player.y);
+  const coastPlayer = inCoastTerrain(hud.player.x, hud.player.y);
   const activeDraftPlan = full && draftDestination ? draftPlan : null;
   const displayedRoute = activeDraftPlan?.route ?? hud.route;
   const displayedRouteType = full && draftDestination ? "waypoint" : hud.objectiveType;
@@ -454,15 +455,9 @@ export function GpsMap({
             ))}
           </g>
         )}
-        {full && mappedRegions.filter(({ region }) => region.id === "solana-coast").map(({ region, bounds }) => (
-          <g key={`${region.id}-shore`} aria-hidden="true">
-            <rect x={bounds.minX} y={bounds.minY} width={COAST_SHORE_X - bounds.minX} height={bounds.maxY - bounds.minY} fill="#0875a8" />
-            <rect x={COAST_SHORE_X} y={bounds.minY} width={COAST_PROMENADE_EAST_X - COAST_SHORE_X} height={bounds.maxY - bounds.minY} fill="#f4ce7d" />
-            <line x1={COAST_SHORE_X} y1={bounds.minY} x2={COAST_SHORE_X} y2={bounds.maxY} stroke="#b9fff1" strokeWidth={5} />
-          </g>
-        ))}
         {(full || mountainPlayer) && <g transform={terrainTransform}><NorthstarTopography /></g>}
         {(full || copperPlayer) && <g transform={terrainTransform}><CopperTopography /></g>}
+        {(full || coastPlayer) && <g transform={terrainTransform}><CoastTopography /></g>}
         {(!full || mapDetail !== "overview") && <g className="gps-roads">
           {roadLines.map((line) => {
             const a = pointFor(line.a);
@@ -645,7 +640,7 @@ export function GpsMap({
         <button type="button" onClick={fitRoute}>FIT ROUTE</button>
         <button type="button" onClick={showOverview}>ALL 9 REGIONS</button>
         <span>{mapDetail.toUpperCase()} VIEW</span>
-        {(mountainPlayer || copperPlayer) && <output aria-label="Altitude">ELEV {Math.round((hud.player.z ?? 0) * DISPLAY_METERS_PER_WORLD_UNIT).toLocaleString()} m</output>}
+        {(mountainPlayer || copperPlayer || coastPlayer) && <output aria-label="Altitude">ELEV {Math.round((hud.player.z ?? 0) * DISPLAY_METERS_PER_WORLD_UNIT).toLocaleString()} m</output>}
       </div>
       <div className="regional-map-regions" aria-label="Active regions">
         {ACTIVE_WORLD_REGIONS.map((region) => (

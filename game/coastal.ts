@@ -5,7 +5,12 @@ import {
 import type { Box, Color, LotContext, LotKind, VenueKind } from "./model";
 import { blockRandom } from "./random";
 import { solanaCoastAreaForBlock } from "./regions";
-import { COAST_LAND_MIN_BLOCK_X } from "./coastal-layout";
+import { COAST_LAND_MIN_BLOCK_X, COAST_PIER, coastCanalBlock, coastShoreXAt } from "./coastal-layout";
+import { coastSettlementPlan } from "./terrain/settlement";
+import { coastNaturalHeight } from "./terrain/coast-forms";
+import { coastPalm, coastSage, coastCypress, coastMissionRoof, coastGlassHouse, coastArcade,
+  coastGoogieRoof, coastDecoBody, coastBandShell, coastUmbrella, coastAquariumRoof } from "./coast-assets";
+import { facetedBoulder } from "./architecture";
 
 export const COAST_SAND: Color = [0.96, 0.8, 0.49, 1];
 export const COAST_STUCCO: Color = [0.98, 0.94, 0.82, 1];
@@ -32,7 +37,7 @@ const front = (kind: VenueKind, suffix: string, tileX = 0, tileY = 0): CoastalPo
 
 export const SOLANA_COAST_ANCHORS = [
   { id: "sunset-gate", label: "SUNSET GATE", originX: -25, originY: 2, width: 1, height: 1, lot: "coast-sunset-gate", portal: front("terminal", "welcome") },
-  { id: "solana-pier", label: "SOLANA PIER", originX: -62, originY: -1, width: 5, height: 1, lot: "coast-solana-pier", portal: { tileX: 4, tileY: 0, suffix: "pier-house", kind: "kiosk", x: 0, y: 0, heading: 0 } },
+  { id: "solana-pier", label: "SOLANA PIER", originX: -65, originY: -1, width: 8, height: 1, lot: "coast-solana-pier", portal: { tileX: 7, tileY: 0, suffix: "pier-house", kind: "kiosk", x: 0, y: 0, heading: 0 } },
   { id: "mission-plaza", label: "MISSION DEL SOL", originX: -46, originY: 2, width: 3, height: 2, lot: "coast-mission-plaza", portal: front("civic", "courtyard", 1, 0) },
   { id: "tidal-aquarium", label: "TIDAL AQUARIUM", originX: -54, originY: 6, width: 2, height: 2, lot: "coast-tidal-aquarium", portal: front("civic", "aquarium") },
   { id: "pacific-club", label: "PACIFIC PALMS CLUB", originX: -52, originY: -8, width: 2, height: 2, lot: "coast-pacific-club", portal: front("hotel", "club-lobby") },
@@ -63,6 +68,8 @@ export function coastalLotForBlock(blockX: number, blockY: number): LotKind {
   if (blockX < COAST_LAND_MIN_BLOCK_X) return "coast-ocean";
   if (blockX < -57) return "coast-beach";
   if (blockX === -57) return "coast-promenade";
+  if (coastCanalBlock(blockX, blockY)) return "coast-beach-bungalow";
+  if (!coastSettlementPlan(blockX, blockY)) return blockY < -5 ? "coast-cliff-garden" : "coast-palm-garden";
   const area = solanaCoastAreaForBlock(blockX, blockY);
   const deck = area === "CITRUS HEIGHTS" ? HEIGHTS : area === "MARIPOSA ARTS" ? ARTS : area === "SUNSET GATE" ? GATE : VILLAGE;
   return deck[Math.floor(blockRandom(blockX, blockY, 0x501aca57)() * deck.length)];
@@ -103,13 +110,7 @@ function water(ctx: LotContext, x: number, y: number, sx: number, sy: number, to
 }
 
 export function addCoastalPalm(ctx: LotContext, x: number, y: number, scale = 1, collision = false) {
-  box(ctx, x, y, 4.6 * scale, 0.48 * scale, 0.48 * scale, 8.7 * scale, TIMBER, MAT_GENERIC);
-  for (let leaf = 0; leaf < 4; leaf += 1) {
-    const angle = leaf * Math.PI / 2 + 0.3;
-    box(ctx, x + Math.cos(angle) * 1.35 * scale, y + Math.sin(angle) * 1.35 * scale, 8.9 * scale,
-      4.1 * scale, 0.92 * scale, 0.33 * scale, leaf % 2 ? COAST_PALM : COAST_MINT, MAT_FOLIAGE, angle);
-  }
-  if (collision) solid(ctx, "palm", x, y, 0.65 * scale, 0.65 * scale, 9 * scale);
+  coastPalm(ctx, x, y, scale, collision);
 }
 
 function building(ctx: LotContext, x: number, y: number, sx: number, sy: number, h: number, color: Color, accent: Color) {
@@ -148,31 +149,27 @@ function coastalGround(ctx: LotContext, open = false) {
 
 function buildShore(ctx: LotContext, lot: LotKind) {
   const { centerX: x, centerY: y } = ctx;
-  if (lot === "coast-ocean") {
-    water(ctx, x, y, 36.02, 36.02, ctx.blockX === -61 ? COAST_SURF : COAST_OCEAN);
-    // Continuous foam edge; short offshore crests use world-aligned strips.
-    if (ctx.blockX === -61) {
-      box(ctx, x + 16.8, y, 0.3, 1.2, 36.02, 0.06, FOAM, MAT_GENERIC);
-      box(ctx, x + 11.5, y + 2, 0.29, 0.5, 27, 0.05, FOAM, MAT_GENERIC);
-    } else box(ctx, x + (ctx.blockY % 3) * 3, y, 0.27, 0.28, 15, 0.04, COAST_SURF, MAT_GENERIC);
-    return;
+  for (let row = 0; row < 6; row += 1) {
+    const py = y - 15 + row * 6, shore = coastShoreXAt(py);
+    const left = x - 18, right = Math.min(x + 18, shore);
+    if (right > left) water(ctx, (left + right) / 2, py, right - left + 0.02, 6.02,
+      right > shore - 36 ? COAST_SURF : COAST_OCEAN);
+    if (shore >= left && shore < x + 18) box(ctx, shore - 0.5, py, 0.3, 1.1, 6.04, 0.06, FOAM, MAT_GENERIC);
   }
-  coastalGround(ctx, true);
+  if (lot === "coast-ocean") return;
   if (lot === "coast-promenade") {
     // End at the curb. No visual road is added to the pedestrian promenade.
-    box(ctx, x, y, 0.34, 12, 36.02, 0.12, COAST_STUCCO, MAT_SIDEWALK);
+    box(ctx, x, y, 0.08, 12, 36.02, 0.12, COAST_STUCCO, MAT_SIDEWALK);
     box(ctx, x - 6.5, y, 0.42, 0.45, 36.02, 0.12, COAST_CORAL, MAT_GENERIC);
     addCoastalPalm(ctx, x - 10, y - 9, 0.9, true);
     addCoastalPalm(ctx, x - 10, y + 9, 0.9, true);
     if (ctx.blockY % 3 === 0) surfBoards(ctx, x + 6, y + 5);
     return;
   }
-  if (ctx.blockX === -60) box(ctx, x - 15, y, 0.33, 6, 36.02, 0.04, [0.78, 0.65, 0.41, 1], MAT_GENERIC);
   if (ctx.blockX === -58 && ctx.blockY % 4 === 0) rescueTower(ctx, x, y, COAST_BLUE);
   else if (ctx.blockX === -59 && ctx.blockY % 3 === 0) {
     for (const dx of [-6, 6]) {
-      box(ctx, x + dx, y, 1.2, 0.12, 0.12, 2.1, TIMBER, MAT_GENERIC);
-      box(ctx, x + dx, y, 2.4, 4.2, 4.2, 0.22, dx < 0 ? COAST_CORAL : COAST_MINT, MAT_SIGN, Math.PI / 4);
+      coastUmbrella(ctx, x + dx, y, dx < 0 ? COAST_CORAL : COAST_MINT);
       box(ctx, x + dx, y + 3, 0.4, 1.5, 3, 0.14, COAST_STUCCO, MAT_GENERIC);
     }
   } else if (ctx.blockX === -58 && ctx.blockY % 4 === 2) {
@@ -186,39 +183,39 @@ function buildShore(ctx: LotContext, lot: LotKind) {
 function buildCourtyard(ctx: LotContext, accent: Color) {
   const { centerX: x, centerY: y } = ctx;
   building(ctx, x, y + 5, 18, 6, 5, COAST_STUCCO, COAST_TILE);
+  coastMissionRoof(ctx, x, y + 5, 5.55, 19.5, 7.5);
   for (const side of [-1, 1]) building(ctx, x + side * 7.8, y - 0.5, 3.5, 9, 4.8, COAST_STUCCO, COAST_TILE);
   box(ctx, x, y - 1, 0.48, 10, 9, 0.14, accent, MAT_SIDEWALK);
-  for (const dx of [-3.4, 3.4]) {
-    box(ctx, x + dx, y - 5.2, 2.1, 0.5, 0.5, 3.6, COAST_STUCCO);
-    box(ctx, x + dx, y - 5.2, 4.1, 1, 1, 0.45, COAST_TILE);
-  }
-  box(ctx, x, y - 5.2, 3.85, 7.3, 0.5, 0.65, COAST_STUCCO);
+  coastArcade(ctx, x, y - 5.2, 13.2);
   box(ctx, x + 9.5, y + 6, 4.6, 2, 4, 1, COAST_FLOWER, MAT_FOLIAGE);
+  for (const dx of [-9, 9]) box(ctx, x + dx, y + 6, 5.4, 2.5, 1.5, 0.8, COAST_FLOWER, MAT_FOLIAGE, dx);
 }
 
 function buildMidcentury(ctx: LotContext) {
   const { centerX: x, centerY: y } = ctx;
-  building(ctx, x - 2, y + 2, 15, 8, 4, COAST_STUCCO, COAST_BLUE);
-  box(ctx, x - 2, y + 2, 4.9, 19, 11, 0.3, COAST_STUCCO, MAT_BUILDING, 0, 0.08);
-  box(ctx, x - 1, y - 2.12, 2.3, 11.5, 0.17, 2.6, COAST_BLUE, MAT_WINDOW);
-  box(ctx, x - 7, y + 4, 5.6, 1.8, 2.2, 4, TIMBER);
-  box(ctx, x + 7, y - 2, 0.46, 5, 11, 0.24, COAST_STUCCO, MAT_SIDEWALK);
-  addCoastalPalm(ctx, x + 8.5, y + 7, 0.76, true);
+  coastGlassHouse(ctx, x - 1, y + 1);
+  coastCypress(ctx, x + 10.5, y + 7, 0.85);
+  coastSage(ctx, x - 9.5, y - 6.5, 0.75, true);
 }
 
 function buildLocal(ctx: LotContext, lot: LotKind) {
   const { centerX: x, centerY: y } = ctx;
   const accent = ACCENTS[Math.floor(ctx.random() * ACCENTS.length)];
-  coastalGround(ctx);
+  if (coastCanalBlock(ctx.blockX, ctx.blockY)) {
+    // Slim courts leave a real bank walk on both sides of the canal lots.
+    box(ctx, x, y, 0.1, 15, 24, 0.18, COAST_SAND, MAT_SIDEWALK);
+    building(ctx, x, y + 3, 13, 10, 4.1, accent, COAST_STUCCO);
+    coastMissionRoof(ctx, x, y + 3, 4.8, 14.5, 11.5);
+    box(ctx, x, y - 4.5, 0.3, 13, 4, 0.24, TIMBER, MAT_SIDEWALK);
+    coastSage(ctx, x - 5, y - 7, 0.55, true);
+    coastPalm(ctx, x + 4, y + 10, 0.65, true);
+    return;
+  }
+  if (lot !== "coast-palm-garden" && lot !== "coast-cliff-garden") coastalGround(ctx);
   if (lot === "coast-courtyard") { buildCourtyard(ctx, accent); return; }
   if (lot === "coast-midcentury") { buildMidcentury(ctx); return; }
   if (lot === "coast-palm-garden" || lot === "coast-cliff-garden") {
-    if (lot === "coast-cliff-garden") {
-      for (let tier = 0; tier < 3; tier += 1) box(ctx, x, y + 3, 1 + tier * 2, 18 - tier * 4, 13 - tier * 2, 2.2, tier % 2 ? COAST_SAND : COAST_STUCCO);
-      solid(ctx, "bluff", x, y + 3, 18, 13, 7);
-    } else box(ctx, x, y, 0.45, 17, 2, 0.2, COAST_STUCCO, MAT_SIDEWALK);
-    addCoastalPalm(ctx, x - 8, y - 7, 0.95, true);
-    addCoastalPalm(ctx, x + 8, y + 7, 0.85, true);
+    buildCoastalVerge(ctx, () => true);
     return;
   }
   if (lot === "coast-skate-park") {
@@ -236,11 +233,12 @@ function buildLocal(ctx: LotContext, lot: LotKind) {
     building(ctx, x, y + 2.5, 13, 9, 4.1, accent, COAST_STUCCO);
     box(ctx, x, y - 4, 0.52, 15, 4, 0.28, TIMBER, MAT_SIDEWALK);
     stripedAwning(ctx, x, y - 4, 11, COAST_STUCCO);
+    coastMissionRoof(ctx, x, y + 2.5, 4.8, 14.5, 10.5);
     surfBoards(ctx, x + 7.5, y - 1);
     return;
   }
   const h = lot === "coast-deco-shops" ? 7.2 : 4.6;
-  building(ctx, x, y + 2.5, 18, 9, h, lot === "coast-surf-shop" ? COAST_BLUE : COAST_STUCCO, accent);
+  coastDecoBody(ctx, x, y + 2.5, 18, 9, h, lot === "coast-surf-shop" ? COAST_BLUE : COAST_STUCCO, accent);
   stripedAwning(ctx, x, y - 3.3, 16, accent);
   if (lot === "coast-surf-shop") surfBoards(ctx, x + 6, y - 6);
   if (lot === "coast-deco-shops") {
@@ -248,11 +246,13 @@ function buildLocal(ctx: LotContext, lot: LotKind) {
     box(ctx, x - 7, y - 2.2, 5, 0.8, 0.5, 6.7, COAST_CORAL, MAT_SIGN);
   }
   if (lot === "coast-motor-inn") {
+    coastGoogieRoof(ctx, x, y + 1, h + 0.5, 22, 12);
     box(ctx, x + 9.5, y - 6, 6, 0.32, 0.32, 11, TIMBER);
     box(ctx, x + 9.5, y - 6, 10, 5.8, 0.5, 2, accent, MAT_SIGN, -0.2);
     box(ctx, x + 9.5, y - 6, 11.7, 3, 0.5, 1, COAST_STUCCO, MAT_SIGN);
   }
   if (lot === "coast-gas-stop") {
+    coastGoogieRoof(ctx, x, y - 3, 5, 22, 12);
     for (const dx of [-6, 6]) {
       box(ctx, x + dx, y - 6.5, 1.1, 1, 1, 1.6, COAST_CORAL);
       solid(ctx, "fuel-pump", x + dx, y - 6.5, 1, 1, 1.9);
@@ -262,32 +262,36 @@ function buildLocal(ctx: LotContext, lot: LotKind) {
 
 function buildPier(ctx: LotContext, tileX: number) {
   const { centerX: x, centerY: y } = ctx;
-  if (ctx.blockX < COAST_LAND_MIN_BLOCK_X) {
-    // Two semantic water bands leave a continuous walkable pier, not water
-    // hidden under a deck that would still block the player on the flat plane.
-    water(ctx, x, y - 11.7, 36.02, 12.6, COAST_SURF);
-    water(ctx, x, y + 11.7, 36.02, 12.6, COAST_SURF);
-  } else coastalGround(ctx, true);
-  box(ctx, x, y, 0.32, 36.02, 10.8, 0.35, TIMBER, MAT_SIDEWALK);
-  for (let plank = -16; plank <= 16; plank += 4) box(ctx, x + plank, y, 0.53, 0.16, 10.8, 0.04, COAST_STUCCO, MAT_GENERIC);
   for (const side of [-1, 1]) {
-    box(ctx, x, y + side * 5, 1.35, 36, 0.22, 0.25, COAST_STUCCO);
-    solid(ctx, "pier-rail", x, y + side * 5, 36.02, 0.3, 1.5);
+    const py = y + side * 13.5, left = x - 18, right = Math.min(x + 18, coastShoreXAt(py));
+    if (right > left) water(ctx, (left + right) / 2, py, right - left + 0.02, 9.02, COAST_SURF);
   }
-  if (tileX === 0) {
-    // A compact vertical wheel is legible in 3D and as a radial roof silhouette.
-    for (let spoke = 0; spoke < 12; spoke += 1) {
-      const a = spoke * Math.PI / 6;
-      box(ctx, x + Math.cos(a) * 7, y, 10.7 + Math.sin(a) * 7, 3.7, 0.5, 0.45, COAST_CORAL, MAT_SIGN, 0, 0, -(a + Math.PI / 2));
-      box(ctx, x + Math.cos(a) * 3.5, y, 10.7 + Math.sin(a) * 3.5, 7, 0.2, 0.18, COAST_STUCCO, MAT_GENERIC, 0, 0, -a);
-      box(ctx, x + Math.cos(a) * 7, y, 10.1 + Math.sin(a) * 7, 1.4, 1.7, 1.2, ACCENTS[spoke % 4], MAT_SIGN);
+  box(ctx, x, y, COAST_PIER.deckHeight - 0.16, 36.02, 18, 0.32, TIMBER, MAT_SIDEWALK);
+  for (let plank = -16; plank <= 16; plank += 3.2) box(ctx, x + plank, y, 0.65, 0.12, 18, 0.03, COAST_STUCCO, MAT_GENERIC);
+  for (const side of [-1, 1]) {
+    box(ctx, x, y + side * 8.4, 1.55, 36, 0.22, 0.25, COAST_STUCCO);
+    solid(ctx, "pier-rail", x, y + side * 8.4, 36.02, 0.3, 1.8);
+    for (const dx of [-12, 12]) {
+      box(ctx, x + dx, y + side * 7.2, -1.9, 0.65, 0.65, 5.1, TIMBER, MAT_GENERIC);
+      ctx.colliders.push({ id: `coast-pier-piling:${ctx.blockX}:${side}:${dx}`, x: x + dx, y: y + side * 7.2,
+        halfX: 0.325, halfY: 0.325, baseZ: -4.45, height: 5.1 });
+      box(ctx, x + dx, y + side * 8.4, 1.1, 0.25, 0.25, 1.3, COAST_STUCCO);
     }
-    box(ctx, x, y + 1.7, 5.7, 0.65, 0.65, 10.5, COAST_STUCCO);
-    solid(ctx, "wheel-support", x, y + 1.7, 1, 1, 11);
   }
-  if (tileX === 4) {
-    for (const side of [-1, 1]) box(ctx, x, y + side * 4.5, 4, 0.6, 0.6, 7, COAST_CORAL);
+  if (tileX === 3 || tileX === 5) {
+    for (const side of [-1, 1]) {
+      box(ctx, x, y + side * 6.2, 2.2, 11, 2.6, 3.1, tileX === 3 ? COAST_CORAL : COAST_BLUE);
+      coastGoogieRoof(ctx, x, y + side * 6.2, 4, 12, 3.5);
+      solid(ctx, "pier-kiosk", x, y + side * 6.2, 11, 2.6, 4.5);
+    }
+  }
+  if (tileX === 7) {
+    for (const side of [-1, 1]) {
+      box(ctx, x, y + side * 4.5, 4, 0.6, 0.6, 7, COAST_CORAL);
+      solid(ctx, "pier-gate", x, y + side * 4.5, 0.6, 0.6, 7.5);
+    }
     box(ctx, x, y, 7.2, 1, 10, 1.1, COAST_MINT, MAT_SIGN);
+    ctx.colliders.push({ id: "coast-pier-gate-crown", x, y, halfX: 0.5, halfY: 5, baseZ: 6.65, height: 1.1 });
   }
 }
 
@@ -304,35 +308,45 @@ function buildAnchor(ctx: LotContext, anchor: NonNullable<ReturnType<typeof coas
     if (tileX === 1 && tileY === 1) {
       box(ctx, x, y + 3, 11, 4.5, 4.5, 17, COAST_STUCCO);
       box(ctx, x, y + 3, 20, 6, 6, 1.2, COAST_TILE);
+      coastMissionRoof(ctx, x, y + 3, 20.7, 6.4, 6.4);
+      for (const dx of [-1, 1]) box(ctx, x + dx, y + 0.7, 17.2, 0.7, 0.12, 2.4, INK, MAT_GENERIC);
       solid(ctx, "bell-tower", x, y + 3, 4.5, 4.5, 21);
     }
   } else if (d.id === "citrus-house") buildMidcentury(ctx);
   else if (d.id === "tidal-aquarium") {
-    building(ctx, x, y + 3, 21, 12, 7.3, COAST_STUCCO, COAST_SURF);
-    box(ctx, x, y + 3, 8.2, 17, 8, 1.2, COAST_BLUE, MAT_WINDOW);
+    coastDecoBody(ctx, x, y + 3, 21, 12, 7.3, COAST_STUCCO, COAST_SURF);
+    coastAquariumRoof(ctx, x, y + 3, 7.35);
     for (let fin = -1; fin <= 1; fin += 1) box(ctx, x + fin * 6, y - 3.2, 5.4, 0.8, 1, 5.8, COAST_SURF);
   } else if (d.id === "mariposa-studio") {
-    building(ctx, x, y + 3, 23, 13, tileY ? 11 : 6, COAST_STUCCO, COAST_CORAL);
+    coastDecoBody(ctx, x, y + 3, 23, 13, tileY ? 11 : 6, COAST_STUCCO, COAST_CORAL);
     for (let step = 0; step < 3; step += 1) box(ctx, x, y - 3, 7 + step, 17 - step * 4, 2, 1, tileX % 2 ? COAST_BLUE : COAST_CORAL);
     box(ctx, x, y - 4.2, 4, 13, 0.18, 1.8, INK, MAT_SIGN);
+    for (let frame = -2; frame <= 2; frame += 1) {
+      box(ctx, x + frame * 2.3, y - 4.35, 4.35, 0.8, 0.1, 0.24, COAST_STUCCO, MAT_SIGN);
+      box(ctx, x + frame * 2.3, y - 4.35, 3.65, 0.8, 0.1, 0.24, COAST_STUCCO, MAT_SIGN);
+    }
   } else if (d.id === "pacific-club") {
     buildCourtyard(ctx, COAST_BLUE);
     addCoastalPalm(ctx, x - 10, y + 9, 1, true);
     addCoastalPalm(ctx, x + 10, y + 9, 1, true);
+    box(ctx, x, y - 0.5, 0.7, 5.5, 3.5, 0.18, COAST_SURF, MAT_WATER);
+    solid(ctx, "club-pool", x, y - 0.5, 5.5, 3.5, 0.85);
   } else if (d.id === "surf-pavilion") {
     building(ctx, x, y + 3, 21, 9, 4.8, COAST_BLUE, COAST_STUCCO);
     stripedAwning(ctx, x, y - 3, 20, COAST_CORAL);
+    coastGoogieRoof(ctx, x, y + 3, 5.3, 23, 11);
     surfBoards(ctx, x - 7, y - 6);
     surfBoards(ctx, x + 5, y - 6);
   } else if (d.id === "sunset-bowl") {
     box(ctx, x, y, 0.4, 26, 23, 0.25, COAST_CORAL, MAT_SIDEWALK);
     for (let tier = 0; tier < 4; tier += 1) box(ctx, x, y + tier * 3 - 1, 0.8 + tier * 0.4, 24 - tier, 1.5, 0.6, COAST_STUCCO);
-    if (tileY === 0) {
-      box(ctx, x, y + 7, 4.6, 23, 5, 0.55, COAST_BLUE);
-      for (const dx of [-10, 10]) box(ctx, x + dx, y + 7, 2.5, 0.4, 0.4, 4.5, INK);
+    if (tileX === 0 && tileY === 1) {
+      box(ctx, x + 18, y + 3, 0.8, 49, 10, 0.6, TIMBER, MAT_SIDEWALK);
+      coastBandShell(ctx, x + 18, y + 3, 24);
     }
   } else if (d.id === "coastwatch") {
     building(ctx, x, y + 4, 18, 8, 4.5, COAST_STUCCO, COAST_CORAL);
+    coastMissionRoof(ctx, x, y + 4, 5.05, 19.5, 9.5);
     rescueTower(ctx, x + 7, y + 5);
   } else {
     building(ctx, x, y + 5, 14, 7, 4, COAST_STUCCO, COAST_CORAL);
@@ -342,6 +356,7 @@ function buildAnchor(ctx: LotContext, anchor: NonNullable<ReturnType<typeof coas
     }
     box(ctx, x, y - 3, 10.5, 15.2, 1.2, 1.7, COAST_CORAL, MAT_SIGN);
     box(ctx, x, y - 3, 12, 8, 0.6, 1.2, COAST_STUCCO, MAT_SIGN);
+    coastGoogieRoof(ctx, x, y + 4, 5, 17, 9);
   }
 }
 
@@ -354,7 +369,24 @@ export function buildCoastalLot(ctx: LotContext, lot: LotKind) {
 
 export function coastalPedestrianCountForBlock(blockX: number, blockY: number) {
   if (blockX <= -57) return 0; // No generic curb walkers in the sea or sand.
+  if (coastCanalBlock(blockX, blockY)) return 4;
   const lot = coastalLotForBlock(blockX, blockY);
   if (lot === "coast-cliff-garden" || lot === "coast-palm-garden") return 0;
   return solanaCoastAreaForBlock(blockX, blockY) === "CITRUS HEIGHTS" ? 2 : 6;
+}
+
+export function buildCoastalVerge(ctx: LotContext, clear: (x: number, y: number) => boolean) {
+  const { centerX: x, centerY: y } = ctx;
+  for (let index = 0; index < 3; index += 1) {
+    const px = x + (ctx.random() - 0.5) * 26, py = y + (ctx.random() - 0.5) * 26;
+    if (!clear(px, py)) continue;
+    const height = coastNaturalHeight(px, py);
+    const steep = Math.abs(coastNaturalHeight(px + 2, py) - height) + Math.abs(coastNaturalHeight(px, py + 2) - height) > 2.5;
+    if (steep) { coastSage(ctx, px, py, 0.7); continue; }
+    if (index === 0 && ctx.random() < (y < -200 ? 0.2 : 0.7)) addCoastalPalm(ctx, px, py, 0.8 + ctx.random() * 0.45, true);
+    else if (index === 1 && y < -180 && ctx.random() < 0.35) {
+      ctx.surfaces?.push(...facetedBoulder({ x: px, y: py, z: 0 }, 3.5, 2.8, 2.6, [0.73, 0.66, 0.48, 1]));
+      ctx.colliders.push({ id: `coast-boulder:${ctx.blockX}:${ctx.blockY}`, x: px, y: py, halfX: 1.3, halfY: 1.1, height: 2.6, groundAnchor: { x: px, y: py } });
+    } else coastSage(ctx, px, py, 0.8 + ctx.random() * 0.6, index % 2 === 0);
+  }
 }

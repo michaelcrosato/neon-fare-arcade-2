@@ -1,5 +1,6 @@
 import { northstarGridStreetEnabled } from "./terrain/northstar-forms";
 import { copperGridStreetEnabled } from "./terrain/copper-forms";
+import { coastGridStreetEnabled } from "./terrain/coast-forms";
 import { ROAD_SPACING } from "./config";
 import {
   campusBlocksGridStreetPoint,
@@ -88,16 +89,6 @@ function cypressReachGridStreetEnabled(point: Vec2, axis: GridStreetAxis) {
   return CYPRESS_REACH_HORIZONTAL_LINKS.has(nearestGridLine(point.y));
 }
 
-function solanaCoastGridStreetEnabled(point: Vec2, axis: GridStreetAxis) {
-  // The entire ocean, beach and promenade have no street lattice.
-  if (point.x < -56 * ROAD_SPACING - EPSILON) return false;
-  const town = point.x <= -34 * ROAD_SPACING && point.y >= -9 * ROAD_SPACING && point.y <= 9 * ROAD_SPACING;
-  const gateway = point.x >= -33 * ROAD_SPACING;
-  if (town || gateway) return true;
-  if (axis === "vertical") return [-56, -48, -40, -34].some((line) => nearestGridLine(point.x) === line * ROAD_SPACING);
-  return [-22, -18, -10, 10, 16, 22].some((line) => nearestGridLine(point.y) === line * ROAD_SPACING);
-}
-
 export function regionUsesSparseRoadTopology(regionId: WorldRegionId | null | undefined) {
   return regionId === "northstar-range" || regionId === "copper-mesa" || regionId === "cypress-reach" || regionId === "solana-coast";
 }
@@ -110,7 +101,7 @@ export function gridStreetPointEnabled(point: Vec2, axis: GridStreetAxis) {
   if (region?.id === "northstar-range") return northstarGridStreetEnabled(point, axis);
   if (region?.id === "copper-mesa") return copperGridStreetEnabled(point, axis);
   if (region?.id === "cypress-reach") return cypressReachGridStreetEnabled(point, axis);
-  if (region?.id === "solana-coast") return solanaCoastGridStreetEnabled(point, axis);
+  if (region?.id === "solana-coast") return coastGridStreetEnabled(point, axis);
   return true;
 }
 

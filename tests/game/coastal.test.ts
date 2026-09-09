@@ -3,7 +3,9 @@ import test from "node:test";
 
 import { ROAD_SPACING } from "../../game/config";
 import { SOLANA_COAST_ANCHORS, coastalLotForBlock } from "../../game/coastal";
-import { COAST_DRIVE_X, COAST_SHORE_X } from "../../game/coastal-layout";
+import { COAST_DRIVE_X, COAST_PIER, coastShoreXAt } from "../../game/coastal-layout";
+import { atRoadElevation } from "../../game/terrain/region-forms";
+import { ROAD_SURFACE_HEIGHT } from "../../game/roads/contact";
 import { circleHitsBuilding, taxiHitsBuilding } from "../../game/collision";
 import { createFareMarket } from "../../game/fare-market";
 import { scheduleSixthFareTransfer } from "../../game/regional-fares";
@@ -19,7 +21,7 @@ import type { CityChunk, WorldView } from "../../game/model";
 import { generateCityChunk } from "../../game/world";
 
 const coast = ACTIVE_WORLD_REGIONS.find((region) => region.id === "solana-coast")!;
-const roadIds = ["pacific-coast-drive", "sunset-boulevard", "citrus-scenic-loop", "mariposa-drive"];
+const roadIds = ["pacific-coast-drive", "sunset-boulevard", "citrus-scenic-loop", "mariposa-drive", "palisades-overlook-drive", "laurel-canyon-run", "canal-cruise"];
 const coastRoads = SPECIAL_ROADS.filter((road) => roadIds.includes(road.id));
 const chunks: CityChunk[] = [];
 for (let cx = coast.chunkMinX; cx <= coast.chunkMaxX; cx += 1) {
@@ -32,13 +34,13 @@ const world: WorldView = {
   interactions: chunks.flatMap((chunk) => chunk.interactions),
 };
 
-test("Solana Coast activates only W and connects its four roads to the City", () => {
+test("Solana Coast activates only W and connects its seven roads to the City", () => {
   assert.equal(chunks.length, 121);
   assert.deepEqual(activeCardinalNeighborRegions(coast.id).map((region) => region.id), ["city-center"]);
   assert.equal(isPlayablePoint(-1000, -1000), false);
   assert.equal(isPlayablePoint(-1000, 1000), false);
   assert.deepEqual(coastRoads.map((road) => road.id), roadIds);
-  for (const target of [{ x: COAST_DRIVE_X, y: 0 }, { x: COAST_DRIVE_X, y: -720 }, { x: COAST_DRIVE_X, y: 720 }]) {
+  for (const target of [{ x: COAST_DRIVE_X, y: 0 }, { x: -1980, y: -684 }, { x: -1944, y: 648 }]) {
     const route = buildGpsRoute({ x: 0, y: 0 }, target);
     // Check actual pavement, including horizontal tangents of authored curves.
     // The legacy axis-route validator only understands the street lattice.
@@ -51,10 +53,10 @@ test("Solana Coast activates only W and connects its four roads to the City", ()
       }
     }
     assert.ok(route.every((point) => isPlayablePoint(point.x, point.y)));
-    assert.deepEqual(route.at(-1), target);
+    assert.deepEqual(route.at(-1), atRoadElevation(target));
   }
   const trafficRoads = new Set(makeTraffic().flatMap((car) => car.motion.kind === "path" && roadIds.includes(car.motion.roadId) ? [car.motion.roadId] : []));
-  assert.deepEqual([...trafficRoads].sort(), [...roadIds].sort());
+  assert.deepEqual([...trafficRoads].sort(), roadIds.slice(0, 4).sort());
   const seamRoads = (cx: number) => generateCityChunk(cx, 0).boxes.filter((box) => Math.abs(box.x + 792) < 1e-8 && box.sx === 12 && box.sy === ROAD_SPACING).length;
   assert.equal(seamRoads(-5), 4);
   assert.equal(seamRoads(-6), 0);
@@ -67,13 +69,13 @@ test("the ocean and beach stay continuous, dry pier access stays clear, and no o
     assert.ok(world.colliders.some((collider) => collider.id === surface.id && collider.halfX === surface.halfX && collider.halfY === surface.halfY));
   }
   for (let y = -791; y < 792; y += 3) {
-    assert.ok(water.some((surface) => Math.abs(COAST_SHORE_X - 5 - surface.x) <= surface.halfX && Math.abs(y - surface.y) <= surface.halfY) || Math.abs(y + 18) <= 5.4);
-    for (const x of [COAST_SHORE_X - 36, COAST_SHORE_X + 36, COAST_DRIVE_X - 36]) {
+    assert.ok(water.some((surface) => Math.abs(coastShoreXAt(y) - 5 - surface.x) <= surface.halfX && Math.abs(y - surface.y) <= surface.halfY) || Math.abs(y - COAST_PIER.y) <= COAST_PIER.halfWidth);
+    for (const x of [coastShoreXAt(y) - 36, coastShoreXAt(y) + 36, COAST_DRIVE_X - 36]) {
       assert.equal(isRoadSurface({ x, y }), false, `offshore/beach road at ${x},${y}`);
       assert.equal(gridStreetPointEnabled({ x, y }, "vertical"), false);
     }
   }
-  for (let x = -2230; x <= -2054; x += 2) assert.equal(Boolean(circleHitsBuilding(world, x, -18, 0.44)), false, `pier blocked at ${x}`);
+  for (let x = COAST_PIER.minX + 2; x <= COAST_PIER.maxX - 2; x += 2) assert.equal(Boolean(circleHitsBuilding(world, x, -18, 0.44, COAST_PIER.deckHeight)), false, `pier blocked at ${x}`);
   const lots = new Set<string>();
   for (let x = -66; x <= -23; x += 1) for (let y = -22; y <= 21; y += 1) lots.add(coastalLotForBlock(x, y));
   for (const kind of ["coast-ocean", "coast-beach", "coast-promenade", "coast-courtyard", "coast-midcentury", "coast-beach-bungalow", "coast-deco-shops", "coast-surf-shop", "coast-skate-park"]) assert.ok(lots.has(kind), kind);
@@ -83,8 +85,8 @@ test("all coast venues, walkers, landmark footprints, and taxi lanes remain coll
   const portals = SOLANA_COAST_ANCHORS.flatMap((anchor) => world.interactions.filter((interaction) => interaction.label === anchor.label && interaction.id.endsWith(`:${anchor.portal.suffix}`)));
   assert.equal(portals.length, 10);
   for (const portal of world.interactions) {
-    assert.equal(Boolean(circleHitsBuilding(world, portal.x, portal.y, 0.44)), false, `${portal.id} entrance`);
-    assert.equal(Boolean(circleHitsBuilding(world, portal.x + Math.cos(portal.heading) * 1.15, portal.y + Math.sin(portal.heading) * 1.15, 0.44)), false, `${portal.id} return`);
+    assert.equal(Boolean(circleHitsBuilding(world, portal.x, portal.y, 0.44, portal.z)), false, `${portal.id} entrance`);
+    assert.equal(Boolean(circleHitsBuilding(world, portal.x + Math.cos(portal.heading) * 1.15, portal.y + Math.sin(portal.heading) * 1.15, 0.44, portal.z)), false, `${portal.id} return`);
   }
   for (const anchor of SOLANA_COAST_ANCHORS) {
     for (let x = 0; x < anchor.width; x += 1) for (let y = 0; y < anchor.height; y += 1) {
@@ -98,7 +100,7 @@ test("all coast venues, walkers, landmark footprints, and taxi lanes remain coll
       if (!point) continue;
       walkerCount += 1;
       assert.ok(x > -57, "generic walker on beach or water");
-      assert.equal(Boolean(circleHitsBuilding(world, point.x, point.y, 0.44)), false, `walker ${x},${y}`);
+      assert.equal(Boolean(circleHitsBuilding(world, point.x, point.y, 0.44, point.z)), false, `walker ${x},${y}`);
     }
   }
   assert.ok(walkerCount > 1000);
@@ -109,7 +111,8 @@ test("all coast venues, walkers, landmark footprints, and taxi lanes remain coll
     for (let step = 0; step <= steps; step += 1) for (const lane of [-2.25, 0, 2.25]) {
       const x = a.x + (b.x - a.x) * step / steps - Math.sin(heading) * lane;
       const y = a.y + (b.y - a.y) * step / steps + Math.cos(heading) * lane;
-      assert.equal(Boolean(taxiHitsBuilding(world, x, y, heading)), false, `${road.id} blocked at ${x},${y}`);
+      const z = (a.z ?? 0) + ((b.z ?? 0) - (a.z ?? 0)) * step / steps + ROAD_SURFACE_HEIGHT;
+      assert.equal(Boolean(taxiHitsBuilding(world, x, y, heading, z)), false, `${road.id} blocked at ${x},${y}`);
     }
   }
 });

@@ -1,9 +1,11 @@
 import type { CityChunk, MeshFace, Vec3 } from "../model";
-import { MAT_GRASS, MAT_SNOW, MAT_STONE, MAT_ROAD, MAT_SANDSTONE, ROAD } from "../config";
+import { MAT_GRASS, MAT_SNOW, MAT_STONE, MAT_ROAD, MAT_SANDSTONE, MAT_WATER, ROAD } from "../config";
 import { SPECIAL_ROAD_SEGMENTS, compiledSpecialRoad } from "../road-network";
 import { terrainHeightAt } from "./surface";
 import { roadStripQuad } from "../render/surfaces";
 import { copperBackdropHeight, copperTerrainColor, inCopperTerrain } from "./copper-forms";
+import { coastBackdropHeight, coastTerrainColor, inCoastTerrain } from "./coast-forms";
+import { coastShoreXAt } from "../coastal-layout";
 
 const cache = new Map<string, MeshFace[]>();
 
@@ -27,9 +29,17 @@ function distantChunk(cx: number, cy: number) {
     const slope = (Math.max(...corners.map((p) => p.z)) - Math.min(...corners.map((p) => p.z))) / 36;
     const snow = center.z > 165 && slope < 0.9, rock = slope > 0.5 || center.z > 145;
     const copper = inCopperTerrain(center.x, center.y);
+    const coast = inCoastTerrain(center.x, center.y);
     for (let i = 0; i < ring.length; i += 1) faces.push({ corners: [center, ring[i], ring[(i + 1) % ring.length]],
-      color: copper ? copperTerrainColor(center.x, center.y, center.z, slope) : snow ? [0.87, 0.92, 0.94, 1] : rock ? [0.39, 0.43, 0.43, 1] : [0.2, 0.34, 0.24, 1],
+      color: coast ? coastTerrainColor(center.x, center.y, center.z, slope) : copper ? copperTerrainColor(center.x, center.y, center.z, slope) : snow ? [0.87, 0.92, 0.94, 1] : rock ? [0.39, 0.43, 0.43, 1] : [0.2, 0.34, 0.24, 1],
       material: copper ? MAT_SANDSTONE : snow ? MAT_SNOW : rock ? MAT_STONE : MAT_GRASS, kind: "terrain" });
+  }
+  if (inCoastTerrain(left + 72, top + 72)) {
+    for (let y = top; y < top + 144; y += 9) {
+      const right = Math.min(left + 144, coastShoreXAt(y + 4.5));
+      if (right > left) faces.push({ corners: [{ x: left, y, z: 0.22 }, { x: right, y, z: 0.22 },
+        { x: right, y: y + 9, z: 0.22 }, { x: left, y: y + 9, z: 0.22 }], color: [0.035, 0.45, 0.66, 1], material: MAT_WATER, kind: "terrain" });
+    }
   }
   for (const segment of SPECIAL_ROAD_SEGMENTS) {
     const x = (segment.a.x + segment.b.x) / 2, y = (segment.a.y + segment.b.y) / 2;
@@ -56,6 +66,38 @@ export function copperLandscape(chunks: readonly CityChunk[]): MeshFace[] {
     if (!loaded.has(`${cx},${cy}`)) faces.push(...distantChunk(cx, cy));
   }
   return faces.concat(copperHorizon());
+}
+
+export function coastLandscape(chunks: readonly CityChunk[]): MeshFace[] {
+  const loaded = new Set(chunks.map((chunk) => chunk.key)), faces: MeshFace[] = [];
+  for (let cx = -16; cx <= -6; cx += 1) for (let cy = -5; cy <= 5; cy += 1) {
+    if (!loaded.has(`${cx},${cy}`)) faces.push(...distantChunk(cx, cy));
+  }
+  return faces.concat(coastHorizon());
+}
+
+let coastHorizonCache: MeshFace[] | null = null;
+function coastHorizon(): MeshFace[] {
+  if (coastHorizonCache) return coastHorizonCache;
+  const faces: MeshFace[] = [];
+  // The ocean extends beyond the active cell; it adds no roads or playable land.
+  faces.push({ corners: [{ x: -5200, y: -2600, z: 0.2 }, { x: -2376, y: -2600, z: 0.2 },
+    { x: -2376, y: 2600, z: 0.2 }, { x: -5200, y: 2600, z: 0.2 }],
+    color: [0.035, 0.41, 0.61, 1], material: MAT_WATER, kind: "terrain" });
+  for (const side of [-1, 1]) for (let layer = 0; layer < 3; layer += 1) {
+    for (let x = -2376; x < -792; x += 9) {
+      const y = side < 0 ? -792 - (layer + 1) * 144 : 792 + layer * 144;
+      const vertex = (px: number, py: number): Vec3 => ({ x: px, y: py, z: Math.abs(py) <= 792
+        ? terrainHeightAt(px, py) : coastBackdropHeight(px, py) });
+      const corners = [vertex(x, y), vertex(x + 9, y), vertex(x + 9, y + 144), vertex(x, y + 144)] as const;
+      faces.push({ corners, color: coastTerrainColor(x, y, corners[0].z, 0), material: MAT_GRASS, kind: "terrain" });
+      const right = Math.min(x + 9, coastShoreXAt(y));
+      if (right > x) faces.push({ corners: [{ x, y, z: 0.22 }, { x: right, y, z: 0.22 },
+        { x: right, y: y + 144, z: 0.22 }, { x, y: y + 144, z: 0.22 }], color: [0.035, 0.45, 0.66, 1], material: MAT_WATER, kind: "terrain" });
+    }
+  }
+  coastHorizonCache = faces;
+  return faces;
 }
 
 let copperHorizonCache: MeshFace[] | null = null;

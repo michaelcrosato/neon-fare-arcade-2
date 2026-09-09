@@ -235,7 +235,8 @@ fn sunRayMask(point: vec2<f32>, thickness: f32, inner: f32, outer: f32) -> f32 {
     color = paintWorldCloud(color, azimuth, elevation, 1.08, 0.17, 0.95);
     color = paintWorldCloud(color, azimuth, elevation, -2.55, 0.25, 0.82);
 
-    if (abs(camera.params.z) < 792.0 || abs(camera.params.y) > 792.0) {
+    if ((abs(camera.params.z) < 792.0 || abs(camera.params.y) > 792.0)
+      && !(camera.params.y < -792.0 && abs(camera.params.z) <= 792.0)) {
     // NORTH: separated mountain ranges, snow, pines and a radio mast.
     let northFar = wrapAngle(azimuth - (-1.5707963 - camera.params.y / 6000.0));
     let northGate = max(max(angularWindow(northFar + 0.48, 0.1, 0.18), angularWindow(northFar, 0.17, 0.25)), angularWindow(northFar - 0.48, 0.1, 0.18));
@@ -466,7 +467,7 @@ struct SurfaceVertexIn {
   }
   if (v.material > 9.5 && v.material < 10.5) {
     let grassGrain = fract(sin(dot(floor(v.worldPos.xy * 1.1), vec2<f32>(17.17, 41.73))) * 21845.37);
-    color *= 0.82 + grassGrain * 0.18;
+    color *= select(0.82 + grassGrain * 0.18, 0.96 + grassGrain * 0.04, v.worldPos.x < -792.0);
   }
   if (v.material > 10.5 && v.material < 11.5) {
     let leafTone = fract(sin(dot(floor(v.worldPos.xy * 0.75), vec2<f32>(9.31, 63.17))) * 19731.1);
@@ -508,7 +509,9 @@ struct SurfaceVertexIn {
   }
   let fog = smoothstep(camera.sky.w * 0.58, camera.sky.w * 0.94, worldDistance);
   let desert = camera.params.z > 792.0 && abs(camera.params.y) < 792.0;
-  color = mix(color, select(vec3<f32>(0.72, 0.88, 0.93), vec3<f32>(0.87, 0.77, 0.64), desert), fog * 0.84);
+  let coast = camera.params.y < -792.0 && abs(camera.params.z) <= 792.0;
+  let fogColor = select(select(vec3<f32>(0.72, 0.88, 0.93), vec3<f32>(0.87, 0.77, 0.64), desert), vec3<f32>(0.78, 0.88, 0.86), coast);
+  color = mix(color, fogColor, fog * 0.84);
   return vec4<f32>(color, 1.0);
 }
 @fragment fn fsGhost(v: VertexOut) -> @location(0) vec4<f32> {
@@ -785,7 +788,9 @@ fn bloomColor(color: vec3<f32>) -> vec3<f32> {
       ? cabInteriorBoxes(game)
       : [];
     const actors = [...dynamicBoxes(game, seconds, route, world, {
-      showPlayerAvatar: playerAvatar.length > 0,
+      // Draw the player with the taxi after their occlusion silhouettes. An
+      // earlier avatar depth write makes its own rear faces appear occluded.
+      showPlayerAvatar: false,
     }), ...cockpit, ...(taxiShadow ? [taxiShadow] : [])];
     const navigation = navigationArrowBoxes(game, seconds, navigationPlan, camera.mode);
     if (actors.length > ACTOR_INSTANCE_CAPACITY) throw new Error("Actor instance budget exceeded");
@@ -882,7 +887,7 @@ fn bloomColor(color: vec3<f32>) -> vec3<f32> {
       scenePass.draw(36, ghostActors.length);
       scenePass.setPipeline(this.pipeline);
       scenePass.setBindGroup(0, this.bindGroup);
-      scenePass.draw(36, taxi.length);
+      scenePass.draw(36, ghostActors.length);
     }
     scenePass.end();
 

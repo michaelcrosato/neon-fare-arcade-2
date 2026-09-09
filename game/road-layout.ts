@@ -195,10 +195,19 @@ const stormwallLeveeControls = [
   point(2016, 2124), point(2196, 2232), point(2304, 2304),
 ] as const;
 
-const pacificDriveControls = [point(-2016, -756), point(-2016, -360), point(-2016, 0), point(-2016, 360), point(-2016, 756)] as const;
-const sunsetBoulevardControls = [point(-828, 0), point(-1008, 0), point(-1152, -72), point(-1296, -144), point(-1440, -72), point(-1584, 0), point(-1800, 0), point(-2016, 0)] as const;
-const citrusScenicControls = [point(-1908, -612), point(-1656, -684), point(-1404, -612), point(-1296, -432), point(-1512, -360), point(-1728, -396)] as const;
-const mariposaDriveControls = [point(-2016, 576), point(-1800, 648), point(-1584, 612), point(-1368, 504), point(-1152, 576), point(-828, 576)] as const;
+const pacificDriveControls = [point(-1980, -684), point(-2032, -540), point(-1998, -330), point(-2016, -144),
+  point(-2016, 0), point(-2016, 180), point(-1998, 360), point(-2016, 540), point(-1944, 648)] as const;
+const sunsetBoulevardControls = [point(-828, 0), point(-936, 0), point(-1116, -18), point(-1296, -108),
+  point(-1476, -54), point(-1656, 0), point(-1836, 0), point(-2016, 0)] as const;
+const citrusScenicControls = [point(-1980, -684), point(-1836, -720), point(-1620, -666), point(-1476, -720),
+  point(-1260, -684), point(-1134, -540), point(-1260, -432), point(-1476, -468), point(-1656, -396), point(-1854, -468), point(-1872, -612)] as const;
+const mariposaDriveControls = [point(-1944, 648), point(-1728, 576), point(-1512, 612), point(-1332, 576),
+  point(-1152, 648), point(-1008, 576), point(-828, 576)] as const;
+const palisadesControls = [point(-1998, -330), point(-1912, -366), point(-1764, -336), point(-1692, -216), point(-1656, 0)] as const;
+const laurelCanyonControls = [point(-1116, -18), point(-1026, -180), point(-1170, -270), point(-1300, -288),
+  point(-1260, -378), point(-1134, -432), point(-1134, -540)] as const;
+const canalCruiseControls = [point(-1998, 360), point(-1908, 324), point(-1764, 288), point(-1620, 288),
+  point(-1584, 432), point(-1728, 540), point(-1872, 504), point(-1836, 432), point(-1998, 396)] as const;
 
 export const ROUNDABOUTS: readonly RoundaboutDefinition[] = [
   { id: "apex-circle", center: point(216, -216), radius: 18, islandHalfSize: 8.2 },
@@ -438,25 +447,43 @@ export const SPECIAL_ROADS: readonly RoadPathDefinition[] = [
     id: "pacific-coast-drive", name: "PACIFIC COAST DRIVE", kind: "parkway",
     halfWidth: 6, lanes: 2, travelWeight: 0.8,
     points: catmullRomPath(pacificDriveControls, false, 12),
-    connectGrid: "crossings", junctions: pacificDriveControls,
+    connectGrid: "crossings", junctions: pacificDriveControls.map(atRoadElevation),
   },
   {
     id: "sunset-boulevard", name: "SUNSET BOULEVARD", kind: "parkway",
     halfWidth: 7, lanes: 2, travelWeight: 0.76,
     points: catmullRomPath(sunsetBoulevardControls, false, 12),
-    connectGrid: "crossings", junctions: sunsetBoulevardControls,
+    connectGrid: "crossings", junctions: sunsetBoulevardControls.map(atRoadElevation),
   },
   {
     id: "citrus-scenic-loop", name: "CITRUS SCENIC LOOP", kind: "parkway",
     halfWidth: 6, lanes: 2, travelWeight: 0.86,
     points: catmullRomPath(citrusScenicControls, true, 12), closed: true,
-    connectGrid: "crossings", junctions: citrusScenicControls,
+    connectGrid: "crossings", junctions: citrusScenicControls.map(atRoadElevation),
   },
   {
     id: "mariposa-drive", name: "MARIPOSA DRIVE", kind: "parkway",
     halfWidth: 6, lanes: 2, travelWeight: 0.84,
     points: catmullRomPath(mariposaDriveControls, false, 12),
-    connectGrid: "crossings", junctions: mariposaDriveControls,
+    connectGrid: "crossings", junctions: mariposaDriveControls.map(atRoadElevation),
+  },
+  {
+    id: "palisades-overlook-drive", name: "PALISADES OVERLOOK DRIVE", kind: "parkway",
+    halfWidth: 6.4, lanes: 2, travelWeight: 0.92,
+    points: catmullRomPath(palisadesControls, false, 10),
+    connectGrid: "crossings", junctions: palisadesControls.map(atRoadElevation),
+  },
+  {
+    id: "laurel-canyon-run", name: "LAUREL CANYON RUN", kind: "parkway",
+    halfWidth: 6.5, lanes: 2, travelWeight: 0.9,
+    points: catmullRomPath(laurelCanyonControls, false, 9),
+    connectGrid: "crossings", junctions: laurelCanyonControls.map(atRoadElevation),
+  },
+  {
+    id: "canal-cruise", name: "CANAL CRUISE", kind: "parkway",
+    halfWidth: 6, lanes: 2, travelWeight: 0.95,
+    points: catmullRomPath(canalCruiseControls, true, 10), closed: true,
+    connectGrid: "crossings", junctions: canalCruiseControls.map(atRoadElevation),
   },
   ramp(
     "northwest-inner-ramp", "NORTHWEST INTERCHANGE",
