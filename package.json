@@ -10,6 +10,7 @@
     "install:ci": "bash scripts/install-ci.sh",
     "dev": "vite",
     "build": "node scripts/platform-task.mjs build",
+    "build:vercel": "next build",
     "start": "vite preview",
     "test": "npm run test:architecture && npm run test:runtime && npm run test:unit && npm run build && node --test tests/rendered-html.test.mjs",
     "test:architecture": "node --test tests/architecture.test.mjs",

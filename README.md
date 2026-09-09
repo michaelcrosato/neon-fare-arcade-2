@@ -81,6 +81,16 @@ To preview a production build, run `npm run build` and then
 `npm run start -- --host 127.0.0.1 --port 4173`. This uses Vite's Cloudflare
 preview so the built Worker and static assets run together on Windows and Linux.
 
+## Vercel deployment
+
+`vercel.json` selects the Next.js preset, runs `npm run build:vercel`, and
+publishes `.next`. The default `npm run build` produces a Cloudflare/Sites
+Worker in `dist/`; Vercel's Next.js preset cannot deploy that artifact.
+
+To check Vercel's production build locally, run `npm run build:vercel`, then
+`npm exec -- next start --hostname 127.0.0.1 --port 4184` and open
+`http://127.0.0.1:4184`. CI builds both deployment targets.
+
 ## Quality commands
 
 - `npm run test:file -- tests/game/player.test.ts`: run one focused test file
