@@ -132,8 +132,8 @@ function campus(ctx: LotContext, lot: LotKind) {
       cedarBox(ctx, goalX, y, 2.6, 0.18, 6.2, 0.18, CEDAR_WHITE);
     }
   } else if (lot === "vale-commons") {
-    cedarBox(ctx, x, y, 0.065, 2.6, top + bottom, 0.13, CEDAR_CREAM, MAT_SIDEWALK);
-    cedarBox(ctx, x, y, 0.065, left + right, 2.6, 0.13, CEDAR_CREAM, MAT_SIDEWALK);
+    cedarBox(ctx, x, y + (bottom - top) / 2, 0.065, 2.6, top + bottom, 0.13, CEDAR_CREAM, MAT_SIDEWALK);
+    cedarBox(ctx, x + (right - left) / 2, y, 0.065, left + right, 2.6, 0.13, CEDAR_CREAM, MAT_SIDEWALK);
     if (tileX === 0 && tileY === 0) {
       cedarBox(ctx, x, y + 1, 0.12, 9, 8, 0.24, CEDAR_CREAM, MAT_SIDEWALK);
       cedarRoof(ctx, x, y + 1, 3.7, 10, 9, 2.4, CEDAR_BLUE);
