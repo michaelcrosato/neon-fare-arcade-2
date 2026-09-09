@@ -99,9 +99,7 @@ export function presentSimulationEvents(
       case "dropoff":
         warmPassengerArt(getGame().fareJobs);
         triggerFareImpact(makeDropoffFareImpact(event));
-        announce(event.runKind === "free-run"
-          ? `Delivered to ${event.destination}. Fare ${event.fareAward} dollars. Multiplier ${event.multiplier.toFixed(1)}.`
-          : `Delivered to ${event.destination}. Fare ${event.fareAward} dollars, plus ${event.bonusSeconds} seconds. Multiplier ${event.multiplier.toFixed(1)}.`);
+        announce(`${event.rider}: ${event.stars} out of 5 stars. ${event.comment} Fare ${event.fareAward} dollars, including ${event.tip} dollars tip.${event.runKind === "timed" ? ` Plus ${event.bonusSeconds} seconds.` : ""}`);
         tone(523, 0.1, "sine", 659);
         schedule(() => tone(659, 0.1, "sine", 784), 90);
         break;

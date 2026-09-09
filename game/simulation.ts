@@ -1,3 +1,5 @@
+import { passengerComment, passengerRating, passengerRatingParSeconds, passengerTip, type PassengerStars } from "./passenger-rating";
+import { findTaxiExitPose } from "./player";
 import {
   BONE,
   BOOST_OVERDRIVE_BONUS_WORLD_UNITS,
@@ -99,6 +101,9 @@ export type SimulationEvent = ExplorationEvent
       rider: string;
       destination: string;
       fareAward: number;
+      stars: PassengerStars;
+      tip: number;
+      comment: string;
       bonusSeconds: number;
       multiplier: number;
       runKind: RunKind;
@@ -855,6 +860,7 @@ export function stepGame(
         markFarePickedUp(game, game.jobIndex);
         game.jobStartedAt = game.elapsed;
         game.tripHadCollision = false;
+        game.passengerReview = null;
         game.score += 50;
         if (game.drivingModel === "arcade") game.boost = Math.min(100, game.boost + 8);
         game.message = "";
@@ -892,7 +898,14 @@ export function stepGame(
         else game.combo = 1;
         game.bestMultiplier = Math.max(game.bestMultiplier, game.combo);
         const earned = Math.round((quote.baseScore + quick + clean) * game.combo);
-        const fareAward = Math.max(12, Math.round(earned / 45));
+        const baseFare = Math.max(12, Math.round(earned / 45));
+        const stars = passengerRating(legTime, passengerRatingParSeconds(quote.routeDistance), game.tripHadCollision);
+        const tip = passengerTip(baseFare, stars);
+        const fareAward = baseFare + tip;
+        const comment = passengerComment(job, stars);
+        const exitPose = findTaxiExitPose(game, world);
+        const point = exitPose ? { x: exitPose.x, y: exitPose.y, z: exitPose.z ?? game.z } : job.dropoff;
+        game.passengerReview = { job, point, stars, tip, comment, until: game.elapsed + 8 };
         const timeBonus = creditRunTime(game, quote.dropoffSeconds);
         game.score += earned;
         game.fare += fareAward;
@@ -921,6 +934,9 @@ export function stepGame(
           rider: job.rider,
           destination: job.destination,
           fareAward,
+          stars,
+          tip,
+          comment,
           bonusSeconds: timeBonus,
           multiplier: game.combo,
           runKind: game.runKind,

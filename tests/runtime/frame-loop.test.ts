@@ -32,6 +32,7 @@ test("a service pause stops catch-up ticks and discards paused frame time", (con
     react: { useEffect: (effect: () => (() => void)) => { cleanup = effect(); } },
     "../canvas2d-renderer": { Canvas2DRenderer: StubRenderer },
     "../webgpu-renderer": { createWebGPURenderer: async () => null },
+    "./background-music": { BackgroundMusic: class { update() {} unlock() {} destroy() {} } },
     "./runtime-errors": { reportRuntimeError: (_scope: string, error: unknown) => { throw error; } },
     "@/game/simulation": {
       stepGame: (state: Game) => {
@@ -54,6 +55,8 @@ test("a service pause stops catch-up ticks and discards paused frame time", (con
   });
   output.useGameRuntime({
     canvas2dRef: ref({}), webGpuCanvasRef: ref({}), gameRef: ref(game),
+    passengerReviewRef: ref(null),
+    selectingDriverRef: ref(false),
     cameraRef: ref({ x: 0, y: 0, heading: 0, mode: "fixed", zoom: 1, heightOffset: 0 }),
     cameraModeRef: ref("fixed"), inputRef: ref({}),
     interactionPulseRef: ref(false), jumpPulseRef: ref(false), modeRef: mode,

@@ -159,6 +159,7 @@ export function makeGame(
     onboard: false,
     jobStartedAt: 0,
     tripHadCollision: false,
+    passengerReview: null,
     activeCourier: null,
     customDestination: null,
     availableCourierMask: ALL_COURIER_MASK,

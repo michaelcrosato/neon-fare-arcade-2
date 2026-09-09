@@ -43,10 +43,14 @@ import {
 } from "../webgpu-renderer";
 import type { DiagnosticsRecorder } from "./diagnostics";
 import { reportRuntimeError } from "./runtime-errors";
+import { BackgroundMusic } from "./background-music";
+import { presentPassengerReview } from "./passenger-review";
 
 type RefBox<T> = { current: T };
 
 export type GameRuntimeOptions = Readonly<{
+  selectingDriverRef: RefBox<boolean>;
+  passengerReviewRef: RefBox<HTMLDivElement | null>;
   canvas2dRef: RefBox<HTMLCanvasElement | null>;
   webGpuCanvasRef: RefBox<HTMLCanvasElement | null>;
   gameRef: RefBox<Game>;
@@ -75,6 +79,8 @@ export type GameRuntimeOptions = Readonly<{
 /** Owns the browser clock, world streaming, renderer fallback, and fixed-step loop. */
 export function useGameRuntime(options: GameRuntimeOptions) {
   const {
+    selectingDriverRef,
+    passengerReviewRef,
     canvas2dRef,
     webGpuCanvasRef,
     gameRef,
@@ -121,6 +127,10 @@ export function useGameRuntime(options: GameRuntimeOptions) {
     let currentNavigation = navigationController.update(gameRef.current);
     let wasInterior = isInterior(gameRef.current);
     let previousEffectiveCameraMode = cameraRef.current.mode;
+    const music = new BackgroundMusic();
+    music.update(gameRef.current, modeRef.current, mutedRef.current, document.hidden, selectingDriverRef.current);
+    window.addEventListener("pointerdown", music.unlock);
+    window.addEventListener("keydown", music.unlock);
 
     try {
       fallbackRenderer = new Canvas2DRenderer(canvas2d);
@@ -346,7 +356,16 @@ export function useGameRuntime(options: GameRuntimeOptions) {
           camera.boom = 0;
         }
         currentNavigation = navigationController.update(game);
+        music.update(game, modeRef.current, mutedRef.current, document.hidden, selectingDriverRef.current);
         renderFrame(game, now, currentWorld, currentNavigation);
+        if (passengerReviewRef.current) {
+          if (modeRef.current === "menu" || modeRef.current === "ended" || modeRef.current === "countdown") {
+            passengerReviewRef.current.hidden = true;
+          } else {
+            const bounds = canvas2d.getBoundingClientRect();
+            presentPassengerReview(passengerReviewRef.current, game, cameraRef.current, activeRenderer?.kind === "WebGPU", bounds.width, bounds.height);
+          }
+        }
 
         if (boostVisualActive && !boostAudioActiveRef.current) {
           tone(280, 0.16, "sawtooth", 920);
@@ -426,6 +445,7 @@ export function useGameRuntime(options: GameRuntimeOptions) {
         setMode("paused");
         setAudioAnnouncement("Game paused.");
       }
+      music.update(gameRef.current, modeRef.current, mutedRef.current, document.hidden, selectingDriverRef.current);
     };
     const onBlur = () => {
       clearInput();
@@ -433,6 +453,7 @@ export function useGameRuntime(options: GameRuntimeOptions) {
         setMode("paused");
         setAudioAnnouncement("Game paused.");
       }
+      music.update(gameRef.current, modeRef.current, mutedRef.current, document.hidden, selectingDriverRef.current);
     };
     document.addEventListener("visibilitychange", onVisibility);
     window.addEventListener("blur", onBlur);
@@ -445,12 +466,17 @@ export function useGameRuntime(options: GameRuntimeOptions) {
       activeRenderer = null;
       gpuRenderer?.destroy();
       fallbackRenderer?.destroy();
+      music.destroy();
+      window.removeEventListener("pointerdown", music.unlock);
+      window.removeEventListener("keydown", music.unlock);
       gpuRenderer = null;
       fallbackRenderer = null;
     };
   }, [
     audioRef,
     boostAudioActiveRef,
+    selectingDriverRef,
+    passengerReviewRef,
     cameraModeRef,
     cameraRef,
     canvas2dRef,

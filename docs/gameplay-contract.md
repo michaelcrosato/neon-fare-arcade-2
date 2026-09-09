@@ -6,6 +6,25 @@ updates the arcade launch, steering, road elevation and contact rules below.
 
 ## Coordinates and roads
 
+- New browsers start in Chase Low; an explicitly saved camera selection wins.
+- Passenger reviews award 1–5 stars. Travel time divided by the route's par time
+  earns 5 stars at ≤1.0, 4 at ≤1.35, 3 at ≤1.8, 2 at ≤2.4, and 1 above that.
+  Review par time is `max(11, road distance / 17 + 6)` seconds, without the
+  arcade bonus's 62-second cap, so long regional trips can earn five stars too.
+  Any recorded collision during the occupied trip subtracts one star, floored at 1.
+  Five stars add a rounded 25% cash tip; four add 10%; lower ratings add none.
+  Tips are added to the existing cash fare, not the score. This applies to every
+  driving model and run kind; Free Run's score still has no quick-time bonus.
+  The departing passenger and their unique review remain at the destination for
+  eight simulation seconds (or until the next pickup), with a head-anchored bubble.
+- Browser music loops track 02 through the mode and driver selection menus,
+  stops at the countdown, and loops 01 while inside a venue on foot. Each run
+  shuffles 04–08 once. Each pickup starts the next song, natural endings advance
+  through that order, and drop-off stops fare music. Interiors temporarily replace
+  fare music and resume its position on exit. Pause/hidden tabs stop playback;
+  the audio toggle mutes music and sound effects together. Browser autoplay may
+  defer menu music until the first click or keypress.
+
 - `+x` points east, `+y` points south, and `+z` points up.
 - Local street coordinates use a 36-unit lattice with a 6-unit half width.
   Neon City exposes the full local grid. Cedar Vale uses neighborhood collectors,

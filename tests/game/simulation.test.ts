@@ -1,3 +1,4 @@
+import { passengerComment } from "../../game/passenger-rating";
 import { groundAt } from "../../game/vehicle-road-contact";
 import assert from "node:assert/strict";
 import test from "node:test";
@@ -811,7 +812,9 @@ test("clean dropoff preserves fare math, combo, handoff lock, and event payload"
   const legTime = 10 + FIXED_DT * 11;
   const quick = Math.round(Math.max(0, quote.parSeconds - legTime) * 35);
   const expectedScore = Math.round((quote.baseScore + quick + 150) * 1.5);
-  const expectedFare = Math.max(12, Math.round(expectedScore / 45));
+  const baseFare = Math.max(12, Math.round(expectedScore / 45));
+  const tip = Math.round(baseFare * 0.25);
+  const expectedFare = baseFare + tip;
 
   assert.equal(game.score, expectedScore);
   assert.equal(game.fare, expectedFare);
@@ -832,6 +835,9 @@ test("clean dropoff preserves fare math, combo, handoff lock, and event payload"
     rider: job.rider,
     destination: job.destination,
     fareAward: expectedFare,
+    stars: 5,
+    tip,
+    comment: passengerComment(job, 5),
     bonusSeconds: quote.dropoffSeconds,
     multiplier: 1.5,
     runKind: "timed",
@@ -902,7 +908,9 @@ test("Free Run passenger loops keep time fixed and remove hidden quick-time pres
     dropoffEvents.push(...stepGame(dropoffGame, IDLE_INPUT, FIXED_DT, EMPTY_WORLD, () => 1));
   }
   const expectedScore = Math.round((quote.baseScore + 150) * 1.5);
-  const expectedFare = Math.max(12, Math.round(expectedScore / 45));
+  const baseFare = Math.max(12, Math.round(expectedScore / 45));
+  const tip = Math.round(baseFare * 0.25);
+  const expectedFare = baseFare + tip;
   assert.equal(dropoffGame.timeLeft, 75);
   assert.equal(dropoffGame.score, expectedScore);
   assert.equal(dropoffGame.fare, expectedFare);
@@ -914,6 +922,9 @@ test("Free Run passenger loops keep time fixed and remove hidden quick-time pres
     rider: dropoffJob.rider,
     destination: dropoffJob.destination,
     fareAward: expectedFare,
+    stars: 5,
+    tip,
+    comment: passengerComment(dropoffJob, 5),
     bonusSeconds: 0,
     multiplier: 1.5,
     runKind: "free-run",

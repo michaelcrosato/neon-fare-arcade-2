@@ -807,6 +807,10 @@ function addObjectiveRing(
 
 export function farePresentationBoxes(game: Game, seconds: number) {
   const boxes: Box[] = [];
+  if (game.passengerReview && game.elapsed < game.passengerReview.until) {
+    const job = game.passengerReview.job;
+    boxes.push(...farePassengerBoxes({ ...job, pickup: game.passengerReview.point, pickupApproach: job.dropoffApproach }, 0, seconds));
+  }
   for (const { index, job } of waitingFares(game)) {
     addObjectiveRing(boxes, job.pickup, seconds, CYAN, 1.05, 12);
     boxes.push(...farePassengerBoxes(job, index, seconds));

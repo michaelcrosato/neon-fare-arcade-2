@@ -73,6 +73,8 @@ export function makeDropoffFareImpact(input: {
   rider: string;
   destination: string;
   fareAward: number;
+  stars?: number;
+  tip?: number;
   bonusSeconds: number;
   multiplier: number;
   runKind: RunKind;
@@ -87,7 +89,9 @@ export function makeDropoffFareImpact(input: {
     destination: input.destination,
     eyebrow: "DESTINATION HIT // FARE COMPLETE",
     headline: `+$${input.fareAward}`,
-    detail: input.runKind === "free-run"
+    detail: input.stars !== undefined
+      ? `${"★".repeat(input.stars)}${"☆".repeat(5 - input.stars)} · ${input.tip ? `$${input.tip} TIP` : "NO TIP"}`
+      : input.runKind === "free-run"
       ? `${input.multiplier.toFixed(1)}× MULTI · FREE RUN`
       : input.bonusSeconds > 0
         ? `${input.multiplier.toFixed(1)}× MULTI · +${input.bonusSeconds} SEC`

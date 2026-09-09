@@ -4,7 +4,6 @@
 import {
   MAX_STREAM_BOXES,
   PERSPECTIVE_DRAW_DISTANCE,
-  chaseCameraPreset,
 } from "@/game/config";
 import type {
   Camera,
@@ -25,13 +24,9 @@ import { renderTargetSize } from "@/game/render/resolution";
 import {
   MAX_STREAM_SURFACE_QUADS, SURFACE_VERTEX_BYTES, SURFACE_VERTICES_PER_QUAD, packSurfaceQuads,
 } from "@/game/render/surfaces";
-import { cabViewMatrix } from "@/game/render/cab-camera";
+import { viewProjection } from "@/game/render/view-projection";
 import {
-  lookAt,
-  mat4Multiply,
-  orthoZO,
   perspectiveSkyView,
-  perspectiveZO,
   shouldRenderPlayerAvatar,
   shouldRenderTaxi,
 } from "@/game/render/camera";
@@ -792,37 +787,9 @@ fn bloomColor(color: vec3<f32>) -> vec3<f32> {
     if (ghostActors.length > GHOST_INSTANCE_CAPACITY) throw new Error("Ghost instance budget exceeded");
     this.device.queue.writeBuffer(this.ghostBuffer, 0, packBoxes(ghostActors));
     const aspect = this.canvas.width / Math.max(1, this.canvas.height);
-    const forwardX = Math.cos(camera.heading);
-    const forwardY = Math.sin(camera.heading);
     const skyView = perspectiveSkyView(camera);
     const drawDistance = world.landscapeSurfaces?.length ? 1_200 : PERSPECTIVE_DRAW_DISTANCE;
-    let projection: Float32Array;
-    let view: Float32Array;
-    if (camera.mode === "fixed") {
-      const halfHeight = 20 / camera.zoom;
-      // Match the X handedness used by perspectiveZO so steering reads the
-      // same way when switching between Fixed ISO and the chase cameras.
-      projection = orthoZO(halfHeight * aspect, -halfHeight * aspect, -halfHeight, halfHeight, 0.1, 140);
-      view = lookAt(
-        [camera.x + 25, camera.y + 25, 29 + camera.heightOffset],
-        [camera.x, camera.y, camera.heightOffset],
-      );
-    } else if (camera.mode === "cab") {
-      const fov = skyView!.fovY;
-      projection = perspectiveZO(fov, aspect, 0.08, drawDistance);
-      view = cabViewMatrix(game, camera);
-    } else {
-      const preset = chaseCameraPreset(camera.mode, camera.onFoot);
-      const boomRatio = camera.boom / preset.distance;
-      const eyeHeight = 1.65 + (preset.height - 1.65) * boomRatio + camera.heightOffset;
-      const fov = skyView!.fovY;
-      projection = perspectiveZO(fov, aspect, 0.15, drawDistance);
-      view = lookAt(
-        [camera.x - forwardX * camera.boom, camera.y - forwardY * camera.boom, eyeHeight],
-        [camera.x + forwardX * preset.lookAhead, camera.y + forwardY * preset.lookAhead, preset.targetZ + camera.heightOffset],
-      );
-    }
-    const matrix = mat4Multiply(projection, view);
+    const matrix = viewProjection(game, camera, aspect, drawDistance);
     const uniform = new Float32Array(CAMERA_UNIFORM_FLOATS);
     uniform.set(matrix, 0);
     uniform.set([seconds, camera.x, camera.y, skyView?.fovY ?? 0], 16);

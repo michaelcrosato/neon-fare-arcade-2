@@ -654,6 +654,12 @@ export class Canvas2DRenderer implements Renderer {
       ));
     }
 
+    if (game.passengerReview && game.elapsed < game.passengerReview.until && !interior) {
+      const job = game.passengerReview.job;
+      const point = game.passengerReview.point;
+      drawOnDeck((point.z ?? 0) + 2.5, () => drawFarePassenger(job.passengerArtCell, job.rider, point.x, point.y, false, point.z));
+    }
+
     const drawPlayerAvatar = () => {
       if (mountainFrame) return;
       if (game.player.kind !== "walking") return;

@@ -19,6 +19,7 @@ export const PINK: Color = [0.92, 0.22, 0.46, 1];
 export const MUTED_RED: Color = [0.54, 0.09, 0.06, 1];
 
 export const CAMERA_STORAGE_KEY = "neon-fare-camera-v1";
+export const DEFAULT_CAMERA_MODE: CameraMode = "chase-low";
 export const CAMERA_OPTIONS: readonly {
   id: CameraMode;
   label: string;

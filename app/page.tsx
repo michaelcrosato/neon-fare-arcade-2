@@ -10,6 +10,7 @@ import {
 import {
   CAMERA_OPTIONS,
   CAMERA_STORAGE_KEY,
+  DEFAULT_CAMERA_MODE,
   cameraLabel,
   defaultCameraBoom,
   isCameraMode,
@@ -104,10 +105,12 @@ function warmPassengerArt(jobs: Game["fareJobs"]) {
 export default function Home() {
   const canvas2dRef = useRef<HTMLCanvasElement>(null);
   const webGpuCanvasRef = useRef<HTMLCanvasElement>(null);
+  const passengerReviewRef = useRef<HTMLDivElement>(null);
+  const selectingDriverRef = useRef(false);
   const [initialGame] = useState(() => makeGame());
   const gameRef = useRef<Game>(initialGame);
-  const cameraRef = useRef<Camera>({ x: 0, y: 0, zoom: 1, heading: 0, mode: "fixed", boom: 0, heightOffset: 0, onFoot: false });
-  const cameraModeRef = useRef<CameraMode>("fixed");
+  const cameraRef = useRef<Camera>({ x: 0, y: 0, zoom: 1, heading: -Math.PI / 2, mode: DEFAULT_CAMERA_MODE, boom: defaultCameraBoom(DEFAULT_CAMERA_MODE), heightOffset: 0, onFoot: false });
+  const cameraModeRef = useRef<CameraMode>(DEFAULT_CAMERA_MODE);
   const inputRef = useRef<InputState>({
     up: false,
     down: false,
@@ -137,9 +140,10 @@ export default function Home() {
   const [pendingRunKind, setPendingRunKind] = useState<RunKind>("timed");
   const [pendingDrivingModel, setPendingDrivingModel] = useState<DrivingModel>("arcade");
   const [modal, setModal] = useState<Modal>(null);
+  useEffect(() => { selectingDriverRef.current = modal === "traits"; }, [modal]);
   const [modalParent, setModalParent] = useState<"home" | null>(null);
   const [muted, setMuted] = useState(false);
-  const [cameraMode, setCameraModeState] = useState<CameraMode>("fixed");
+  const [cameraMode, setCameraModeState] = useState<CameraMode>(DEFAULT_CAMERA_MODE);
   const [hud, setHud] = useState<Hud>(EMPTY_HUD);
   const [rendererKind, setRendererKind] = useState("CANVAS FALLBACK");
   const [records, setRecords] = useState<RunRecord[]>([]);
@@ -424,6 +428,7 @@ export default function Home() {
   }, [checkpointExternalGameChange, tone]);
 
   const requestStartRun = useCallback((runKind: RunKind = "timed", requestedModel: DrivingModel = "arcade") => {
+    selectingDriverRef.current = true;
     clearInput();
     ensureAudio();
     const drivingModel: DrivingModel = runKind === "free-run" ? requestedModel : "arcade";
@@ -439,6 +444,7 @@ export default function Home() {
   }, [clearInput, ensureAudio, tone]);
 
   const beginRun = useCallback((drivingTraitId: DrivingTraitId) => {
+    selectingDriverRef.current = false;
     clearInput();
     ensureAudio();
     resetFareCards();
@@ -634,6 +640,8 @@ export default function Home() {
   }, [openModal, tone, triggerCourierImpact, triggerFareImpact]);
 
   useGameRuntime({
+    selectingDriverRef,
+    passengerReviewRef,
     canvas2dRef,
     webGpuCanvasRef,
     gameRef,
@@ -856,6 +864,7 @@ export default function Home() {
           aria-hidden={rendererKind !== "WEBGPU ACTIVE"}
         />
         <div className="print-noise" aria-hidden="true" />
+        <div ref={passengerReviewRef} className="passenger-review" role="status" hidden />
         <div className="speed-fx" aria-hidden="true">
           <i /><i /><i /><i /><i /><i /><i /><i />
           <i /><i /><i /><i /><i /><i /><i /><i />

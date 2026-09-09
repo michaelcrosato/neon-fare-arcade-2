@@ -658,3 +658,28 @@
 }
 
 .fare-deck-browser__empty span { max-width: 340px; font-size: 0.58rem; }
+/* Anchored to the departing passenger's head in the active camera. */
+.passenger-review {
+  position: absolute;
+  z-index: 35;
+  transform: translate(-50%, -100%);
+  width: min(260px, 65vw);
+  padding: 10px 14px;
+  border: 3px solid #090909;
+  border-radius: 16px;
+  background: #fff4cf;
+  color: #17120b;
+  box-shadow: 4px 4px 0 #090909;
+  font: 700 16px/1.25 "Barlow Condensed", sans-serif;
+  text-align: center;
+  white-space: pre-line;
+  pointer-events: none;
+}
+.passenger-review::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: var(--review-tail-x, calc(50% - 9px));
+  border: 9px solid transparent;
+  border-top-color: #090909;
+}

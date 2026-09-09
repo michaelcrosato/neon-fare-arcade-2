@@ -628,6 +628,14 @@ export type Game = {
   onboard: boolean;
   jobStartedAt: number;
   tripHadCollision: boolean;
+  passengerReview: {
+    job: Job;
+    point: WorldPoint;
+    stars: import("./passenger-rating").PassengerStars;
+    tip: number;
+    comment: string;
+    until: number;
+  } | null;
   /** Optional courier assignment. Passenger and courier state never alias. */
   activeCourier: ActiveCourier | null;
   /** Player-authored GPS waypoint. It overrides guidance without cancelling jobs. */
