@@ -43,8 +43,10 @@ registry rather than infer playable space from one symmetric radius or hull.
 
 - `game/regions.ts` owns slots, active regions, exact containment, bounds,
   nearest-region presentation, movement projection, and local place names.
-- `game/residential.ts` owns Cedar Vale's neighborhood deck and authored anchor
-  registry.
+- `game/residential.ts` owns Cedar Vale's parcels, neighborhood deck, pedestrian
+  frontages and anchor registry. `cedar-layout.ts` defines its collectors, loops,
+  courts and local streets; `residential-buildings.ts` and `cedar-assets.ts` own
+  its homes, campuses, trees and architectural meshes.
 - `game/mountain.ts` owns Northstar Range's area deck, rural building families,
   terrain dressing, portals, and authored anchor registry.
 - `game/terrain/` owns Northstar and Copper landforms, settlement benches, shared
@@ -64,7 +66,7 @@ registry rather than infer playable space from one symmetric radius or hull.
   `coast-scenery.ts` owns canal structures and deterministic coastal animation.
   `coastal-layout.ts` holds shoreline, pier, and canal coordinates for world and
   GPS; `terrain/coast-forms.ts` owns physical landforms and the street plan.
-- `game/road-topology.ts` owns enabled local-grid segments. Northstar, Copper
+- `game/road-topology.ts` owns enabled local-grid segments. Cedar, Northstar, Copper
   Mesa, Cypress Reach, and Solana Coast use compact town lattices and sparse rural spines
   instead of citywide grids.
 - `game/world.ts` dispatches from region to district/theme and generates chunks.
@@ -86,28 +88,39 @@ nearest-region lookup is presentation-only.
 
 ## Cedar Vale: East region
 
-Cedar Vale is a warm, low-rise residential borough with mature trees, pitched
-roofs, porches, amber lamps, hedges, mailboxes, family cars, garden paths, and a
-sage/cream/terracotta/porch-blue palette. It deliberately avoids repeating the
-center city's towers, factories, warehouses, marina lots, and flat neon roofline.
+Cedar Vale is leafy North American suburbia: winding neighborhood roads,
+street-facing homes, separate yards, garages, porches, real gabled roofs,
+mature broadleaf trees, mailboxes and parked family cars. Cream, sage, brick
+and muted blue tie the buildings together. Connected greens replace the old
+checkerboard of tiny housing islands and asphalt.
+
+Cedar Avenue connects the city arrival to a compact civic center and Garden
+End. Pine Ridge, Brookside and Garden End have neighborhood loops; Bellwether
+Lane, Brookside Greenway and Moonbeam Road serve the destinations. Oak,
+Hawthorn and Birch Courts each end in a planted turning circle surrounded by
+homes. The 613 parcels have distinct, non-overlapping yards; spaces away from
+streets become woodland, gardens and pocket greens. Pedestrians follow the
+actual front sidewalks, including curves.
 
 Its five neighborhoods are:
 
 - **Willow Gate** — the denser city transition: rowhomes, duplexes, garden
   apartments, corner flats, and the gateway station.
-- **Pine Ridge** — bungalows, ranch houses, evergreens, trails, and Bellwether
+- **Pine Ridge** — bungalows, ranch houses, mature woodland, and Bellwether
   School.
 - **Maple Commons** — the civic heart: common green, library, recreation, local
   shops, and denser family housing.
-- **Brookside** — cottage courts, pools, recreation lots, rain gardens, and
+- **Brookside** — cottage courts, a pool, basketball courts, playing fields, and
   pocket parks.
 - **Garden End** — deeper yards, community gardens, the water tower, and the
   Moonbeam Drive-In.
 
 The authored regional anchors are Maple Commons, Bellwether School, Cedar
 Branch Library, Brookside Recreation Center, Engine House 9, Garden End Water
-Tower, Moonbeam Drive-In, and Cedar Vale Gateway Station. Multi-block anchors
-retain public streets between their tiles and expose exactly one stable portal.
+Tower, Moonbeam Drive-In, and Cedar Vale Gateway Station. All eight retain their
+stable portal IDs and services. Multi-block anchors close internal streets to
+form continuous school grounds, commons, library, recreation and drive-in sites.
+See [the redesign record](cedar-vale-reimagining.md) for scope and evidence.
 
 ## Northstar Range: North region
 

@@ -1,3 +1,4 @@
+import { cedarNeighborhoodForBlock } from "./residential";
 import {
   BLOCKS_PER_CHUNK,
   CENTER_REGION_CHUNK_MAX,
@@ -273,11 +274,7 @@ export function regionRoadBounds(region: WorldRegion) {
 
 /** Small local names make the residential region feel lived-in on the HUD. */
 export function cedarValeNeighborhoodForBlock(blockX: number, blockY: number) {
-  if (blockX <= 31) return "WILLOW GATE";
-  if (blockY <= -8) return "PINE RIDGE";
-  if (blockY >= 8) return "BROOKSIDE";
-  if (blockX >= 53) return "GARDEN END";
-  return "MAPLE COMMONS";
+  return cedarNeighborhoodForBlock(blockX, blockY).replaceAll("-", " ").toUpperCase();
 }
 
 export function northstarRangeAreaForBlock(blockX: number, blockY: number) {

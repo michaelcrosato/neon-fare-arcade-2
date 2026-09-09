@@ -2,8 +2,9 @@
 
 ## Add a building or district variant
 
-1. For Neon City—or Cedar until its builders are extracted—add deterministic
-   geometry in `game/world.ts`. For Northstar, Copper, Cypress, or Solana, edit the
+1. For Neon City, add deterministic geometry in `game/world.ts`. Cedar buildings
+   belong in `game/residential-buildings.ts`, with reusable meshes in
+   `game/cedar-assets.ts`. For Northstar, Copper, Cypress, or Solana, edit the
    owning theme module. Use the chunk/lot random source rather than
    `Math.random`.
 2. Add colliders only for solid footprints.

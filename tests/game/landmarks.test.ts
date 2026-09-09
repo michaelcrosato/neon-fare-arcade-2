@@ -110,7 +110,11 @@ test("flagship campuses replace only their internal grid streets", () => {
   assert.deepEqual(WORLD_CAMPUSES.map((campus) => campus.id), [
     "pulse-stadium",
     "neon-general",
+    "maple-commons",
     "bellwether-school",
+    "cedar-library",
+    "brookside-rec",
+    "moonbeam-drive-in",
     "northstar-village-square",
     "timberline-lodge",
     "old-spruce-mill",

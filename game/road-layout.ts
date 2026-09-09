@@ -1,30 +1,10 @@
 import type { Vec2 } from "./model";
 import { sampleRoadCurve, roadDistance, type RoadControlPoint } from "./roads/geometry";
 import { atRoadElevation, drapeRegionalRoad, inElevatedTerrain } from "./terrain/region-forms";
+import { CEDAR_ROADS } from "./cedar-layout";
 
-export type RoadKind =
-  | "boulevard"
-  | "parkway"
-  | "highway"
-  | "ramp"
-  | "roundabout";
-
-export type GridConnectionMode = "crossings" | "explicit" | "none";
-
-export type RoadPathDefinition = {
-  id: string;
-  name: string;
-  kind: RoadKind;
-  halfWidth: number;
-  lanes: number;
-  /** Lower values make fast roads attractive without changing physical distance. */
-  travelWeight: number;
-  points: readonly RoadControlPoint[];
-  closed?: boolean;
-  oneWay?: boolean;
-  connectGrid: GridConnectionMode;
-  junctions: readonly RoadControlPoint[];
-};
+import type { RoadPathDefinition } from "./roads/types";
+export type { RoadKind, GridConnectionMode, RoadPathDefinition } from "./roads/types";
 
 export type RoundaboutDefinition = {
   id: string;
@@ -234,6 +214,7 @@ const ramp = (
 });
 
 export const SPECIAL_ROADS: readonly RoadPathDefinition[] = [
+  ...CEDAR_ROADS,
   {
     id: "aurora-boulevard",
     name: "AURORA BOULEVARD",

@@ -3,6 +3,7 @@ import { mountainAnimatedBoxes } from "../mountain-scenery";
 import { copperAnimatedBoxes } from "../copper-scenery";
 import { coastAnimatedBoxes } from "../coast-scenery";
 import { coastCanalBlock } from "../coastal-layout";
+import { residentialPedestrianPoint } from "../residential";
 import {
   AMBIENT_PEDESTRIANS_PER_BLOCK,
   BLUE,
@@ -598,6 +599,7 @@ export function ambientPedestrianPointForBlock(
 ) {
   const signature = (Math.imul(blockX + 79, 73856093) ^ Math.imul(blockY - 43, 19349663)) >>> 0;
   const regionId = regionForBlock(blockX, blockY)?.id;
+  if (regionId === "cedar-vale") return residentialPedestrianPoint(blockX, blockY, seconds, pedestrianIndex);
   const northstar = regionId === "northstar-range";
   const copperMesa = regionId === "copper-mesa";
   const cypressReach = regionId === "cypress-reach";

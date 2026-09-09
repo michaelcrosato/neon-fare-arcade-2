@@ -366,7 +366,7 @@ test("Cedar portals and moving sidewalk residents remain collision-clear", () =>
       }
     }
   }
-  assert.ok(portals > 900);
+  assert.ok(portals > 250 && portals < 500, "generous suburban parcels retain hundreds of enterable homes");
 });
 
 test("Northstar portals, return poses, and sparse ambient walkers remain collision-clear", () => {

@@ -29,7 +29,7 @@ export const REGIONAL_CONTENT_BY_ID = {
     theme: "residential",
     anchors: CEDAR_VALE_ANCHORS,
     mapLabelPolicy: "far-east",
-    campusPolicy: "bellwether-only",
+    campusPolicy: "multi-tile",
   },
   "northstar-range": {
     id: "northstar-range",

@@ -5,10 +5,12 @@ import { gridStreetPointEnabled } from "./road-topology";
 import { ROAD_SURFACE_HEIGHT } from "./roads/contact";
 import { inElevatedTerrain, roadDesignHeight } from "./terrain/region-forms";
 import { groundAt } from "./vehicle-road-contact";
+import { containingRegionForPosition } from "./regions";
 
 export function alignGridTraffic(car: TrafficCar) {
   if (car.motion.kind !== "grid") return;
-  if (!inElevatedTerrain(car.x, car.y)) { car.z = 0; car.pitch = 0; car.roll = 0; return; }
+  const cedar = containingRegionForPosition(car.x, car.y)?.id === "cedar-vale";
+  if (!inElevatedTerrain(car.x, car.y) && !cedar) { car.z = 0; car.pitch = 0; car.roll = 0; return; }
   const axis = car.motion.axis === "x" ? "horizontal" : "vertical";
   if (!gridStreetPointEnabled(car, axis)) {
     const projection = nearestRoadProjection({ x: car.x, y: car.y }, car.heading);

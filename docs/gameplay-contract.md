@@ -8,7 +8,8 @@ updates the arcade launch, steering, road elevation and contact rules below.
 
 - `+x` points east, `+y` points south, and `+z` points up.
 - Local street coordinates use a 36-unit lattice with a 6-unit half width.
-  Neon City and Cedar Vale expose the full local grid; Northstar Range, Copper
+  Neon City exposes the full local grid. Cedar Vale uses neighborhood collectors,
+  loops, planted turning courts and a compact town grid. Northstar Range, Copper
   Mesa, Cypress Reach, and Solana Coast expose compact town grids and sparse rural spines.
   Authored boulevards, parkways, highways, ramps, roundabouts, mountain roads,
   desert roads, coastal drives, and wetland causeways complete the shared graph. Pavement,
@@ -356,7 +357,7 @@ updates the arcade launch, steering, road elevation and contact rules below.
   its ring and dwell check, and a `pickupApproach`/`dropoffApproach` pose on an
   driveable street for GPS and distance economy. The road approach must remain
   inside the zone radius and be taxi-collision-clear at the center and tangent
-  samples. City/Cedar approaches stay on ordinary local streets; sparse-region
+  samples. City approaches stay on ordinary local streets; sparse-region
   fares may also use validated curb positions on authored roads, away from
   graph junctions.
 - Zone centers must be inside world bounds and outside driveable road, solid
@@ -411,9 +412,8 @@ updates the arcade launch, steering, road elevation and contact rules below.
   passenger state transition, but credits zero seconds and removes the
   quick-time reward component so roaming never creates hidden time pressure.
 - Fare economy uses the canonical street-route length between road approaches.
-  City/Cedar local guidance may choose a faster authored shortcut without
-  changing its legacy baseline payout; sparse-region and cross-region trips use
-  the shared graph. Changing either route contract is a scoring change and
+  Guidance and fare quotes use the same shared road graph, including Cedar's
+  neighborhood roads and all cross-region links. Changing the route contract is a scoring change and
   must pass the exact fare fixtures.
 - A completed fare locks the next objective for one second so the dropoff impact
   beat is not replaced by a nearby pickup.

@@ -245,6 +245,13 @@ export class Canvas2DRenderer implements Renderer {
       drawAngularRect(south + 0.3, 0.19, 0.08, 0.008, "#f05b23");
 
       const east = -camera.y / 5200;
+      if (camera.x > 792 && Math.abs(camera.y) < 792) {
+        for (let index = -8; index <= 8; index++) {
+          const bearing = east + index * 0.075;
+          const top = 0.035 + (index * index % 5) * 0.004;
+          drawAngularRect(bearing, -0.005, 0.047, top, index % 2 ? "#497651" : "#3b6748");
+        }
+      } else {
       drawAngularRect(east, -0.03, 0.58, 0.02, "#197aa5");
       drawMountain(east - 0.46, 0.18, 0.08, "#24634d");
       drawMountain(east, 0.24, 0.11, "#2b7356");
@@ -253,6 +260,7 @@ export class Canvas2DRenderer implements Renderer {
       drawAngularRect(east + 0.32, 0.11, 0.014, 0.15, "#101d20");
       drawAngularRect(east, 0.015, 0.48, 0.012, "#101d20");
       drawAngularRect(east - 0.5, 0.075, 0.015, 0.11, "#f4edd8");
+      }
 
       const reachDepth = Math.max(0, Math.min(1, (Math.min(camera.x, camera.y) - 720) / 660));
       if (reachDepth > 0) {
@@ -295,7 +303,7 @@ export class Canvas2DRenderer implements Renderer {
       };
     };
     const screenYaw = (yaw: number) => directional ? yaw - camera.heading - Math.PI / 2 : yaw;
-    const mountainFrame = inElevatedTerrain(camera.x, camera.y) && !interior;
+    const mountainFrame = (inElevatedTerrain(camera.x, camera.y) || (camera.x > 792 && Math.abs(camera.y) < 792)) && !interior;
     if (mountainFrame) {
       const raster = this.terrainRaster;
       const rasterScale = Math.min(1, Math.sqrt(1_200_000 / (this.width * this.height)));

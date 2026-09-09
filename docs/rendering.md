@@ -44,7 +44,7 @@ GPU resources.
 Pavement and lane strips use the same mitered cross sections as tire contact
 and traffic. Deck sidewalls, undersides, guardrails and supports are generated
 with matching collision geometry. Canvas projects those same surfaces, culls
-back faces, and draws actors/routes on their decks. Northstar, Copper, and Solana Coast use
+back faces, and draws actors/routes on their decks. Cedar, Northstar, Copper, and Solana Coast use
 full cuboid faces and `app/terrain-raster.ts` for per-pixel orthographic depth
 across terrain, structures, animated scenery, and the taxi. Intersecting faces
 resolve by pixel depth instead of a face's average depth, so large ground
@@ -53,9 +53,15 @@ buffer is capped at 1.2 million pixels and scales back to the Canvas surface.
 It remains an overhead graphic fallback. An outline preserves taxi visibility
 under an elevated road.
 
+Cedar's broadleaf crowns, gables and continuous ground use this depth path too.
+Its authored pavement includes two-unit outer sidewalk bands; these share the
+road contact surface and leave openings at junctions. Flat local streets have
+low paving outside the asphalt. A low wooded eastern horizon replaces the
+old harbor silhouette when the camera is in Cedar Vale.
+
 Chunk collision capacity is 256 and stream capacity is 1,536; collision radius
 remains one chunk. The 121 central city chunks currently total 71,092 static
-boxes and 8,581 colliders. Their maximum radius-three view is 30,457 boxes;
+boxes and 8,581 colliders. Their maximum radius-three view is 28,967 boxes;
 their maximum collision window is 888. The exhaustive tests also check every
 window across all 726 active regional chunks.
 

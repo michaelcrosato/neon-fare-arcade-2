@@ -18,6 +18,7 @@ import type { InputState, WorldView } from "../../game/model";
 import { NavigationController, buildNavigationPlan } from "../../game/navigation";
 import { routeBoxes } from "../../game/render/scene";
 import { containingRegionForPosition } from "../../game/regions";
+import { isRoadSurface } from "../../game/road-network";
 import { stepGame } from "../../game/simulation";
 import {
   getNavigationLabel,
@@ -92,8 +93,8 @@ test("full-map pointer conversion accounts for horizontal and vertical letterbox
 test("custom destinations snap to authored roads and reject inactive region cells", () => {
   const cedarStreet = customDestinationForMapPoint({ x: 1019, y: 17 });
   assert.ok(cedarStreet);
-  assert.ok(distance(cedarStreet, { x: 1019, y: 17 }) < 20);
-  assert.ok(cedarStreet.x === 1008 || cedarStreet.y === 0);
+  assert.ok(distance(cedarStreet, { x: 1019, y: 17 }) < 50);
+  assert.ok(isRoadSurface(cedarStreet));
   const copperMesaStreet = customDestinationForMapPoint({ x: 0, y: 1200 });
   assert.ok(copperMesaStreet);
   assert.equal(containingRegionForPosition(copperMesaStreet.x, copperMesaStreet.y)?.id, "copper-mesa");

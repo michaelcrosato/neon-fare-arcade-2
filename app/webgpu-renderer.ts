@@ -307,8 +307,18 @@ fn sunRayMask(point: vec2<f32>, thickness: f32, inner: f32, outer: f32) -> f32 {
     );
     color = mix(color, vec3<f32>(0.05, 0.22, 0.12), cactus * desertDepth);
 
-    // EAST: localized water and wooded islands, bridge and lighthouse.
+    // Cedar's low tree line replaces the old eastern harbor after arrival.
     let eastFar = wrapAngle(azimuth - (-camera.params.z / 5200.0));
+    if (camera.params.y > 792.0 && abs(camera.params.z) < 792.0) {
+      let treeCell = floor((eastFar + 0.7) / 0.065);
+      let treeCenter = (treeCell + 0.5) * 0.065 - 0.7;
+      let treeTop = 0.03 + hash1(treeCell + 18.0) * 0.024;
+      let grove = angularWindow(eastFar, 0.58, 0.72)
+        * (1.0 - smoothstep(0.034, 0.046, abs(eastFar - treeCenter)))
+        * heightBand(elevation, -0.065, treeTop, 0.004);
+      color = mix(color, vec3<f32>(0.25, 0.42, 0.29), grove);
+    } else {
+    // From the other regions the distant harbor retains its compass bearing.
     let eastGate = max(max(angularWindow(eastFar + 0.5, 0.1, 0.17), angularWindow(eastFar, 0.13, 0.21)), angularWindow(eastFar - 0.5, 0.1, 0.17));
     let eastWater = eastGate * heightBand(elevation, -0.052, -0.014, 0.004);
     color = mix(color, vec3<f32>(0.08, 0.43, 0.66), eastWater * 0.88);
@@ -326,6 +336,7 @@ fn sunRayMask(point: vec2<f32>, thickness: f32, inner: f32, outer: f32) -> f32 {
     let lighthouseBearing = bridgeBearing - 0.5;
     let lighthouse = max(angularRect(azimuth, elevation, lighthouseBearing, 0.06, vec2<f32>(0.014, 0.1), 0.003), angularRect(azimuth, elevation, lighthouseBearing, 0.165, vec2<f32>(0.027, 0.015), 0.003));
     color = mix(color, vec3<f32>(0.95, 0.92, 0.82), lighthouse);
+    }
 
     // SOUTHEAST: Cypress Reach emerges only after both regional coordinates
     // are positive, with blackwater, cypress crowns, lanterns, and lock towers.

@@ -1,6 +1,7 @@
 import { northstarGridStreetEnabled } from "./terrain/northstar-forms";
 import { copperGridStreetEnabled } from "./terrain/copper-forms";
 import { coastGridStreetEnabled } from "./terrain/coast-forms";
+import { cedarGridStreetEnabled } from "./residential";
 import { ROAD_SPACING } from "./config";
 import {
   campusBlocksGridStreetPoint,
@@ -90,7 +91,7 @@ function cypressReachGridStreetEnabled(point: Vec2, axis: GridStreetAxis) {
 }
 
 export function regionUsesSparseRoadTopology(regionId: WorldRegionId | null | undefined) {
-  return regionId === "northstar-range" || regionId === "copper-mesa" || regionId === "cypress-reach" || regionId === "solana-coast";
+  return regionId === "northstar-range" || regionId === "copper-mesa" || regionId === "cypress-reach" || regionId === "solana-coast" || regionId === "cedar-vale";
 }
 
 /** One authority for pavement, physics, routing, traffic, fares, and GPS. */
@@ -98,6 +99,7 @@ export function gridStreetPointEnabled(point: Vec2, axis: GridStreetAxis) {
   if (!isPlayablePoint(point.x, point.y)) return false;
   if (campusBlocksGridStreetPoint(point, axis)) return false;
   const region = containingRegionForPosition(point.x, point.y);
+  if (region?.id === "cedar-vale") return cedarGridStreetEnabled(point, axis);
   if (region?.id === "northstar-range") return northstarGridStreetEnabled(point, axis);
   if (region?.id === "copper-mesa") return copperGridStreetEnabled(point, axis);
   if (region?.id === "cypress-reach") return cypressReachGridStreetEnabled(point, axis);

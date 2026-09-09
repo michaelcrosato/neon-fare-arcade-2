@@ -180,7 +180,7 @@ test("every city center preserves collision radius and worst-case stream budgets
   }
 
   assert.deepEqual(maxNearBoxes, { count: 5757, at: "-4,0" });
-  assert.deepEqual(maxFarBoxes, { count: 30457, at: "5,2" });
+  assert.deepEqual(maxFarBoxes, { count: 28967, at: "-2,2" });
   assert.deepEqual(maxColliders, { count: 888, at: "-3,-4" });
 });
 

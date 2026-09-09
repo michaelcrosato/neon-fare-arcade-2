@@ -22,13 +22,14 @@ fixed-step cadence and returns semantic events.
   `career.ts`; gas service: `gas-station.ts`.
 - Region registry/containment: `regions.ts`; shared regional metadata:
   `regional-content.ts`; regional map math: `regional-map.ts`.
-- Cedar data/portals: `residential.ts`—its visual builders currently remain in
-  `world.ts`. Northstar, Copper, and Cypress data/builders live in
+- Cedar parcels/data/portals: `residential.ts`; street plan: `cedar-layout.ts`;
+  buildings/campuses: `residential-buildings.ts`; meshes/palette: `cedar-assets.ts`.
+  Northstar, Copper, and Cypress data/builders live in
   `mountain.ts`, `desert.ts`, and `wetland.ts`. Solana Coast owns its data,
   shore, and builders in `coastal.ts`; shared shore coordinates live in
   `coastal-layout.ts`.
 - Neon City landmark definitions: `landmarks.ts`; grid-interrupting footprints:
-  `campuses.ts`; chunk generation/streaming and center/Cedar visuals: `world.ts`.
+  `campuses.ts`; chunk generation/streaming and center visuals: `world.ts`.
 - Authored roads: `road-layout.ts`; enabled grid: `road-topology.ts`; graph and
   projection: `road-network.ts`; canonical route geometry: `route-geometry.ts`;
   traffic: `traffic.ts`.

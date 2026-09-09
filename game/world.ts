@@ -1,4 +1,5 @@
 import { coastCanalBlock, COAST_PIER, onCoastPier } from "./coastal-layout";
+import { CEDAR_ROADS, CEDAR_COURTS } from "./cedar-layout";
 import { regionalSettlementPlan } from "./terrain/settlement";
 import { mountainRoadStructures } from "./roads/mountain-structures";
 import { copperRoadStructures } from "./roads/copper-structures";
@@ -119,11 +120,14 @@ import {
   regionalPlaceName,
 } from "./regions";
 import {
+  cedarStreetIndex,
   residentialAnchorForBlock,
   residentialLotForBlock,
   residentialPortalSpecs,
 } from "./residential";
 import { gridStreetSegmentEnabled } from "./road-topology";
+import { buildResidentialLot } from "./residential-buildings";
+import { cedarRoundVolume, cedarTree, CEDAR_CREAM as VALE_CREAM, CEDAR_AMBER as VALE_AMBER, CEDAR_GROUND as VALE_GROUND } from "./cedar-assets";
 import {
   SPECIAL_ROAD_SEGMENTS,
   isRoadSurface,
@@ -312,9 +316,10 @@ function addLotInteractions(
   const desertAnchor = desertAnchorForBlock(blockX, blockY);
   const wetlandAnchor = wetlandAnchorForBlock(blockX, blockY);
   const coastal = regionForBlock(blockX, blockY)?.theme === "coastal";
+  const cedar = regionForBlock(blockX, blockY)?.theme === "residential";
   const fixedCoastal = coastal && (blockX < -56 || coastalAnchorForBlock(blockX, blockY) || coastCanalBlock(blockX, blockY));
-  const orientation = landmark?.definition.orientation ?? (residentialAnchor || mountainAnchor || desertAnchor || wetlandAnchor || fixedCoastal ? 0 : lotOrientationForBlock(blockX, blockY));
-  const contentScale = landmark || residentialAnchor || mountainAnchor || desertAnchor || wetlandAnchor || coastal ? 1 : GENERIC_LOT_CONTENT_SCALE;
+  const orientation = landmark?.definition.orientation ?? (residentialAnchor || mountainAnchor || desertAnchor || wetlandAnchor || fixedCoastal || cedar ? 0 : lotOrientationForBlock(blockX, blockY));
+  const contentScale = landmark || residentialAnchor || mountainAnchor || desertAnchor || wetlandAnchor || coastal || cedar ? 1 : GENERIC_LOT_CONTENT_SCALE;
   for (const spec of portalSpecsForLot(lot, centerX, centerY, blockX, blockY)) {
     const pose = transformLotPose(
       centerX,
@@ -1034,293 +1039,6 @@ function addHomesLot(ctx: LotContext) {
   addParkedVehicle(ctx, "driveway-car", ctx.centerX + 7.6, ctx.centerY - 9.9, Math.PI / 2, BLUE);
   ctx.boxes.push({ x: ctx.centerX - 3.4, y: ctx.centerY - 9.4, z: 1.1, sx: 0.42, sy: 0.55, sz: 1.2, yaw: 0, color: RED, material: MAT_BUILDING });
   addPerson(ctx, ctx.centerX - 1.2, ctx.centerY - 8.5, ORANGE);
-}
-
-const VALE_CREAM: Color = [0.91, 0.82, 0.64, 1];
-const VALE_SAGE: Color = [0.32, 0.49, 0.29, 1];
-const VALE_TERRA: Color = [0.65, 0.28, 0.16, 1];
-const VALE_PORCH_BLUE: Color = [0.18, 0.42, 0.55, 1];
-const VALE_MULBERRY: Color = [0.43, 0.13, 0.26, 1];
-const VALE_AMBER: Color = [1, 0.58, 0.12, 1];
-const VALE_GROUND: Color = [0.67, 0.75, 0.57, 1];
-
-function addValeGround(ctx: LotContext, accent = VALE_SAGE) {
-  ctx.boxes.push({ x: ctx.centerX, y: ctx.centerY, z: 0.55, sx: 22.5, sy: 22.5, sz: 0.18, yaw: 0, color: GRASS, material: MAT_GRASS });
-  ctx.boxes.push({ x: ctx.centerX, y: ctx.centerY - 7.7, z: 0.69, sx: 2.25, sy: 7.2, sz: 0.12, yaw: 0, color: VALE_CREAM, material: MAT_SIDEWALK });
-  for (const x of [-9.5, 9.5]) {
-    ctx.boxes.push({ x: ctx.centerX + x, y: ctx.centerY, z: 0.88, sx: 0.5, sy: 18.8, sz: 0.7, yaw: 0, color: accent, material: MAT_FOLIAGE });
-  }
-}
-
-function addBellwetherSchoolTile(ctx: LotContext, tileX: number, tileY: number) {
-  addCampusGround(ctx, tileX, tileY, 3, 2, tileY === 1 ? GRASS : VALE_CREAM, tileY === 1 ? MAT_GRASS : MAT_SIDEWALK);
-  const campusCenter = campusPoint(ctx, tileX, tileY, 3, 2);
-
-  if (tileY === 0) {
-    const wingColor = tileX === 1 ? VALE_CREAM : BRICK;
-    addBuildingShell(ctx, `bellwether-wing-${tileX}`, ctx.centerX, ctx.centerY + 1.5, 23.5, 19, tileX === 1 ? 11 : 8.5, wingColor, VALE_PORCH_BLUE, VALE_TERRA);
-    ctx.boxes.push({ x: ctx.centerX, y: ctx.centerY - 6, z: 6.1, sx: 22.5, sy: 0.35, sz: 1.1, yaw: 0, color: tileX === 1 ? VALE_AMBER : VALE_PORCH_BLUE, material: MAT_SIGN });
-    for (const x of [-9, 0, 9]) ctx.boxes.push({ x: ctx.centerX + x, y: ctx.centerY - 6.1, z: 3.2, sx: 3.8, sy: 0.22, sz: 2.1, yaw: 0, color: CYAN, material: MAT_WINDOW });
-  }
-
-  if (tileX === 1 && tileY === 0) {
-    // Bell and clock tower is the 250m silhouette the prior school lacked.
-    ctx.boxes.push({ x: ctx.centerX, y: ctx.centerY + 2, z: 13, sx: 9, sy: 9, sz: 19, yaw: 0, color: BRICK, material: MAT_BUILDING });
-    ctx.boxes.push({ x: ctx.centerX, y: ctx.centerY + 2, z: 23.4, sx: 11.5, sy: 11.5, sz: 1.4, yaw: Math.PI / 4, color: VALE_TERRA, material: MAT_BUILDING });
-    for (const y of [-2.6, 6.6]) ctx.boxes.push({ x: ctx.centerX, y: ctx.centerY + y, z: 17, sx: 4.4, sy: 0.25, sz: 4.4, yaw: Math.PI / 4, color: VALE_CREAM, material: MAT_SIGN });
-    ctx.boxes.push({ x: ctx.centerX, y: ctx.centerY + 2, z: 25.4, sx: 0.5, sy: 0.5, sz: 4.2, yaw: 0, color: VALE_AMBER, material: MAT_SIGN });
-    for (const x of [-10, -5, 5, 10]) ctx.boxes.push({ x: ctx.centerX + x, y: ctx.centerY - 11.2, z: 3, sx: 0.75, sy: 0.75, sz: 4.8, yaw: 0, color: VALE_CREAM, material: MAT_BUILDING });
-    ctx.boxes.push({ x: ctx.centerX, y: ctx.centerY - 11.2, z: 5.6, sx: 23, sy: 1.3, sz: 0.8, yaw: 0, color: VALE_TERRA, material: MAT_BUILDING });
-  }
-
-  if (tileY === 1) {
-    const fieldY = campusCenter.y + 5;
-    ctx.boxes.push({ x: ctx.centerX, y: fieldY, z: 0.8, sx: 34, sy: 24, sz: 0.14, yaw: 0, color: GRASS, material: MAT_GRASS });
-    ctx.boxes.push({ x: ctx.centerX, y: fieldY, z: 0.91, sx: 30.5, sy: 20.5, sz: 0.08, yaw: 0, color: VALE_PORCH_BLUE, material: MAT_ROAD });
-    ctx.boxes.push({ x: ctx.centerX, y: fieldY, z: 0.99, sx: 27, sy: 17, sz: 0.08, yaw: 0, color: GRASS, material: MAT_GRASS });
-    for (const y of [-6, 0, 6]) ctx.boxes.push({ x: ctx.centerX, y: fieldY + y, z: 1.05, sx: 25, sy: 0.18, sz: 0.06, yaw: 0, color: WHITE, material: MAT_SIGN });
-    if (tileX === 0) {
-      addBuildingShell(ctx, "bellwether-gym", ctx.centerX - 1.5, ctx.centerY + 4.5, 20.5, 14, 7.5, VALE_CREAM, VALE_PORCH_BLUE, VALE_TERRA);
-      ctx.boxes.push({ x: ctx.centerX - 1.5, y: ctx.centerY - 2.7, z: 5.2, sx: 19, sy: 0.35, sz: 1.2, yaw: 0, color: VALE_AMBER, material: MAT_SIGN });
-    } else if (tileX === 2) {
-      for (const y of [-6, 0, 6]) {
-        ctx.boxes.push({ x: ctx.centerX + 8, y: fieldY + y, z: 1.8, sx: 6.5, sy: 1.7, sz: 1.6, yaw: 0, color: BRICK, material: MAT_BUILDING });
-      }
-    } else {
-      for (const [x, color] of [[-7, YELLOW], [0, VALE_PORCH_BLUE], [7, RED]] as const) {
-        addParkedVehicle(ctx, `bellwether-bus-${x}`, ctx.centerX + x, ctx.centerY + 9, 0, color);
-      }
-    }
-  }
-
-  for (const [x, y] of [[-11, -11], [11, -11], [-11, 11], [11, 11]] as const) {
-    if ((tileX * 3 + tileY + (x > 0 ? 1 : 0)) % 3 === 0) addTree(ctx, ctx.centerX + x, ctx.centerY + y, 0.66, true);
-  }
-  if (tileX === 1 && tileY === 1) {
-    ctx.boxes.push({ x: ctx.centerX, y: ctx.centerY - 9, z: 5, sx: 0.35, sy: 0.35, sz: 8.5, yaw: 0, color: INK, material: MAT_BUILDING });
-    ctx.boxes.push({ x: ctx.centerX + 1.5, y: ctx.centerY - 9, z: 8, sx: 3, sy: 0.18, sz: 1.5, yaw: 0, color: VALE_AMBER, material: MAT_SIGN });
-    addPerson(ctx, ctx.centerX - 4, ctx.centerY - 9, VALE_MULBERRY);
-    addPerson(ctx, ctx.centerX + 4, ctx.centerY - 9, VALE_PORCH_BLUE);
-  }
-}
-
-function addValePorchLamp(ctx: LotContext, x: number, y: number) {
-  ctx.boxes.push({ x, y, z: 1.55, sx: 0.18, sy: 0.18, sz: 2.1, yaw: 0, color: INK, material: MAT_LAMP });
-  ctx.boxes.push({ x, y, z: 2.72, sx: 0.62, sy: 0.62, sz: 0.42, yaw: Math.PI / 4, color: VALE_AMBER, material: MAT_LAMP });
-}
-
-function addValeMailbox(ctx: LotContext, x: number, y: number, color = VALE_PORCH_BLUE) {
-  ctx.boxes.push({ x, y, z: 0.92, sx: 0.18, sy: 0.18, sz: 1.35, yaw: 0, color: INK, material: MAT_BUILDING });
-  ctx.boxes.push({ x, y, z: 1.58, sx: 0.68, sy: 0.42, sz: 0.45, yaw: 0, color, material: MAT_SIGN });
-}
-
-function addValeHouse(
-  ctx: LotContext,
-  id: string,
-  x: number,
-  y: number,
-  sx: number,
-  sy: number,
-  height: number,
-  color: Color,
-  roof: Color,
-) {
-  addBuildingShell(ctx, id, x, y, sx, sy, height, color, VALE_PORCH_BLUE, roof);
-  ctx.boxes.push({ x, y, z: height + 1.25, sx: sx + 0.85, sy: sy * 0.72, sz: 1.75, yaw: Math.PI / 4, color: roof, material: MAT_BUILDING });
-  ctx.boxes.push({ x, y: y - sy / 2 - 0.85, z: 0.92, sx: Math.min(4.8, sx * 0.72), sy: 1.8, sz: 0.22, yaw: 0, color: VALE_CREAM, material: MAT_SIDEWALK });
-  ctx.boxes.push({ x, y: y - sy / 2 - 1, z: 2.35, sx: Math.min(5.2, sx * 0.78), sy: 2.1, sz: 0.28, yaw: 0, color: roof, material: MAT_BUILDING });
-}
-
-function addValeBungalowLot(ctx: LotContext) {
-  addValeGround(ctx);
-  const homes = [
-    { x: -6.2, y: 1.2, c: VALE_CREAM, r: VALE_TERRA },
-    { x: 5.9, y: 2.1, c: WHITE, r: VALE_PORCH_BLUE },
-    { x: 0, y: 7.6, c: VALE_SAGE, r: VALE_MULBERRY },
-  ] as const;
-  for (const [index, home] of homes.entries()) {
-    addValeHouse(ctx, `vale-bungalow-${index}`, ctx.centerX + home.x, ctx.centerY + home.y, 6.4, 5.7, 3.5 + ctx.random() * 0.8, home.c, home.r);
-  }
-  addValeMailbox(ctx, ctx.centerX - 4.2, ctx.centerY - 8.8);
-  addValePorchLamp(ctx, ctx.centerX + 7.8, ctx.centerY - 7.5);
-  addTree(ctx, ctx.centerX - 8.2, ctx.centerY - 6.3, 0.62, true);
-}
-
-function addValeRanchLot(ctx: LotContext) {
-  addValeGround(ctx, LIME);
-  addValeHouse(ctx, "vale-ranch-a", ctx.centerX - 5.2, ctx.centerY + 2.5, 8.7, 7.4, 3.4, VALE_CREAM, VALE_TERRA);
-  addValeHouse(ctx, "vale-ranch-b", ctx.centerX + 5.4, ctx.centerY + 3.8, 8.3, 6.6, 3.2, WHITE, VALE_PORCH_BLUE);
-  ctx.boxes.push({ x: ctx.centerX + 7.6, y: ctx.centerY - 5.4, z: 0.67, sx: 4.3, sy: 8.7, sz: 0.09, yaw: 0, color: BONE, material: MAT_SIDEWALK });
-  addParkedVehicle(ctx, "vale-family-car", ctx.centerX + 7.6, ctx.centerY - 6.6, Math.PI / 2, VALE_MULBERRY);
-  addValeMailbox(ctx, ctx.centerX - 5.5, ctx.centerY - 8.8, VALE_TERRA);
-}
-
-function addValeDuplexLot(ctx: LotContext) {
-  addValeGround(ctx);
-  for (const side of [-1, 1]) {
-    const x = ctx.centerX + side * 5.2;
-    addValeHouse(ctx, `vale-duplex-${side}`, x, ctx.centerY + 3, 9.1, 11.8, 5.8, side < 0 ? VALE_CREAM : BRICK, side < 0 ? VALE_PORCH_BLUE : VALE_TERRA);
-    addValeMailbox(ctx, x, ctx.centerY - 8.7, side < 0 ? VALE_PORCH_BLUE : VALE_TERRA);
-  }
-  addTree(ctx, ctx.centerX, ctx.centerY - 4.8, 0.66, true);
-}
-
-function addValeCottageCourtLot(ctx: LotContext) {
-  addValeGround(ctx, VALE_SAGE);
-  ctx.boxes.push({ x: ctx.centerX, y: ctx.centerY + 0.8, z: 0.68, sx: 4.3, sy: 17.5, sz: 0.1, yaw: 0, color: VALE_CREAM, material: MAT_SIDEWALK });
-  const placements = [[-6.2, -0.4], [6.2, -0.4], [-6.2, 7.2], [6.2, 7.2]] as const;
-  placements.forEach(([x, y], index) => addValeHouse(ctx, `vale-cottage-${index}`, ctx.centerX + x, ctx.centerY + y, 6.1, 5.4, 3.6, index % 2 ? WHITE : VALE_CREAM, index % 3 ? VALE_TERRA : VALE_PORCH_BLUE));
-  addBench(ctx, ctx.centerX, ctx.centerY + 3.5);
-  addValePorchLamp(ctx, ctx.centerX, ctx.centerY - 7.4);
-}
-
-function addValeRowhomesLot(ctx: LotContext) {
-  addValeGround(ctx);
-  for (let unit = 0; unit < 4; unit += 1) {
-    const x = ctx.centerX + (unit - 1.5) * 5.1;
-    const height = 5.6 + (unit % 2) * 0.45;
-    const color = [VALE_CREAM, BRICK, WHITE, VALE_SAGE][unit];
-    const roof = unit % 2 ? VALE_TERRA : VALE_MULBERRY;
-    ctx.boxes.push({ x: x + 0.35, y: ctx.centerY + 4.65, z: height / 2 + 0.45, sx: 4.85, sy: 10.8, sz: height, yaw: 0, color: INK, material: MAT_BUILDING });
-    ctx.boxes.push({ x, y: ctx.centerY + 4.3, z: height / 2 + 0.58, sx: 4.55, sy: 10.5, sz: height, yaw: 0, color, material: MAT_BUILDING });
-    ctx.boxes.push({ x, y: ctx.centerY - 1.05, z: 2.15, sx: 1.1, sy: 0.24, sz: 2.2, yaw: 0, color: VALE_PORCH_BLUE, material: MAT_WINDOW });
-    ctx.boxes.push({ x, y: ctx.centerY + 4.3, z: height + 1.3, sx: 5.15, sy: 7.2, sz: 1.65, yaw: Math.PI / 4, color: roof, material: MAT_BUILDING });
-    ctx.boxes.push({ x, y: ctx.centerY - 1.7, z: 0.82, sx: 2.6, sy: 1.6, sz: 0.22, yaw: 0, color: VALE_CREAM, material: MAT_SIDEWALK });
-    addSolid(ctx, `vale-row-${unit}`, x, ctx.centerY + 4.3, 4.55, 10.5, height + 1);
-  }
-  for (const x of [-7.7, 7.7]) addValeMailbox(ctx, ctx.centerX + x, ctx.centerY - 8.2);
-}
-
-function addValeGardenApartmentsLot(ctx: LotContext) {
-  addValeGround(ctx);
-  addBuildingShell(ctx, "vale-garden-back", ctx.centerX, ctx.centerY + 7, 19.5, 6.5, 8.6, VALE_CREAM, VALE_PORCH_BLUE, VALE_TERRA);
-  for (const side of [-1, 1]) {
-    addBuildingShell(ctx, `vale-garden-wing-${side}`, ctx.centerX + side * 7.2, ctx.centerY + 0.4, 5.3, 8.2, 8.1, side < 0 ? BRICK : VALE_SAGE, VALE_PORCH_BLUE, VALE_TERRA);
-  }
-  ctx.boxes.push({ x: ctx.centerX, y: ctx.centerY - 0.8, z: 0.7, sx: 10.5, sy: 8.4, sz: 0.12, yaw: 0, color: GRASS, material: MAT_GRASS });
-  addBench(ctx, ctx.centerX, ctx.centerY - 1.4);
-  for (const x of [-4.5, 4.5]) addTree(ctx, ctx.centerX + x, ctx.centerY - 1, 0.54);
-  addValePorchLamp(ctx, ctx.centerX, ctx.centerY - 7.4);
-}
-
-function addValeCornerFlatsLot(ctx: LotContext) {
-  addValeGround(ctx, VALE_TERRA);
-  addBuildingShell(ctx, "vale-corner-flats", ctx.centerX, ctx.centerY + 3.4, 17.8, 13.4, 7.8, BRICK, VALE_PORCH_BLUE, VALE_MULBERRY);
-  for (const x of [-5.4, 0, 5.4]) {
-    ctx.boxes.push({ x: ctx.centerX + x, y: ctx.centerY - 3.5, z: 2, sx: 4.4, sy: 0.25, sz: 2.5, yaw: 0, color: VALE_PORCH_BLUE, material: MAT_WINDOW });
-    ctx.boxes.push({ x: ctx.centerX + x, y: ctx.centerY - 3.8, z: 3.45, sx: 4.7, sy: 1.1, sz: 0.35, yaw: 0, color: x ? VALE_AMBER : VALE_SAGE, material: MAT_SIGN });
-  }
-  addParkingStripes(ctx, ctx.centerX, ctx.centerY - 7.4, 5);
-  addValePorchLamp(ctx, ctx.centerX - 9, ctx.centerY - 8);
-}
-
-function addValePocketParkLot(ctx: LotContext) {
-  addValeGround(ctx, LIME);
-  ctx.boxes.push({ x: ctx.centerX, y: ctx.centerY, z: 0.7, sx: 3.1, sy: 22, sz: 0.08, yaw: 0, color: VALE_CREAM, material: MAT_SIDEWALK });
-  ctx.boxes.push({ x: ctx.centerX, y: ctx.centerY + 2, z: 2.4, sx: 5.8, sy: 5.8, sz: 0.42, yaw: Math.PI / 4, color: VALE_TERRA, material: MAT_BUILDING });
-  for (const [x, y] of [[-7.7, -6], [7.7, -6], [-7.7, 7], [7.7, 7]] as const) addTree(ctx, ctx.centerX + x, ctx.centerY + y, 0.68, true);
-  addBench(ctx, ctx.centerX - 5.5, ctx.centerY - 1.5);
-  addBench(ctx, ctx.centerX + 5.5, ctx.centerY + 4.5, Math.PI);
-  ctx.boxes.push({ x: ctx.centerX - 8.3, y: ctx.centerY - 8.2, z: 1.15, sx: 1.1, sy: 0.55, sz: 1.6, yaw: 0, color: VALE_MULBERRY, material: MAT_SIGN });
-}
-
-function addValeCommunityGardenLot(ctx: LotContext) {
-  addValeGround(ctx, VALE_SAGE);
-  for (let bed = 0; bed < 8; bed += 1) {
-    const x = ctx.centerX + (bed % 4 - 1.5) * 4.2;
-    const y = ctx.centerY + (Math.floor(bed / 4) - 0.2) * 7.2;
-    ctx.boxes.push({ x, y, z: 0.9, sx: 3.2, sy: 5.1, sz: 0.65, yaw: 0, color: BRICK, material: MAT_GRASS });
-    ctx.boxes.push({ x, y, z: 1.3, sx: 2.7, sy: 4.6, sz: 0.35, yaw: 0, color: bed % 2 ? LIME : LEAF, material: MAT_FOLIAGE });
-  }
-  addBuildingShell(ctx, "vale-garden-shed", ctx.centerX + 7.8, ctx.centerY - 6.8, 4.2, 3.8, 3.2, VALE_CREAM, VALE_PORCH_BLUE, VALE_TERRA);
-  ctx.boxes.push({ x: ctx.centerX - 7.8, y: ctx.centerY - 6.5, z: 1.85, sx: 4.3, sy: 3.2, sz: 0.25, yaw: 0, color: WHITE, material: MAT_WINDOW });
-}
-
-function addValeRecreationLot(ctx: LotContext) {
-  addValeGround(ctx);
-  ctx.boxes.push({ x: ctx.centerX + 3, y: ctx.centerY + 1, z: 0.7, sx: 14.5, sy: 18, sz: 0.12, yaw: 0, color: VALE_PORCH_BLUE, material: MAT_ROAD });
-  ctx.boxes.push({ x: ctx.centerX + 3, y: ctx.centerY + 1, z: 0.79, sx: 0.18, sy: 17, sz: 0.06, yaw: 0, color: WHITE, material: MAT_SIDEWALK });
-  ctx.boxes.push({ x: ctx.centerX + 3, y: ctx.centerY + 1, z: 0.8, sx: 13.5, sy: 0.18, sz: 0.06, yaw: 0, color: WHITE, material: MAT_SIDEWALK });
-  for (const y of [-6, 8]) {
-    ctx.boxes.push({ x: ctx.centerX + 3, y: ctx.centerY + y, z: 2.3, sx: 0.28, sy: 0.28, sz: 3.1, yaw: 0, color: INK, material: MAT_BUILDING });
-    ctx.boxes.push({ x: ctx.centerX + 3, y: ctx.centerY + y, z: 3.7, sx: 2.8, sy: 0.28, sz: 1.5, yaw: 0, color: VALE_AMBER, material: MAT_SIGN });
-  }
-  addTree(ctx, ctx.centerX - 7.5, ctx.centerY - 6.2, 0.7, true);
-  addBench(ctx, ctx.centerX - 6.5, ctx.centerY + 5.5);
-}
-
-function addValeAnchorLot(ctx: LotContext, lot: LotKind) {
-  const anchorTile = residentialAnchorForBlock(ctx.blockX, ctx.blockY);
-  const tileX = anchorTile?.tileX ?? 0;
-  const tileY = anchorTile?.tileY ?? 0;
-  if (lot === "vale-school") {
-    addBellwetherSchoolTile(ctx, tileX, tileY);
-    return;
-  }
-  addValeGround(ctx, VALE_TERRA);
-  if (lot === "vale-commons") {
-    if (tileX === 0 && tileY === 0) {
-      ctx.boxes.push({ x: ctx.centerX, y: ctx.centerY, z: 1, sx: 8, sy: 8, sz: 0.35, yaw: Math.PI / 4, color: VALE_CREAM, material: MAT_SIDEWALK });
-      ctx.boxes.push({ x: ctx.centerX, y: ctx.centerY, z: 4.2, sx: 5.5, sy: 5.5, sz: 0.45, yaw: Math.PI / 4, color: VALE_TERRA, material: MAT_SIGN });
-      for (const x of [-2, 2]) for (const y of [-2, 2]) ctx.boxes.push({ x: ctx.centerX + x, y: ctx.centerY + y, z: 2.5, sx: 0.28, sy: 0.28, sz: 3.4, yaw: 0, color: INK, material: MAT_BUILDING });
-      addSolid(ctx, "maple-bandstand", ctx.centerX, ctx.centerY, 6.2, 6.2, 4.8);
-    } else {
-      for (const [x, y] of [[-7, -7], [7, -7], [-7, 7], [7, 7]] as const) addTree(ctx, ctx.centerX + x, ctx.centerY + y, 0.72, true);
-      addBench(ctx, ctx.centerX - 4.8, ctx.centerY);
-      addBench(ctx, ctx.centerX + 4.8, ctx.centerY, Math.PI);
-    }
-  } else if (lot === "vale-library") {
-    addBuildingShell(ctx, `cedar-library-${tileX}`, ctx.centerX, ctx.centerY + 2, 18.5, 14, 6.8, VALE_CREAM, VALE_PORCH_BLUE, VALE_TERRA);
-    ctx.boxes.push({ x: ctx.centerX, y: ctx.centerY - 5.4, z: 3.1, sx: 12, sy: 0.45, sz: 0.7, yaw: 0, color: VALE_AMBER, material: MAT_SIGN });
-  } else if (lot === "vale-pool") {
-    if (tileX === 0 && tileY === 0) {
-      ctx.boxes.push({ x: ctx.centerX, y: ctx.centerY + 1, z: 0.74, sx: 16, sy: 13, sz: 0.24, yaw: 0, color: BLUE, material: MAT_WATER });
-      addWaterRegion(ctx, "brookside-pool", ctx.centerX, ctx.centerY + 1, 16, 13);
-      addSolid(ctx, "brookside-pool", ctx.centerX, ctx.centerY + 1, 16, 13, 0.5);
-    } else if (tileX === 1 && tileY === 0) addBuildingShell(ctx, "brookside-club", ctx.centerX, ctx.centerY + 2, 17, 13, 5.2, VALE_CREAM, VALE_PORCH_BLUE, VALE_TERRA);
-    else addValeRecreationLot(ctx);
-  } else if (lot === "vale-firehouse") {
-    addBuildingShell(ctx, "engine-house-9", ctx.centerX, ctx.centerY + 3.7, 18, 11.5, 5.6, BRICK, VALE_PORCH_BLUE, VALE_TERRA);
-    for (const x of [-5, 1, 7]) ctx.boxes.push({ x: ctx.centerX + x, y: ctx.centerY - 2.3, z: 2.3, sx: 4.5, sy: 0.3, sz: 3.3, yaw: 0, color: VALE_CREAM, material: MAT_SIGN });
-    addParkedVehicle(ctx, "engine-9", ctx.centerX - 4, ctx.centerY - 7.2, 0, RED);
-  } else if (lot === "vale-water-tower") {
-    ctx.boxes.push({ x: ctx.centerX, y: ctx.centerY + 2, z: 16, sx: 8.6, sy: 8.6, sz: 6.5, yaw: Math.PI / 4, color: VALE_PORCH_BLUE, material: MAT_BUILDING });
-    for (const [x, y] of [[-3, -3], [3, -3], [-3, 3], [3, 3]] as const) {
-      ctx.boxes.push({ x: ctx.centerX + x, y: ctx.centerY + y + 2, z: 7.5, sx: 0.55, sy: 0.55, sz: 15, yaw: 0, color: INK, material: MAT_BUILDING });
-    }
-    addSolid(ctx, "garden-water-tower", ctx.centerX, ctx.centerY + 2, 8.6, 8.6, 19.5);
-  } else if (lot === "vale-drive-in") {
-    ctx.boxes.push({ x: ctx.centerX, y: ctx.centerY + 2, z: 0.65, sx: 22, sy: 19, sz: 0.1, yaw: 0, color: ROAD, material: MAT_ROAD });
-    if (tileX === 2 && tileY === 0) {
-      ctx.boxes.push({ x: ctx.centerX + 7.4, y: ctx.centerY + 2, z: 7.5, sx: 0.7, sy: 15, sz: 13, yaw: 0, color: INK, material: MAT_BUILDING });
-      ctx.boxes.push({ x: ctx.centerX + 7, y: ctx.centerY + 2, z: 8, sx: 0.25, sy: 13.8, sz: 10.5, yaw: 0, color: VALE_CREAM, material: MAT_SIGN });
-      addSolid(ctx, "moonbeam-screen", ctx.centerX + 7.4, ctx.centerY + 2, 0.7, 15, 14.5);
-    } else if (tileX === 0 && tileY === 0) addBuildingShell(ctx, "moonbeam-kiosk", ctx.centerX, ctx.centerY + 6, 14, 6.5, 4, VALE_CREAM, VALE_PORCH_BLUE, VALE_MULBERRY);
-    else {
-      for (const x of [-7, 0, 7]) addParkedVehicle(ctx, `moonbeam-car-${x}`, ctx.centerX + x, ctx.centerY, 0, x ? VALE_PORCH_BLUE : VALE_MULBERRY);
-    }
-  } else {
-    addBuildingShell(ctx, "vale-gateway", ctx.centerX + 2, ctx.centerY + 3, 16, 10.5, 4.8, VALE_CREAM, VALE_PORCH_BLUE, VALE_TERRA);
-    ctx.boxes.push({ x: ctx.centerX - 6.8, y: ctx.centerY - 2.8, z: 3.4, sx: 8, sy: 3.8, sz: 0.4, yaw: 0, color: INK, material: MAT_BUILDING });
-    ctx.boxes.push({ x: ctx.centerX - 6.8, y: ctx.centerY - 2.8, z: 3.65, sx: 7.5, sy: 3.4, sz: 0.25, yaw: 0, color: VALE_AMBER, material: MAT_SIGN });
-  }
-  addValePorchLamp(ctx, ctx.centerX - 9, ctx.centerY - 8);
-}
-
-function addValeLot(ctx: LotContext, lot: LotKind) {
-  switch (lot) {
-    case "vale-bungalow": addValeBungalowLot(ctx); break;
-    case "vale-ranch": addValeRanchLot(ctx); break;
-    case "vale-duplex": addValeDuplexLot(ctx); break;
-    case "vale-cottages": addValeCottageCourtLot(ctx); break;
-    case "vale-rowhomes": addValeRowhomesLot(ctx); break;
-    case "vale-garden-apartments": addValeGardenApartmentsLot(ctx); break;
-    case "vale-corner-flats": addValeCornerFlatsLot(ctx); break;
-    case "vale-pocket-park": addValePocketParkLot(ctx); break;
-    case "vale-community-garden": addValeCommunityGardenLot(ctx); break;
-    case "vale-recreation": addValeRecreationLot(ctx); break;
-    default: addValeAnchorLot(ctx, lot); break;
-  }
 }
 
 function addParkLot(ctx: LotContext) {
@@ -2168,7 +1886,7 @@ function buildLot(ctx: LotContext, district: DistrictKind, lot: LotKind) {
       case "vale-firehouse":
       case "vale-water-tower":
       case "vale-drive-in":
-      case "vale-gateway-station": addValeLot(lotCtx, lot); break;
+      case "vale-gateway-station": buildResidentialLot(lotCtx, lot); break;
       case "range-cabin":
       case "range-a-frame":
       case "range-farmstead":
@@ -2257,11 +1975,11 @@ function buildLot(ctx: LotContext, district: DistrictKind, lot: LotKind) {
       case "reach-saint-lumina": buildWetlandLot(lotCtx, lot); break;
     }
   }
-  if (!landmark && !residentialAnchor && !mountainAnchor && !desertAnchor && !wetlandAnchor && district !== "mountain" && district !== "desert" && district !== "wetland" && district !== "coastal") addCornerKit(lotCtx, district);
+  if (!landmark && !residentialAnchor && !mountainAnchor && !desertAnchor && !wetlandAnchor && district !== "mountain" && district !== "desert" && district !== "wetland" && district !== "coastal" && district !== "residential") addCornerKit(lotCtx, district);
 
   const fixedCoastal = district === "coastal" && (ctx.blockX < -56 || coastalAnchorForBlock(ctx.blockX, ctx.blockY) || coastCanalBlock(ctx.blockX, ctx.blockY));
-  const orientation = landmark?.definition.orientation ?? (residentialAnchor || mountainAnchor || desertAnchor || wetlandAnchor || fixedCoastal ? 0 : lotOrientationForBlock(ctx.blockX, ctx.blockY));
-  const contentScale = landmark || residentialAnchor || mountainAnchor || desertAnchor || wetlandAnchor || district === "coastal" ? 1 : GENERIC_LOT_CONTENT_SCALE;
+  const orientation = landmark?.definition.orientation ?? (residentialAnchor || mountainAnchor || desertAnchor || wetlandAnchor || fixedCoastal || district === "residential" ? 0 : lotOrientationForBlock(ctx.blockX, ctx.blockY));
+  const contentScale = landmark || residentialAnchor || mountainAnchor || desertAnchor || wetlandAnchor || district === "coastal" || district === "residential" ? 1 : GENERIC_LOT_CONTENT_SCALE;
   for (const box of lotBoxes) {
     const offsetX = (box.x - ctx.centerX) * contentScale;
     const offsetY = (box.y - ctx.centerY) * contentScale;
@@ -2429,6 +2147,8 @@ function specialRoadOwner(a: { x: number; y: number }, b: { x: number; y: number
   );
 }
 
+const cedarRoadIds = new Set(CEDAR_ROADS.map((road) => road.id));
+
 function addSpecialRoadGeometry(boxes: Box[], surfaces: MeshFace[], colliders: Collider[], cx: number, cy: number) {
   for (const segment of SPECIAL_ROAD_SEGMENTS) {
     const owner = specialRoadOwner(segment.a, segment.b);
@@ -2446,6 +2166,7 @@ function addSpecialRoadGeometry(boxes: Box[], surfaces: MeshFace[], colliders: C
     colliders.push(...copperStructure.colliders);
     surfaces.push(...copperStructure.surfaces);
     const geometry = compiledSpecialRoad(segment.pathId)!;
+    const cedarRoad = cedarRoadIds.has(segment.pathId);
     const strip = (lateral: number, width: number, z: number, height: number, color: Color, material: NonNullable<Box["material"]>) => {
       const a = geometry.sections[segment.index];
       const b = geometry.sections[segment.index + 1];
@@ -2460,13 +2181,21 @@ function addSpecialRoadGeometry(boxes: Box[], surfaces: MeshFace[], colliders: C
       INK,
       MAT_ROAD,
     );
-    strip(0,
-      segment.halfWidth * 2,
-      0.57,
-      0.14,
-      ROAD,
-      MAT_ROAD,
-    );
+
+    strip(0, segment.halfWidth * 2, 0.57, 0.14, ROAD, MAT_ROAD);
+    if (cedarRoad) {
+      for (const side of [-1, 1]) {
+        const section = geometry.sections[segment.index];
+        const point = { x: (segment.a.x + segment.b.x) / 2 + section.right.x * side * (segment.halfWidth - 1),
+          y: (segment.a.y + segment.b.y) / 2 + section.right.y * side * (segment.halfWidth - 1) };
+        if (!cedarStreetIndex().query(point, 1).some((road) => road.roadId !== segment.pathId)) {
+          strip(side * (segment.halfWidth - 1), 2, 0.65, 0.02, VALE_CREAM, MAT_SIDEWALK);
+          strip(side * (segment.halfWidth - 2), 0.16, 0.67, 0.02, WHITE, MAT_SIDEWALK);
+        }
+      }
+      if (!segment.pathId.endsWith("-turnaround") && segment.index % 3 === 0) strip(0, 0.23, 0.68, 0.02, VALE_AMBER, MAT_ROUTE);
+      continue;
+    }
 
     const northstarRoad = inNorthstarTerrain(segment.a.x, segment.a.y) || segment.pathId === "northstar-highway"
       || segment.pathId === "pinehook-loop"
@@ -2647,6 +2376,18 @@ export function generateCityChunk(cx: number, cy: number): CityChunk {
       color: YELLOW,
       material: MAT_ROUTE,
     });
+    if (region.theme === "residential") {
+      const ends = [-1, 1].map((side) => {
+        const point = { x: roadX + (vertical ? 0 : side * 18), y: roadY + (vertical ? side * 18 : 0) };
+        const junction = cedarStreetIndex().query(point, 0.1).some((road) =>
+          Math.abs(Math.sin(road.heading - (vertical ? Math.PI / 2 : 0))) > 0.2);
+        const offset = side * (junction ? 8.5 : 18);
+        return { x: roadX + (vertical ? 0 : offset), y: roadY + (vertical ? offset : 0) };
+      });
+      const road = compileRoad("cedar-sidewalk", ends, ROAD_HALF);
+      for (const side of [-1, 1]) surfaces.push(roadStripQuad(road.sections[0], road.sections[1],
+        side < 0 ? -9.5 : 6.2, side < 0 ? -6.2 : 9.5, 0.12, VALE_CREAM, MAT_SIDEWALK));
+    }
   };
 
   for (let localX = 0; localX < BLOCKS_PER_CHUNK; localX += 1) {
@@ -2684,7 +2425,7 @@ export function generateCityChunk(cx: number, cy: number): CityChunk {
         && !(cy === CHUNK_MAX + 1 && localY === 0)
       ) addRoadSegment(centerX, bottom, false);
 
-      const corridorBlock = lot !== "landmark"
+      const corridorBlock = lot !== "landmark" && district !== "residential"
         && !mountainAnchorForBlock(blockX, blockY)
         && !desertAnchorForBlock(blockX, blockY)
         && !wetlandAnchorForBlock(blockX, blockY)
@@ -2700,7 +2441,7 @@ export function generateCityChunk(cx: number, cy: number): CityChunk {
       const terrainInteractionStart = interactions.length;
       if (corridorBlock) {
         addCorridorVerge({ boxes, surfaces, colliders, surfaceRegions, centerX, centerY, blockX, blockY, random }, district);
-      } else if (district === "mountain" || district === "desert" || district === "wetland" || district === "coastal") {
+      } else if (district === "mountain" || district === "desert" || district === "wetland" || district === "coastal" || district === "residential") {
         buildLot({ boxes, surfaces, colliders, surfaceRegions, centerX, centerY, blockX, blockY, random }, district, lot);
         addLotInteractions(interactions, blockX, blockY, centerX, centerY, lot);
       } else {
@@ -2776,6 +2517,14 @@ export function generateCityChunk(cx: number, cy: number): CityChunk {
   }
 
   addSpecialRoadGeometry(boxes, surfaces, colliders, cx, cy);
+  if (region.id === "cedar-vale") for (const court of CEDAR_COURTS) {
+    const owner = specialRoadOwner(court.center, court.center);
+    if (owner.cx !== cx || owner.cy !== cy) continue;
+    const ctx: LotContext = { boxes, surfaces, colliders, surfaceRegions, centerX: court.center.x, centerY: court.center.y,
+      blockX: Math.floor(court.center.x / 36), blockY: Math.floor(court.center.y / 36), random: blockRandom(cx, cy, 0xc0a7) };
+    cedarRoundVolume(ctx, court.center.x, court.center.y, [{ z: 0.04, radius: 1.7 }, { z: 0.22, radius: 1.7 }], VALE_GROUND, MAT_GRASS, 12);
+    cedarTree(ctx, court.id, court.center.x, court.center.y, 0.8);
+  }
   if (region.id === "northstar-range") addMountainScenery({ boxes, surfaces, colliders, surfaceRegions }, cx, cy);
   if (region.id === "copper-mesa") addCopperScenery({ boxes, surfaces, colliders, surfaceRegions }, cx, cy);
   if (region.id === "solana-coast") addCoastScenery({ boxes, surfaces, colliders, surfaceRegions }, cx, cy);

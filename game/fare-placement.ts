@@ -1,3 +1,4 @@
+import { CEDAR_ROADS } from "./cedar-layout";
 import {
   BLOCKS_PER_CHUNK,
   DISTRICT_LABELS,
@@ -378,6 +379,7 @@ function candidateAdjacentGridRoadEnabled(candidate: CurbCandidate) {
 }
 
 const REGIONAL_ROADSIDE_IDS = new Set([
+  ...CEDAR_ROADS.filter(road => !road.id.endsWith("-turnaround")).map(road => road.id),
   "northstar-highway",
   "spruce-gorge-viaduct",
   "pinehook-loop",
