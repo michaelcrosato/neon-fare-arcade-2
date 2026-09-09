@@ -56,6 +56,13 @@ slots, passenger/art indices, active-cardinal transfers, and hard stream limits.
   zero airborne frames at the tested 8–10-unit speeds. Both lanes also pass
   dense tire-support, buried-pavement, and scenery-clearance sampling. Every
   compiled road retains continuous lane joins.
+- Elevated-road regressions add **56 prescribed lane sweeps** at 35 and 70 world
+  units/s across all seven roads, both directions and both driving models.
+  Ordinary controls also cover Sunset's arrival climb and both side-street
+  crossings in both directions. Rising airborne landings catch the pavement,
+  while real crests, underpasses and all eight beltway ramps retain their rules.
+  Clearance sampling now includes every elevated Coast grid street at one-unit
+  intervals in both lanes.
 - All ten venues enter and return on their actual ground. Elevated fuel stops
   sell an upgrade with a taxi in the near lane and reject a taxi below the
   station. Six coastal fares complete pickup and drop-off at safe approaches;
@@ -69,9 +76,9 @@ slots, passenger/art indices, active-cardinal transfers, and hard stream limits.
   and end of each coastal drive, including very short terrain-cut spans. A
   routing bug that discarded distinct nodes less than 0.05 units apart is
   fixed without inventing a connection between different elevated decks.
-- Solana's 121 chunks total **14,484 boxes, 99,615 faces, 5,502 colliders, and
+- Solana's 121 chunks total **14,478 boxes, 99,576 faces, 5,485 colliders, and
   173 interactions**. Per-chunk maxima are **397 / 1,334 / 237 / 10**. Maximum
-  coastal-centered radius-three streams use **15,773 boxes, 60,598 faces
+  coastal-centered radius-three streams use **15,767 boxes, 60,559 faces
   including far landscape, 1,132 colliders, and 354 interactions**, within all
   existing limits. Coastal ambient scenery peaks at 284 boxes in this sweep,
   including the full wheel frame so it stays visible with its moving cabins.
@@ -80,16 +87,16 @@ slots, passenger/art indices, active-cardinal transfers, and hard stream limits.
   Browser error collection remained empty. Local server: `http://127.0.0.1:4173`.
 
 - `npm run check` passes: lint, strict types, nine architecture checks, ten
-  runtime tests, **331 deterministic game tests**, production build, artifact
+  runtime tests, **342 deterministic game tests**, production build, artifact
   validation, and rendered HTML. City golden counts and all region/stream
   regressions remain green.
-- The complete **32-test browser suite** passes against the rebuilt production
-  preview. It includes 144 coastal scene captures across all four cameras,
+- The complete **34-test browser suite** passes locally. It includes 160 coastal
+  scene captures across all four cameras,
   WebGPU/Canvas, desktop/mobile, plus both GPS views. The review corrected pier
   and bridge surface overlap, an aquarium approach plaza, and avatar hatching.
-  Desktop coastal captures run in three shorter tours per renderer to avoid
+  Desktop coastal captures run in bounded tours per renderer to avoid
   timing out when software rendering competes with the full game suite.
-  All coastal captures also passed on Linux. The live WebGPU smoke test allows
+  The live WebGPU smoke test allows
   longer startup on software-rendered CI while still requiring the real playing
   UI and checking every camera, walking, and browser errors.
 - The [Quality workflow](https://github.com/michaelcrosato/neon-fare-arcade-2/actions/workflows/quality.yml)
@@ -113,3 +120,11 @@ sit just below their asphalt surfaces. The aquarium terrace includes both sides
 of its approach street so neighboring plazas cannot float across the camera.
 WebGPU draws the walking avatar after its occlusion silhouette, like the taxi,
 so the avatar's own rear faces no longer produce false yellow hatching.
+
+Sunset's arrival terrace extends across the full junction apron. The north/south
+streets at x=-936 and x=-900 now meet the boulevard's grade instead of descending
+into its deck edge. Vehicle landings sweep the complete 3D foot trajectory
+against the pavement triangles; testing only the previous height at the new XY
+could miss a rising slope, sink through it and then hit the solid underside.
+Support selection also retains the followed ribbon through nearly parallel
+overlaps, while a turn can transfer onto a climbing road.

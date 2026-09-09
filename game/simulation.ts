@@ -538,7 +538,7 @@ export function stepGame(
   }
 
   const impact = game.speed;
-  const previousHeight = game.z;
+  const previousPosition = { x: game.x, y: game.y, z: game.z };
   if (game.roadMotion.grounded && driving) {
     const support = groundAt(game, 0.85, game.roadMotion.roadId);
     const gravityAlongRoad = game.drivingModel === "simulation" ? 10 : 5;
@@ -628,7 +628,7 @@ export function stepGame(
     events.push({ type: "building-collision" });
   }
 
-  stepVehicleRoadContact(game, dt, previousHeight, world);
+  stepVehicleRoadContact(game, dt, previousPosition, world);
   if (game.roadMotion.grounded && !isRoadSurface(game)) {
     if (game.drivingModel !== "simulation") {
       const offroadDrag = hasRunUpgrade(game, "rally-tires") ? RALLY_TIRE_OFFROAD_DRAG : 2.35;

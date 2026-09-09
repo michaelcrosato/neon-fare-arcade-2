@@ -256,6 +256,30 @@ function triangleSurfaceHeight(a: RoadSection, b: RoadSection, point: RoadVector
   return point.z;
 }
 
+/** First downward crossing of the pavement triangles, including uphill flight. */
+export function sweepRoadSegment(road: CompiledRoad, index: number, from: RoadVector, to: RoadVector) {
+  const edge = (section: RoadSection, side: number) => add(section.center, scale(section.lateral, section.halfWidth * side));
+  const a = road.sections[index], b = road.sections[index + 1];
+  const corners = [edge(a, -1), edge(b, -1), edge(b, 1), edge(a, 1)];
+  let first = Infinity;
+  for (const indices of [[0, 1, 2], [0, 2, 3]]) {
+    const [p, q, r] = indices.map((vertex) => corners[vertex]);
+    const normal = cross(subtract(q, p), subtract(r, p));
+    const upward = scale(normal, normal.z < 0 ? -1 : 1);
+    const start = dot(subtract(from, p), upward), end = dot(subtract(to, p), upward);
+    if (start < -EPSILON || end > EPSILON || start - end <= EPSILON) continue;
+    const fraction = clamp(start / (start - end), 0, 1);
+    const point = blend(from, to, fraction);
+    const ax = q.x - p.x, ay = q.y - p.y, bx = r.x - p.x, by = r.y - p.y;
+    const determinant = ax * by - ay * bx;
+    if (Math.abs(determinant) < EPSILON) continue;
+    const u = ((point.x - p.x) * by - (point.y - p.y) * bx) / determinant;
+    const v = (ax * (point.y - p.y) - ay * (point.x - p.x)) / determinant;
+    if (u >= -EPSILON && v >= -EPSILON && u + v <= 1 + EPSILON) first = Math.min(first, fraction);
+  }
+  return first;
+}
+
 function sampleSegment(road: CompiledRoad, index: number, t: number, lateralOffset: number): RoadSample {
   const a = road.sections[index];
   const b = road.sections[index + 1];

@@ -60,7 +60,7 @@ window.copperScene = {
     game.heading = spot.heading; game.elapsed = 40;
     game.roadMotion.grounded = true; game.roadMotion.roadId = null;
     game.roadMotion.pitch = 0; game.roadMotion.roll = 0;
-    for (let i = 0; i < 45; i += 1) stepVehicleRoadContact(game, 1 / 60, game.z);
+    for (let i = 0; i < 45; i += 1) stepVehicleRoadContact(game, 1 / 60, game);
     const onFoot = scene === "visitor";
     const focus = onFoot ? { ...spot, z: terrainHeightAt(spot.x, spot.y) } : game;
     game.player = onFoot ? { kind: "walking", location: { kind: "city" },

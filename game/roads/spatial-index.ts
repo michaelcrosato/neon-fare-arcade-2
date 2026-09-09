@@ -1,4 +1,4 @@
-import { projectRoadSegment, type CompiledRoad, type RoadControlPoint, type RoadSurfaceProjection } from "./geometry";
+import { projectRoadSegment, sweepRoadSegment, type CompiledRoad, type RoadControlPoint, type RoadSurfaceProjection, type RoadVector } from "./geometry";
 
 type IndexedSegment = { road: CompiledRoad; index: number };
 
@@ -30,8 +30,7 @@ export class RoadSpatialIndex {
     }
   }
 
-  /** All nearby decks, ordered by physical distance with an optional heading hint. */
-  query(point: RoadControlPoint, radius = 12, heading?: number): RoadSurfaceProjection[] {
+  private nearbySegments(point: RoadControlPoint, radius: number) {
     if (!(radius >= 0) || !Number.isFinite(radius + point.x + point.y + (point.z ?? 0))) {
       throw new Error("Invalid road surface query");
     }
@@ -45,12 +44,35 @@ export class RoadSpatialIndex {
         for (const candidate of this.cells.get(`${x},${y}`) ?? []) candidates.add(candidate);
       }
     }
-    const results = [...candidates]
+    return candidates;
+  }
+
+  /** All nearby decks, ordered by physical distance with an optional heading hint. */
+  query(point: RoadControlPoint, radius = 12, heading?: number): RoadSurfaceProjection[] {
+    const results = [...this.nearbySegments(point, radius)]
       .map(({ road, index }) => projectRoadSegment(road, index, point))
       .filter((projection) => projection.surfaceDistance <= radius);
     const score = (projection: RoadSurfaceProjection) => Math.hypot(projection.surfaceDistance, projection.heightDistance)
       + projection.centerDistance * 0.001
       + (heading === undefined ? 0 : Math.abs(Math.sin(projection.heading - heading)) * 0.2);
     return results.sort((a, b) => score(a) - score(b) || a.roadId.localeCompare(b.roadId) || a.segmentIndex - b.segmentIndex);
+  }
+
+  /** Feet must cross a real triangle from above; a bridge's underside cannot land them. */
+  sweep(from: RoadVector, to: RoadVector): RoadSurfaceProjection | null {
+    const midpoint = { x: (from.x + to.x) / 2, y: (from.y + to.y) / 2 };
+    const radius = Math.hypot(to.x - from.x, to.y - from.y) / 2 + 0.05;
+    let first = Infinity, contact: RoadSurfaceProjection | null = null;
+    for (const { road, index } of this.nearbySegments(midpoint, radius)) {
+      const fraction = sweepRoadSegment(road, index, from, to);
+      if (fraction >= first) continue;
+      first = fraction;
+      contact = projectRoadSegment(road, index, {
+        x: from.x + (to.x - from.x) * fraction,
+        y: from.y + (to.y - from.y) * fraction,
+        z: from.z + (to.z - from.z) * fraction,
+      });
+    }
+    return contact;
   }
 }

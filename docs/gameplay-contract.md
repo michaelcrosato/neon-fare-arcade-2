@@ -96,6 +96,9 @@ updates the arcade launch, steering, road elevation and contact rules below.
   suspension impulse. Air steering is limited and airborne slides earn no drift
   score or charge. Bridge decks and rails have vertical collision intervals;
   traffic and arrival dwell must be on the same level as the taxi.
+  Landings sweep the full foot trajectory against pavement triangles, including
+  when both the taxi and the road are rising. Parallel road overlaps retain the
+  followed ribbon; a turn can transfer support onto a climbing ramp.
 - The simulation cab also requires ground contact for tire, brake, rolling
   resistance and terrain-trip forces. Its airborne body retains momentum under
   aerodynamic drag until the shared road-contact controller lands it.

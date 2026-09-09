@@ -1,6 +1,7 @@
 import { coastRoadHeight, inCoastTerrain } from "../../game/terrain/coast-forms";
 import { SPECIAL_ROADS } from "../../game/road-layout";
-import { compiledSpecialRoad, sampleSpecialRoad } from "../../game/road-network";
+import { compiledSpecialRoad, elevatedGridRoads } from "../../game/road-network";
+import { sampleRoad } from "../../game/roads/geometry";
 import { CityStream } from "../../game/world";
 import { groundAt } from "../../game/vehicle-road-contact";
 import { taxiHitsBuilding } from "../../game/collision";
@@ -40,7 +41,7 @@ test("coastal GPS preserves connectivity through tiny terrain cuts and caches ph
   for (const road of SPECIAL_ROADS.filter(road => road.points.some(point => inCoastTerrain(point.x, point.y)))) {
     const geometry = compiledSpecialRoad(road.id)!;
     for (const fraction of [0.05, 0.4, 0.9]) {
-      const target = sampleSpecialRoad(road.id, geometry.length * fraction)!.point;
+      const target = sampleRoad(geometry, geometry.length * fraction).point;
       const route = buildGpsRoute({ x: -1764, y: 0 }, target);
       assert.ok(route.length > 1, `${road.id} disconnected at ${fraction}`);
       const arrival = route.at(-1)!;
@@ -58,11 +59,12 @@ test("coastal GPS preserves connectivity through tiny terrain cuts and caches ph
 test("all Coast lanes stay clear of scenery and terrain and share physical tire support", () => {
   const stream = new CityStream();
   const blocked = new Set<string>(), buried: string[] = [], unsupported: string[] = [];
-  for (const road of SPECIAL_ROADS.filter((road) => road.points.some((point) => inCoastTerrain(point.x, point.y)))) {
-    const geometry = compiledSpecialRoad(road.id)!;
-    for (let distance = 2; distance < geometry.length - 2; distance += 4) {
+  const roads = [...SPECIAL_ROADS.map((road) => compiledSpecialRoad(road.id)!), ...elevatedGridRoads]
+    .filter((road) => road.sections.some((section) => inCoastTerrain(section.center.x, section.center.y)));
+  for (const road of roads) {
+    for (let distance = 0.1; distance < road.length; distance += 1) {
       for (const lane of [-2.7, 2.7]) {
-        const sample = sampleSpecialRoad(road.id, distance, lane)!;
+        const sample = sampleRoad(road, distance, lane);
         const { x, y, z } = sample.point, top = z + 0.64;
         const world = stream.update(x, y, 1);
         const solid = taxiHitsBuilding(world, x, y, sample.heading, top);

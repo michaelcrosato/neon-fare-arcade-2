@@ -16,6 +16,8 @@ import { makeWalkingActor } from "../../../game/player";
 
 export const COAST_SCENES = {
   gateway: { x: -900, y: 72, heading: Math.PI },
+  arrival: { x: -954, y: -2.25, heading: 0 },
+  "side-street": { x: -938.25, y: -18, heading: Math.PI / 2 },
   shore: { x: -2016, y: 40, heading: -Math.PI / 2 },
   pier: { x: -2232, y: -18, heading: Math.PI },
   bluff: { x: -1780, y: -343, heading: Math.PI },
@@ -63,7 +65,7 @@ window.coastScene = {
     game.heading = spot.heading; game.elapsed = 40;
     game.roadMotion.grounded = true; game.roadMotion.roadId = null;
     game.roadMotion.pitch = 0; game.roadMotion.roll = 0;
-    for (let i = 0; i < 45; i += 1) stepVehicleRoadContact(game, 1 / 60, game.z);
+    for (let i = 0; i < 45; i += 1) stepVehicleRoadContact(game, 1 / 60, game);
     const onFoot = scene === "viewpoint" || scene === "pier";
     const focus = onFoot ? { ...spot, z: groundAt(spot).height } : game;
     game.player = onFoot ? { kind: "walking", location: { kind: "city" },

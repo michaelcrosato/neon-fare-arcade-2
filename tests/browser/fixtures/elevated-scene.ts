@@ -45,7 +45,7 @@ window.roadScene = {
     game.roadMotion.grounded = true;
     game.roadMotion.roadId = scene === "underpass" ? null : roadId;
     game.roadMotion.pitch = 0; game.roadMotion.roll = 0;
-    for (let i = 0; i < 45; i += 1) stepVehicleRoadContact(game, 1 / 60, game.z);
+    for (let i = 0; i < 45; i += 1) stepVehicleRoadContact(game, 1 / 60, game);
     const target = scene === "underpass" ? { x: 0, y: -504 } : sampleSpecialRoad(roadId, Math.max(0, progress - 24))!.point;
     const world = stream.update(game.x, game.y, mode === "fixed" ? 1 : 3);
     const camera = { x: game.x, y: game.y, heading: game.heading, mode, zoom: 1,

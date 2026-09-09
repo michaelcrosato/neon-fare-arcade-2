@@ -30,6 +30,48 @@ test("support selection catches a descending deck without lifting actors through
   assert.equal(groundContact(index, { x: 0, y: 0, z: 8.64 }).height, 8.64);
 });
 
+test("swept contact catches uphill flight against the pavement and preserves bridge undersides", () => {
+  const slope = compileRoad("slope", [{ x: -10, y: 0, z: 4 }, { x: 10, y: 0, z: 8 }], 3);
+  const upper = compileRoad("upper", [{ x: -10, y: 0, z: 12 }, { x: 10, y: 0, z: 12 }], 3);
+  const index = new RoadSpatialIndex([slope, upper]);
+  // The feet rise, but the pavement rises faster. Both poses are above the
+  // old horizontal-height query ceiling used by the vehicle controller.
+  const landing = index.sweep({ x: -1, y: 1, z: 5.9 }, { x: 1, y: 1, z: 6.1 });
+  assert.equal(landing?.roadId, "slope");
+  assert.ok(Math.abs(landing!.point.x) < 1e-6);
+  assert.ok(Math.abs(landing!.point.z - 6) < 1e-6);
+  assert.equal(index.sweep({ x: -1, y: 0, z: 1 }, { x: 1, y: 0, z: 0.9 }), null, "underpass remains below both decks");
+  assert.equal(index.sweep({ x: -1, y: 0, z: 5 }, { x: 1, y: 0, z: 7 }), null, "rising through an underside is not a landing");
+  assert.equal(index.sweep({ x: -1, y: 4, z: 7 }, { x: 1, y: 4, z: 5 }), null, "the infinite plane outside the paved width is not solid");
+  assert.equal(index.sweep({ x: -1, y: 0, z: 15 }, { x: 1, y: 0, z: 1 })?.roadId, "upper", "a fast fall hits the first deck");
+  assert.equal(index.sweep({ x: -1, y: 0, z: 7 }, { x: 1, y: 0, z: 7 }), null, "a real jump stays airborne above the slope");
+});
+
+test("level junction ties retain the followed road before the streets diverge in height", () => {
+  const avenue = compileRoad("through-avenue", [{ x: -10, y: 0 }, { x: 0, y: 0 }, { x: 10, y: 0, z: 3 }], 6);
+  const street = compileRoad("cross-street", [{ x: 0, y: -10 }, { x: 0, y: 10 }], 6);
+  const index = new RoadSpatialIndex([street, avenue]);
+  const junction = groundContact(index, { x: 0, y: 0, z: 0.64 }, 0.85, "through-avenue");
+  assert.equal(junction.roadId, "through-avenue");
+  const uphill = groundContact(index, { x: 1, y: 0, z: junction.height }, 0.85, junction.roadId);
+  assert.equal(uphill.roadId, "through-avenue");
+  assert.ok(uphill.height > junction.height);
+});
+
+test("near-level overlaps retain an aligned road and allow a turn onto a rising road", () => {
+  const avenue = compileRoad("avenue", [{ x: -10, y: 0 }, { x: 10, y: 0 }], 6);
+  const crossing = compileRoad("crossing", [{ x: 0, y: -10, z: 0.02 }, { x: 0, y: 10, z: 0.02 }], 6);
+  const index = new RoadSpatialIndex([avenue, crossing]);
+  const point = { x: 0, y: 0, z: ROAD_SURFACE_HEIGHT };
+  assert.equal(groundContact(index, point, 0.85, "avenue", undefined, 0).roadId, "avenue");
+  assert.equal(groundContact(index, point, 0.85, "avenue", undefined, Math.PI / 2).roadId, "crossing");
+  const parallel = compileRoad("parallel", [{ x: -10, y: -0.1, z: 0.02 }, { x: 10, y: 0.1, z: 0.02 }], 6);
+  const overlap = new RoadSpatialIndex([avenue, parallel]);
+  for (const heading of [-0.3, 0, 0.3, Math.PI]) {
+    assert.equal(groundContact(overlap, point, 0.85, "avenue", undefined, heading).roadId, "avenue", "steering corrections must not swap nearly parallel decks");
+  }
+});
+
 test("all eight real interchanges climb continuously onto the beltway and route through ramp endpoints", () => {
   for (const ramp of SPECIAL_ROADS.filter((road) => road.kind === "ramp")) {
     const game = makeGame("street-ace", 5);
@@ -39,12 +81,13 @@ test("all eight real interchanges climb continuously onto the beltway and route 
     for (let progress = length; progress >= 0; progress -= 0.3) {
       const sample = sampleSpecialRoad(ramp.id, progress)!;
       const oldHeight = game.z;
+      const previousPosition = { x: game.x, y: game.y, z: game.z };
       game.x = sample.point.x; game.y = sample.point.y;
       game.vx = (sample.point.x - previous.point.x) * 60;
       game.vy = (sample.point.y - previous.point.y) * 60;
       game.speed = Math.hypot(game.vx, game.vy);
       game.heading = sample.heading + Math.PI;
-      stepVehicleRoadContact(game, 1 / 60, oldHeight);
+      stepVehicleRoadContact(game, 1 / 60, previousPosition);
       assert.ok(game.roadMotion.grounded, ramp.id);
       assert.ok(Math.abs(game.z - sample.point.z - ROAD_SURFACE_HEIGHT) < 0.08, `${ramp.id} at ${progress}`);
       assert.ok(Math.abs(game.z - oldHeight) < 0.1, ramp.id);
@@ -64,7 +107,7 @@ test("bridge height is shared by taxi geometry, walking, re-entry and highway sp
   const sample = sampleSpecialRoad("neon-beltway", 0)!;
   game.x = sample.point.x; game.y = sample.point.y; game.heading = sample.heading;
   game.z = BELTWAY_ELEVATION + ROAD_SURFACE_HEIGHT;
-  stepVehicleRoadContact(game, 1 / 60, game.z);
+  stepVehicleRoadContact(game, 1 / 60, game);
   const boxes = taxiBoxes(game, { includeGroundShadow: false });
   assert.ok(boxes.every((box) => box.z > 8.6));
   assert.ok(cabInteriorBoxes(game).every((box) => box.z > 9.5), "the cockpit follows the same deck as its camera");

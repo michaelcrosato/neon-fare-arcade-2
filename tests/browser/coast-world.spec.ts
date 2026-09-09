@@ -17,6 +17,7 @@ test.beforeAll(async () => {
 
 // Bound each desktop tour to twenty captures, including under software WebGPU.
 const tours = [
+  { name: "arrival roads", mobile: false, scenes: ["arrival", "side-street"] },
   { name: "waterfront", mobile: false, scenes: ["shore", "pier", "canals", "town", "aquarium"] },
   { name: "hills", mobile: false, scenes: ["gateway", "bluff", "canyon", "citrus", "viewpoint"] },
   { name: "landmarks", mobile: false, scenes: ["studio", "bowl", "club", "surf", "rescue"] },

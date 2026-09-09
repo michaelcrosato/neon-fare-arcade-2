@@ -39,7 +39,9 @@ export function coastGridStreetEnabled({ x, y }: WorldPoint, axis: "vertical" | 
 
 export const COAST_TERRACES = [
   { id: "pier", minX: -2340, maxX: -2052, minY: -36, maxY: 0, height: 0, feather: 24 },
-  { id: "gate", minX: -936, maxX: -828, minY: 36, maxY: 144, height: 3, feather: 64 },
+  // Carry the arrival terrace across Sunset's full junction apron so its
+  // elevated ribbon and the north/south side streets meet at the same grade.
+  { id: "gate", minX: -936, maxX: -828, minY: -36, maxY: 144, height: 3, feather: 64 },
   { id: "mission", minX: -1674, maxX: -1530, minY: 54, maxY: 162, height: 14, feather: 90 },
   { id: "aquarium", minX: -1962, maxX: -1854, minY: 180, maxY: 306, height: 5, feather: 64 },
   { id: "club", minX: -1890, maxX: -1782, minY: -306, maxY: -198, height: 18, feather: 64 },
