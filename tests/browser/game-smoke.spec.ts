@@ -40,7 +40,7 @@ test.afterEach(async ({}, testInfo) => {
 async function startFreeRun(page: Page) {
   await page.goto("/?diagnostics=1");
   await expect(page.getByRole("group", { name: "Choose game mode" })).toBeVisible();
-  await expect(page.getByText("CANVAS FALLBACK", { exact: true })).toBeVisible();
+  await expect(page.locator("canvas").first()).toHaveClass(/is-active/);
   await page.getByRole("button", { name: /Start Free Run/i }).click();
   await expect(page.getByRole("dialog", { name: "PICK YOUR EDGE" })).toBeVisible();
   await page.getByRole("button", { name: /Choose STREET ACE/i }).click();

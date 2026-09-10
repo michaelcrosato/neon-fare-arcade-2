@@ -21,7 +21,7 @@ export function GameModeMenu({
       <div className="speed-slashes" aria-hidden="true"><i /><i /><i /></div>
       <div className="menu-copy">
         <div className="title-paper">
-          <p className="eyebrow">A WEBGPU ARCADE RUN</p>
+          <p className="eyebrow">YOUR CITY. YOUR SHIFT.</p>
           <h1>NEON<br />FARE</h1>
         </div>
         <p className="tagline">PASSENGERS. PARCELS. SIX REGIONS. NO BRAKES.</p>

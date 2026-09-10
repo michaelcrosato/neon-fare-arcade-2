@@ -107,7 +107,12 @@ export function GameModalHost({
               <article><b>02</b><h3>FOLLOW THE GPS</h3><p>The floating yellow arrow marks your next real turn. Open the regional map, tap any street, then set a custom route—or press G anytime.</p></article>
               <article><b>03</b><h3>HIT THE STREET</h3><p>Stop and press E to explore on foot. Run, jump, crouch, enter marked buildings, or return to the parked taxi whenever you are ready.</p></article>
             </div>
-            <div className="key-guide">
+            <div className="mobile-help mobile-control-guide">
+              <article><b>DRIVE WITH YOUR THUMBS</b><p>Steer on the left. Hold GAS on the right. BRAKE slows you down; keep holding to reverse. BOOST gives your arcade cab a burst of speed; PARK is the simulation cab’s parking brake.</p></article>
+              <article><b>EXPLORE ON FOOT</b><p>Stop, then tap EXIT TAXI. Use the direction pad to walk and turn. RUN, JUMP, and DUCK sit on the right; nearby doors and actions appear above the controls.</p></article>
+              <article><b>YOUR CITY, ON DEMAND</b><p>Tap the route strip to open the map. Tap MENU to pause, change camera, adjust audio, or review your fares. The world pauses while you browse.</p></article>
+            </div>
+            <div className="key-guide desktop-help">
               <span><kbd>W</kbd><kbd>↑</kbd> GAS / WALK</span>
               <span><kbd>S</kbd><kbd>↓</kbd> BRAKE / REVERSE · SIM: HOLD THROUGH STOP</span>
               <span><kbd>A</kbd><kbd>D</kbd> STEER / TURN</span>
@@ -125,7 +130,7 @@ export function GameModalHost({
           <>
             <p className="modal-kicker">REGIONAL NAVIGATION</p>
             <h2 id="modal-title">REGIONAL GPS</h2>
-            <p className="full-map-help">TAP A STREET TO DROP A PIN · DRAG TO PAN · WHEEL OR +/− TO ZOOM · SHIFT+ARROWS MOVE PIN · ENTER SETS</p>
+            <p className="full-map-help"><span className="desktop-help">TAP A STREET TO DROP A PIN · DRAG TO PAN · WHEEL OR +/− TO ZOOM · SHIFT+ARROWS MOVE PIN · ENTER SETS</span><span className="mobile-help">Tap a street to drop a pin. Drag to pan; use + / − to zoom.</span></p>
             <div className="full-map-shell">
               <GpsMap
                 hud={hud}

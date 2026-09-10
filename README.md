@@ -89,6 +89,11 @@ W/A/S/D drive, Space drifts, Shift boosts, C changes cameras, E exits/enters
 the taxi, and G opens GPS. Chase High, Chase Low, and Cab View remain 3D even
 when WebGPU is unavailable; the game falls back to WebGL or software rendering.
 
+On a phone, steer with your left thumb and use gas, brake/reverse, and boost
+on the right. Tap the route strip for the full map, or **MENU** for camera,
+audio, and fare history. There is no mini-map over the mobile driving view.
+Portrait and landscape both work; the controls adapt when you leave the taxi.
+
 To inspect the new roads,
 start Arcade Free Run and use GPS to set a waypoint on the outer Neon Beltway.
 Follow the route onto an interchange; C cycles through the four cameras.

@@ -14,6 +14,8 @@ import { CourierImpactOverlay, type CourierImpact } from "./courier-impact-overl
 import { FareImpactOverlay } from "./fare-impact-overlay";
 import { FareCardStack } from "./fare-card-deck";
 import { GpsMap } from "./gps-map";
+import { MobileGameHud } from "./mobile-game-hud";
+import { useMobileLayout } from "./use-mobile-layout";
 
 type GameStageHudProps = Readonly<{
   mode: Mode;
@@ -46,6 +48,9 @@ export function GameStageHud({
   onSetMode,
   onTouch,
 }: GameStageHudProps) {
+  const mobile = useMobileLayout();
+  if (mobile) return <MobileGameHud mode={mode} hud={hud} fareImpact={fareImpact} courierImpact={courierImpact}
+    onOpenMap={onOpenMap} onPulseInteraction={onPulseInteraction} onSetMode={onSetMode} onTouch={onTouch} />;
   const simulationDriving = hud.playerMode === "driving" && hud.drivingModel === "simulation";
   const simulationGear = simulationGearLabel(hud.simulationVehicle.gear);
   const cabRollScale = 1 + Math.abs(Math.sin(hud.simulationVehicle.bodyRoll)) * 0.42;

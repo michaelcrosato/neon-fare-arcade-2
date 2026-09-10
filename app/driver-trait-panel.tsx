@@ -2,6 +2,8 @@
 
 import { DRIVING_TRAIT_PACKAGES } from "@/game/driving-traits";
 import type { DrivingModel, DrivingTraitId, RunKind } from "@/game/model";
+import type { ReactNode } from "react";
+import { useMobileLayout } from "./use-mobile-layout";
 
 type DriverTraitPanelProps = {
   onSelect: (traitId: DrivingTraitId) => void;
@@ -20,7 +22,12 @@ function StatMeter({ label, value }: { label: string; value: number }) {
   );
 }
 
+function HandlingDetails({ mobile, children }: { mobile: boolean; children: ReactNode }) {
+  return mobile ? <details className="driver-trait__details"><summary>HANDLING DETAILS</summary>{children}</details> : <>{children}</>;
+}
+
 export function DriverTraitPanel({ onSelect, runKind, drivingModel }: DriverTraitPanelProps) {
+  const mobile = useMobileLayout();
   if (drivingModel === "simulation") {
     return (
       <div className="driver-traits driver-traits--simulation">
@@ -36,7 +43,7 @@ export function DriverTraitPanel({ onSelect, runKind, drivingModel }: DriverTrai
             <small className="driver-trait__role">FULL-SIZE · REAR-WHEEL DRIVE</small>
             <strong className="driver-trait__name">CROWN CAB ’96</strong>
             <p>Heavy body-on-frame sedan dynamics with a naturally aspirated V8 and four-speed automatic.</p>
-            <ul aria-label="Simulation systems">
+            <HandlingDetails mobile={mobile}><ul aria-label="Simulation systems">
               <li>1,900 KG LOADED · 2.91 M WHEELBASE</li>
               <li>4-SPEED AUTO · REAL GEAR/RPM LOAD</li>
               <li>FRICTION CIRCLES · LOAD TRANSFER · BODY ROLL</li>
@@ -49,7 +56,7 @@ export function DriverTraitPanel({ onSelect, runKind, drivingModel }: DriverTrai
               <span><small>STEERING</small><b>FULL LOCK · RATE-LIMITED</b></span>
               <span><small>REVERSE</small><b>BRAKE · THEN ENGAGE</b></span>
             </div>
-            <em>THIS IS NOT A DRIVER TRAIT. IT REPLACES THE ARCADE VEHICLE MODEL FOR THE ENTIRE FREE RUN.</em>
+            <em>THIS IS NOT A DRIVER TRAIT. IT REPLACES THE ARCADE VEHICLE MODEL FOR THE ENTIRE FREE RUN.</em></HandlingDetails>
             <button
               type="button"
               className="driver-trait__pick"
@@ -71,7 +78,7 @@ export function DriverTraitPanel({ onSelect, runKind, drivingModel }: DriverTrai
       <p className="modal-kicker">{freeRun ? "FREE RUN · NO TIMER" : "ARCADE SHIFT · 75 SEC"}</p>
       <h2 id="modal-title">PICK YOUR EDGE</h2>
       <p className="driver-traits__intro" id="trait-modal-description">
-        {freeRun
+        {mobile ? "Choose your handling. Open the details to compare; you can pick again before your next run." : freeRun
           ? "Choose one package, then explore all six regions—from Neon City to Solana Coast—at your pace. Fares, courier jobs, interiors, and earnings stay active with no time pressure."
           : "Choose one package for this run. Passenger and courier payouts stay the same; handling, boost rhythm, and drift scoring can change."}
       </p>
@@ -87,7 +94,7 @@ export function DriverTraitPanel({ onSelect, runKind, drivingModel }: DriverTrai
             <small className="driver-trait__role">{trait.role}</small>
             <strong className="driver-trait__name">{trait.name}</strong>
             <p>{trait.tagline}</p>
-            <ul aria-label={`${trait.name} highlights`}>
+            <HandlingDetails mobile={mobile}><ul aria-label={`${trait.name} highlights`}>
               {trait.highlights.map((highlight) => <li key={highlight}>{highlight}</li>)}
             </ul>
             <div className="driver-trait__stats">
@@ -95,7 +102,7 @@ export function DriverTraitPanel({ onSelect, runKind, drivingModel }: DriverTrai
               <StatMeter label="CONTROL" value={trait.stats.control} />
               <StatMeter label="DRIFT" value={trait.stats.drift} />
             </div>
-            <em>{trait.tradeoff}</em>
+            <em>{trait.tradeoff}</em></HandlingDetails>
             <button
               type="button"
               className="driver-trait__pick"

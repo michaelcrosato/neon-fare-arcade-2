@@ -10,6 +10,7 @@ import type {
   RunKind,
 } from "@/game/model";
 import { FareCardBrowser } from "./fare-card-deck";
+import { useMobileLayout } from "./use-mobile-layout";
 
 type GameSessionOverlaysProps = Readonly<{
   mode: Mode;
@@ -19,6 +20,9 @@ type GameSessionOverlaysProps = Readonly<{
   fareCards: readonly FareImpact[];
   diagnosticsActive: boolean;
   diagnosticsNotice: string;
+  muted: boolean;
+  onToggleMute: () => void;
+  onOpenMap: () => void;
   onSetCameraMode: (mode: CameraMode) => void;
   onSetMode: (mode: Mode) => void;
   onOpenHow: () => void;
@@ -37,6 +41,9 @@ export function GameSessionOverlays({
   fareCards,
   diagnosticsActive,
   diagnosticsNotice,
+  muted,
+  onToggleMute,
+  onOpenMap,
   onSetCameraMode,
   onSetMode,
   onOpenHow,
@@ -46,6 +53,7 @@ export function GameSessionOverlays({
   onOpenScores,
   onCopyDiagnostics,
 }: GameSessionOverlaysProps) {
+  const mobile = useMobileLayout();
   return (
     <>
       {mode === "countdown" && (
@@ -62,6 +70,15 @@ export function GameSessionOverlays({
             <div className="pause-paper">
               <p>{hud.runKind === "free-run" ? "NO RUSH. NO CLOCK." : "THE CITY CAN WAIT…"}</p>
               <h2>{hud.runKind === "free-run" ? "FREE RUN PAUSED!" : "PAUSED!"}</h2>
+              {mobile && <>
+                <button className="primary-small" onClick={() => onSetMode("playing")}>{hud.runKind === "free-run" ? "RESUME FREE RUN" : "RESUME RUN"}</button>
+                <div className="pause-stats"><span><small>FARE</small><b>${hud.fare}</b></span><span><small>SCORE</small><b>{hud.score.toLocaleString()}</b></span><span><small>DROPS</small><b>{hud.deliveries}</b></span></div>
+                <div className="pause-tools">
+                  <button onClick={onOpenMap}>MAP</button>
+                  <button onClick={onOpenScores}>RUN LOG</button>
+                  <button onClick={onToggleMute}>{muted ? "AUDIO OFF" : "AUDIO ON"}</button>
+                </div>
+              </>}
               {hud.playerMode === "driving" && <div className="pause-camera-options" role="group" aria-label="Camera view">
                 <small>CAMERA VIEW</small>
                 <div>
@@ -86,7 +103,7 @@ export function GameSessionOverlays({
                 </button>
                 {(hud.passengerOnboard || hud.courierActive) && <small id="pause-duty-lock-note" className="duty-lock-note">FINISH CURRENT JOB TO CHANGE DUTY STATUS</small>}
               </>}
-              <button className="primary-small" onClick={() => onSetMode("playing")}>{hud.runKind === "free-run" ? "RESUME FREE RUN" : "RESUME RUN"}</button>
+              {!mobile && <button className="primary-small" onClick={() => onSetMode("playing")}>{hud.runKind === "free-run" ? "RESUME FREE RUN" : "RESUME RUN"}</button>}
               <button onClick={onOpenHow}>HOW TO PLAY</button>
               {diagnosticsActive && <button onClick={onCopyDiagnostics}>COPY DIAGNOSTICS</button>}
               {diagnosticsNotice && <small className="duty-lock-note" role="status" aria-live="polite">{diagnosticsNotice}</small>}
@@ -94,7 +111,7 @@ export function GameSessionOverlays({
                 ? <button onClick={onFinishRun}>END FREE RUN · BANK FARE</button>
                 : <button onClick={() => onSetMode("menu")}>QUIT TO MENU</button>}
             </div>
-            <FareCardBrowser cards={fareCards} />
+            {mobile ? <details className="pause-fares"><summary>FARE HISTORY <span>{fareCards.length}</span></summary><FareCardBrowser cards={fareCards} /></details> : <FareCardBrowser cards={fareCards} />}
           </div>
         </div>
       )}
@@ -116,7 +133,7 @@ export function GameSessionOverlays({
             <p className="banked-callout">FARE BANKED +${hud.fare} · CAREER TOTAL ${careerBank} · NEON LOFTS IS NEAR THE STARTING BLOCK</p>
             <button className="primary-small" onClick={() => onRequestStartRun(hud.runKind, hud.drivingModel)}>{hud.drivingModel === "simulation" ? "SIMULATION AGAIN" : hud.runKind === "free-run" ? "FREE RUN AGAIN" : "RUN IT BACK"}</button>
             {hud.runKind === "timed"
-              ? <button onClick={onOpenScores}>VIEW RUN LOG</button>
+              ? <><button onClick={onOpenScores}>VIEW RUN LOG</button>{mobile && <button onClick={() => onSetMode("menu")}>RETURN TO MENU</button>}</>
               : <button onClick={() => onSetMode("menu")}>RETURN TO MENU</button>}
           </div>
         </div>

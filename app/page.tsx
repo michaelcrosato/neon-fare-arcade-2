@@ -810,7 +810,9 @@ export default function Home() {
     event.preventDefault();
     const key = event.currentTarget.dataset.input as keyof InputState;
     const active = event.type === "pointerdown";
+    if (active && modeRef.current !== "playing") return;
     inputRef.current[key] = active;
+    event.currentTarget.toggleAttribute("data-held", active);
     if (active && key === "jump") jumpPulseRef.current = true;
     if (active) event.currentTarget.setPointerCapture?.(event.pointerId);
   }, []);
@@ -905,6 +907,9 @@ export default function Home() {
           fareCards={fareCards}
           diagnosticsActive={diagnosticsActive}
           diagnosticsNotice={diagnosticsNotice}
+          muted={muted}
+          onToggleMute={toggleMute}
+          onOpenMap={() => openModal("map")}
           onSetCameraMode={setCameraMode}
           onSetMode={setMode}
           onOpenHow={() => openModal("how")}

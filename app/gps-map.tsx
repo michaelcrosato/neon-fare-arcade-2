@@ -651,6 +651,7 @@ export function GpsMap({
         {(mountainPlayer || copperPlayer || coastPlayer) && <output aria-label="Altitude">ELEV {Math.round((hud.player.z ?? 0) * DISPLAY_METERS_PER_WORLD_UNIT).toLocaleString()} m</output>}
       </div>
       <div className="regional-map-regions" aria-label="Active regions">
+        <button className="mobile-help" type="button" onClick={showOverview}>ALL REGIONS</button>
         {ACTIVE_WORLD_REGIONS.map((region) => (
           <button key={region.id} type="button" onClick={() => {
             setDetailRegion(region);

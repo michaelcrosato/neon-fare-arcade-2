@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "@fontsource/barlow-condensed/700.css";
 import "@fontsource/barlow-condensed/900.css";
 import "@fontsource/barlow-condensed/900-italic.css";
@@ -17,6 +17,8 @@ export const metadata: Metadata = {
     shortcut: "/favicon.svg",
   },
 };
+
+export const viewport: Viewport = { width: "device-width", initialScale: 1, viewportFit: "cover", themeColor: "#090909" };
 
 export default function RootLayout({
   children,
