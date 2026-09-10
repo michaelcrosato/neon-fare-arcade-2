@@ -62,7 +62,9 @@ test("the city exposes exactly ten unique featured landmark campuses", () => {
     FEATURED_CITY_LANDMARKS.filter(landmarkInterruptsGrid).map((landmark) => (
       [landmark.id, landmark.width, landmark.height]
     )),
-    [["pulse-stadium", 3, 2], ["neon-general", 2, 2]],
+    [["pulse-stadium", 3, 2], ["skyport-airport", 3, 2], ["nova-megamall", 2, 2], ["neon-titan", 1, 2],
+      ["deep-blue-aquarium", 2, 2], ["neon-general", 2, 2], ["apex-university", 2, 2], ["volt-expo", 3, 1],
+      ["starfall-observatory", 2, 1], ["lucky-88-casino", 2, 2]],
   );
   const school = CEDAR_VALE_ANCHORS.find((anchor) => anchor.id === "bellwether-school");
   assert.deepEqual(school && [school.width, school.height], [3, 2]);
@@ -108,8 +110,8 @@ test("landmark footprints are non-overlapping, in bounds, and clear of authored 
 
 test("flagship campuses replace only their internal grid streets", () => {
   assert.deepEqual(WORLD_CAMPUSES.map((campus) => campus.id), [
-    "pulse-stadium",
-    "neon-general",
+    "pulse-stadium", "skyport-airport", "nova-megamall", "neon-titan", "deep-blue-aquarium",
+    "neon-general", "apex-university", "volt-expo", "starfall-observatory", "lucky-88-casino",
     "maple-commons",
     "bellwether-school",
     "cedar-library",

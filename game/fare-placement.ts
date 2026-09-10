@@ -751,6 +751,10 @@ export function createProceduralFareStopPairs(
     // An initial desert market starts around its connected service town. Live
     // rolling markets continue from the actual previous dropoff above.
     x: 0, y: 1332, z: 24,
+  } : region?.id === "northstar-range" ? {
+    // Bootstrap around the village, as in the other regional service towns.
+    // City street changes must not spread a new mountain market across valleys.
+    x: 0, y: -1404, z: 44,
   } : region?.id === "solana-coast" ? { x: -1764, y: 0, z: 12 }
     : region?.id === "cypress-reach" ? { x: 1800, y: 1476, z: 0 }
       : region?.id === "cedar-vale" ? { x: 1476, y: -72, z: 0 } : {

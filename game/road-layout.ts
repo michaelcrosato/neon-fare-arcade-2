@@ -3,6 +3,7 @@ import { sampleRoadCurve, roadDistance, type RoadControlPoint } from "./roads/ge
 import { atRoadElevation, drapeRegionalRoad, inElevatedTerrain } from "./terrain/region-forms";
 import { CEDAR_ROADS } from "./cedar-layout";
 import { REACH_ROADS } from "./reach-roads";
+import { CITY_ROADS } from "./city-roads";
 
 import type { RoadPathDefinition } from "./roads/types";
 export type { RoadKind, GridConnectionMode, RoadPathDefinition } from "./roads/types";
@@ -27,17 +28,6 @@ function catmullRomPath(controls: readonly RoadControlPoint[], closed = false, t
   const lifted = drapeRegionalRoad(closed ? [...samples, samples[0]] : samples);
   if (closed) lifted.pop();
   return lifted;
-}
-
-function rampPath(start: RoadControlPoint, controlA: RoadControlPoint, controlB: RoadControlPoint, end: RoadControlPoint) {
-  // De Casteljau preserves the interchange's XY curve while a flat merge apron
-  // keeps the climbing lane clear of the beltway underside before it joins.
-  const mix = (a: RoadControlPoint, b: RoadControlPoint): RoadControlPoint => ({ x: a.x + (b.x - a.x) * 0.35, y: a.y + (b.y - a.y) * 0.35 });
-  const q0 = mix(start, controlA), q1 = mix(controlA, controlB), q2 = mix(controlB, end);
-  const r0 = mix(q0, q1), r1 = mix(q1, q2), join = mix(r0, r1);
-  const upper = (p: RoadControlPoint) => ({ ...p, z: BELTWAY_ELEVATION });
-  return sampleRoadCurve({ kind: "bezier", points: [upper(start), upper(q0), upper(r0), upper(join), upper(r1), { ...q2, z: 0 }, { ...end, z: 0 }] },
-    { maxSegmentLength: 8, maxChordError: 0.06 });
 }
 
 function roundaboutPath(center: Vec2, radius: number, segments = 20) {
@@ -69,15 +59,6 @@ const harborControls = [
   point(-216, 432), point(-36, 504), point(144, 540),
   point(324, 504), point(504, 432), point(684, 468),
 ] as const;
-
-export const BELTWAY_ELEVATION = 8;
-const beltwayControls = [
-  point(0, -576), point(324, -540), point(504, -396),
-  point(576, -72), point(576, 72), point(504, 396),
-  point(324, 540), point(0, 576), point(-324, 540),
-  point(-504, 396), point(-576, 72), point(-576, -72),
-  point(-504, -396), point(-324, -540),
-].map((control) => ({ ...control, z: BELTWAY_ELEVATION }));
 
 const northstarHighwayControls = [
   point(0, -792), point(0, -864), point(72, -972), point(216, -1008),
@@ -171,27 +152,9 @@ export const ROUNDABOUTS: readonly RoundaboutDefinition[] = [
   { id: "market-circle", center: point(-360, 288), radius: 18, islandHalfSize: 8.2 },
 ];
 
-const ramp = (
-  id: string,
-  name: string,
-  start: RoadControlPoint,
-  controlA: RoadControlPoint,
-  controlB: RoadControlPoint,
-  end: RoadControlPoint,
-): RoadPathDefinition => ({
-  id,
-  name,
-  kind: "ramp",
-  halfWidth: 5.1,
-  lanes: 2,
-  travelWeight: 0.78,
-  points: rampPath(start, controlA, controlB, end),
-  connectGrid: "explicit",
-  junctions: [{ ...start, z: BELTWAY_ELEVATION }, { ...end, z: 0 }],
-});
-
 export const SPECIAL_ROADS: readonly RoadPathDefinition[] = [
   ...CEDAR_ROADS,
+  ...CITY_ROADS,
   {
     id: "aurora-boulevard",
     name: "AURORA BOULEVARD",
@@ -201,7 +164,7 @@ export const SPECIAL_ROADS: readonly RoadPathDefinition[] = [
     travelWeight: 0.82,
     points: catmullRomPath(auroraControls),
     connectGrid: "crossings",
-    junctions: auroraControls,
+    junctions: auroraControls.map(atRoadElevation),
   },
   {
     id: "crosstown-boulevard",
@@ -212,7 +175,7 @@ export const SPECIAL_ROADS: readonly RoadPathDefinition[] = [
     travelWeight: 0.84,
     points: catmullRomPath(crosstownControls),
     connectGrid: "crossings",
-    junctions: crosstownControls,
+    junctions: crosstownControls.map(atRoadElevation),
   },
   {
     id: "harbor-parkway",
@@ -223,19 +186,7 @@ export const SPECIAL_ROADS: readonly RoadPathDefinition[] = [
     travelWeight: 0.86,
     points: catmullRomPath(harborControls),
     connectGrid: "crossings",
-    junctions: harborControls,
-  },
-  {
-    id: "neon-beltway",
-    name: "NEON BELTWAY",
-    kind: "highway",
-    halfWidth: 10.5,
-    lanes: 4,
-    travelWeight: 0.68,
-    points: catmullRomPath(beltwayControls, true, 17),
-    closed: true,
-    connectGrid: "explicit",
-    junctions: beltwayControls,
+    junctions: harborControls.map(atRoadElevation),
   },
   {
     id: "northstar-highway",
@@ -398,38 +349,6 @@ export const SPECIAL_ROADS: readonly RoadPathDefinition[] = [
     points: catmullRomPath(canalCruiseControls, true, 10), closed: true,
     connectGrid: "crossings", junctions: canalCruiseControls.map(atRoadElevation),
   },
-  ramp(
-    "northwest-inner-ramp", "NORTHWEST INTERCHANGE",
-    point(-504, -396), point(-468, -378), point(-468, -342), point(-504, -324),
-  ),
-  ramp(
-    "northwest-outer-ramp", "NORTHWEST INTERCHANGE",
-    point(-504, -396), point(-576, -378), point(-576, -342), point(-504, -324),
-  ),
-  ramp(
-    "northeast-inner-ramp", "NORTHEAST INTERCHANGE",
-    point(504, -396), point(468, -378), point(468, -342), point(504, -324),
-  ),
-  ramp(
-    "northeast-outer-ramp", "NORTHEAST INTERCHANGE",
-    point(504, -396), point(576, -378), point(576, -342), point(504, -324),
-  ),
-  ramp(
-    "southwest-inner-ramp", "SOUTHWEST INTERCHANGE",
-    point(-504, 396), point(-468, 378), point(-468, 342), point(-504, 324),
-  ),
-  ramp(
-    "southwest-outer-ramp", "SOUTHWEST INTERCHANGE",
-    point(-504, 396), point(-576, 378), point(-576, 342), point(-504, 324),
-  ),
-  ramp(
-    "southeast-inner-ramp", "SOUTHEAST INTERCHANGE",
-    point(504, 396), point(468, 378), point(468, 342), point(504, 324),
-  ),
-  ramp(
-    "southeast-outer-ramp", "SOUTHEAST INTERCHANGE",
-    point(504, 396), point(576, 378), point(576, 342), point(504, 324),
-  ),
   ...ROUNDABOUTS.map<RoadPathDefinition>((definition) => {
     const { center, radius } = definition;
     const junctions = [
@@ -445,11 +364,11 @@ export const SPECIAL_ROADS: readonly RoadPathDefinition[] = [
       halfWidth: 5.5,
       lanes: 1,
       travelWeight: 0.92,
-      points: roundaboutPath(center, radius),
+      points: roundaboutPath(center, radius).map(atRoadElevation),
       closed: true,
       oneWay: true,
       connectGrid: "explicit",
-      junctions,
+      junctions: junctions.map(atRoadElevation),
     };
   }),
 ];

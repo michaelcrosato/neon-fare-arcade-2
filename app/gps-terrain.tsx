@@ -1,7 +1,7 @@
 "use client";
 
 import { memo } from "react";
-import { northstarTopography, copperTopography, coastTopography } from "@/game/terrain/map";
+import { northstarTopography, copperTopography, coastTopography, cityTopography } from "@/game/terrain/map";
 import { MIRROR_SPILLWAY, COPPER_RIVER } from "@/game/terrain/watercourses";
 import { NORTHSTAR_GONDOLA } from "@/game/mountain-scenery";
 import { COAST_CANALS, COAST_PIER, COAST_WHEEL, COAST_PROMENADE_EAST_X, coastShoreXAt } from "@/game/coastal-layout";
@@ -82,5 +82,15 @@ export const ReachTopography = memo(function ReachTopography() {
       <text x="2290" y="2590" transform="rotate(90 2290 2590)">TURQUOISE ATLANTIC</text>
     </g>
     <circle cx="1674" cy="3150" r="10" fill="#fff8df" stroke="#ec6993" strokeWidth="4" />
+  </g>;
+});
+
+export const CityTopography = memo(function CityTopography() {
+  const map = cityTopography();
+  return <g aria-hidden="true" data-map-layer="city-terrain">
+    <g opacity="0.86">{map.fills.map(cell => <rect key={`${cell.x}:${cell.y}`} x={cell.x} y={cell.y} width="72.2" height="72.2" fill={cell.color} />)}</g>
+    <g fill="none" stroke="#675f43" strokeWidth="1.8" opacity="0.42">
+      {map.contours.map(contour => <path key={contour.height} d={contour.path} />)}
+    </g>
   </g>;
 });

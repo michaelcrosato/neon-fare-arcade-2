@@ -25,6 +25,7 @@ import { createFareJobs } from "../../game/fare-market";
 import { CITY_LANDMARKS, landmarkBlocks } from "../../game/landmarks";
 import type { WorldView } from "../../game/model";
 import { farePassengerPoint } from "../../game/render/scene";
+import { MAX_CHUNK_SURFACE_QUADS, MAX_STREAM_SURFACE_QUADS } from "../../game/render/surfaces";
 import { ROUNDABOUTS, SPECIAL_ROADS } from "../../game/road-layout";
 import {
   isRoadSurface,
@@ -52,6 +53,7 @@ test("every deterministic city chunk stays inside its rendering budgets", () => 
       assert.ok(chunk.boxes.length <= MAX_CHUNK_BOXES);
       assert.ok(chunk.colliders.length <= MAX_CHUNK_COLLIDERS);
       assert.ok(chunk.interactions.length <= MAX_CHUNK_INTERACTIONS);
+      assert.ok((chunk.surfaces?.length ?? 0) <= MAX_CHUNK_SURFACE_QUADS);
       totalBoxes += chunk.boxes.length;
       totalColliders += chunk.colliders.length;
       if (chunk.boxes.length > maxBoxes.count) maxBoxes = { count: chunk.boxes.length, at: `${cx},${cy}` };
@@ -59,17 +61,17 @@ test("every deterministic city chunk stays inside its rendering budgets", () => 
     }
   }
 
-  assert.deepEqual(maxBoxes, { count: 738, at: "0,5" });
-  assert.deepEqual(maxColliders, { count: 134, at: "4,-2" });
-  // Adaptive road surfaces, elevated decks, supports and clear ramp corridors.
-  assert.equal(totalBoxes, 71092);
-  assert.equal(totalColliders, 8581);
+  assert.deepEqual(maxBoxes, { count: 287, at: "5,4" });
+  assert.deepEqual(maxColliders, { count: 72, at: "-3,0" });
+  // Rebuilt hill districts, grounded architecture and continuous campus grounds.
+  assert.equal(totalBoxes, 22386);
+  assert.equal(totalColliders, 5964);
 });
 
 test("representative chunk output is byte-for-byte deterministic", () => {
   const chunk = generateCityChunk(0, 0);
   const hash = createHash("sha256").update(JSON.stringify(chunk)).digest("hex");
-  assert.equal(hash, "6fd1ebe846dc6fef192b0cfb27429755511b3be2d9a8f795d2839d3149de2537");
+  assert.equal(hash, "5a988c3035824055927c11d396f5386d9d4074537d3b6f46f0436f0d8469d4ed");
 });
 
 test("ordinary lot contents leave the same widened sidewalk ring in every orientation", () => {
@@ -124,14 +126,14 @@ test("store portals and their return poses are stable and clear in every lot ori
         assert.ok(Number.isFinite(portal.x) && Number.isFinite(portal.y) && Number.isFinite(portal.heading));
         assert.ok(portal.venue);
         headings.add(Math.round(((portal.heading % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2) * 1000));
-        assert.equal(Boolean(circleHitsBuilding(chunkWorld, portal.x, portal.y, 0.44)), false, `${portal.id} entrance is blocked`);
+        assert.equal(Boolean(circleHitsBuilding(chunkWorld, portal.x, portal.y, 0.44, portal.z)), false, `${portal.id} entrance is blocked`);
         const returnX = portal.x + Math.cos(portal.heading) * 1.15;
         const returnY = portal.y + Math.sin(portal.heading) * 1.15;
-        assert.equal(Boolean(circleHitsBuilding(chunkWorld, returnX, returnY, 0.44)), false, `${portal.id} return pose is blocked`);
+        assert.equal(Boolean(circleHitsBuilding(chunkWorld, returnX, returnY, 0.44, portal.z)), false, `${portal.id} return pose is blocked`);
       }
     }
   }
-  assert.equal(portalCount, 1469);
+  assert.equal(portalCount, 1299);
   assert.equal(headings.size, 4);
   const home = generateCityChunk(0, 0).interactions.find((portal) => portal.id === "venue:0:0:home");
   assert.deepEqual(home?.venue, { id: "venue:0:0:home", kind: "home", label: "NEON LOFTS" });
@@ -142,13 +144,13 @@ test("streaming changes draw radius without expanding collision radius", () => {
   const near = stream.update(0, 0, 1);
   assert.deepEqual(
     { chunks: near.chunks.length, boxes: near.boxes.length, surfaces: near.surfaces?.length, colliders: near.colliders.length },
-    { chunks: 9, boxes: 4491, surfaces: 702, colliders: 353 },
+    { chunks: 9, boxes: 1685, surfaces: 7513, colliders: 462 },
   );
 
   const distant = stream.update(0, 0, 3);
   assert.deepEqual(
     { chunks: distant.chunks.length, boxes: distant.boxes.length, surfaces: distant.surfaces?.length, colliders: distant.colliders.length },
-    { chunks: 49, boxes: 27762, surfaces: 3532, colliders: 353 },
+    { chunks: 49, boxes: 9739, surfaces: 57023, colliders: 462 },
   );
   assert.ok(distant.boxes.length <= MAX_STREAM_BOXES);
   assert.ok(distant.colliders.length <= MAX_STREAM_COLLIDERS);
@@ -160,6 +162,7 @@ test("every city center preserves collision radius and worst-case stream budgets
   let maxNearBoxes = { count: 0, at: "" };
   let maxFarBoxes = { count: 0, at: "" };
   let maxColliders = { count: 0, at: "" };
+  let maxSurfaces = { count: 0, at: "" };
 
   for (let cx = CHUNK_MIN; cx <= CHUNK_MAX; cx += 1) {
     for (let cy = CHUNK_MIN; cy <= CHUNK_MAX; cy += 1) {
@@ -176,12 +179,16 @@ test("every city center preserves collision radius and worst-case stream budgets
       assert.ok(distant.boxes.length <= MAX_STREAM_BOXES);
       assert.ok(distant.colliders.length <= MAX_STREAM_COLLIDERS);
       assert.ok(distant.interactions.length <= MAX_STREAM_INTERACTIONS);
+      const surfaces = (distant.surfaces?.length ?? 0) + (distant.landscapeSurfaces?.length ?? 0);
+      assert.ok(surfaces <= MAX_STREAM_SURFACE_QUADS);
+      if (surfaces > maxSurfaces.count) maxSurfaces = { count: surfaces, at };
     }
   }
 
-  assert.deepEqual(maxNearBoxes, { count: 5757, at: "-4,0" });
-  assert.deepEqual(maxFarBoxes, { count: 28967, at: "-2,2" });
-  assert.deepEqual(maxColliders, { count: 888, at: "-3,-4" });
+  assert.deepEqual(maxNearBoxes, { count: 2476, at: "4,5" });
+  assert.deepEqual(maxFarBoxes, { count: 11354, at: "5,-2" });
+  assert.deepEqual(maxColliders, { count: 510, at: "-5,0" });
+  assert.deepEqual(maxSurfaces, { count: 63056, at: "1,1" });
 });
 
 test("the expanded lot catalog appears throughout the world with four orientations", () => {
@@ -199,29 +206,29 @@ test("the expanded lot catalog appears throughout the world with four orientatio
   }
 
   assert.deepEqual(counts, {
-    carwash: 91,
-    diner: 166,
-    motel: 40,
-    factory: 153,
-    construction: 114,
-    warehouse: 162,
-    gas: 133,
-    homes: 78,
-    apartment: 112,
-    park: 186,
-    market: 45,
-    civic: 94,
-    plaza: 55,
-    shops: 156,
-    playground: 56,
-    townhouses: 82,
+    carwash: 83,
+    diner: 135,
+    motel: 35,
+    factory: 123,
+    construction: 96,
+    warehouse: 131,
+    gas: 118,
+    homes: 52,
+    apartment: 97,
+    park: 484,
+    market: 34,
+    civic: 79,
+    plaza: 44,
+    shops: 131,
     office: 55,
+    townhouses: 50,
     landmark: 45,
+    playground: 35,
     tower: 36,
-    boardwalk: 39,
-    marina: 38,
+    boardwalk: 37,
+    marina: 36,
   });
-  assert.deepEqual(orientations, [497, 469, 509, 461]);
+  assert.deepEqual(orientations, [525, 457, 505, 449]);
 });
 
 test("all generated geometry is finite and every collider stays clear of roads", () => {
@@ -276,7 +283,7 @@ test("all generated geometry is finite and every collider stays clear of roads",
 test("the authored road network is varied, continuous, driveable, and avoids landmarks", () => {
   assert.deepEqual(
     [...new Set(SPECIAL_ROADS.map((road) => road.kind))].sort(),
-    ["boulevard", "highway", "parkway", "ramp", "roundabout"],
+    ["boulevard", "parkway", "roundabout"],
   );
   for (const road of SPECIAL_ROADS) {
     assert.ok(road.points.length >= 2, road.id);

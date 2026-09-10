@@ -16,7 +16,7 @@ test.beforeAll(async () => {
 });
 
 for (const kind of ["WebGPU", "Canvas 2D"] as const) {
-  test(`${kind} draws ramps, bridges and the street beneath them in all cameras`, async ({ page }, testInfo) => {
+  test(`${kind} draws bridge approaches, decks and the water beneath them in all cameras`, async ({ page }, testInfo) => {
     const errors: string[] = [];
     page.on("pageerror", (error) => errors.push(error.message));
     page.on("console", (message) => { if (message.type() === "error") errors.push(message.text()); });
@@ -28,7 +28,7 @@ for (const kind of ["WebGPU", "Canvas 2D"] as const) {
         if (scene === "ramp") {
           expect(state.z).toBeGreaterThan(1);
           expect(state.z).toBeLessThan(8.64);
-        } else expect(state.z).toBeCloseTo(scene === "bridge" ? 8.64 : 0, 1);
+        } else expect(state.z).toBeCloseTo(state.expectedZ, 1);
         expect(state.surfaces).toBeGreaterThan(100);
         await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
         await page.locator("#elevation-fixture").screenshot({ path: testInfo.outputPath(`${scene}-${mode}.png`) });

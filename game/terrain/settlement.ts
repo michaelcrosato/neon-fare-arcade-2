@@ -1,6 +1,10 @@
 import { northstarGridStreetEnabled, northstarRoadHeight, inNorthstarTerrain } from "./northstar-forms";
 import { copperGridStreetEnabled, copperRoadHeight, inCopperTerrain } from "./copper-forms";
 import { coastGridStreetEnabled, coastRoadHeight, inCoastTerrain } from "./coast-forms";
+import { cityRoadHeight, inCityTerrain } from "./city-forms";
+import { cityGreenAt } from "../city-layout";
+import { landmarkTileForBlock } from "../landmarks";
+import { blockRandom } from "../math";
 
 /** Flat building plots follow their service lane; wilderness remains unoccupied. */
 export function northstarSettlementPlan(blockX: number, blockY: number) {
@@ -30,7 +34,17 @@ export function copperSettlementPlan(blockX: number, blockY: number) {
 }
 
 export function regionalSettlementPlan(blockX: number, blockY: number) {
-  return northstarSettlementPlan(blockX, blockY) ?? copperSettlementPlan(blockX, blockY) ?? coastSettlementPlan(blockX, blockY);
+  return northstarSettlementPlan(blockX, blockY) ?? copperSettlementPlan(blockX, blockY) ?? coastSettlementPlan(blockX, blockY) ?? citySettlementPlan(blockX, blockY);
+}
+
+export function citySettlementPlan(blockX: number, blockY: number) {
+  const x = blockX * 36 + 18, y = blockY * 36 + 18;
+  if (!inCityTerrain(x, y)) return null;
+  const landmark = landmarkTileForBlock(blockX, blockY);
+  if (!landmark && cityGreenAt(x, y)) return null;
+  const orientation = landmark?.definition.orientation ?? Math.floor(blockRandom(blockX, blockY, 0x0a71e)() * 4);
+  const front = [{ x, y: y - 18 }, { x: x + 18, y }, { x, y: y + 18 }, { x: x - 18, y }][orientation];
+  return { x, y, orientation, floor: cityRoadHeight(landmark ? x : front.x, landmark ? y : front.y) };
 }
 
 export function coastSettlementPlan(blockX: number, blockY: number) {

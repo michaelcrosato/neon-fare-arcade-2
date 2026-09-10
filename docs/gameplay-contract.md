@@ -30,7 +30,8 @@ updates the arcade launch, steering, road elevation and contact rules below.
 
 - `+x` points east, `+y` points south, and `+z` points up.
 - Local street coordinates use a 36-unit lattice with a 6-unit half width.
-  Neon City exposes the full local grid. Cedar Vale uses neighborhood collectors,
+  Neon City retains a predominantly local grid, interrupted by four green
+  districts and ten continuous landmark campuses. Cedar Vale uses neighborhood collectors,
   loops, planted turning courts and a compact town grid. Northstar Range, Copper
   Mesa, Palm Reach, and Solana Coast expose compact town grids and sparse rural spines.
   Authored boulevards, parkways, highways, ramps, roundabouts, mountain roads,
@@ -38,11 +39,13 @@ updates the arcade launch, steering, road elevation and contact rules below.
   physics, routes, traffic, fares, pedestrians, and both GPS maps consume the
   same enabled-street topology.
 - Authored curves carry height, width and bank through one compiled surface.
-  The Neon Beltway centerline is at z=8; eight ramps connect it to the ground
-  network. Its tire-contact plane is z=8.64. Equal XY coordinates on different
-  decks do not form a junction. Northstar, Copper, and Solana Coast use physical terrain and
-  sustained road grades; Palm Reach adds a raised bay crossing while its land and the other flat
-  regions retain the established ground plane.
+  Neon City uses physical hills, level landmark terraces and twelve-unit
+  junction tables between graded blocks. Its unused beltway and eight ramps
+  have been removed. Tire contact stays 0.64 above the shared road design;
+  fast crest takeoff and landing use the existing vehicle physics. Equal XY
+  coordinates on different decks do not form a junction. Northstar, Copper,
+  and Solana Coast also use physical terrain and sustained road grades; Palm
+  Reach adds a raised bay crossing. Cedar retains its established ground plane.
 - Horizontal right-hand traffic: `laneY = roadY + dir * 2.25`.
 - Vertical right-hand traffic: `laneX = roadX - dir * 2.25`.
 - The player taxi starts at `(0, 2)`, heading north (`-π/2`). This centered
@@ -153,7 +156,7 @@ updates the arcade launch, steering, road elevation and contact rules below.
 - The stock taxi top speed is 180 displayed km/h (about 112 mph). Standard
   packages cap at 160 km/h on local streets and 170 km/h under boost; Redline
   Rush reaches 165 km/h without boost. While the taxi center is on any authored
-  four-lane corridor—the Aurora and Crosstown boulevards or Neon Beltway—both
+  four-lane corridor—the Aurora or Crosstown boulevard—both
   normal and boosted forward-speed caps increase by exactly 10 displayed km/h,
   up to the stock ceiling. Boost Overdrive is the explicit exception: while
   boosting, it replaces that governor with a cap exactly 60 km/h above the

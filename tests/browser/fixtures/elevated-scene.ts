@@ -2,7 +2,7 @@ import { Canvas2DRenderer } from "../../../app/canvas2d-renderer";
 import { createWebGPURenderer } from "../../../app/webgpu-renderer";
 import { makeGame } from "../../../game/state";
 import { CityStream } from "../../../game/world";
-import { sampleSpecialRoad, specialRoadLength } from "../../../game/road-network";
+import { sampleSpecialRoad } from "../../../game/road-network";
 import { buildNavigationPlan } from "../../../game/navigation";
 import { chaseCameraPreset } from "../../../game/config";
 import { stepVehicleRoadContact } from "../../../game/vehicle-road-contact";
@@ -15,7 +15,7 @@ declare global {
   interface Window {
     roadScene: {
       mount(kind: "WebGPU" | "Canvas 2D"): Promise<string>;
-      render(scene: "ramp" | "bridge" | "underpass", mode: CameraMode): { z: number; surfaces: number };
+      render(scene: "ramp" | "bridge" | "underpass", mode: CameraMode): { z: number; expectedZ: number; surfaces: number };
     };
   }
 }
@@ -35,8 +35,8 @@ window.roadScene = {
     return renderer.kind;
   },
   render(scene, mode) {
-    const roadId = scene === "ramp" ? "northeast-inner-ramp" : "neon-beltway";
-    const progress = scene === "ramp" ? specialRoadLength(roadId) / 2 : 0;
+    const roadId = "stormwall-levee-road";
+    const progress = scene === "ramp" ? 160 : 400;
     const sample = sampleSpecialRoad(roadId, progress)!;
     game.x = sample.point.x; game.y = sample.point.y;
     game.z = scene === "underpass" ? 0 : sample.point.z + 0.64;
@@ -46,13 +46,13 @@ window.roadScene = {
     game.roadMotion.roadId = scene === "underpass" ? null : roadId;
     game.roadMotion.pitch = 0; game.roadMotion.roll = 0;
     for (let i = 0; i < 45; i += 1) stepVehicleRoadContact(game, 1 / 60, game);
-    const target = scene === "underpass" ? { x: 0, y: -504 } : sampleSpecialRoad(roadId, Math.max(0, progress - 24))!.point;
+    const target = scene === "underpass" ? { x: game.x + 30, y: game.y } : sampleSpecialRoad(roadId, Math.max(0, progress - 24))!.point;
     const world = stream.update(game.x, game.y, mode === "fixed" ? 1 : 3);
     const camera = { x: game.x, y: game.y, heading: game.heading, mode, zoom: 1,
       boom: mode === "chase-high" || mode === "chase-low" ? chaseCameraPreset(mode).distance : 0,
       heightOffset: game.z };
     if (mode === "chase-high" || mode === "chase-low") camera.boom = cameraBoomLimit(camera, world, camera.boom, chaseCameraPreset(mode).height);
     renderer.render(game, camera, 40, world, buildNavigationPlan(game, target, game.heading));
-    return { z: game.z, surfaces: world.surfaces?.length ?? 0 };
+    return { z: game.z, expectedZ: scene === "underpass" ? 0 : sample.point.z + .64, surfaces: world.surfaces?.length ?? 0 };
   },
 };

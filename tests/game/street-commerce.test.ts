@@ -48,17 +48,17 @@ test("street commerce deterministically sprinkles every scene type without overr
     }
   }
 
-  assert.equal(total, 191);
+  assert.equal(total, 189);
   assert.equal(ids.has("street-commerce:hot-dog-cart:0:0"), true);
   assert.deepEqual(counts, {
-    "hot-dog-cart": 24,
-    newsstand: 12,
-    "produce-stand": 19,
-    "food-truck": 44,
-    "coffee-cart": 37,
-    "ice-cream-cart": 21,
-    "flower-stand": 21,
-    busker: 13,
+    "coffee-cart": 23,
+    "busker": 15,
+    "food-truck": 48,
+    "ice-cream-cart": 25,
+    "flower-stand": 18,
+    "hot-dog-cart": 31,
+    "produce-stand": 18,
+    "newsstand": 11,
   });
 });
 
@@ -142,7 +142,7 @@ test("vendor scenes preserve roads, water, portals, existing geometry, and walki
       }
     }
   }
-  assert.equal(checked, 191);
+  assert.equal(checked, 189);
 });
 
 test("vendor blocks stay owned by their generated chunk", () => {

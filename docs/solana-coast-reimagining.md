@@ -60,7 +60,8 @@ slots, passenger/art indices, active-cardinal transfers, and hard stream limits.
   units/s across all seven roads, both directions and both driving models.
   Ordinary controls also cover Sunset's arrival climb and both side-street
   crossings in both directions. Rising airborne landings catch the pavement,
-  while real crests, underpasses and all eight beltway ramps retain their rules.
+  while real crests, underpasses and the then-current beltway ramps retained
+  their rules. The later Neon City rebuild removes the unused beltway.
   Clearance sampling now includes every elevated Coast grid street at one-unit
   intervals in both lanes.
 - All ten venues enter and return on their actual ground. Elevated fuel stops

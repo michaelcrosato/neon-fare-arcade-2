@@ -44,6 +44,11 @@ registry rather than infer playable space from one symmetric radius or hull.
 
 ## Runtime ownership
 
+- `game/city-layout.ts` owns Neon City's green districts and local street policy;
+  `city-roads.ts` owns its four scenic routes. `terrain/city-forms.ts` owns its
+  physical hills, graded junctions and landmark terraces. `city-assets.ts`,
+  `city-buildings.ts`, `city-ground.ts` and `city-landmarks.ts` own the rebuilt
+  architecture and public spaces while `landmarks.ts` retains named identities.
 - `game/regions.ts` owns slots, active regions, exact containment, bounds,
   nearest-region presentation, movement projection, and local place names.
 - `game/residential.ts` owns Cedar Vale's parcels, neighborhood deck, pedestrian
@@ -52,7 +57,7 @@ registry rather than infer playable space from one symmetric radius or hull.
   its homes, campuses, trees and architectural meshes.
 - `game/mountain.ts` owns Northstar Range's area deck, rural building families,
   terrain dressing, portals, and authored anchor registry.
-- `game/terrain/` owns Northstar and Copper landforms, settlement benches, shared
+- `game/terrain/` owns City, Northstar, Copper and Coast landforms, settlement benches, shared
   terrain mesh/contact, watercourse beds, distant terrain, and GPS contours.
   Pure `region-forms.ts` dispatches road-design and natural height fields before
   the road network and final cut terrain are built.
@@ -92,6 +97,33 @@ An inactive compass cell must remain non-driveable even if two active cells
 form an L around it. `containingRegionForPosition`, `isPlayablePoint`,
 `isActiveBlock`, and `isActiveChunk` are the authority for simulation. A
 nearest-region lookup is presentation-only.
+
+## Neon City: Center region
+
+The rebuilt starting city keeps its original 121 chunks, sixteen named
+landmarks, six fare slots and four regional exits. Most streets remain on the
+36-unit grid. Four connected green districts interrupt it with Starfall Scenic
+Drive, Commons Greenway, Skyline Garden Drive and Titan Garden Loop. All ten
+multi-block landmarks have continuous grounds and accessible perimeter streets.
+The unused Neon Beltway and its eight ramps are removed from the shared graph,
+pavement, collision structures, traffic assignment and both GPS views.
+
+The downtown starting terrace remains at zero. Starfall's observatory terrace
+rises to 38 units, the university to 26, Volt Expo to 22 and the Ink Market to
+12. Redline has two pronounced street rollers; Titan and Starfall add longer
+urban crests. All four seams at `x/y = ±792` remain exactly level at zero.
+Twelve-unit junction tables join the graded blocks so ordinary driving stays
+grounded, while fast approaches can launch and land through the existing
+contact system. Vehicle tuning is unchanged.
+
+New stepped towers, brick apartments, gabled homes, sawtooth industrial roofs,
+shops, service stations, plazas and faceted trees replace generic City lot
+geometry. Retained landmark bases gain distinct physical roof forms, including
+the two observatory domes. Paving, portals, scenery and traffic follow actual
+terrain. Distant views derive their hills and skyline from the same City, and
+both GPS views show the shared streets and elevation contours.
+
+See [Neon City reimagining](neon-city-reimagining.md) for verification evidence.
 
 ## Cedar Vale: East region
 

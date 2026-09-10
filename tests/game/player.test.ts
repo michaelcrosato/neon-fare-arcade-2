@@ -14,8 +14,8 @@ import {
 const IDLE: InputState = { up: false, down: false, left: false, right: false, boost: false };
 const EMPTY_WORLD: WorldView = { key: "empty", boxes: [], colliders: [], chunks: [], interactions: [] };
 
-function actor(): WalkingActor {
-  return makeWalkingActor({ x: 0, y: 0, vx: 0, vy: 0, heading: 0, speed: 0 });
+function actor(x = 0, y = 0): WalkingActor {
+  return makeWalkingActor({ x, y, vx: 0, vy: 0, heading: 0, speed: 0 });
 }
 
 function replay(input: InputState, ticks = 120, world = EMPTY_WORLD) {
@@ -63,7 +63,7 @@ test("ground acceleration, braking, reversal, and turning remain responsive", ()
 });
 
 function jumpArc(holdTicks: number) {
-  const value = actor();
+  const value = actor(18, 18);
   let maximum = 0;
   let jumps = 0;
   let landings = 0;
@@ -128,7 +128,7 @@ test("running and jumping cannot tunnel through a thin wall", () => {
 });
 
 test("camera lift follows first-person stance and jump while reduced motion removes bob", () => {
-  const value = actor();
+  const value = actor(18, 18);
   value.gaitPhase = Math.PI / 2;
   value.speed = WALKING_TUNING.runSpeed;
   value.action = "run";

@@ -31,8 +31,11 @@ fixed-step cadence and returns semantic events.
   `reach-distant.ts`, and `reach-scenery.ts` own geometry and animation. Solana Coast owns its data,
   shore, and builders in `coastal.ts`; shared shore coordinates live in
   `coastal-layout.ts`.
-- Neon City landmark definitions: `landmarks.ts`; grid-interrupting footprints:
-  `campuses.ts`; chunk generation/streaming and center visuals: `world.ts`.
+- Neon City street/green policy: `city-layout.ts`; curves: `city-roads.ts`;
+  landforms: `terrain/city-forms.ts`; architecture and public realm:
+  `city-assets.ts`, `city-buildings.ts`, `city-ground.ts`, `city-landmarks.ts`.
+  Landmark identities: `landmarks.ts`; grid-interrupting footprints:
+  `campuses.ts`; chunk generation/streaming: `world.ts`.
 - Authored roads: `road-layout.ts`; enabled grid: `road-topology.ts`; graph and
   projection: `road-network.ts`; canonical route geometry: `route-geometry.ts`;
   traffic: `traffic.ts`.

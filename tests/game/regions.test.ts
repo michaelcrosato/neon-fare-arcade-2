@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   CHUNK_SIZE,
+  MAT_ROAD,
   MAX_CHUNK_BOXES,
   MAX_CHUNK_COLLIDERS,
   MAX_CHUNK_INTERACTIONS,
@@ -260,7 +261,9 @@ test("seam roads have one owner and Northstar ends in wilderness at its northern
       Math.abs(box.x - x) < 1e-8
       && Math.abs(box.sx - 12) < 1e-8
       && Math.abs(box.sy - ROAD_SPACING) < 1e-8
-    )).length
+    )).length + (chunk.surfaces ?? []).filter(face => face.material === MAT_ROAD && face.corners.length === 4
+      && Math.abs((face.corners[0].x + face.corners[3]!.x) / 2 - x) < 1e-8
+      && Math.abs(face.corners[0].x - face.corners[3]!.x) === 12).length
   );
   assert.equal(verticalRoadsAt(center, 792), 4);
   assert.equal(verticalRoadsAt(gateway, 792), 0);
@@ -274,7 +277,9 @@ test("seam roads have one owner and Northstar ends in wilderness at its northern
       Math.abs(box.y - y) < 1e-8
       && Math.abs(box.sx - ROAD_SPACING) < 1e-8
       && Math.abs(box.sy - 12) < 1e-8
-    )).length
+    )).length + (chunk.surfaces ?? []).filter(face => face.material === MAT_ROAD && face.corners.length === 4
+      && Math.abs((face.corners[0].y + face.corners[3]!.y) / 2 - y) < 1e-8
+      && Math.abs(face.corners[0].y - face.corners[3]!.y) === 12).length
   );
   assert.equal(horizontalRoadsAt(cityNorth, -792), 4);
   assert.equal(horizontalRoadsAt(northGateway, -792), 0);
@@ -295,7 +300,7 @@ test("deep regional roads route through the city while the inactive northeast ce
   assert.equal(isRoadSurface({ x: -36, y: -2124 }), true);
   assert.equal(isRoadSurface({ x: 1008, y: -1008 }), false);
   const plan = buildNavigationPlan({ x: 0, y: 0 }, { x: 2300, y: 50 }, 0);
-  assert.deepEqual(plan.route[0], { x: 0, y: 0 });
+  assert.deepEqual(plan.route[0], { x: 0, y: 0, z: 0 });
   assert.deepEqual(plan.route.at(-1), { x: 2300, y: 50 });
   assert.equal(plan.requiresUTurn, false);
   assert.ok(plan.route.some((point) => point.x >= 792));

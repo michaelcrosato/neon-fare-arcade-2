@@ -51,10 +51,10 @@ test("route compaction removes duplicates and collinear waypoints", () => {
 test("the first fare route keeps its physical distance through the shared graph", () => {
   const route = buildGpsRoute({ x: 0, y: -12 }, { x: -72, y: 126 });
   assert.deepEqual(route, [
-    { x: 0, y: -12 },
-    { x: 0, y: 108 },
-    { x: -72, y: 108 },
-    { x: -72, y: 126 },
+    { x: 0, y: -12, z: 0 },
+    { x: 0, y: 108, z: 0 },
+    { x: -72, y: 108, z: 0 },
+    { x: -72, y: 126, z: 0 },
   ]);
   assert.equal(routeLength(route), 210);
 });
@@ -113,13 +113,13 @@ test("navigation keeps the current turn until the taxi commits to its exit", () 
   game.heading = Math.PI / 2;
   game.elapsed = 0;
 
-  assert.deepEqual(controller.update(game).turnCue?.point, { x: 0, y: 0 });
+  assert.deepEqual(controller.update(game).turnCue?.point, { x: 0, y: 0, z: 0 });
 
   // Beginning to rotate is not the same as completing the turn.
   game.y = -5.3;
   game.heading = 1.75;
   game.elapsed = 0.2;
-  assert.deepEqual(controller.update(game).turnCue?.point, { x: 0, y: 0 });
+  assert.deepEqual(controller.update(game).turnCue?.point, { x: 0, y: 0, z: 0 });
 
   // Collinearity with the exit road must not compact the current corner out
   // of the live distance path before the turn is complete.
@@ -128,7 +128,7 @@ test("navigation keeps the current turn until the taxi commits to its exit", () 
     game.y = 0;
     game.heading = Math.PI;
     game.elapsed = elapsed;
-    assert.deepEqual(controller.update(game).turnCue?.point, { x: 0, y: 0 });
+    assert.deepEqual(controller.update(game).turnCue?.point, { x: 0, y: 0, z: 0 });
   }
 
   // Once the cab is established on the outgoing road, the next cue replaces
@@ -152,7 +152,7 @@ test("late exit alignment can complete a wide turn without a radial dead zone", 
   game.y = -20;
   game.heading = Math.PI / 2;
   game.elapsed = 0;
-  assert.deepEqual(controller.update(game).turnCue?.point, { x: 0, y: 0 });
+  assert.deepEqual(controller.update(game).turnCue?.point, { x: 0, y: 0, z: 0 });
 
   game.x = -9;
   game.y = 2.25;
@@ -181,7 +181,7 @@ test("normal turn guidance does not blink during heading-source jitter", () => {
     game.vy = 0;
     game.elapsed = elapsed;
     const plan = controller.update(game);
-    assert.deepEqual(plan.turnCue?.point, { x: 0, y: 0 });
+    assert.deepEqual(plan.turnCue?.point, { x: 0, y: 0, z: 0 });
     assert.equal(gpsInstruction(plan.route, plan.travelHeading, plan.turnCue).text, "TURN RIGHT");
   }
 
@@ -193,12 +193,12 @@ test("normal turn guidance does not blink during heading-source jitter", () => {
   game.elapsed = 0.4;
   const aboveOldThreshold = controller.update(game);
   assert.equal(aboveOldThreshold.requiresUTurn, false);
-  assert.deepEqual(aboveOldThreshold.turnCue?.point, { x: 0, y: 0 });
+  assert.deepEqual(aboveOldThreshold.turnCue?.point, { x: 0, y: 0, z: 0 });
   game.vy = -2.9;
   game.elapsed = 0.5;
   const belowOldThreshold = controller.update(game);
   assert.equal(belowOldThreshold.requiresUTurn, false);
-  assert.deepEqual(belowOldThreshold.turnCue?.point, { x: 0, y: 0 });
+  assert.deepEqual(belowOldThreshold.turnCue?.point, { x: 0, y: 0, z: 0 });
 });
 
 test("a missed turn swaps guidance on replan without an empty frame", () => {
@@ -224,11 +224,11 @@ test("a missed turn swaps guidance on replan without an empty frame", () => {
   });
 
   assert.deepEqual(cuePoints, [
-    { x: 0, y: 0 },
-    { x: 0, y: 0 },
-    { x: 0, y: 0 },
-    { x: 0, y: 0 },
-    { x: 0, y: 36 },
+    { x: 0, y: 0, z: 0 },
+    { x: 0, y: 0, z: 0 },
+    { x: 0, y: 0, z: 0 },
+    { x: 0, y: 0, z: 0 },
+    { x: 0, y: 36, z: 0 },
   ]);
 });
 

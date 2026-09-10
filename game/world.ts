@@ -10,12 +10,17 @@ import { copperRoadStructures } from "./roads/copper-structures";
 import { addMountainScenery } from "./mountain-scenery";
 import { addCopperScenery } from "./copper-scenery";
 import { addCoastScenery } from "./coast-scenery";
-import { northstarLandscape, copperLandscape, coastLandscape } from "./terrain/landscape";
+import { northstarLandscape, copperLandscape, coastLandscape, cityLandscape } from "./terrain/landscape";
 import type { MeshFace, Vec3 } from "./model";
 import { inNorthstarTerrain } from "./terrain/northstar-forms";
 import { inElevatedTerrain, atRoadElevation } from "./terrain/region-forms";
 import { inCopperTerrain } from "./terrain/copper-forms";
 import { inCoastTerrain } from "./terrain/coast-forms";
+import { inCityTerrain, drapeCityRoad } from "./terrain/city-forms";
+import { cityGreenAt } from "./city-layout";
+import { buildCityLot } from "./city-buildings";
+import { finishCityLandmark } from "./city-landmarks";
+import { addCityPaving, buildCityVerge, groundCityFoundations } from "./city-ground";
 import { regionalTerrainMesh, terrainHeightAt } from "./terrain/surface";
 import { compileRoad } from "./roads/geometry";
 import { compiledSpecialRoad } from "./road-network";
@@ -185,6 +190,7 @@ export function lotForBlock(blockX: number, blockY: number, district: DistrictKi
   if (district === "wetland") return wetlandLotForBlock(blockX, blockY);
   if (district === "coastal") return coastalLotForBlock(blockX, blockY);
   if (landmarkTileForBlock(blockX, blockY)) return "landmark";
+  if (cityGreenAt(blockX * ROAD_SPACING + 18, blockY * ROAD_SPACING + 18)) return "park";
   const signature = (
     Math.imul(blockX + 47, 73856093) ^
     Math.imul(blockY - 31, 19349663)
@@ -907,7 +913,13 @@ function addStreetCommerceForChunk(
     commerceCtx.blockY = block.blockY;
     commerceCtx.centerX = block.centerX;
     commerceCtx.centerY = block.centerY;
+    const firstBox = ctx.boxes.length, firstCollider = ctx.colliders.length;
     addStreetCommerceScene(commerceCtx, block, placement);
+    if (inCityTerrain(placement.x, placement.y)) {
+      const floor = terrainHeightAt(placement.x, placement.y);
+      for (let i = firstBox; i < ctx.boxes.length; i += 1) { ctx.boxes[i].z += floor; ctx.boxes[i].screenLift = floor; }
+      for (let i = firstCollider; i < ctx.colliders.length; i += 1) ctx.colliders[i].baseZ = floor;
+    }
   }
 }
 
@@ -1338,6 +1350,12 @@ function addLandmarkPad(
   color: Color,
   material: Box["material"] = MAT_SIDEWALK,
 ) {
+  const tile = landmarkTileForBlock(ctx.blockX, ctx.blockY);
+  if (tile && (tile.definition.width > 1 || tile.definition.height > 1)) {
+    addCampusGround(ctx, tile.tileX, tile.tileY, tile.definition.width, tile.definition.height,
+      material === MAT_WATER ? BONE : color, material === MAT_WATER ? MAT_SIDEWALK : material);
+    return;
+  }
   ctx.boxes.push({
     x: ctx.centerX,
     y: ctx.centerY,
@@ -1721,28 +1739,11 @@ function addVoltExpoTile(ctx: LotContext, tileX: number) {
 }
 
 function addStarfallObservatoryTile(ctx: LotContext, tileX: number) {
-  addLandmarkPad(ctx, INK);
+  addLandmarkPad(ctx, BONE);
   if (tileX === 0) {
     addBuildingShell(ctx, "observatory-center", ctx.centerX, ctx.centerY + 3.2, 18, 11.2, 5.2, BONE, CYAN, INK);
-    ctx.boxes.push({ x: ctx.centerX, y: ctx.centerY + 3.2, z: 7.3, sx: 11, sy: 11, sz: 1.5, yaw: Math.PI / 4, color: BLUE, material: MAT_BUILDING });
-    ctx.boxes.push({ x: ctx.centerX, y: ctx.centerY + 3.2, z: 8.7, sx: 7.5, sy: 7.5, sz: 1.2, yaw: 0, color: CYAN, material: MAT_SIGN });
   } else {
-    for (let tier = 0; tier < 4; tier += 1) {
-      ctx.boxes.push({
-        x: ctx.centerX,
-        y: ctx.centerY + 1.5,
-        z: 1.8 + tier * 1.45,
-        sx: 15 - tier * 2.6,
-        sy: 15 - tier * 2.6,
-        sz: 1.35,
-        yaw: tier % 2 ? Math.PI / 4 : 0,
-        color: tier % 2 ? BLUE : WHITE,
-        material: MAT_BUILDING,
-      });
-    }
-    addSolid(ctx, "observatory-dome", ctx.centerX, ctx.centerY + 1.5, 13, 13, 7.2);
-    ctx.boxes.push({ x: ctx.centerX + 2.5, y: ctx.centerY + 1.5, z: 8.4, sx: 9.5, sy: 1.4, sz: 1.4, yaw: -0.42, color: CYAN, material: MAT_SIGN });
-    ctx.boxes.push({ x: ctx.centerX, y: ctx.centerY + 1.5, z: 10.2, sx: 0.45, sy: 0.45, sz: 5.5, yaw: 0, color: PINK, material: MAT_SIGN });
+    addSolid(ctx, "observatory-dome", ctx.centerX, ctx.centerY + 1.5, 13, 13, 10);
   }
 }
 
@@ -1852,10 +1853,13 @@ function buildLot(ctx: LotContext, district: DistrictKind, lot: LotKind) {
   if (lot === "landmark") {
     if (!landmark) throw new Error(`Missing landmark at ${ctx.blockX},${ctx.blockY}`);
     addLandmarkLot(lotCtx, landmark);
+    finishCityLandmark(lotCtx, landmark);
   } else if (district === "coastal") {
     buildCoastalLot(lotCtx, lot);
   } else if (district === "wetland") {
     buildWetlandLot(lotCtx, lot);
+  } else if (inCityTerrain(ctx.centerX, ctx.centerY)) {
+    buildCityLot(lotCtx, lot, district);
   } else {
     switch (lot) {
       case "tower": addTowerLot(lotCtx); break;
@@ -1984,7 +1988,7 @@ function buildLot(ctx: LotContext, district: DistrictKind, lot: LotKind) {
       case "reach-saint-lumina": buildWetlandLot(lotCtx, lot); break;
     }
   }
-  if (!landmark && !residentialAnchor && !mountainAnchor && !desertAnchor && !wetlandAnchor && district !== "mountain" && district !== "desert" && district !== "wetland" && district !== "coastal" && district !== "residential") addCornerKit(lotCtx, district);
+  if (!inCityTerrain(ctx.centerX, ctx.centerY) && !landmark && !residentialAnchor && !mountainAnchor && !desertAnchor && !wetlandAnchor && district !== "mountain" && district !== "desert" && district !== "wetland" && district !== "coastal" && district !== "residential") addCornerKit(lotCtx, district);
 
   const fixedCoastal = district === "coastal" && (ctx.blockX < -56 || coastalAnchorForBlock(ctx.blockX, ctx.blockY) || coastCanalBlock(ctx.blockX, ctx.blockY));
   const orientation = landmark?.definition.orientation ?? (residentialAnchor || mountainAnchor || desertAnchor || wetlandAnchor || fixedCoastal || district === "residential" ? 0 : district === "wetland" ? wetlandLotOrientation(ctx.blockX, ctx.blockY) : lotOrientationForBlock(ctx.blockX, ctx.blockY));
@@ -2206,6 +2210,7 @@ function addSpecialRoadGeometry(boxes: Box[], surfaces: MeshFace[], colliders: C
       continue;
     }
 
+    const cityRoad = inCityTerrain(segment.a.x, segment.a.y) && inCityTerrain(segment.b.x, segment.b.y);
     const northstarRoad = inNorthstarTerrain(segment.a.x, segment.a.y) || segment.pathId === "northstar-highway"
       || segment.pathId === "pinehook-loop"
       || segment.pathId === "mirror-lake-road"
@@ -2243,7 +2248,7 @@ function addSpecialRoadGeometry(boxes: Box[], surfaces: MeshFace[], colliders: C
           const plantingOffset = segment.halfWidth + (wetlandRoad ? 6.2 : 3.1);
           const x = (segment.a.x + segment.b.x) / 2 - Math.sin(yaw) * side * plantingOffset;
           const y = (segment.a.y + segment.b.y) / 2 + Math.cos(yaw) * side * plantingOffset;
-          if (northstarRoad || desertRoad || coastalRoad) {
+          if (cityRoad || northstarRoad || desertRoad || coastalRoad) {
             const z = ((segment.a.z ?? 0) + (segment.b.z ?? 0)) / 2;
             if (Math.abs(terrainHeightAt(x, y) - z) < 1.5) {
               boxes.push({ x, y, z: z + 1.1, sx: 0.22, sy: 0.22, sz: 1.8, yaw,
@@ -2277,6 +2282,8 @@ function addSpecialRoadGeometry(boxes: Box[], surfaces: MeshFace[], colliders: C
   for (const roundabout of ROUNDABOUTS) {
     const owner = specialRoadOwner(roundabout.center, roundabout.center);
     if (owner.cx !== cx || owner.cy !== cy) continue;
+    const islandBase = atRoadElevation({ ...roundabout.center, z: 0 }).z;
+    const firstIslandBox = boxes.length;
     boxes.push({
       x: roundabout.center.x + 0.5,
       y: roundabout.center.y + 0.5,
@@ -2313,7 +2320,9 @@ function addSpecialRoadGeometry(boxes: Box[], surfaces: MeshFace[], colliders: C
       halfX: roundabout.islandHalfSize - 1.8,
       halfY: roundabout.islandHalfSize - 1.8,
       height: 3.4,
+      baseZ: islandBase,
     });
+    for (let i = firstIslandBox; i < boxes.length; i += 1) { boxes[i].z += islandBase; boxes[i].screenLift = islandBase; }
   }
 }
 
@@ -2328,7 +2337,7 @@ export function generateCityChunk(cx: number, cy: number): CityChunk {
   const streetCommerceBlocks: StreetCommerceBlock[] = [];
   const originX = cx * CHUNK_SIZE - CHUNK_SIZE / 2;
   const originY = cy * CHUNK_SIZE - CHUNK_SIZE / 2;
-  if (region.id === "northstar-range" || region.id === "copper-mesa" || region.id === "solana-coast") surfaces.push(...regionalTerrainMesh(originX, originY, CHUNK_SIZE));
+  if (region.id === "city-center" || region.id === "northstar-range" || region.id === "copper-mesa" || region.id === "solana-coast") surfaces.push(...regionalTerrainMesh(originX, originY, CHUNK_SIZE));
   if (region.id === "cypress-reach") addReachGround(surfaces, colliders, surfaceRegions, originX, originY);
   else boxes.push({
     x: originX + CHUNK_SIZE / 2,
@@ -2354,9 +2363,11 @@ export function generateCityChunk(cx: number, cy: number): CityChunk {
     if (inElevatedTerrain(roadX, roadY)) {
       const a = atRoadElevation({ x: roadX - (vertical ? 0 : ROAD_SPACING / 2), y: roadY - (vertical ? ROAD_SPACING / 2 : 0) });
       const b = atRoadElevation({ x: roadX + (vertical ? 0 : ROAD_SPACING / 2), y: roadY + (vertical ? ROAD_SPACING / 2 : 0) });
-      const road = compileRoad(`grid:${roadX}:${roadY}`, [a, b], ROAD_HALF);
-      surfaces.push(roadStripQuad(road.sections[0], road.sections[1], -ROAD_HALF, ROAD_HALF, 0.64, ROAD, MAT_ROAD));
-      surfaces.push(roadStripQuad(road.sections[0], road.sections[1], -0.14, 0.14, 0.7, YELLOW, MAT_ROUTE));
+      const road = compileRoad(`grid:${roadX}:${roadY}`, inCityTerrain(roadX, roadY) ? drapeCityRoad([a, b], Infinity) : [a, b], ROAD_HALF);
+      for (let i = 1; i < road.sections.length; i += 1) {
+        surfaces.push(roadStripQuad(road.sections[i - 1], road.sections[i], -ROAD_HALF, ROAD_HALF, 0.64, ROAD, MAT_ROAD));
+        surfaces.push(roadStripQuad(road.sections[i - 1], road.sections[i], -0.14, 0.14, 0.7, YELLOW, MAT_ROUTE));
+      }
       return;
     }
     boxes.push({
@@ -2403,12 +2414,9 @@ export function generateCityChunk(cx: number, cy: number): CityChunk {
       const bottom = blockY * ROAD_SPACING;
       const centerX = left + ROAD_SPACING / 2;
       const centerY = bottom + ROAD_SPACING / 2;
-      const crosswalkRandom = blockRandom(blockX, blockY, 0xc055);
       const district = districtForBlock(blockX, blockY);
       const lot = lotForBlock(blockX, blockY, district);
       const random = blockRandom(blockX, blockY, 0x1a90);
-      const curbAccent = district === "residential" ? VALE_AMBER : district === "mountain" ? RANGE_AMBER : district === "desert" ? MESA_GOLD : district === "wetland" ? REACH_LANTERN : district === "suburb" ? GRASS : district === "townhomes" ? BRICK : district === "industrial" ? ORANGE : district === "harbor" ? BLUE : district === "market" ? PINK : RED;
-      const paving = district === "industrial" ? STEEL : district === "residential" ? VALE_CREAM : district === "mountain" ? RANGE_GROUND : district === "desert" ? MESA_SAND : district === "wetland" ? REACH_CREAM : district === "suburb" || district === "townhomes" ? WHITE : BONE;
 
       const verticalStreet = gridStreetSegmentEnabled(
         { x: left, y: bottom },
@@ -2441,39 +2449,31 @@ export function generateCityChunk(cx: number, cy: number): CityChunk {
         12,
         1.5,
       );
+      const blockCtx = { boxes, surfaces, colliders, surfaceRegions, centerX, centerY, blockX, blockY, random };
+      if (region.id === "city-center" && !corridorBlock && lot !== "landmark") addCityPaving(blockCtx);
       const terrainBoxStart = boxes.length, terrainColliderStart = colliders.length;
       const terrainFaceStart = surfaces.length;
       const terrainInteractionStart = interactions.length;
       if (corridorBlock) {
-        if (district === "wetland") buildReachVerge({ boxes, surfaces, colliders, surfaceRegions, centerX, centerY, blockX, blockY, random },
+        if (region.id === "city-center") buildCityVerge(blockCtx);
+        else if (district === "wetland") buildReachVerge({ boxes, surfaces, colliders, surfaceRegions, centerX, centerY, blockX, blockY, random },
           (x, y) => !isRoadSurface({ x, y }, 5));
         else addCorridorVerge({ boxes, surfaces, colliders, surfaceRegions, centerX, centerY, blockX, blockY, random }, district);
       } else if (district === "mountain" || district === "desert" || district === "wetland" || district === "coastal" || district === "residential") {
         buildLot({ boxes, surfaces, colliders, surfaceRegions, centerX, centerY, blockX, blockY, random }, district, lot);
         addLotInteractions(interactions, blockX, blockY, centerX, centerY, lot);
       } else {
-        boxes.push({ x: centerX + 0.65, y: centerY + 0.65, z: 0.14, sx: 25.4, sy: 25.4, sz: 0.22, yaw: 0, color: INK, material: MAT_SIDEWALK });
-        boxes.push({ x: centerX, y: centerY, z: 0.31, sx: 24, sy: 24, sz: 0.28, yaw: 0, color: paving, material: MAT_SIDEWALK });
-        for (const side of [-1, 1]) {
-          boxes.push({ x: centerX + side * 11.8, y: centerY, z: 0.5, sx: 0.42, sy: 24.2, sz: 0.34, yaw: 0, color: side > 0 ? curbAccent : INK, material: MAT_SIDEWALK });
-          boxes.push({ x: centerX, y: centerY + side * 11.8, z: 0.5, sx: 24.2, sy: 0.42, sz: 0.34, yaw: 0, color: side > 0 ? curbAccent : INK, material: MAT_SIDEWALK });
-        }
-
-        if (crosswalkRandom() > 0.42) {
-          for (const stripe of [0]) {
-            boxes.push({ x: left + stripe, y: bottom + 8.2, z: 0.16, sx: 1.7, sy: 0.52, sz: 0.07, yaw: 0, color: WHITE, material: MAT_SIDEWALK });
-            boxes.push({ x: left + 8.2, y: bottom + stripe, z: 0.17, sx: 0.52, sy: 1.7, sz: 0.07, yaw: 0, color: WHITE, material: MAT_SIDEWALK });
-          }
-        }
         buildLot({ boxes, surfaces, colliders, surfaceRegions, centerX, centerY, blockX, blockY, random }, district, lot);
         addLotInteractions(interactions, blockX, blockY, centerX, centerY, lot);
         if (lot !== "landmark" && !campusTileForBlock(blockX, blockY)) {
           streetCommerceBlocks.push({ blockX, blockY, centerX, centerY, district, lot });
         }
       }
-      if (district === "mountain" || district === "desert" || (district === "coastal" && blockX >= -56)) {
-        const floor = mountainAnchorForBlock(blockX, blockY) || desertAnchorForBlock(blockX, blockY) || coastalAnchorForBlock(blockX, blockY)
-          ? atRoadElevation({ x: centerX, y: centerY, z: 0 }).z : terrainHeightAt(centerX, centerY);
+      if (region.id === "city-center" || district === "mountain" || district === "desert" || (district === "coastal" && blockX >= -56)) {
+        const floor = region.id === "city-center"
+          ? regionalSettlementPlan(blockX, blockY)?.floor ?? terrainHeightAt(centerX, centerY)
+          : mountainAnchorForBlock(blockX, blockY) || desertAnchorForBlock(blockX, blockY) || coastalAnchorForBlock(blockX, blockY)
+            ? atRoadElevation({ x: centerX, y: centerY, z: 0 }).z : terrainHeightAt(centerX, centerY);
         for (let i = terrainBoxStart; i < boxes.length; i += 1) {
           const box = boxes[i];
           const height = box.groundAnchor ? terrainHeightAt(box.groundAnchor.x, box.groundAnchor.y)
@@ -2488,11 +2488,13 @@ export function generateCityChunk(cx: number, cy: number): CityChunk {
         }
         for (let i = terrainColliderStart; i < colliders.length; i += 1) {
           const collider = colliders[i];
-          collider.baseZ = (district === "desert" || district === "coastal" ? collider.baseZ ?? 0 : 0)
+          collider.baseZ = (region.id === "city-center" || district === "desert" || district === "coastal" ? collider.baseZ ?? 0 : 0)
             + (collider.groundAnchor ? terrainHeightAt(collider.groundAnchor.x, collider.groundAnchor.y) : floor);
           if (collider.id.startsWith("mirror-water")) { collider.baseZ = (collider.baseZ ?? 0) - 4; collider.height += 5; }
         }
-        for (let i = terrainInteractionStart; i < interactions.length; i += 1) interactions[i].z = floor;
+        for (let i = terrainInteractionStart; i < interactions.length; i += 1) interactions[i].z = region.id === "city-center"
+          ? terrainHeightAt(interactions[i].x, interactions[i].y) : floor;
+        if (region.id === "city-center") groundCityFoundations(boxes.slice(terrainBoxStart), colliders.slice(terrainColliderStart), floor);
       } else if (district === "coastal") {
         for (let i = terrainInteractionStart; i < interactions.length; i += 1) {
           const interaction = interactions[i];
@@ -2588,11 +2590,12 @@ export class CityStream {
     const streamInteractions = chunks.flatMap((chunk) => chunk.interactions);
     if (streamInteractions.length > MAX_STREAM_INTERACTIONS) throw new Error(`Streamed city exceeded ${MAX_STREAM_INTERACTIONS} interactions`);
     const surfaces = chunks.flatMap((chunk) => chunk.surfaces ?? []);
-    const landscapeSurfaces = centerX >= 6 && centerY >= 6 ? reachLandscape(chunks)
+    const landscapeSurfaces = Math.abs(centerX) <= 5 && Math.abs(centerY) <= 5 ? cityLandscape(chunks, generateCityChunk)
+      : centerX >= 6 && centerY >= 6 ? reachLandscape(chunks)
       : centerX <= -6 && centerY >= -5 && centerY <= 5 ? coastLandscape(chunks)
       : centerX >= -5 && centerX <= 5
         ? centerY <= -5 ? northstarLandscape(chunks) : centerY >= 5 ? copperLandscape(chunks) : [] : [];
-    if (surfaces.length + landscapeSurfaces.length > MAX_STREAM_SURFACE_QUADS) throw new Error("Streamed surface budget exceeded");
+    if (surfaces.length + landscapeSurfaces.length > MAX_STREAM_SURFACE_QUADS) throw new Error(`Streamed surface budget exceeded at ${centerX},${centerY}: ${surfaces.length} near + ${landscapeSurfaces.length} distant`);
     this.current = {
       surfaces,
       ...(landscapeSurfaces.length ? { landscapeSurfaces } : {}),

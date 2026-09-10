@@ -47,10 +47,11 @@ import {
 import { REGIONAL_CONTENT } from "@/game/regional-content";
 import { gridStreetSegmentEnabled } from "@/game/road-topology";
 import { SPECIAL_ROADS } from "@/game/road-layout";
-import { NorthstarTopography, CopperTopography, CoastTopography, ReachTopography } from "./gps-terrain";
+import { NorthstarTopography, CopperTopography, CoastTopography, ReachTopography, CityTopography } from "./gps-terrain";
 import { inCoastTerrain } from "@/game/terrain/coast-forms";
 import { inNorthstarTerrain } from "@/game/terrain/northstar-forms";
 import { inCopperTerrain } from "@/game/terrain/copper-forms";
+import { inCityTerrain } from "@/game/terrain/city-forms";
 
 type GpsMapProps = {
   hud: Hud;
@@ -118,6 +119,7 @@ export function GpsMap({
   const mountainPlayer = inNorthstarTerrain(hud.player.x, hud.player.y);
   const copperPlayer = inCopperTerrain(hud.player.x, hud.player.y);
   const coastPlayer = inCoastTerrain(hud.player.x, hud.player.y);
+  const cityPlayer = inCityTerrain(hud.player.x, hud.player.y);
   const activeDraftPlan = full && draftDestination ? draftPlan : null;
   const displayedRoute = activeDraftPlan?.route ?? hud.route;
   const displayedRouteType = full && draftDestination ? "waypoint" : hud.objectiveType;
@@ -462,6 +464,7 @@ export function GpsMap({
             ))}
           </g>
         )}
+        {(full || cityPlayer) && <g transform={terrainTransform}><CityTopography /></g>}
         {(full || mountainPlayer) && <g transform={terrainTransform}><NorthstarTopography /></g>}
         {(full || copperPlayer) && <g transform={terrainTransform}><CopperTopography /></g>}
         {(full || coastPlayer) && <g transform={terrainTransform}><CoastTopography /></g>}
@@ -648,7 +651,7 @@ export function GpsMap({
         <button type="button" onClick={fitRoute}>FIT ROUTE</button>
         <button type="button" onClick={showOverview}>ALL 9 REGIONS</button>
         <span>{mapDetail.toUpperCase()} VIEW</span>
-        {(mountainPlayer || copperPlayer || coastPlayer) && <output aria-label="Altitude">ELEV {Math.round((hud.player.z ?? 0) * DISPLAY_METERS_PER_WORLD_UNIT).toLocaleString()} m</output>}
+        {(cityPlayer || mountainPlayer || copperPlayer || coastPlayer) && <output aria-label="Altitude">ELEV {Math.round((hud.player.z ?? 0) * DISPLAY_METERS_PER_WORLD_UNIT).toLocaleString()} m</output>}
       </div>
       <div className="regional-map-regions" aria-label="Active regions">
         <button className="mobile-help" type="button" onClick={showOverview}>ALL REGIONS</button>

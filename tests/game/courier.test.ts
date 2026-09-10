@@ -229,13 +229,13 @@ test("courier navigation replans immediately between exterior stages", () => {
   const navigation = new NavigationController();
   assert.equal(acceptCourierContract(game, contract.id).status, "accepted");
   const pickupPlan = navigation.update(game);
-  assert.deepEqual(pickupPlan.route.at(-1), contract.origin.entrance);
+  assert.deepEqual(pickupPlan.route.at(-1), { ...contract.origin.entrance, z: 0 });
 
   parkTaxi(game, contract.origin.entrance);
   resolveCourierCounter(game, contract.origin.venue);
   game.elapsed += 1 / 60;
   const dropoffPlan = navigation.update(game);
-  assert.deepEqual(dropoffPlan.route.at(-1), contract.destination.entrance);
+  assert.deepEqual(dropoffPlan.route.at(-1), { ...contract.destination.entrance, z: 0 });
 });
 
 test("handling and collision state affect courier rewards without duplicating cargo art", () => {

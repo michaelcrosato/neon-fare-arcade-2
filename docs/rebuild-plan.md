@@ -55,9 +55,9 @@ playthroughs, with renderer-specific checks and visual inspection.
   pavement, spatial deck queries and height-aware physical intersections.
 - One directed A* graph for fare distances and GPS, preserving departure
   direction, U-turn policy, maneuver hysteresis and active regional boundaries.
-- Elevated Neon Beltway with eight working ramp connections, solid decks,
-  merge openings, guardrails and supports. Other regions keep their existing
-  scenery/ground plane while consuming the new road geometry pipeline.
+- This engine checkpoint included the elevated Neon Beltway and eight ramps.
+  The later [Neon City rebuild](neon-city-reimagining.md) removes that unused
+  structure; active regional bridges retain the shared deck/contact pipeline.
 - Shared elevation/contact for driving, walking, traffic, collision, arrivals,
   shadows, route markers and cameras. Cockpit geometry follows the same pose
   as the driving eye. Canvas and WebGPU both render the physical road surfaces.

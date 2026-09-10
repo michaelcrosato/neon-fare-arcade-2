@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { ROAD_SPACING } from "../../game/config";
+import { MAT_ROAD, ROAD_SPACING } from "../../game/config";
 import { SOLANA_COAST_ANCHORS, coastalLotForBlock } from "../../game/coastal";
 import { COAST_DRIVE_X, COAST_PIER, coastShoreXAt } from "../../game/coastal-layout";
 import { atRoadElevation } from "../../game/terrain/region-forms";
@@ -57,7 +57,9 @@ test("Solana Coast activates only W and connects its seven roads to the City", (
   }
   const trafficRoads = new Set(makeTraffic().flatMap((car) => car.motion.kind === "path" && roadIds.includes(car.motion.roadId) ? [car.motion.roadId] : []));
   assert.deepEqual([...trafficRoads].sort(), roadIds.slice(0, 4).sort());
-  const seamRoads = (cx: number) => generateCityChunk(cx, 0).boxes.filter((box) => Math.abs(box.x + 792) < 1e-8 && box.sx === 12 && box.sy === ROAD_SPACING).length;
+  const seamRoads = (cx: number) => (generateCityChunk(cx, 0).surfaces ?? []).filter(face => face.material === MAT_ROAD
+    && face.corners.length === 4 && Math.abs((face.corners[0].x + face.corners[3]!.x) / 2 + 792) < 1e-8
+    && Math.abs(face.corners[0].x - face.corners[3]!.x) === 12).length;
   assert.equal(seamRoads(-5), 4);
   assert.equal(seamRoads(-6), 0);
 });

@@ -1,3 +1,4 @@
+import { cityGreenAt } from "../city-layout";
 import type { Vec3 } from "../model";
 import { terrainHeightAt } from "./surface";
 import { copperCinderField, copperSaltFlat } from "./copper-forms";
@@ -5,18 +6,20 @@ import { copperCinderField, copperSaltFlat } from "./copper-forms";
 let cached: ReturnType<typeof createTopography> | null = null;
 let copperCached: ReturnType<typeof createTopography> | null = null;
 let coastCached: ReturnType<typeof createTopography> | null = null;
-function createTopography(copper = false, coast = false) {
+let cityCached: ReturnType<typeof createTopography> | null = null;
+function createTopography(copper = false, coast = false, city = false) {
   const bands = new Map<number, string>(), fills: { x: number; y: number; color: string }[] = [];
   const vertex = (x: number, y: number): Vec3 => ({ x, y, z: terrainHeightAt(x, y) });
-  for (let x = coast ? -2376 : -792; x < (coast ? -792 : 792); x += 72) for (let y = coast ? -792 : copper ? 792 : -2376; y < (coast ? 792 : copper ? 2376 : -792); y += 72) {
+  for (let x = coast ? -2376 : -792; x < (coast ? -792 : 792); x += 72) for (let y = coast || city ? -792 : copper ? 792 : -2376; y < (coast || city ? 792 : copper ? 2376 : -792); y += 72) {
     const a = vertex(x, y), b = vertex(x + 72, y), c = vertex(x + 72, y + 72), d = vertex(x, y + 72);
     const mean = (a.z + b.z + c.z + d.z) / 4;
     const desertColor = copperCinderField(x + 36, y + 36) < 1.1 ? "#605451" : copperSaltFlat(x + 36, y + 36) < 0.9 ? "#d3c5a4"
       : mean > 130 ? "#dba374" : mean > 95 ? "#b47b68" : mean > 65 ? "#9b5e4a" : mean > 30 ? "#987446" : "#b79861";
     const coastColor = x < -2016 ? "#e9d399" : mean > 70 ? "#919967" : mean > 32 ? "#aaa477" : mean > 12 ? "#c2b782" : "#cbd1a6";
-    fills.push({ x, y, color: coast ? coastColor : copper ? desertColor : mean > 165 ? "#c1d4d1" : mean > 130 ? "#839c94" : mean > 85 ? "#587765" : mean > 40 ? "#365c48" : "#214537" });
+    const cityColor = cityGreenAt(x + 36, y + 36) ? "#547248" : mean > 24 ? "#a69876" : mean > 10 ? "#b9ad87" : "#d3c6a0";
+    fills.push({ x, y, color: city ? cityColor : coast ? coastColor : copper ? desertColor : mean > 165 ? "#c1d4d1" : mean > 130 ? "#839c94" : mean > 85 ? "#587765" : mean > 40 ? "#365c48" : "#214537" });
     for (const triangle of [[a, b, c], [a, c, d]]) {
-      for (let level = coast ? 8 : copper ? 12 : 24; level <= (coast ? 144 : copper ? 216 : 360); level += coast ? 8 : copper ? 12 : 24) {
+      for (let level = city ? 4 : coast ? 8 : copper ? 12 : 24; level <= (city ? 64 : coast ? 144 : copper ? 216 : 360); level += city ? 4 : coast ? 8 : copper ? 12 : 24) {
         const points: { x: number; y: number }[] = [];
         for (let i = 0; i < 3; i += 1) {
           const first = triangle[i], second = triangle[(i + 1) % 3];
@@ -46,4 +49,9 @@ export function copperTopography() {
 export function coastTopography() {
   coastCached ??= createTopography(false, true);
   return coastCached;
+}
+
+export function cityTopography() {
+  cityCached ??= createTopography(false, false, true);
+  return cityCached;
 }

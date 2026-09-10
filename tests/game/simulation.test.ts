@@ -373,7 +373,6 @@ test("every four-lane corridor raises normal and boosted top speed by exactly 10
   const bonusRoads = [
     "aurora-boulevard",
     "crosstown-boulevard",
-    "neon-beltway",
   ] as const;
   const roadSamples = bonusRoads.map((roadId) => sampleSpecialRoad(roadId, 180));
   assert.ok(roadSamples.every(Boolean));
@@ -447,7 +446,7 @@ test("every four-lane corridor raises normal and boosted top speed by exactly 10
 });
 
 test("the global highway ceiling is exactly 180 km/h", () => {
-  const sample = sampleSpecialRoad("neon-beltway", 180);
+  const sample = sampleSpecialRoad("aurora-boulevard", 700);
   assert.ok(sample);
   for (const trait of DRIVING_TRAIT_PACKAGES) {
     const game = makeGame(trait.id);
@@ -475,7 +474,7 @@ test("the global highway ceiling is exactly 180 km/h", () => {
 });
 
 test("Boost Overdrive adds exactly 60 km/h of same-road boosted headroom", () => {
-  const highway = sampleSpecialRoad("neon-beltway", 180);
+  const highway = sampleSpecialRoad("aurora-boulevard", 700);
   assert.ok(highway);
   const cappedSpeed = (
     drivingTraitId: (typeof DRIVING_TRAIT_PACKAGES)[number]["id"],
@@ -551,22 +550,18 @@ test("only authored four-lane corridor surfaces activate the speed bonus", () =>
   const auroraShoulder = sampleSpecialRoad("aurora-boulevard", 180, 14);
   const crosstown = sampleSpecialRoad("crosstown-boulevard", 180);
   const crosstownShoulder = sampleSpecialRoad("crosstown-boulevard", 180, 14);
-  const beltway = sampleSpecialRoad("neon-beltway", 180);
-  const beltwayShoulder = sampleSpecialRoad("neon-beltway", 180, 15);
   const parkway = sampleSpecialRoad("harbor-parkway", 180);
-  const ramp = sampleSpecialRoad("northwest-inner-ramp", 40);
+  const ramp = sampleSpecialRoad("starfall-drive", 40);
   const roundabout = sampleSpecialRoad("apex-circle", 30);
   assert.ok(
     aurora && auroraShoulder && crosstown && crosstownShoulder
-    && beltway && beltwayShoulder && parkway && ramp && roundabout,
+    && parkway && ramp && roundabout,
   );
 
   assert.equal(isHighwaySpeedSurface(aurora.point), true);
   assert.equal(isHighwaySpeedSurface(crosstown.point), true);
-  assert.equal(isHighwaySpeedSurface(beltway.point), true);
   assert.equal(isHighwaySpeedSurface(auroraShoulder.point), false);
   assert.equal(isHighwaySpeedSurface(crosstownShoulder.point), false);
-  assert.equal(isHighwaySpeedSurface(beltwayShoulder.point), false);
   assert.equal(isHighwaySpeedSurface(parkway.point), false);
   assert.equal(isHighwaySpeedSurface(ramp.point), false);
   assert.equal(isHighwaySpeedSurface(roundabout.point), false);

@@ -66,9 +66,10 @@ low paving outside the asphalt. A low wooded eastern horizon replaces the
 old harbor silhouette when the camera is in Cedar Vale.
 
 Chunk collision capacity is 256 and stream capacity is 1,536; collision radius
-remains one chunk. The 121 central city chunks currently total 71,092 static
-boxes and 8,581 colliders. Their maximum radius-three view is 28,967 boxes;
-their maximum collision window is 888. The exhaustive tests also check every
+remains one chunk. The 121 rebuilt City chunks total 22,386 static boxes and
+5,964 colliders. Their maximum radius-three view is 11,354 boxes and 63,056
+surface faces including the distant landscape; their maximum collision window
+is 510. The exhaustive tests also check every
 window across all 803 active regional chunks.
 
 Pocket interiors replace the streamed city buffer instead of appending to it.
@@ -120,7 +121,7 @@ Camera matrices, collision-shortened boom, and perspective sky pitch are in
 `game/render/camera.ts`. The sky is a compass/world-relative panorama:
 
 - north: mountains, pines, radio landmark;
-- east: water, bridge, lighthouse, and the sun sector;
+- east: water and the sun sector;
 - southeast: warm marine haze behind the physical Palm Reach shore and skyline;
 - south: industrial terminal;
 - west: downtown skyline.
@@ -128,6 +129,9 @@ Camera matrices, collision-shortened boom, and perspective sky pitch are in
 Sun, clouds, and horizon motifs are fixed to bearings rather than screen UVs.
 Turning away must move them off screen. Real 3D buildings render after the sky
 and naturally occlude it.
+Inside Neon City, physical distant hills and simplified actual buildings replace
+painted skyline and landmark silhouettes. The old painted suspension bridge and
+lighthouse have been removed.
 
 Saved camera mode remains unchanged when entering or leaving the taxi. On foot,
 Chase High and Chase Low select their closer pedestrian presets and Fixed uses
@@ -206,6 +210,13 @@ and lighthouse/radio beacons. Marine haze replaces painted southeast scenery;
 it never adds visual mountains or bridges unrelated to the physical world.
 These faces and actors remain inside the existing surface/actor budgets.
 
+Neon City uses six-unit near terrain. Exactly coplanar twelve- or thirty-six-unit
+patches merge without changing physical height. Its distant terrain uses
+thirty-six-unit quads with fine fan edges wherever a loaded chunk meets the
+distant mesh. Cached skyline proxies preserve the position and elevation of
+actual buildings and roofs, and disappear when their owning chunks load. Both
+GPS views use the same terrain for City shading and four-unit contours.
+
 Increasing draw distance requires checking:
 
 1. `DISTANT_STREAM_RADIUS` and `CACHE_RADIUS` together;
@@ -231,7 +242,7 @@ Generation is capped at two ten-box scenes per chunk.
 - north/east/south/west sky bearings;
 - taxi ghosting behind buildings;
 - Canvas fallback after disabling or rejecting WebGPU.
-- ramp ascent/descent, beltway deck and the street beneath it in all four
+- bridge approach ascent/descent, deck and the water beneath it in all four
   cameras and both renderers; confirm cockpit and camera share the road pose;
 - simulation cab at normal roll, two-wheel lift, settled on either side, and on
   its roof in Chase High, Chase Low, Cab, and Canvas views;
@@ -244,5 +255,8 @@ Generation is capped at two ten-box scenes per chunk.
 - Palm Reach's bay crossing, Deco hotel strip, yacht club, continuous beach
   walk, lighthouse approach and southern loop in every camera and both renderers,
   plus full and compact GPS at desktop/mobile sizes;
+- Neon City's starting core, Starfall domes, Ink Quarter, Redline rollers, Titan
+  rise, university, commons, skyline gardens, harbor and stadium in every camera
+  and both renderers, plus mobile views and full/compact terrain GPS;
 - enter/exit an interior, verify the city does not leak into it, then confirm
   the same parked taxi and exterior scene return.

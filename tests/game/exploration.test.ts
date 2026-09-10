@@ -44,7 +44,7 @@ test("a stopped taxi exits once and re-enters through the same context action", 
   assert.equal(game.player.kind, "walking");
   if (game.player.kind !== "walking") assert.fail("expected walking player");
   assert.deepEqual(walkingMotion(game.player.actor), {
-    elevation: 0,
+    elevation: 0.64,
     verticalSpeed: 0,
     grounded: true,
     crouchAmount: 0,

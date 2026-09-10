@@ -3,6 +3,7 @@ import { copperGridStreetEnabled } from "./terrain/copper-forms";
 import { coastGridStreetEnabled } from "./terrain/coast-forms";
 import { cedarGridStreetEnabled } from "./residential";
 import { reachGridStreetEnabled } from "./reach-layout";
+import { cityGridStreetEnabled } from "./city-layout";
 import { ROAD_SPACING } from "./config";
 import {
   campusBlocksGridStreetPoint,
@@ -48,7 +49,7 @@ function nearestGridLine(value: number) {
 }
 
 export function regionUsesSparseRoadTopology(regionId: WorldRegionId | null | undefined) {
-  return regionId === "northstar-range" || regionId === "copper-mesa" || regionId === "cypress-reach" || regionId === "solana-coast" || regionId === "cedar-vale";
+  return regionId === "city-center" || regionId === "northstar-range" || regionId === "copper-mesa" || regionId === "cypress-reach" || regionId === "solana-coast" || regionId === "cedar-vale";
 }
 
 /** One authority for pavement, physics, routing, traffic, fares, and GPS. */
@@ -56,6 +57,7 @@ export function gridStreetPointEnabled(point: Vec2, axis: GridStreetAxis) {
   if (!isPlayablePoint(point.x, point.y)) return false;
   if (campusBlocksGridStreetPoint(point, axis)) return false;
   const region = containingRegionForPosition(point.x, point.y);
+  if (region?.id === "city-center") return cityGridStreetEnabled(point, axis);
   if (region?.id === "cedar-vale") return cedarGridStreetEnabled(point, axis);
   if (region?.id === "northstar-range") return northstarGridStreetEnabled(point, axis);
   if (region?.id === "copper-mesa") return copperGridStreetEnabled(point, axis);

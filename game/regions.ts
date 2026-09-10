@@ -1,3 +1,4 @@
+import { cityAreaAt } from "./city-layout";
 import { cedarNeighborhoodForBlock } from "./residential";
 import { reachAreaAt } from "./reach-layout";
 import {
@@ -302,6 +303,7 @@ export function cypressReachAreaForBlock(blockX: number, blockY: number) {
 
 export function regionalPlaceName(x: number, y: number) {
   const region = regionForPosition(x, y);
+  if (region.id === "city-center") return cityAreaAt(x, y);
   if (region.id === "solana-coast") {
     return solanaCoastAreaForBlock(Math.floor(x / ROAD_SPACING), Math.floor(y / ROAD_SPACING));
   }

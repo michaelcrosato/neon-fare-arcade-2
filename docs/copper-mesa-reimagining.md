@@ -121,7 +121,7 @@ The Copper tests cover:
 in Fixed, Chase High, Chase Low, and Cab using WebGPU and Canvas: 104 scene
 captures plus four GPS captures. All 22 tests in the complete browser suite
 passed against both the development server and the built Worker preview,
-covering the city, elevated beltway, Northstar, menus, simulation
+covering the city, the then-current elevated beltway, Northstar, menus, simulation
 controls, walking, focus, persistence recovery, diagnostics, and trusted mobile
 input. Representative desktop/mobile frames were visually reviewed in both
 renderers. A manual Free Run check opened **S · MESA**, selected a destination,

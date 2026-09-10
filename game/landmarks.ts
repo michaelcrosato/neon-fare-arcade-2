@@ -282,7 +282,7 @@ export function landmarkBlocks(landmark: LandmarkDefinition) {
   return blocks;
 }
 
-/** Only these flagship campuses deliberately replace their internal streets. */
+/** Every multi-block institution owns continuous grounds inside its public perimeter. */
 export function landmarkInterruptsGrid(landmark: LandmarkDefinition) {
-  return landmark.id === "pulse-stadium" || landmark.id === "neon-general";
+  return landmark.width > 1 || landmark.height > 1;
 }

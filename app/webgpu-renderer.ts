@@ -230,7 +230,9 @@ fn sunRayMask(point: vec2<f32>, thickness: f32, inner: f32, outer: f32) -> f32 {
     color = paintWorldCloud(color, azimuth, elevation, 1.08, 0.17, 0.95);
     color = paintWorldCloud(color, azimuth, elevation, -2.55, 0.25, 0.82);
 
-    if ((abs(camera.params.z) < 792.0 || abs(camera.params.y) > 792.0)
+    // City horizons now come from the same physical hills and architecture as Canvas.
+    if (!(abs(camera.params.y) <= 792.0 && abs(camera.params.z) <= 792.0)
+      && (abs(camera.params.z) < 792.0 || abs(camera.params.y) > 792.0)
       && !(camera.params.y >= 792.0 && camera.params.z >= 792.0)
       && !(camera.params.y < -792.0 && abs(camera.params.z) <= 792.0)) {
     // NORTH: separated mountain ranges, snow, pines and a radio mast.
@@ -321,17 +323,7 @@ fn sunRayMask(point: vec2<f32>, thickness: f32, inner: f32, outer: f32) -> f32 {
     let eastTop = 0.025 + max(max(peak(eastFar, -0.5, 0.18, 0.07), peak(eastFar, 0.0, 0.24, 0.095)), peak(eastFar, 0.5, 0.18, 0.065));
     let eastHills = eastGate * heightBand(elevation, -0.065, eastTop, 0.005);
     color = mix(color, vec3<f32>(0.12, 0.35, 0.28), eastHills);
-    let bridgeBearing = -camera.params.z / 2450.0;
-    let bridgeX = wrapAngle(azimuth - bridgeBearing);
-    let bridgeSpan = angularWindow(bridgeX, 0.41, 0.49);
-    let bridgeDeck = bridgeSpan * heightBand(elevation, 0.004, 0.024, 0.003);
-    let cableHeight = 0.075 + bridgeX * bridgeX * 0.48;
-    let bridgeCable = bridgeSpan * (1.0 - smoothstep(0.004, 0.009, abs(elevation - cableHeight)));
-    let bridgeTowers = max(angularRect(azimuth, elevation, bridgeBearing - 0.32, 0.105, vec2<f32>(0.013, 0.145), 0.003), angularRect(azimuth, elevation, bridgeBearing + 0.32, 0.105, vec2<f32>(0.013, 0.145), 0.003));
-    color = mix(color, vec3<f32>(0.055, 0.11, 0.13), max(bridgeDeck, max(bridgeCable, bridgeTowers)));
-    let lighthouseBearing = bridgeBearing - 0.5;
-    let lighthouse = max(angularRect(azimuth, elevation, lighthouseBearing, 0.06, vec2<f32>(0.014, 0.1), 0.003), angularRect(azimuth, elevation, lighthouseBearing, 0.165, vec2<f32>(0.027, 0.015), 0.003));
-    color = mix(color, vec3<f32>(0.95, 0.92, 0.82), lighthouse);
+
     }
 
 

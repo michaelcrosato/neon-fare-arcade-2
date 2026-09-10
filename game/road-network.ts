@@ -1,3 +1,4 @@
+import { inCityTerrain, drapeCityRoad } from "./terrain/city-forms";
 import {
   ROAD_HALF,
   ROAD_SPACING,
@@ -211,10 +212,12 @@ function addPhysicalSegment(
     const t = sample / samples;
     if (!isPlayablePoint(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t)) return;
   }
-  physicalSegments.push({
-    id: `${pathId}:${pointKey(a)}:${pointKey(b)}`,
-    pathId, kind, halfWidth, travelWeight, a, b, allowAB, allowBA,
-  });
+  const points = kind === "street" && inCityTerrain((a.x + b.x) / 2, (a.y + b.y) / 2) ? drapeCityRoad([a, b], Infinity) : [a, b];
+  for (let index = 1; index < points.length; index += 1) {
+    const first = points[index - 1], second = points[index];
+    physicalSegments.push({ id: `${pathId}:${pointKey(first)}:${pointKey(second)}`,
+      pathId, kind, halfWidth, travelWeight, a: first, b: second, allowAB, allowBA });
+  }
 }
 
 for (const road of SPECIAL_ROADS) {
@@ -439,6 +442,9 @@ export const specialRoadSurfaceIndex = new RoadSpatialIndex([...pathMetrics.valu
 export const elevatedGridRoads = physicalSegments.filter((segment) => segment.kind === "street"
   && inElevatedTerrain((segment.a.x + segment.b.x) / 2, (segment.a.y + segment.b.y) / 2))
   .map((segment) => compileRoad(segment.id, [segment.a, segment.b], ROAD_HALF));
+/** City excavation stops at its boundary; neighboring landforms retain their own road beds. */
+export const cityGridRoadIds = new Set(elevatedGridRoads.filter(road => road.sections.every(section =>
+  inCityTerrain(section.center.x, section.center.y))).map(road => road.id));
 export const roadSurfaceIndex = new RoadSpatialIndex([
   ...[...pathMetrics.values()].map(({ geometry }) => geometry), ...elevatedGridRoads,
 ]);

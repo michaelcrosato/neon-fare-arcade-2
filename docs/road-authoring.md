@@ -60,8 +60,8 @@ turn. Keep each route in the exact active-region union. One-way flags govern
 graph edges; roundabouts retain their original legal circulation. Route costs
 use physical 3D length and corridor weight, plus turn costs for live GPS.
 
-The live beltway is z=8 with a 0.64 surface offset. Its eight ramps have flat
-upper merge aprons and wider outer loops to clear the bridge underside.
+Neon City's unused beltway and all eight ramps have been removed. Live bridge
+coverage uses Northstar's gorge viaduct and Palm Reach's Mirage Bay Causeway.
 `roads/structures.ts` emits 0.7-thick decks, rails with merge openings and
 supports away from streets. A ramp must leave enough vertical clearance for a
 cab before passing underneath a different deck. Changing XY control points can
@@ -77,7 +77,7 @@ otherwise; the engine does not infer physical mountains from decorative art.
 ## Verification
 
 Run geometry/graph tests for compiler changes and `road-elevation.test.ts` for
-contact/structure changes. That suite drives all eight ramps in both directions
+contact/structure changes. That suite drives the live bridge approaches in both directions
 using ordinary controls in both vehicle models, and samples both lanes for
 collision clearance.
 `test:world` checks all six regions, roads, fares, portals, pedestrians, water
@@ -101,3 +101,20 @@ returns, gas service, fare arrival, traffic, river collision, and the rock arch.
 and both vehicle models with ordinary controls. `copper-world.spec.ts` captures
 ten desktop and three mobile locations in all four cameras and both renderers,
 plus the full and compact desert GPS.
+
+Neon City's pure plan and curves live in `city-layout.ts` and `city-roads.ts`;
+`terrain/city-forms.ts` supplies the shared six-unit design triangles. Twelve-unit
+junction tables keep intersecting lanes coplanar, with the remaining twenty-four
+units of each block carrying the grade. Draping splits curves at every design
+triangle and preserves width/bank changes; straight grid strips may merge exact
+collinear cuts across one block. The starting core and landmark terraces stay
+level, and all four regional seams meet zero height exactly.
+
+`city-terrain.test.ts` sweeps both lanes of every City road for collision, buried
+pavement and tire support. `city-driving.test.ts` drives seven authored routes
+both ways in both models, then accelerates from rest through Redline, Starfall
+and Titan crests to verify actual takeoff, landing and continued travel without
+boost or physics overrides. `city-gameplay.test.ts` covers all portals, named
+venue transitions, hilly gas forecourts, six fares and recycled traffic.
+`city-world.spec.ts` covers ten desktop locations, three mobile locations, all
+four cameras, both renderers and both GPS views.
