@@ -242,8 +242,10 @@ test.describe("mobile session tools", () => {
     const initialBoost = await boostReserve();
     const point = { x: box.x + box.width / 2, y: box.y + box.height / 2, id: 1 };
     const cdp = await context.newCDPSession(page);
-    const send = (type: "touchStart" | "touchEnd" | "touchMove") => cdp.send("Input.dispatchTouchEvent", { type, touchPoints: type === "touchEnd" ? [] : [point] });
-    await send("touchStart"); await send("touchEnd"); await send("touchStart");
+    const send = (type: "touchStart" | "touchEnd" | "touchMove", timestamp?: number) => cdp.send("Input.dispatchTouchEvent", { type, touchPoints: type === "touchEnd" ? [] : [point], timestamp });
+    // The gesture's cadence must not depend on CDP round trips on a busy runner.
+    const tapTime = Date.now() / 1000;
+    await send("touchStart", tapTime); await send("touchEnd", tapTime + .06); await send("touchStart", tapTime + .12);
     await expect(gas).toHaveClass(/is-boosting/);
     const thumb = { x: 130, y: 350, id: 2 };
     await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [point, thumb] });

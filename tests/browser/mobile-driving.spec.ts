@@ -1,12 +1,12 @@
 import { expect, test } from "@playwright/test";
-import { SCENE_TEST_TIMEOUT, WEBGPU_TEST_OPTIONS } from "./browser-options";
+import { SCENE_START_TIMEOUT, SCENE_TEST_TIMEOUT, WEBGPU_TEST_OPTIONS } from "./browser-options";
 import type { DiagnosticsSnapshot } from "../../app/runtime/diagnostics";
 
 test.use({ ...WEBGPU_TEST_OPTIONS, viewport: { width: 390, height: 844 },
   contextOptions: { hasTouch: true, isMobile: true, reducedMotion: "reduce" } });
 
 for (const renderer of ["WebGPU", "Canvas 2D"] as const) {
-  test(`${renderer}: countdown teaches both thumbs, steering fades its guide, and the door action follows the cab`, async ({ page, context }, info) => {
+  test(`${renderer}: countdown teaches both thumbs and keeps their input locked until GO`, async ({ page, context }, info) => {
     test.setTimeout(Math.max(60000, SCENE_TEST_TIMEOUT));
     const errors: string[] = [];
     page.on("pageerror", error => errors.push(error.message));
@@ -42,14 +42,40 @@ for (const renderer of ["WebGPU", "Canvas 2D"] as const) {
     await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [thumb, pedal] });
     await expect(page.locator("[data-held], .mobile-thumbstick")).toHaveCount(0);
     await page.clock.fastForward(3500);
-    await page.clock.resume();
     await expect(gas).toBeEnabled();
+    await page.clock.runFor(100);
+    await expect(page.locator("[data-held], .mobile-thumbstick")).toHaveCount(0);
     await expect(page.locator(".mobile-speed > strong")).toHaveText("0");
     await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
     await expect(exit).toBeVisible();
+    expect(errors).toEqual([]);
+  });
+
+  test(`${renderer}: steering fades its guide and the door action follows the cab`, async ({ page, context }, info) => {
+    test.setTimeout(Math.max(60000, SCENE_TEST_TIMEOUT));
+    const errors: string[] = [];
+    page.on("pageerror", error => errors.push(error.message));
+    page.on("console", message => { if (message.type() === "error") errors.push(message.text()); });
+    page.on("response", response => { if (response.status() >= 400) errors.push(`${response.status()} ${response.url()}`); });
+    // Keep live driving and WebGPU captures on native animation frames;
+    // countdown clock control belongs to the isolated test above.
+    if (renderer === "Canvas 2D") await page.addInitScript(() => Object.defineProperty(navigator, "gpu", { configurable: true, value: undefined }));
+    await page.goto("/?diagnostics=1");
+    await expect(page.locator(".game-canvas").nth(renderer === "WebGPU" ? 1 : 0)).toHaveClass(/is-active/);
+    await page.getByRole("button", { name: /Start Free Run with arcade/ }).click();
+    await page.getByRole("button", { name: /Choose STREET ACE/ }).click();
+    const guide = page.locator(".mobile-steer-guide");
+    const gas = page.getByRole("button", { name: "Accelerate", exact: true });
+    const brake = page.getByRole("button", { name: "Brake or reverse", exact: true });
+    const exit = page.getByRole("button", { name: /EXIT TAXI/ });
+    await expect(gas).toBeEnabled({ timeout: SCENE_START_TIMEOUT });
+    await expect(exit).toBeVisible();
     await page.screenshot({ path: info.outputPath("ready.png") });
 
-    thumb.x = 85;
+    const cdp = await context.newCDPSession(page);
+    const gasBox = (await gas.boundingBox())!;
+    const pedal = { x: gasBox.x + gasBox.width / 2, y: gasBox.y + gasBox.height / 2, id: 1 };
+    const thumb = { x: 85, y: 240, id: 2 };
     await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [thumb] });
     await expect(page.locator(".mobile-thumbstick")).toHaveCSS("left", "85px");
     await expect(guide).toHaveCSS("opacity", "1");
