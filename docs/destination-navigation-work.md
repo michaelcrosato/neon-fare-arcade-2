@@ -202,3 +202,11 @@ road approach, using nearest-clear-road recovery only when the approach is block
   GitHub/Vercel status for the published commit, repeats the four Dev Mode browser
   flows on the production URL, and checks every deployed destination atlas
   against its recorded SHA-256. Logs are retained in local `outputs/release/`.
+- Production verification passed all four desktop/mobile WebGPU/Canvas flows
+  and all 16 destination-atlas SHA-256 checks. The hosted full verification job
+  reached its former 15-minute limit after 396 passing checks, so its allowance
+  is now 25 minutes. Its commands and coverage remain unchanged.
+- The Linux software-GPU trace reached the stadium curb at zero remaining
+  meters, but its slow fixed-step progress exceeded the new browser test's
+  arrival deadline. That test now shares the existing software-renderer
+  readiness allowance and has enough overall time for the complete flow.

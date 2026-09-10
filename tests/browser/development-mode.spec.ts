@@ -1,14 +1,15 @@
 import { expect, test, type Page } from "@playwright/test";
 import type { Game } from "../../game/model";
-import { WEBGPU_TEST_OPTIONS } from "./browser-options";
+import { SCENE_START_TIMEOUT, SCENE_TEST_TIMEOUT, WEBGPU_TEST_OPTIONS } from "./browser-options";
 
 test.use(WEBGPU_TEST_OPTIONS);
-test.setTimeout(120_000);
+test.setTimeout(Math.max(120_000, SCENE_TEST_TIMEOUT * 2));
+const gameplayTimeout = Math.max(15_000, SCENE_START_TIMEOUT);
 
 async function startRun(page: Page) {
   await page.getByRole("button", { name: /Start Free Run with arcade/ }).click();
   await page.getByRole("button", { name: /Choose STREET ACE/ }).click();
-  await expect(page.getByRole("button", { name: "Pause game" })).toBeEnabled({ timeout: 15_000 });
+  await expect(page.getByRole("button", { name: "Pause game" })).toBeEnabled({ timeout: gameplayTimeout });
 }
 
 async function openOptions(page: Page) {
@@ -30,7 +31,7 @@ for (const renderer of ["WebGPU", "Canvas"] as const) for (const mobile of [fals
     page.on("console", message => { if (message.type() === "error") errors.push(message.text()); });
     if (renderer === "Canvas") await page.addInitScript(() => Object.defineProperty(navigator, "gpu", { configurable: true, value: undefined }));
     await page.goto("/?diagnostics=1");
-    await expect(page.locator(".game-canvas").nth(renderer === "WebGPU" ? 1 : 0)).toHaveClass(/is-active/, { timeout: 15_000 });
+    await expect(page.locator(".game-canvas").nth(renderer === "WebGPU" ? 1 : 0)).toHaveClass(/is-active/, { timeout: gameplayTimeout });
     await startRun(page);
     const options = await openOptions(page);
     await options.getByRole("checkbox", { name: /DEV MODE/ }).check();
@@ -67,7 +68,8 @@ for (const renderer of ["WebGPU", "Canvas"] as const) for (const mobile of [fals
     await options.getByRole("button", { name: "JUMP TO DROPOFF" }).click();
     await resume(page);
     const arrival = mobile ? page.locator(".mobile-notice.is-event").filter({ hasText: "Fare complete" }) : page.locator(".fare-impact--dropoff");
-    await expect(arrival).toBeVisible({ timeout: 15_000 });
+    // Software WebGPU needs enough presented frames for the normal arrival dwell.
+    await expect(arrival).toBeVisible({ timeout: gameplayTimeout });
     await expect(arrival.locator(".fare-card-occasion")).toHaveText("STADIUM CONCERT");
     await page.screenshot({ path: info.outputPath("stadium-arrival.png") });
     await page.getByRole("button", { name: "Pause game" }).click();
