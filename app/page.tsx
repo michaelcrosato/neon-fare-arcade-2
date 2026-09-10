@@ -107,6 +107,7 @@ export default function Home() {
   const canvas2dRef = useRef<HTMLCanvasElement>(null);
   const webGpuCanvasRef = useRef<HTMLCanvasElement>(null);
   const passengerReviewRef = useRef<HTMLDivElement>(null);
+  const taxiExitRef = useRef<HTMLButtonElement>(null);
   const selectingDriverRef = useRef(false);
   const [initialGame] = useState(() => makeGame());
   const gameRef = useRef<Game>(initialGame);
@@ -645,6 +646,7 @@ export default function Home() {
   useGameRuntime({
     selectingDriverRef,
     passengerReviewRef,
+    taxiExitRef,
     canvas2dRef,
     webGpuCanvasRef,
     gameRef,
@@ -893,6 +895,7 @@ export default function Home() {
           onSetMode={setMode}
           onTouch={handleTouch}
           touchDriving={touchDriving}
+          taxiExitRef={taxiExitRef}
         />
         {mode === "menu" && (
           <GameModeMenu

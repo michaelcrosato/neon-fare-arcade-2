@@ -51,11 +51,15 @@ updates the arcade launch, steering, road elevation and contact rules below.
 ## Time and physics
 
 - Mobile driving uses a floating thumbstick anywhere on the playfield. Horizontal
-  travel has a six-pixel dead zone and reaches full steering at 56 pixels; held
-  gas and brake touches also steer when used without a separate steering thumb.
+  travel has a six-pixel dead zone and reaches full steering at 56 pixels.
+  The initial touch is neutral; a floating indicator shows displacement.
   A thumb on the playfield keeps steering ownership regardless of pedal press
-  order; extra steering touches are ignored until it lifts. Releasing it returns
-  steering to any remaining pedal finger. Gas and brake stay held
+  order; extra steering touches are ignored until it lifts. Releasing it centers
+  steering even when a pedal remains held. Gas and brake never steer, including
+  when their captured pointers drag outside the button. Both pedals sit on the
+  right. The guide and labels are visible during countdown, with input locked
+  until play starts. The guide remains visible during play and fades while the
+  thumb supplies nonzero steering. Gas and brake stay held
   independently, with touch braking suppressing touch throttle and arcade boost.
   Double-tap gas and hold the second tap for arcade boost; gas fill shows reserve.
   In simulation, double-tap and hold brake operates the parking brake. Keyboard
@@ -175,8 +179,11 @@ updates the arcade launch, steering, road elevation and contact rules below.
 - `Game.x/y/z/vx/vy/heading/speed` always belong to the taxi. The walking actor is
   the discriminated `Game.player` state; use `controlledPose(game)` for camera
   and streaming focus.
-- E is a context action with a simulation-owned held-input latch. A stopped
-  taxi exits on the first safe side; a held key cannot exit and re-enter on
+- E is a context action with a simulation-owned held-input latch. Below 10 km/h
+  (using the unrounded speed), a taxi exits on the first safe side; at or above
+  that speed both the prompt and action are unavailable. The mobile exit action
+  follows the driver’s door in exterior cameras and sits on the driver’s side in
+  Cab View. A held key cannot exit and re-enter on
   adjacent ticks.
   Exit clears the simulation cab's drive controls and yaw state so it stays
   parked. Body roll and roll rate remain live; exit never rights the cab.

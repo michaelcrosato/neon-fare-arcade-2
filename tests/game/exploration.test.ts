@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { circleHitsBuilding } from "../../game/collision";
+import { SPEED_KMH_PER_WORLD_UNIT } from "../../game/config";
 import { stepExploration, sceneWorld } from "../../game/exploration";
 import { INTERIOR_DEFINITIONS, interiorWorld } from "../../game/interiors";
 import type { InputState, VenueKind, WorldView } from "../../game/model";
@@ -109,9 +110,9 @@ test("exiting preserves rollover momentum and never rights the taxi automaticall
   assert.deepEqual({ x: game.x, y: game.y }, taxi);
 });
 
-test("the driver must stop and have a collision-free side before exiting", () => {
+test("the driver must be below 10 km/h and have a collision-free side before exiting", () => {
   const moving = makeGame();
-  moving.speed = 1.21;
+  moving.speed = 10 / SPEED_KMH_PER_WORLD_UNIT;
   assert.deepEqual(stepExploration(moving, { ...IDLE, interact: true }, 1 / 60, EMPTY_WORLD), [
     { type: "interaction-blocked", reason: "moving" },
   ]);
@@ -126,6 +127,23 @@ test("the driver must stop and have a collision-free side before exiting", () =>
     { type: "interaction-blocked", reason: "no-room" },
   ]);
   assert.equal(blocked.player.kind, "driving");
+});
+
+test("exit prompts and actions share the strict 10 km/h boundary in both cabs", () => {
+  for (const drivingModel of ["arcade", "simulation"] as const) {
+    for (const kmh of [0, 5, 9.99, 10, 10.01, 40]) {
+      const game = makeGame("street-ace", 409, "free-run", drivingModel);
+      game.traffic = [];
+      game.speed = kmh / SPEED_KMH_PER_WORLD_UNIT;
+      game.vx = -game.speed;
+      const eligible = kmh < 10;
+      assert.equal(Boolean(interactionPrompt(game, EMPTY_WORLD).label), eligible, `${drivingModel} prompt at ${kmh}`);
+      const events = stepExploration(game, { ...IDLE, interact: true }, 1 / 60, EMPTY_WORLD);
+      assert.equal(events[0]?.type, eligible ? "vehicle-exited" : "interaction-blocked", `${drivingModel} action at ${kmh}`);
+      assert.equal(game.player.kind, eligible ? "walking" : "driving");
+      if (eligible) assert.equal(game.speed, 0, "the taxi parks when the driver gets out");
+    }
+  }
 });
 
 test("a blocked driver side deterministically falls back to the passenger side", () => {

@@ -13,16 +13,18 @@ test("floating thumbstick is proportional, clamps travel, and releases to neutra
   assert.equal(touch.snapshot().thumb, null);
 });
 
-test("gas and brake can steer, independently release, and survive a second steering finger", () => {
+test("pedal drags never steer and stay held independently of the steering thumb", () => {
   const touch = new TouchDriving();
   touch.start(1, "gas", 300, 700, 0); touch.move(1, 269, 700);
-  assert.equal(touch.input().up, true); assert.equal(touch.input().steer, -.5);
+  assert.equal(touch.input().up, true); assert.equal(touch.input().steer, 0);
+  assert.equal(touch.snapshot().thumb, null);
   touch.start(2, "steer", 100, 400, 100); touch.move(2, 156, 400);
   assert.equal(touch.input().up, true); assert.equal(touch.input().steer, 1);
-  touch.end(2, 500); assert.equal(touch.input().steer, -.5);
+  touch.end(2, 500); assert.equal(touch.input().steer, 0);
   touch.start(3, "brake", 40, 700, 600); touch.move(3, 71, 700);
-  assert.equal(touch.input().down, true); assert.equal(touch.input().up, false); assert.equal(touch.input().steer, .5);
-  touch.end(3, 900, true); assert.equal(touch.input().up, true); assert.equal(touch.input().steer, -.5);
+  assert.equal(touch.input().down, true); assert.equal(touch.input().up, false); assert.equal(touch.input().steer, 0);
+  assert.equal(touch.snapshot().thumb, null);
+  touch.end(3, 900, true); assert.equal(touch.input().up, true); assert.equal(touch.input().steer, 0);
   touch.reset(); touch.move(1, 400, 700);
   assert.deepEqual(touch.input(), { ...TEST_IDLE_INPUT, steer: 0 });
   const keys = { ...TEST_IDLE_INPUT, up: true, left: true };
@@ -45,7 +47,8 @@ test("a dedicated steering thumb keeps control when pedals are pressed afterward
   assert.equal(touch.input().up, true);
   assert.equal(touch.input().steer, -.5);
   touch.end(1, 600);
-  assert.equal(touch.input().steer, 1, "the pedal can steer again after the dedicated thumb lifts");
+  assert.equal(touch.input().steer, 0, "releasing steering centers it even while a dragged pedal stays held");
+  assert.equal(touch.snapshot().thumb, null);
 });
 
 test("extra steering fingers cannot take over or reactivate after the owner lifts", () => {
@@ -66,7 +69,7 @@ test("only a quick gas tap then a held second tap boosts; brake suppresses boost
   touch.start(1, "gas", 0, 0, 0); assert.equal(touch.input().boost, false);
   touch.end(1, 100);
   touch.start(2, "gas", 0, 0, 250); assert.equal(touch.input().boost, true);
-  touch.move(2, 31, 0); assert.equal(touch.input().steer, .5); assert.equal(touch.input().boost, true);
+  touch.move(2, 31, 0); assert.equal(touch.input().steer, 0); assert.equal(touch.input().boost, true);
   assert.equal(touch.input(true).boost, false, "double gas must never apply the simulation parking brake");
   touch.start(3, "brake", 0, 0, 1000); assert.equal(touch.input().boost, false);
   touch.end(3, 1300); assert.equal(touch.input().boost, true);
@@ -75,7 +78,7 @@ test("only a quick gas tap then a held second tap boosts; brake suppresses boost
   touch.end(4, 3500); touch.start(5, "gas", 0, 0, 3600); assert.equal(touch.input().boost, false, "a long driving hold is not a tap");
   touch.end(5, 3700, true); touch.start(6, "gas", 0, 0, 3800); assert.equal(touch.input().boost, false, "cancel is not a tap");
   touch.move(6, 50, 0); touch.end(6, 3900); touch.start(7, "gas", 0, 0, 4000);
-  assert.equal(touch.input().boost, false, "a steering drag is not a tap");
+  assert.equal(touch.input().boost, false, "a pedal drag is not a tap");
   touch.reset(); touch.start(8, "gas", 0, 0, 4100); touch.end(8, 4150);
   touch.start(9, "gas", 0, 0, 4600); assert.equal(touch.input().boost, false, "late second tap does not boost");
 });

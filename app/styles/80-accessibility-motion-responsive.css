@@ -563,12 +563,20 @@
   .mobile-steering .mobile-input { font-size: 29px; }
   .mobile-input:active, .mobile-input[data-held] { background: var(--paper); color: var(--ink); border-color: var(--yellow); box-shadow: 0 0 0 2px var(--yellow); }
   .mobile-steer-surface { position: absolute; inset: 0; pointer-events: auto; touch-action: none; user-select: none; -webkit-user-select: none; }
+  .mobile-steer-guide { position: absolute; z-index: 1; left: var(--mobile-left); bottom: max(32px, env(safe-area-inset-bottom)); width: 144px; display: flex; flex-direction: column; align-items: center; gap: 5px; color: var(--paper); text-align: center; text-shadow: 0 2px 4px #000; pointer-events: none; opacity: 1; transition: opacity 180ms ease-out; }
+  .mobile-steer-guide[data-steering] { opacity: .24; }
+  .mobile-steer-guide__track { display: flex; align-items: center; justify-content: space-between; width: 112px; height: 48px; padding: 0 6px; border: 1px dashed rgb(244 235 221 / 60%); border-radius: 28px; background: rgb(9 9 9 / 35%); font-size: 34px; line-height: 1; }
+  .mobile-steer-guide__track i { width: 28px; height: 28px; border: 2px solid var(--paper); border-radius: 50%; background: rgb(244 235 221 / 12%); }
+  .mobile-steer-guide strong { font-size: 18px; letter-spacing: .03em; }
+  .mobile-steer-guide small { font-size: 10px; font-weight: 700; letter-spacing: .06em; }
   .mobile-thumbstick { position: fixed; z-index: 3; width: 112px; height: 72px; margin: -36px 0 0 -56px; border: 1px solid rgb(255 255 255 / 32%); border-radius: 50%; background: rgb(0 0 0 / 12%); pointer-events: none; }
   .mobile-thumbstick i { position: absolute; left: 39px; top: 19px; width: 32px; height: 32px; border: 2px solid rgb(255 255 255 / 65%); border-radius: 50%; background: rgb(255 255 255 / 18%); }
-  .mobile-pedals { position: absolute; z-index: 2; left: max(16px, env(safe-area-inset-left)); right: max(16px, env(safe-area-inset-right)); bottom: max(16px, env(safe-area-inset-bottom)); display: flex; align-items: flex-end; justify-content: space-between; pointer-events: none; }
+  .mobile-pedals { position: absolute; z-index: 2; right: max(16px, env(safe-area-inset-right)); bottom: max(16px, env(safe-area-inset-bottom)); display: flex; flex-direction: column; align-items: center; gap: 10px; pointer-events: none; }
+  .mobile-pedals__label { color: var(--paper); font-size: 10px; font-weight: 800; letter-spacing: .08em; text-shadow: 0 2px 4px #000; }
   .mobile-pedal { position: relative; isolation: isolate; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 5px; width: 78px; height: 78px; overflow: hidden; border: 2px solid rgb(244 235 221 / 72%); border-radius: 22px; color: var(--paper); background: rgb(9 9 9 / 76%); font: 900 22px/1 "Barlow Condensed", sans-serif; touch-action: none; user-select: none; -webkit-user-select: none; }
   .mobile-pedal small { font-size: 10px; font-weight: 700; letter-spacing: .06em; }
   .mobile-pedal--gas { width: 86px; height: 96px; border-color: var(--yellow); }
+  .mobile-pedal:disabled { opacity: 1; cursor: default; }
   .mobile-pedal--gas span, .mobile-pedal--gas small { position: relative; color: #fff; text-shadow: 0 1px 3px #000, 0 0 3px #000; }
   .mobile-gas-fill { position: absolute; z-index: -1; inset: auto 0 0; height: var(--boost-fill); background: #baa31d; transition: height .1s linear; }
   .mobile-pedal[data-held] { border-color: #fff; box-shadow: 0 0 0 2px rgb(255 255 255 / 40%); }
@@ -583,6 +591,14 @@
   .mobile-interaction { position: absolute; top: 0; left: 0; display: flex; align-items: center; gap: 8px; min-height: 44px; max-width: calc(100% - 86px); padding: 9px 12px; color: var(--ink); background: var(--paper); border: 2px solid var(--ink); border-radius: 9px; box-shadow: 0 3px 0 rgb(0 0 0 / 50%); }
   .mobile-interaction > span { font-size: 20px; }
   .mobile-interaction strong { font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mobile-taxi-exit { position: absolute; z-index: 2; visibility: hidden; display: flex; align-items: center; gap: 7px; width: 126px; min-height: 54px; padding: 8px; color: var(--ink); background: var(--yellow); border: 2px solid var(--ink); border-radius: 8px; outline: 2px solid var(--paper); box-shadow: 0 4px 0 rgb(0 0 0 / 65%); touch-action: manipulation; }
+  .mobile-taxi-exit::after { content: ""; position: absolute; right: -7px; top: calc(50% - 5px); width: 10px; height: 10px; background: var(--yellow); border-top: 2px solid var(--ink); border-right: 2px solid var(--ink); transform: rotate(45deg); pointer-events: none; }
+  .mobile-taxi-exit svg { width: 24px; height: 26px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .mobile-taxi-exit > span { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; }
+  .mobile-taxi-exit strong { font: 900 18px/1 "Barlow Condensed", sans-serif; }
+  .mobile-taxi-exit small { font: 700 9px/1 "Barlow Condensed", sans-serif; }
+  .mobile-taxi-exit:active { background: var(--paper); }
+  .mobile-taxi-exit:focus-visible { outline: 3px solid var(--cyan); outline-offset: 3px; }
   .mobile-steering.is-dpad { display: grid; grid-template: repeat(2, 48px) / repeat(3, 46px); gap: 5px; }
   .is-dpad .mobile-input { width: 46px; height: 48px; font-size: 22px; border-radius: 11px; }
   .is-dpad .mobile-input--up { grid-area: 1 / 2; }
@@ -736,6 +752,8 @@
   .mobile-controls { height: 142px; }
   .mobile-interaction { top: auto; bottom: 2px; left: 50%; max-width: 36%; transform: translateX(-50%); }
   .mobile-pedal--gas { height: 84px; }
+  .mobile-pedals { flex-direction: row; align-items: flex-end; }
+  .mobile-pedals__label { position: absolute; right: 0; bottom: calc(100% + 7px); }
   .menu-copy { display: grid; grid-template-columns: .9fr 1.1fr; grid-template-rows: auto auto 1fr; gap: 10px 24px; padding: 18px 28px; }
   .title-paper { grid-area: 1 / 1; align-self: start; }
   .title-paper h1 { font-size: 64px; }

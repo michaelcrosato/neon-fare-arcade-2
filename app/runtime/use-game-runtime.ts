@@ -46,12 +46,14 @@ import { reportRuntimeError } from "./runtime-errors";
 import { BackgroundMusic } from "./background-music";
 import { mergeDrivingInput, type TouchDriving } from "./touch-driving";
 import { presentPassengerReview } from "./passenger-review";
+import { presentTaxiExitAction } from "./taxi-exit-action";
 
 type RefBox<T> = { current: T };
 
 export type GameRuntimeOptions = Readonly<{
   selectingDriverRef: RefBox<boolean>;
   passengerReviewRef: RefBox<HTMLDivElement | null>;
+  taxiExitRef: RefBox<HTMLButtonElement | null>;
   canvas2dRef: RefBox<HTMLCanvasElement | null>;
   webGpuCanvasRef: RefBox<HTMLCanvasElement | null>;
   gameRef: RefBox<Game>;
@@ -83,6 +85,7 @@ export function useGameRuntime(options: GameRuntimeOptions) {
   const {
     selectingDriverRef,
     passengerReviewRef,
+    taxiExitRef,
     canvas2dRef,
     webGpuCanvasRef,
     gameRef,
@@ -364,6 +367,10 @@ export function useGameRuntime(options: GameRuntimeOptions) {
         currentNavigation = navigationController.update(game);
         music.update(game, modeRef.current, mutedRef.current, document.hidden, selectingDriverRef.current);
         renderFrame(game, now, currentWorld, currentNavigation);
+        if (taxiExitRef.current) {
+          const bounds = canvas2d.getBoundingClientRect();
+          presentTaxiExitAction(taxiExitRef.current, game, camera, bounds.width, bounds.height);
+        }
         if (passengerReviewRef.current) {
           if (modeRef.current === "menu" || modeRef.current === "ended" || modeRef.current === "countdown") {
             passengerReviewRef.current.hidden = true;
@@ -483,6 +490,7 @@ export function useGameRuntime(options: GameRuntimeOptions) {
     boostAudioActiveRef,
     selectingDriverRef,
     passengerReviewRef,
+    taxiExitRef,
     cameraModeRef,
     cameraRef,
     canvas2dRef,

@@ -1,5 +1,5 @@
 import { circleHitsBuilding, ceilingHeightAt } from "./collision";
-import { WALKING_TUNING } from "./config";
+import { SPEED_KMH_PER_WORLD_UNIT, WALKING_TUNING } from "./config";
 import { clamp, distance, localPoint, normalizeAngle } from "./math";
 import type {
   ActorPose,
@@ -17,7 +17,8 @@ import { groundAt } from "./vehicle-road-contact";
 import { terrainBarrier } from "./terrain/surface";
 
 export const WALKER_RADIUS = WALKING_TUNING.radius;
-export const TAXI_EXIT_SPEED = 1.2;
+/** Exclusive exit threshold, expressed in simulation world units per second. */
+export const TAXI_EXIT_SPEED = 10 / SPEED_KMH_PER_WORLD_UNIT;
 export const TAXI_ENTER_RADIUS = 3.7;
 
 export type WalkingMotion = {

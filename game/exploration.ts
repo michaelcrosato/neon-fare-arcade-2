@@ -63,7 +63,7 @@ export function stepExploration(
 
   if (game.player.kind === "driving") {
     if (!actionPressed) return events;
-    if (game.speed > TAXI_EXIT_SPEED) {
+    if (game.speed >= TAXI_EXIT_SPEED) {
       events.push({ type: "interaction-blocked", reason: "moving" });
       return events;
     }

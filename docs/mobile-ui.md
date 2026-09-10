@@ -5,14 +5,21 @@ pointer is touch, including phone landscape. `app/use-mobile-layout.ts` and the 
 section of `80-accessibility-motion-responsive.css` share that breakpoint.
 
 During play, the canvas fills the dynamic viewport. A narrow status bar shows
-the shift timer (or Free Run), earned fare, and Menu. One route strip shows the
-next instruction and destination; tapping it pauses play and opens the full
-regional map. The compact map is not mounted on mobile.
+the shift timer (or Free Run), destination distance, earned fare, and Menu.
+The full regional map opens from Menu. The compact map is not mounted on mobile.
 
-The steering thumb can start anywhere on the playfield and keeps control when
-the other thumb presses a pedal. Gas and brake/reverse sit at opposite bottom
-corners. Pedal drags can also steer when used alone. Double-tap and hold gas for
-arcade boost, or brake for the simulation parking brake. On foot, a direction
+The steering thumb can start anywhere on the playfield; its initial point is
+neutral and a floating indicator follows proportional horizontal movement.
+Releasing it centers steering. Gas and brake/reverse stay on the right, stacked
+in portrait and side by side in phone landscape. Pedal drags never steer,
+including when dragged off their buttons. Steering and pedals work together.
+The left-thumb guide and pedal labels appear during countdown, before input
+unlocks, and stay visible in play. The guide fades during nonzero thumb steering
+and returns at center or release. Double-tap and hold gas for arcade boost, or
+brake for the simulation parking brake. Below 10 km/h, a yellow EXIT TAXI action
+tracks the driver’s door using the shared world projection. Cab View keeps it
+on the driver’s side because the exterior door is behind the camera.
+On foot, a direction
 pad replaces steering and the right controls become run, crouch, and jump. The
 nearby interaction appears above the controls in portrait and between them in
 landscape. Touch targets are at least 44px and account for display safe areas.

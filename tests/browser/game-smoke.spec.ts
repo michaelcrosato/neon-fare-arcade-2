@@ -199,7 +199,7 @@ test.describe("mobile touch", () => {
   test("a trusted held touch accelerates the taxi", async ({ page, context }) => {
     await startFreeRun(page);
     const accelerate = page.getByRole("button", { name: "Accelerate" });
-    await expect(accelerate).toBeVisible();
+    await expect(accelerate).toBeEnabled();
     const box = await accelerate.boundingBox();
     expect(box).not.toBeNull();
     const x = box!.x + box!.width / 2;

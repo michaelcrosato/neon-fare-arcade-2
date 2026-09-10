@@ -1,7 +1,7 @@
 import { distance } from "./math";
 import { activeCourierContract, courierCounterPrompt } from "./courier";
 import type { Game, WorldInteraction, WorldView } from "./model";
-import { TAXI_ENTER_RADIUS, controlledPose, walkingMotion } from "./player";
+import { TAXI_ENTER_RADIUS, TAXI_EXIT_SPEED, controlledPose, walkingMotion } from "./player";
 import {
   canRightSimulationVehicle,
   isSimulationVehicleOverturned,
@@ -15,7 +15,7 @@ export type InteractionCandidate =
 
 export function nearestInteraction(game: Game, world?: WorldView): InteractionCandidate | null {
   if (game.player.kind === "driving") {
-    return game.speed <= 1.2
+    return game.speed < TAXI_EXIT_SPEED
       ? { kind: "exit-taxi", id: "taxi-exit", label: "E · EXIT TAXI", detail: "EXPLORE ON FOOT", priority: 1 }
       : null;
   }

@@ -9,10 +9,11 @@ test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => Object.defineProperty(navigator, "gpu", { configurable: true, value: undefined }));
 });
 
-async function startFreeRun(page: Page) {
+async function startFreeRun(page: Page, checkCountdown?: () => Promise<void>) {
   await page.goto("/?diagnostics=1");
   await page.getByRole("button", { name: /Start Free Run with arcade/ }).click();
   await page.getByRole("button", { name: /Choose STREET ACE/ }).click();
+  await checkCountdown?.();
   await expect(page.getByRole("button", { name: "Pause game" })).toBeEnabled();
 }
 
@@ -26,12 +27,22 @@ async function copyTrace(page: Page): Promise<DiagnosticsSnapshot> {
 for (const viewport of [{ width: 390, height: 844 }, { width: 320, height: 568 }, { width: 844, height: 390 }, { width: 1280, height: 800 }]) {
   test.describe(`${viewport.width}×${viewport.height}`, () => {
     test.use({ viewport });
-    test("driving keeps the map off screen and thumb controls inside the viewport", async ({ page }) => {
-      await startFreeRun(page);
+    test("driving keeps the map off screen and thumb controls inside the viewport", async ({ page }, info) => {
+      await startFreeRun(page, async () => {
+        await expect(page.locator(".countdown")).toBeVisible();
+        await expect(page.locator(".mobile-steer-guide")).toBeInViewport({ ratio: 1 });
+        for (const name of ["Accelerate", "Brake or reverse"]) {
+          const button = page.getByRole("button", { name, exact: true });
+          await expect(button).toBeInViewport({ ratio: 1 });
+          await expect(button).toBeDisabled();
+        }
+        await page.screenshot({ path: info.outputPath("countdown.png") });
+      });
       await expect(page.locator(".gps-panel")).toHaveCount(0);
       await expect(page.locator(".mobile-route")).toHaveCount(0);
       await expect(page.getByRole("button", { name: /^(Steer left|Steer right|Boost)$/ })).toHaveCount(0);
       await expect(page.getByLabel("Drag anywhere to steer")).toBeVisible();
+      await expect(page.locator(".mobile-steer-guide")).toBeVisible();
       const speed = await page.locator(".mobile-speed").boundingBox();
       expect(speed!.x + speed!.width / 2).toBeCloseTo(viewport.width / 2, 0);
       expect(speed!.y).toBeLessThan(85);
@@ -46,12 +57,14 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 320, height: 568 }
         expect(box!.width, name).toBeGreaterThanOrEqual(44);
         expect(box!.height, name).toBeGreaterThanOrEqual(44);
         expect(box!.x, name).toBeGreaterThanOrEqual(0);
+        if (name !== "Pause game") expect(box!.x, "pedals belong to the right thumb").toBeGreaterThanOrEqual(viewport.width / 2);
         expect(box!.y, name).toBeGreaterThanOrEqual(0);
         expect(box!.x + box!.width, name).toBeLessThanOrEqual(viewport.width);
         expect(box!.y + box!.height, name).toBeLessThanOrEqual(viewport.height);
         await button.click({ trial: true });
       }
       expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(viewport.width);
+      await page.screenshot({ path: info.outputPath("driving-ready.png") });
     });
 
     test("the route planner keeps a tappable map and confirmation in view", async ({ page }) => {
@@ -162,7 +175,7 @@ test.describe("mobile session tools", () => {
     await expect(page.getByRole("group", { name: "Choose game mode" })).toBeVisible();
   });
 
-  test("gas and brake drags steer, a second thumb takes over, and cancellation releases all input", async ({ page, context }) => {
+  test("pedal drags stay independent of steering and cancellation releases all input", async ({ page, context }) => {
     await startFreeRun(page);
     const gas = page.getByRole("button", { name: "Accelerate", exact: true });
     const brake = page.getByRole("button", { name: "Brake or reverse", exact: true });
@@ -173,8 +186,9 @@ test.describe("mobile session tools", () => {
     await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [gasPoint] });
     try {
       await expect(gas).toHaveAttribute("data-held", "");
-      gasPoint.x -= 31;
+      gasPoint.x -= 100;
       await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [gasPoint] });
+      await expect(page.locator(".mobile-thumbstick")).toHaveCount(0);
       await expect.poll(async () => Number(await page.locator(".mobile-speed > strong").textContent())).toBeGreaterThan(0);
       await page.waitForTimeout(300);
       const thumb = { x: 150, y: 350, id: 3 };
@@ -185,10 +199,12 @@ test.describe("mobile session tools", () => {
       // CDP's partial touchEnd lists the finger being lifted, not the one still held.
       await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [thumb] });
       await expect(gas).toHaveAttribute("data-held", "");
+      await expect(page.locator(".mobile-thumbstick")).toHaveCount(0);
       await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [gasPoint, brakePoint] });
       brakePoint.x += 31;
       await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [gasPoint, brakePoint] });
       await expect(brake).toHaveAttribute("data-held", "");
+      await expect(page.locator(".mobile-thumbstick")).toHaveCount(0);
       await page.waitForTimeout(200);
     } finally {
       await cdp.send("Input.dispatchTouchEvent", { type: "touchCancel", touchPoints: [] });
@@ -198,9 +214,10 @@ test.describe("mobile session tools", () => {
     await page.waitForTimeout(150);
     const trace = await copyTrace(page);
     const ticks = trace.trace.segments.flatMap(segment => segment.ticks);
-    expect(ticks.some(t => t.steer === -.5 && (t.inputMask & 1) !== 0)).toBe(true);
+    expect(ticks.some(t => t.steer === 0 && (t.inputMask & 1) !== 0)).toBe(true);
     expect(ticks.some(t => t.steer === 1 && (t.inputMask & 1) !== 0)).toBe(true);
-    expect(ticks.some(t => t.steer === .5 && (t.inputMask & 2) !== 0 && (t.inputMask & 1) === 0)).toBe(true);
+    expect(ticks.some(t => t.steer === 0 && (t.inputMask & 2) !== 0 && (t.inputMask & 1) === 0)).toBe(true);
+    expect(ticks.every(t => t.steer === 0 || t.steer === 1)).toBe(true);
     expect(ticks.some(t => (t.inputMask & 16) !== 0)).toBe(false);
     expect(ticks.at(-1)!.inputMask).toBe(0);
     expect(ticks.at(-1)!.steer).toBe(0);
@@ -219,7 +236,10 @@ test.describe("mobile session tools", () => {
     const send = (type: "touchStart" | "touchEnd" | "touchMove") => cdp.send("Input.dispatchTouchEvent", { type, touchPoints: type === "touchEnd" ? [] : [point] });
     await send("touchStart"); await send("touchEnd"); await send("touchStart");
     await expect(gas).toHaveClass(/is-boosting/);
-    point.x -= 31; await send("touchMove");
+    const thumb = { x: 130, y: 350, id: 2 };
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [point, thumb] });
+    thumb.x -= 31;
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [point, thumb] });
     await expect.poll(boostReserve).toBeLessThan(initialBoost - 2);
     await expect(gas).not.toContainText(/\d+%/);
     await send("touchEnd"); await expect(gas).not.toHaveClass(/is-boosting/);

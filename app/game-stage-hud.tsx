@@ -1,4 +1,4 @@
-import type { PointerEventHandler } from "react";
+import type { PointerEventHandler, RefObject } from "react";
 import {
   DISPLAY_METERS_PER_WORLD_UNIT,
   cameraLabel,
@@ -33,6 +33,7 @@ type GameStageHudProps = Readonly<{
   onSetMode: (mode: Mode) => void;
   onTouch: PointerEventHandler<HTMLButtonElement>;
   touchDriving: TouchDriving;
+  taxiExitRef: RefObject<HTMLButtonElement | null>;
 }>;
 
 export function GameStageHud({
@@ -50,10 +51,11 @@ export function GameStageHud({
   onSetMode,
   onTouch,
   touchDriving,
+  taxiExitRef,
 }: GameStageHudProps) {
   const mobile = useMobileLayout();
   if (mobile) return <MobileGameHud mode={mode} hud={hud} fareImpact={fareImpact} courierImpact={courierImpact}
-    touchDriving={touchDriving} onPulseInteraction={onPulseInteraction} onSetMode={onSetMode} onTouch={onTouch} />;
+    touchDriving={touchDriving} taxiExitRef={taxiExitRef} onPulseInteraction={onPulseInteraction} onSetMode={onSetMode} onTouch={onTouch} />;
   const simulationDriving = hud.playerMode === "driving" && hud.drivingModel === "simulation";
   const simulationGear = simulationGearLabel(hud.simulationVehicle.gear);
   const cabRollScale = 1 + Math.abs(Math.sin(hud.simulationVehicle.bodyRoll)) * 0.42;

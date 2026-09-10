@@ -39,8 +39,8 @@ export class TouchDriving {
 
   snapshot() {
     const pointers = [...this.pointers.values()];
-    // A separate steering thumb stays in charge, regardless of pedal press order.
-    const owner = pointers.find(p => p.kind === "steer") ?? pointers.at(-1);
+    // Pedals never own steering, including after the steering thumb lifts.
+    const owner = pointers.find(p => p.kind === "steer");
     const dx = owner?.dx ?? 0;
     const steer = Math.sign(dx) * Math.min(1, Math.max(0, Math.abs(dx) - DEAD_ZONE) / (THUMB_TRAVEL - DEAD_ZONE));
     return {
