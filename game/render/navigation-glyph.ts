@@ -32,8 +32,8 @@ export function navigationDistanceBadge(game: Game, seconds: number, navigation:
   return {
     point: { x: origin.x, y: origin.y, z: (uTurn ? game.z : cue!.point.z ?? 0) + 9.6 + Math.sin(seconds * 5) * .3 },
     label: uTurn ? "U-TURN" : cue!.kind === "right" ? "TURN RIGHT" : "TURN LEFT",
-    distance: uTurn ? remaining : meters(cue!.distance),
-    remaining: uTurn ? "TO DESTINATION" : `${remaining} TO GO`,
+    distance: remaining,
+    remaining: "TO DESTINATION",
   };
 }
 

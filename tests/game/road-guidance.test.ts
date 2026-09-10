@@ -46,19 +46,24 @@ test("lane guidance follows real curves, grades and deck heights in either direc
   }
 });
 
-test("floating arrow badges show live turn distance and total remaining distance", () => {
+test("floating arrow badges show the total remaining route distance", () => {
   const game = makeGame("street-ace", 503, "free-run");
   const plan: NavigationPlan = { route: [{ x: 0, y: 0 }, { x: 0, y: -36 }, { x: 36, y: -36 }],
     requiresUTurn: false, departureYaw: -Math.PI / 2, travelHeading: -Math.PI / 2,
     turnCue: { point: { x: 0, y: -36, z: 20 }, incomingYaw: -Math.PI / 2, yaw: 0, kind: "right", distance: 36 } };
   const first = navigationDistanceBadge(game, 0, plan)!;
-  assert.equal(first.distance, `${Math.round(36 * DISPLAY_METERS_PER_WORLD_UNIT)}m`);
-  assert.equal(first.remaining, "1.3km TO GO");
+  assert.equal(first.distance, "1.3km");
+  assert.equal(first.remaining, "TO DESTINATION");
   assert.ok(first.point.z > 28, "badge clears the elevated arrow");
   plan.turnCue!.distance = 12;
-  assert.equal(navigationDistanceBadge(game, 0, plan)!.distance, `${Math.round(12 * DISPLAY_METERS_PER_WORLD_UNIT)}m`);
+  assert.equal(navigationDistanceBadge(game, 0, plan)!.distance, "1.3km", "moving the turn cue does not change the route total");
+  plan.route[0] = { x: 0, y: -24 };
+  const remaining = `${Math.round(48 * DISPLAY_METERS_PER_WORLD_UNIT)}m`;
+  assert.equal(navigationDistanceBadge(game, 0, plan)!.distance, remaining, "route progress reduces the remaining distance");
   plan.requiresUTurn = true;
   assert.equal(navigationDistanceBadge(game, 0, plan)!.label, "U-TURN");
+  assert.equal(navigationDistanceBadge(game, 0, plan)!.distance, remaining);
+  assert.equal(navigationDistanceBadge(game, 0, plan)!.remaining, "TO DESTINATION");
   plan.requiresUTurn = false; plan.turnCue = null;
   assert.equal(navigationDistanceBadge(game, 0, plan), null);
   game.player = { kind: "walking", actor: { ...game }, location: { kind: "city" } };

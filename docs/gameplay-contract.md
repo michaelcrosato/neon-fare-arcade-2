@@ -279,9 +279,9 @@ updates the arcade launch, steering, road elevation and contact rules below.
   flicker while the taxi rotates.
 - The minimap, instruction copy, and 3D cue consume the same
   `NavigationPlan`/`TurnCue` semantics.
-- A world-anchored badge above each visible turn arrow shows distance to that
-  turn and total remaining route distance. A U-turn badge shows remaining
-  destination distance. Both use the same displayed-meter scale as GPS.
+- A world-anchored badge above each visible turn or U-turn arrow shows total
+  remaining route distance to the destination as its main number, with
+  `TO DESTINATION` underneath. It uses the same displayed-meter scale as GPS.
 - World route dashes follow the right-hand traffic lane, 2.25 units from the
   road center, capped for narrower roads. Their height, grade and bank come from
   the actual pavement. Canonical route geometry, GPS and fare distances remain
