@@ -78,6 +78,58 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 320, height: 568 }
 
 test.describe("mobile session tools", () => {
   test.use({ viewport: { width: 390, height: 844 } });
+  test("a steering thumb on either side keeps ownership when gas is pressed afterward", async ({ page, context }) => {
+    await startFreeRun(page);
+    const gas = page.getByRole("button", { name: "Accelerate", exact: true });
+    const box = (await gas.boundingBox())!;
+    const gasPoint = { x: box.x + box.width / 2, y: box.y + box.height / 2, id: 1 };
+    const cdp = await context.newCDPSession(page);
+    for (const [index, x] of [80, 310].entries()) {
+      const thumb = { x, y: 350, id: index + 2 };
+      const dx = index === 0 ? 31 : -31;
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [thumb] });
+      thumb.x += dx;
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [thumb] });
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [thumb, gasPoint] });
+      await expect(gas).toHaveAttribute("data-held", "");
+      await expect(page.locator(".mobile-thumbstick")).toHaveCSS("left", `${x}px`);
+      await page.waitForTimeout(250);
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [thumb] });
+      await expect(gas).toHaveAttribute("data-held", "");
+      await page.waitForTimeout(150);
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    }
+    await page.waitForTimeout(150);
+    const trace = await copyTrace(page);
+    const ticks = trace.trace.segments.flatMap(segment => segment.ticks);
+    for (const steer of [-.5, .5]) expect(ticks.some(t => t.steer === steer && (t.inputMask & 1) !== 0)).toBe(true);
+    expect(ticks.some(t => t.steer === 0 && (t.inputMask & 1) !== 0)).toBe(true);
+    expect(ticks.at(-1)!.inputMask).toBe(0);
+    expect(ticks.at(-1)!.steer).toBe(0);
+  });
+
+  test("rotating the phone clears both thumbs and ignores their stale moves", async ({ page, context }) => {
+    await startFreeRun(page);
+    const gas = page.getByRole("button", { name: "Accelerate", exact: true });
+    const box = (await gas.boundingBox())!;
+    const points = [{ x: 100, y: 350, id: 1 }, { x: box.x + box.width / 2, y: box.y + box.height / 2, id: 2 }];
+    const cdp = await context.newCDPSession(page);
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: points });
+    points[0].x += 31;
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: points });
+    await expect(gas).toHaveAttribute("data-held", "");
+    await page.setViewportSize({ width: 844, height: 390 });
+    await expect(page.locator("[data-held], .mobile-thumbstick")).toHaveCount(0);
+    points[0].x += 20;
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: points });
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    await page.waitForTimeout(150);
+    const trace = await copyTrace(page);
+    const last = trace.trace.segments.flatMap(segment => segment.ticks).at(-1)!;
+    expect(last.inputMask).toBe(0);
+    expect(last.steer).toBe(0);
+  });
+
   test("camera, sound, fare history and walking are available without extra driving panels", async ({ page }) => {
     await startFreeRun(page);
     await page.getByRole("button", { name: "Pause game" }).click();

@@ -29,6 +29,38 @@ test("gas and brake can steer, independently release, and survive a second steer
   assert.equal(mergeDrivingInput(keys, touch.input()).up, true, "touch cancellation must not release a held keyboard key");
 });
 
+test("a dedicated steering thumb keeps control when pedals are pressed afterward", () => {
+  const touch = new TouchDriving();
+  touch.start(1, "steer", 300, 240, 0);
+  touch.move(1, 269, 240);
+  touch.start(2, "gas", 330, 700, 100);
+  touch.move(2, 386, 700);
+  assert.equal(touch.input().up, true);
+  assert.equal(touch.input().steer, -.5);
+  assert.deepEqual(touch.snapshot().thumb, { x: 300, y: 240, dx: -31, kind: "steer" });
+  touch.start(3, "brake", 40, 700, 200);
+  assert.equal(touch.input().down, true);
+  assert.equal(touch.input().steer, -.5);
+  touch.end(3, 500, true);
+  assert.equal(touch.input().up, true);
+  assert.equal(touch.input().steer, -.5);
+  touch.end(1, 600);
+  assert.equal(touch.input().steer, 1, "the pedal can steer again after the dedicated thumb lifts");
+});
+
+test("extra steering fingers cannot take over or reactivate after the owner lifts", () => {
+  const touch = new TouchDriving();
+  touch.start(1, "steer", 100, 240, 0);
+  touch.move(1, 156, 240);
+  touch.start(2, "steer", 300, 400, 100);
+  touch.move(2, 244, 400);
+  assert.equal(touch.input().steer, 1);
+  touch.end(1, 500);
+  touch.move(2, 230, 400);
+  assert.equal(touch.input().steer, 0);
+  assert.equal(touch.snapshot().thumb, null);
+});
+
 test("only a quick gas tap then a held second tap boosts; brake suppresses boost", () => {
   const touch = new TouchDriving();
   touch.start(1, "gas", 0, 0, 0); assert.equal(touch.input().boost, false);

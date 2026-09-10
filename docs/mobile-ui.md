@@ -9,12 +9,14 @@ the shift timer (or Free Run), earned fare, and Menu. One route strip shows the
 next instruction and destination; tapping it pauses play and opens the full
 regional map. The compact map is not mounted on mobile.
 
-Steering sits at the lower left; gas, brake/reverse, and boost sit at the lower
-right. Simulation substitutes the parking brake for boost. On foot, a direction
+The steering thumb can start anywhere on the playfield and keeps control when
+the other thumb presses a pedal. Gas and brake/reverse sit at opposite bottom
+corners. Pedal drags can also steer when used alone. Double-tap and hold gas for
+arcade boost, or brake for the simulation parking brake. On foot, a direction
 pad replaces steering and the right controls become run, crouch, and jump. The
 nearby interaction appears above the controls in portrait and between them in
 landscape. Touch targets are at least 44px and account for display safe areas.
-Pointer cancellation/lost capture releases held controls; opening a panel
+Pointer cancellation/lost capture and resizing release held controls; opening a panel
 clears game input through the existing pause lifecycle.
 
 Camera selection, audio, score, dispatch, and fare history live in the pause

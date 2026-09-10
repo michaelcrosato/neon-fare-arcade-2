@@ -52,12 +52,14 @@ updates the arcade launch, steering, road elevation and contact rules below.
 
 - Mobile driving uses a floating thumbstick anywhere on the playfield. Horizontal
   travel has a six-pixel dead zone and reaches full steering at 56 pixels; held
-  gas and brake touches also steer. The most recently pressed finger owns steering;
-  releasing it returns steering to any remaining finger. Gas and brake stay held
+  gas and brake touches also steer when used without a separate steering thumb.
+  A thumb on the playfield keeps steering ownership regardless of pedal press
+  order; extra steering touches are ignored until it lifts. Releasing it returns
+  steering to any remaining pedal finger. Gas and brake stay held
   independently, with touch braking suppressing touch throttle and arcade boost.
   Double-tap gas and hold the second tap for arcade boost; gas fill shows reserve.
   In simulation, double-tap and hold brake operates the parking brake. Keyboard
-  steering retains priority. Pointer cancellation, pause, blur, and leaving driving
+  steering retains priority. Pointer cancellation, pause, blur, resizing, and leaving driving
   clear touch input. Digital steering and all existing physics tuning are preserved.
 
 - The menu offers Arcade Shift, Arcade Free Run, and Simulation Free Run.

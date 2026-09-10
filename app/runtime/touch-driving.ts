@@ -11,10 +11,12 @@ export class TouchDriving {
   private taps: Partial<Record<TouchKind, number>> = {};
 
   start(id: number, kind: TouchKind, x: number, y: number, time: number) {
+    if (this.pointers.has(id) || (kind === "steer" && [...this.pointers.values()].some(p => p.kind === "steer"))) return false;
     const lastTap = this.taps[kind];
     const double = kind !== "steer" && lastTap !== undefined && time - lastTap <= 320 && time >= lastTap;
     delete this.taps[kind];
     this.pointers.set(id, { kind, x, y, dx: 0, travel: 0, time, double });
+    return true;
   }
 
   move(id: number, x: number, y: number) {
@@ -37,7 +39,8 @@ export class TouchDriving {
 
   snapshot() {
     const pointers = [...this.pointers.values()];
-    const owner = pointers.at(-1);
+    // A separate steering thumb stays in charge, regardless of pedal press order.
+    const owner = pointers.find(p => p.kind === "steer") ?? pointers.at(-1);
     const dx = owner?.dx ?? 0;
     const steer = Math.sign(dx) * Math.min(1, Math.max(0, Math.abs(dx) - DEAD_ZONE) / (THUMB_TRAVEL - DEAD_ZONE));
     return {

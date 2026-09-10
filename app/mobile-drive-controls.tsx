@@ -9,10 +9,12 @@ export function MobileDriveControls({ controller, boost, boosting, simulation }:
   useEffect(() => {
     const reset = () => { controller.reset(); setState(controller.snapshot()); };
     window.addEventListener("blur", reset);
+    window.addEventListener("resize", reset);
     document.addEventListener("visibilitychange", reset);
     return () => {
       controller.reset();
       window.removeEventListener("blur", reset);
+      window.removeEventListener("resize", reset);
       document.removeEventListener("visibilitychange", reset);
     };
   }, [controller]);
@@ -21,7 +23,7 @@ export function MobileDriveControls({ controller, boost, boosting, simulation }:
     if (event.type === "pointerdown" && event.button !== 0) return;
     event.preventDefault();
     if (event.type === "pointerdown") {
-      controller.start(event.pointerId, kind, event.clientX, event.clientY, event.timeStamp);
+      if (!controller.start(event.pointerId, kind, event.clientX, event.clientY, event.timeStamp)) return;
       event.currentTarget.setPointerCapture(event.pointerId);
     } else if (event.type === "pointermove") {
       controller.move(event.pointerId, event.clientX, event.clientY);

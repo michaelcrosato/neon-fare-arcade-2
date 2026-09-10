@@ -108,7 +108,7 @@ export function GameModalHost({
               <article><b>03</b><h3>HIT THE STREET</h3><p>Stop and press E to explore on foot. Run, jump, crouch, enter marked buildings, or return to the parked taxi whenever you are ready.</p></article>
             </div>
             <div className="mobile-help mobile-control-guide">
-              <article><b>DRIVE WITH YOUR THUMBS</b><p>Drag left or right anywhere to steer—even while holding GAS or BRAKE. The farther you drag, the harder you turn. Double-tap GAS and hold the second tap to boost; its fill shows your reserve. Release to stop boosting. Hold BRAKE through a stop to reverse. In the simulation cab, double-tap and hold BRAKE for the parking brake.</p></article>
+              <article><b>DRIVE WITH YOUR THUMBS</b><p>Drag left or right anywhere on the playfield with your left thumb to steer. Your right thumb can hold GAS or BRAKE without taking over steering. The farther you drag, the harder you turn. A pedal can also steer when used alone. Double-tap GAS and hold the second tap to boost; its fill shows your reserve. Release to stop boosting. Hold BRAKE through a stop to reverse. In the simulation cab, double-tap and hold BRAKE for the parking brake.</p></article>
               <article><b>EXPLORE ON FOOT</b><p>Stop, then tap EXIT TAXI. Use the direction pad to walk and turn. RUN, JUMP, and DUCK sit on the right; nearby doors and actions appear above the controls.</p></article>
               <article><b>YOUR CITY, ON DEMAND</b><p>Tap MENU for the map, camera, audio, and fare history. Destination distance sits beside the timer; speed is at the top center. Music fades after 30 seconds without a passenger and starts again on pickup. The world pauses while you browse.</p></article>
             </div>

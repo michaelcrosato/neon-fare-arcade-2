@@ -29,5 +29,9 @@ test("renders development preview metadata", async () => {
     response.headers.get("content-type") ?? "",
     /^text\/html\b/i,
   );
-  assert.match(await response.text(), developmentPreviewMeta);
+  const html = await response.text();
+  assert.match(html, developmentPreviewMeta);
+  assert.match(html, /<meta property="og:image" content="https:\/\/neon-fare-arcade-2\.vercel\.app\/comic-hero\.webp"/);
+  assert.match(html, /<meta name="twitter:card" content="summary_large_image"/);
+  assert.match(html, /<meta name="twitter:image" content="https:\/\/neon-fare-arcade-2\.vercel\.app\/comic-hero\.webp"/);
 });
