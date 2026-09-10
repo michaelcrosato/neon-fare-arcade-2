@@ -16,6 +16,7 @@ import {
   isCameraMode,
 } from "@/game/config";
 import { EMPTY_HUD, makeHud } from "@/game/hud";
+import { TouchDriving } from "./runtime/touch-driving";
 import { rankFor } from "@/game/math";
 import {
   buildNavigationPlan,
@@ -122,6 +123,7 @@ export default function Home() {
     crouch: false,
   });
   const interactionPulseRef = useRef(false);
+  const [touchDriving] = useState(() => new TouchDriving());
   const jumpPulseRef = useRef(false);
   const modeRef = useRef<Mode>("menu");
   const mutedRef = useRef(false);
@@ -169,6 +171,7 @@ export default function Home() {
   } = useFareCardDeck(mode === "paused");
 
   const clearInput = useCallback(() => {
+    touchDriving.reset();
     inputRef.current = {
       up: false,
       down: false,
@@ -182,7 +185,7 @@ export default function Home() {
     };
     interactionPulseRef.current = false;
     jumpPulseRef.current = false;
-  }, []);
+  }, [touchDriving]);
 
   const checkpointExternalGameChange = useCallback((reason: string) => {
     if (diagnosticsActive) diagnostics.recordExternalCheckpoint(reason, gameRef.current);
@@ -648,6 +651,7 @@ export default function Home() {
     cameraRef,
     cameraModeRef,
     inputRef,
+    touchDriving,
     interactionPulseRef,
     jumpPulseRef,
     modeRef,
@@ -808,7 +812,7 @@ export default function Home() {
 
   const handleTouch = useCallback((event: React.PointerEvent<HTMLButtonElement>) => {
     event.preventDefault();
-    const key = event.currentTarget.dataset.input as keyof InputState;
+    const key = event.currentTarget.dataset.input as Exclude<keyof InputState, "steer">;
     const active = event.type === "pointerdown";
     if (active && modeRef.current !== "playing") return;
     inputRef.current[key] = active;
@@ -888,6 +892,7 @@ export default function Home() {
           onPulseInteraction={pulseInteraction}
           onSetMode={setMode}
           onTouch={handleTouch}
+          touchDriving={touchDriving}
         />
         {mode === "menu" && (
           <GameModeMenu

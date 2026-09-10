@@ -1,5 +1,6 @@
 import { passengerComment, passengerRating, passengerRatingParSeconds, passengerTip, type PassengerStars } from "./passenger-rating";
 import { findTaxiExitPose } from "./player";
+import { steeringInput } from "./input";
 import {
   BONE,
   BOOST_OVERDRIVE_BONUS_WORLD_UNITS,
@@ -278,7 +279,7 @@ export function stepGame(
   const brake = controlInput.down ? 1 : 0;
   const brakePressed = brake > 0 && !game.brakeInputHeld;
   game.brakeInputHeld = brake > 0;
-  const steerInput = (controlInput.right ? 1 : 0) - (controlInput.left ? 1 : 0);
+  const steerInput = steeringInput(controlInput);
   const previousSteering = game.steering;
   const steeringResponse = steerInput === 0
     ? 20

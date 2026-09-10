@@ -1,6 +1,9 @@
 import type { Game, Mode } from "@/game/model";
 
 export const FARE_TRACKS = [4, 5, 6, 7, 8] as const;
+export const MUSIC_IDLE_SECONDS = 30;
+export const MUSIC_FADE_SECONDS = 3;
+const MUSIC_VOLUME = 0.38;
 
 export function shuffledFareTracks(random = Math.random): number[] {
   const tracks: number[] = [...FARE_TRACKS];
@@ -26,16 +29,21 @@ export class BackgroundMusic {
   private disposed = false;
   private blocked = false;
   private farePosition = 0;
+  private idleSince = 0;
+  private streetStarted = false;
+  private volume = MUSIC_VOLUME;
+  private gain: GainNode | null = null;
+  private source: MediaElementAudioSourceNode | null = null;
 
-  constructor(audio = new Audio(), private random = Math.random) {
+  constructor(audio = new Audio(), private random = Math.random, private getContext: () => AudioContext | null = () => null) {
     this.audio = audio;
-    audio.volume = 0.38;
+    this.setVolume(MUSIC_VOLUME);
     audio.preload = "metadata";
     audio.addEventListener("ended", this.ended);
   }
 
   private ended = () => {
-    if (this.current !== null && this.current >= 4 && this.onboard) {
+    if (this.current !== null && this.current >= 4 && this.desired !== null) {
       this.fareTrack = this.nextFare();
       this.desired = this.fareTrack;
       this.sync();
@@ -55,21 +63,54 @@ export class BackgroundMusic {
       this.onboard = false;
       this.fareTrack = null;
       this.farePosition = 0;
+      this.idleSince = game.elapsed;
+      this.streetStarted = false;
     }
-    if (game.onboard && !this.onboard) this.fareTrack = this.nextFare();
-    if (!game.onboard) this.fareTrack = null;
+    if (mode === "playing" && !this.streetStarted) {
+      this.streetStarted = true;
+      this.idleSince = game.elapsed;
+      this.fareTrack = this.nextFare();
+    } else if (game.onboard && !this.onboard) this.fareTrack = this.nextFare();
+    if (game.onboard || this.onboard) this.idleSince = game.elapsed;
     this.onboard = game.onboard;
     const inside = game.player.kind === "walking" && game.player.location.kind === "interior";
+    // Game time freezes during pause/hidden tabs, so breaks don't consume the grace period.
+    const streetVolume = game.onboard ? 1
+      : Math.max(0, Math.min(1, 1 - (game.elapsed - this.idleSince - MUSIC_IDLE_SECONDS) / MUSIC_FADE_SECONDS));
     this.desired = mode === "menu" || selectingDriver ? 2
       : mode === "ended" || mode === "countdown" ? null
-      : inside ? 1 : this.fareTrack;
+      : inside ? 1 : streetVolume > 0 ? this.fareTrack : null;
     this.paused = (mode === "paused" && !selectingDriver) || hidden;
     this.audio.muted = muted;
+    this.setVolume(MUSIC_VOLUME * (mode === "menu" || selectingDriver || inside ? 1 : streetVolume));
     this.sync();
   }
 
   /** Retry blocked autoplay inside the next user gesture. */
-  unlock = () => { this.blocked = false; this.sync(); };
+  unlock = () => {
+    if (this.disposed) return;
+    this.blocked = false;
+    const context = this.getContext();
+    if (context && context.state !== "running" && context.state !== "closed") void context.resume().catch(() => {});
+    this.setVolume(this.volume);
+    this.sync();
+  };
+
+  private setVolume(volume: number) {
+    this.volume = volume;
+    const context = this.getContext();
+    if (!this.gain && context && context.state !== "closed") {
+      // iOS ignores HTMLMediaElement.volume; share the game's unlocked audio context.
+      this.gain = context.createGain();
+      this.source = context.createMediaElementSource(this.audio);
+      this.source.connect(this.gain);
+      this.gain.connect(context.destination);
+    }
+    if (this.gain) {
+      this.audio.volume = 1;
+      this.gain.gain.value = volume;
+    } else this.audio.volume = volume;
+  }
 
   private sync() {
     if (this.disposed) return;
@@ -99,5 +140,9 @@ export class BackgroundMusic {
     this.audio.removeEventListener("ended", this.ended);
     this.audio.removeAttribute("src");
     this.audio.load();
+    this.source?.disconnect();
+    this.gain?.disconnect();
+    this.source = null;
+    this.gain = null;
   }
 }

@@ -790,6 +790,8 @@ export type InputState = {
   left: boolean;
   right: boolean;
   boost: boolean;
+  /** Optional proportional taxi steering, normalized from -1 (left) to 1 (right). */
+  steer?: number;
   /** Dedicated walking sprint input. Boost remains taxi-only. */
   sprint?: boolean;
   /** Walking jump input; edge-triggered by the walking actor's latch. */

@@ -526,42 +526,31 @@
   }
   .mobile-hud button { pointer-events: auto; cursor: pointer; -webkit-tap-highlight-color: transparent; }
   .mobile-statusbar {
-    position: absolute; inset: 0 0 auto; height: calc(52px + env(safe-area-inset-top));
-    display: flex; align-items: center; gap: 16px;
+    position: absolute; z-index: 2; inset: 0 0 auto; height: calc(52px + env(safe-area-inset-top));
+    display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 12px;
     padding: env(safe-area-inset-top) var(--mobile-right) 0 var(--mobile-left);
     background: rgb(9 9 9 / 88%); border-bottom: 2px solid var(--yellow);
   }
   .mobile-meter { display: flex; align-items: center; gap: 6px; }
-  .mobile-meter > span { max-width: 70px; font-size: 13px; line-height: 1.1; font-weight: 900; letter-spacing: .05em; }
+  .mobile-journey { display: flex; align-items: center; flex-wrap: wrap; gap: 2px 10px; }
+  .mobile-distance { color: var(--cyan); font-size: 19px; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .mobile-distance small { margin-left: 2px; font-size: 12px; }
+  .mobile-meter > span { max-width: 48px; font-size: 11px; line-height: 1.1; font-weight: 900; letter-spacing: .04em; }
   .mobile-meter > strong { font-size: 28px; color: var(--yellow); line-height: 1; font-variant-numeric: tabular-nums; }
   .mobile-meter > strong small { margin-left: 2px; font-size: 14px; }
   .mobile-meter.is-urgent { color: #ff826c; }
   .mobile-meter.is-urgent > strong { color: #ff826c; }
-  .mobile-earnings { display: flex; align-items: baseline; gap: 7px; margin-left: auto; }
+  .mobile-earnings { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
   .mobile-earnings small { font-size: 11px; letter-spacing: .08em; }
   .mobile-earnings strong { font-size: 23px; font-variant-numeric: tabular-nums; }
   .mobile-menu-button { display: flex; align-items: center; justify-content: center; gap: 6px; min-width: 64px; min-height: 44px; color: var(--paper); background: transparent; }
   .mobile-menu-button span { font-size: 23px; }
   .mobile-menu-button small { font-size: 12px; }
-  .mobile-route {
-    position: absolute; top: calc(62px + env(safe-area-inset-top)); left: var(--mobile-left); right: var(--mobile-right);
-    display: flex; align-items: center; gap: 10px; min-height: 60px; padding: 8px 10px;
-    color: var(--paper); background: rgb(9 15 17 / 87%); border: 1px solid rgb(244 235 221 / 40%); border-radius: 10px; text-align: left;
-  }
-  .mobile-route__arrow { flex: 0 0 28px; color: var(--cyan); font: 900 30px/1 Arial, sans-serif; text-align: center; }
-  .mobile-route__copy { flex: 1; min-width: 0; }
-  .mobile-route__copy strong, .mobile-route__copy small { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-  .mobile-route__copy strong { font-size: 17px; line-height: 1.25; font-weight: 900; }
-  .mobile-route__copy small { margin-top: 3px; font-size: 14px; color: #d9ded6; }
-  .mobile-route__map { flex: 0 0 27px; color: var(--cyan); font-size: 10px; text-align: center; }
-  .mobile-route__map small { display: block; font: 20px/1 Arial, sans-serif; }
-  .mobile-route.is-uturn { border-color: #ff826c; }
-  .mobile-route.is-uturn .mobile-route__arrow { color: #ff826c; }
-  .mobile-notice { position: absolute; top: calc(134px + env(safe-area-inset-top)); left: 50%; width: max-content; max-width: calc(100% - 40px); padding: 6px 12px; transform: translateX(-50%); background: var(--yellow); color: var(--ink); border-radius: 6px; text-align: center; }
+  .mobile-notice { position: absolute; z-index: 1; top: calc(116px + env(safe-area-inset-top)); left: 50%; width: max-content; max-width: calc(100% - 40px); padding: 6px 12px; transform: translateX(-50%); background: var(--yellow); color: var(--ink); border-radius: 6px; text-align: center; }
   .mobile-notice strong { display: block; font-size: 16px; line-height: 1.2; }
   .mobile-notice span { display: block; margin-top: 3px; font-size: 14px; }
   .mobile-notice.is-event { background: var(--paper); padding-block: 9px; }
-  .mobile-controls { position: absolute; left: var(--mobile-left); right: var(--mobile-right); bottom: max(12px, env(safe-area-inset-bottom)); height: 176px; }
+  .mobile-controls { position: absolute; z-index: 1; left: var(--mobile-left); right: var(--mobile-right); bottom: max(12px, env(safe-area-inset-bottom)); height: 176px; }
   .mobile-controls::before { content: ""; position: absolute; inset: -24px calc(-1 * var(--mobile-right)) calc(-1 * max(12px, env(safe-area-inset-bottom))) calc(-1 * var(--mobile-left)); z-index: -1; background: linear-gradient(transparent, rgb(0 0 0 / 30%)); }
   .mobile-steering { position: absolute; bottom: 0; left: 0; display: flex; gap: 8px; }
   .mobile-input {
@@ -573,16 +562,24 @@
   .mobile-input small { font-size: 10px; font-weight: 700; }
   .mobile-steering .mobile-input { font-size: 29px; }
   .mobile-input:active, .mobile-input[data-held] { background: var(--paper); color: var(--ink); border-color: var(--yellow); box-shadow: 0 0 0 2px var(--yellow); }
-  .mobile-pedals { position: absolute; right: 0; bottom: 0; display: flex; align-items: flex-end; gap: 8px; }
-  .mobile-pedals .mobile-input--up { height: 80px; width: 68px; color: var(--ink); background: var(--yellow); border-color: var(--yellow); font-size: 24px; }
-  .mobile-pedals .mobile-input--up i { font-size: 14px; font-style: normal; }
-  .mobile-pedals .mobile-input--boost { position: absolute; bottom: 92px; right: 0; width: 68px; height: 48px; border-color: var(--cyan); color: var(--cyan); font-size: 16px; }
-  .mobile-pedals .mobile-input--boost[data-held] { color: var(--ink); background: var(--cyan); }
-  .mobile-pedals .mobile-input--up[data-held] { background: var(--paper); border-color: var(--paper); }
-  .speedometer.mobile-speed { position: absolute; inset: auto auto 76px 2px; display: flex; align-items: baseline; gap: 5px; width: auto; min-width: 0; padding: 0; border: 0; box-shadow: none; background: none; clip-path: none; transform: none; color: var(--paper); text-shadow: 0 2px 3px #000; pointer-events: none; }
-  .speedometer.mobile-speed > strong { font-size: 28px; line-height: 1; font-variant-numeric: tabular-nums; }
+  .mobile-steer-surface { position: absolute; inset: 0; pointer-events: auto; touch-action: none; user-select: none; -webkit-user-select: none; }
+  .mobile-thumbstick { position: fixed; z-index: 3; width: 112px; height: 72px; margin: -36px 0 0 -56px; border: 1px solid rgb(255 255 255 / 32%); border-radius: 50%; background: rgb(0 0 0 / 12%); pointer-events: none; }
+  .mobile-thumbstick i { position: absolute; left: 39px; top: 19px; width: 32px; height: 32px; border: 2px solid rgb(255 255 255 / 65%); border-radius: 50%; background: rgb(255 255 255 / 18%); }
+  .mobile-pedals { position: absolute; z-index: 2; left: max(16px, env(safe-area-inset-left)); right: max(16px, env(safe-area-inset-right)); bottom: max(16px, env(safe-area-inset-bottom)); display: flex; align-items: flex-end; justify-content: space-between; pointer-events: none; }
+  .mobile-pedal { position: relative; isolation: isolate; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 5px; width: 78px; height: 78px; overflow: hidden; border: 2px solid rgb(244 235 221 / 72%); border-radius: 22px; color: var(--paper); background: rgb(9 9 9 / 76%); font: 900 22px/1 "Barlow Condensed", sans-serif; touch-action: none; user-select: none; -webkit-user-select: none; }
+  .mobile-pedal small { font-size: 10px; font-weight: 700; letter-spacing: .06em; }
+  .mobile-pedal--gas { width: 86px; height: 96px; border-color: var(--yellow); }
+  .mobile-pedal--gas span, .mobile-pedal--gas small { position: relative; color: #fff; text-shadow: 0 1px 3px #000, 0 0 3px #000; }
+  .mobile-gas-fill { position: absolute; z-index: -1; inset: auto 0 0; height: var(--boost-fill); background: #baa31d; transition: height .1s linear; }
+  .mobile-pedal[data-held] { border-color: #fff; box-shadow: 0 0 0 2px rgb(255 255 255 / 40%); }
+  .mobile-pedal--brake[data-held] { background: #8b392c; }
+  .mobile-pedal--gas.is-boosting { border-color: var(--cyan); box-shadow: 0 0 16px rgb(42 229 228 / 60%); }
+  .mobile-pedal--gas.is-boosting .mobile-gas-fill { background: #178b8f; }
+  .speedometer.mobile-speed { position: absolute; z-index: 1; inset: calc(66px + env(safe-area-inset-top)) auto auto 50%; display: flex; align-items: baseline; gap: 5px; width: auto; min-width: 0; padding: 0; border: 0; box-shadow: none; background: none; clip-path: none; transform: translateX(-50%); color: var(--paper); text-shadow: 0 2px 3px #000; pointer-events: none; }
+  .speedometer.mobile-speed > strong { font-size: 38px; line-height: 1; font-variant-numeric: tabular-nums; }
   .speedometer.mobile-speed > small { font: 700 11px/1 "Barlow Condensed", sans-serif; letter-spacing: .06em; }
   .mobile-speed > b { color: var(--yellow); font-size: 16px; }
+  .mobile-walking-hint { position: absolute; bottom: 100%; margin: 0 0 8px; max-width: 100%; font-size: 15px; text-shadow: 0 2px 3px #000; }
   .mobile-interaction { position: absolute; top: 0; left: 0; display: flex; align-items: center; gap: 8px; min-height: 44px; max-width: calc(100% - 86px); padding: 9px 12px; color: var(--ink); background: var(--paper); border: 2px solid var(--ink); border-radius: 9px; box-shadow: 0 3px 0 rgb(0 0 0 / 50%); }
   .mobile-interaction > span { font-size: 20px; }
   .mobile-interaction strong { font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -732,22 +729,13 @@
   .topbar nav { gap: 8px; }
   .topbar nav button { font-size: 11px; }
   .brand > span { font-size: 19px; }
-  .mobile-steering:not(.is-dpad) .mobile-input { width: 54px; }
-  .mobile-pedals .mobile-input--down { width: 54px; }
-  .mobile-route__copy strong { font-size: 15px; }
-  .mobile-route__copy small { font-size: 13px; }
 }
 
 @media (orientation: landscape) and (max-height: 540px) and (max-width: 820px), (orientation: landscape) and (max-height: 540px) and (pointer: coarse) {
-  .mobile-route { right: auto; width: min(400px, 48%); min-height: 52px; top: calc(60px + env(safe-area-inset-top)); }
-  .mobile-route__copy strong { font-size: 16px; }
-  .mobile-route__copy small { font-size: 13px; }
-  .mobile-notice { left: auto; right: max(16px, env(safe-area-inset-right)); top: calc(62px + env(safe-area-inset-top)); width: min(280px, 38%); transform: none; }
+  .mobile-notice { left: var(--mobile-left); right: auto; top: calc(64px + env(safe-area-inset-top)); width: min(250px, 34%); transform: none; }
   .mobile-controls { height: 142px; }
   .mobile-interaction { top: auto; bottom: 2px; left: 50%; max-width: 36%; transform: translateX(-50%); }
-  .mobile-steering:not(.is-dpad) .mobile-input { width: 66px; height: 58px; }
-  .speedometer.mobile-speed { bottom: 68px; }
-  .mobile-pedals .mobile-input--boost { bottom: 90px; }
+  .mobile-pedal--gas { height: 84px; }
   .menu-copy { display: grid; grid-template-columns: .9fr 1.1fr; grid-template-rows: auto auto 1fr; gap: 10px 24px; padding: 18px 28px; }
   .title-paper { grid-area: 1 / 1; align-self: start; }
   .title-paper h1 { font-size: 64px; }

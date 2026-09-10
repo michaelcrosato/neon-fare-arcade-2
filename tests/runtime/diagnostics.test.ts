@@ -61,6 +61,20 @@ test("all diagnostic input masks round-trip", () => {
   }
 });
 
+test("proportional touch steering survives diagnostic capture and deterministic replay", () => {
+  const game = makeGame("street-ace", 734, "free-run");
+  const recorder = new DiagnosticsRecorder();
+  const city = new CityStream();
+  for (let tick = 0; tick < 90; tick++) {
+    recordTick(recorder, game, city, { up: true, down: false, left: false, right: false, boost: false, steer: tick < 45 ? .35 : -.65 }, () => .4);
+  }
+  const snapshot = recorder.snapshot(game, null, "playing");
+  assert.equal(snapshot.trace.segments[0].ticks[0].steer, .35);
+  assert.equal(snapshot.trace.segments[0].ticks[89].steer, -.65);
+  verifyDiagnosticsSnapshot(snapshot);
+  assert.deepEqual(replayDiagnosticSegment(snapshot.trace.segments[0]), game);
+});
+
 test("retained real-world trace replays across chunk boundaries and rolling eviction", () => {
   const game = makeGame("street-ace", 0x4e454f4e, "free-run");
   game.x = CHUNK_SIZE / 2 - 4;

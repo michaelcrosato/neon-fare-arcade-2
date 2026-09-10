@@ -1,4 +1,5 @@
 import { SPEED_KMH_PER_WORLD_UNIT } from "./config";
+import { steeringInput } from "./input";
 import { clamp, normalizeAngle } from "./math";
 import type {
   Game,
@@ -434,7 +435,7 @@ function stepSimulationSubstep(
     dt,
   );
 
-  const steerInput = (input.right ? 1 : 0) - (input.left ? 1 : 0);
+  const steerInput = steeringInput(input);
   const steerTarget = steerInput * MAX_STEER_RADIANS;
   const steeringRate = steerInput === 0 ? 1.35 : 0.94;
   state.steeringAngle = moveToward(state.steeringAngle, steerTarget, steeringRate * dt);

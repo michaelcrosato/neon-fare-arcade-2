@@ -19,8 +19,11 @@ updates the arcade launch, steering, road elevation and contact rules below.
   eight simulation seconds (or until the next pickup), with a head-anchored bubble.
 - Browser music loops track 02 through the mode and driver selection menus,
   stops at the countdown, and loops 01 while inside a venue on foot. Each run
-  shuffles 04–08 once. Each pickup starts the next song, natural endings advance
-  through that order, and drop-off stops fare music. Interiors temporarily replace
+  shuffles 04–08 once. Driving starts the first song; each pickup starts the next
+  song, and natural endings advance through that order. Music continues between
+  fares. After 30 seconds without a passenger it fades over three seconds to
+  silence; pickup immediately restores music. Occupied fares never time out the
+  music, and paused time does not count toward the 30 seconds. Interiors temporarily replace
   fare music and resume its position on exit. Pause/hidden tabs stop playback;
   the audio toggle mutes music and sound effects together. Browser autoplay may
   defer menu music until the first click or keypress.
@@ -46,6 +49,16 @@ updates the arcade launch, steering, road elevation and contact rules below.
   spawn avoids an initial lateral GPS segment.
 
 ## Time and physics
+
+- Mobile driving uses a floating thumbstick anywhere on the playfield. Horizontal
+  travel has a six-pixel dead zone and reaches full steering at 56 pixels; held
+  gas and brake touches also steer. The most recently pressed finger owns steering;
+  releasing it returns steering to any remaining finger. Gas and brake stay held
+  independently, with touch braking suppressing touch throttle and arcade boost.
+  Double-tap gas and hold the second tap for arcade boost; gas fill shows reserve.
+  In simulation, double-tap and hold brake operates the parking brake. Keyboard
+  steering retains priority. Pointer cancellation, pause, blur, and leaving driving
+  clear touch input. Digital steering and all existing physics tuning are preserved.
 
 - The menu offers Arcade Shift, Arcade Free Run, and Simulation Free Run.
   Arcade modes open the same three-package driver draft. Simulation Free Run

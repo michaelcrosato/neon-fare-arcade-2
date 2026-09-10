@@ -50,7 +50,7 @@ export function replayDiagnosticSegment(segment: DiagnosticSegment) {
     try {
       events = stepGame(
         game,
-        decodeDiagnosticInput(tick.inputMask),
+        decodeDiagnosticInput(tick.inputMask, tick.steer),
         FIXED_DT,
         world,
         () => {

@@ -7,11 +7,13 @@ import { GameModalHost } from "../../../app/game-modal-host";
 import { GameSessionOverlays } from "../../../app/game-session-overlays";
 import { makeCareerState } from "../../../game/career";
 import { createRef } from "react";
+import { TouchDriving } from "../../../app/runtime/touch-driving";
 
 const host = document.createElement("div");
 document.body.appendChild(host);
 const root = createRoot(host);
 const noop = () => {};
+const touchDriving = new TouchDriving();
 const fare: FareImpact = {
   id: 1, kind: "dropoff", fareId: "test-fare", fareNumber: 1, artCell: 0, durationMs: 2000,
   rider: "ALEXANDER", destination: "NORTHSTAR MOUNTAIN OBSERVATORY", eyebrow: "FARE COMPLETE",
@@ -28,7 +30,7 @@ function render(scenario: Scenario) {
   flushSync(() => root.render(<main className="arcade-shell mode-playing"><section className="game-stage">
     <MobileGameHud mode="playing" hud={hud} fareImpact={scenario === "fare" ? fare : null}
       courierImpact={scenario === "courier" ? { id: 1, kind: "pickup", cargo: "FRAGILE SOUND EQUIPMENT", destination: "NEON CITY", detail: "RETURN TO YOUR TAXI" } : null}
-      onOpenMap={noop} onPulseInteraction={noop} onSetMode={noop} onTouch={noop} />
+      touchDriving={touchDriving} onPulseInteraction={noop} onSetMode={noop} onTouch={noop} />
   </section></main>));
 }
 

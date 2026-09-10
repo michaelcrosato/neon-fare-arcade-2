@@ -47,6 +47,8 @@ export type DiagnosticStreamContext = Readonly<{
 export type DiagnosticTick = Readonly<{
   tick: number;
   inputMask: number;
+  /** Optional for older schema-3 captures with digital steering only. */
+  steer?: number;
   randomValues: readonly number[];
   events: readonly SimulationEvent[];
   stream: DiagnosticStreamContext;
@@ -107,6 +109,7 @@ export type DiagnosticsSnapshot = Readonly<{
 type PendingStep = Readonly<{
   tick: number;
   inputMask: number;
+  steer?: number;
   stream: DiagnosticStreamContext;
 }>;
 
@@ -127,8 +130,9 @@ export function encodeDiagnosticInput(input: Readonly<InputState>) {
     | (input.interact ? INPUT_BITS.interact : 0);
 }
 
-export function decodeDiagnosticInput(mask: number): InputState {
+export function decodeDiagnosticInput(mask: number, steer?: number): InputState {
   return {
+    ...(steer === undefined ? {} : { steer }),
     up: Boolean(mask & INPUT_BITS.up),
     down: Boolean(mask & INPUT_BITS.down),
     left: Boolean(mask & INPUT_BITS.left),
@@ -224,6 +228,7 @@ export class DiagnosticsRecorder {
     this.pending = {
       tick: this.nextTick,
       inputMask: encodeDiagnosticInput(input),
+      ...(input.steer === undefined ? {} : { steer: Number.isFinite(input.steer) ? input.steer : 0 }),
       stream: {
         focus: { ...stream.focus },
         radius: stream.radius,

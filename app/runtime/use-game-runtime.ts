@@ -44,6 +44,7 @@ import {
 import type { DiagnosticsRecorder } from "./diagnostics";
 import { reportRuntimeError } from "./runtime-errors";
 import { BackgroundMusic } from "./background-music";
+import { mergeDrivingInput, type TouchDriving } from "./touch-driving";
 import { presentPassengerReview } from "./passenger-review";
 
 type RefBox<T> = { current: T };
@@ -57,6 +58,7 @@ export type GameRuntimeOptions = Readonly<{
   cameraRef: RefBox<Camera>;
   cameraModeRef: RefBox<CameraMode>;
   inputRef: RefBox<InputState>;
+  touchDriving: TouchDriving;
   interactionPulseRef: RefBox<boolean>;
   jumpPulseRef: RefBox<boolean>;
   modeRef: RefBox<Mode>;
@@ -87,6 +89,7 @@ export function useGameRuntime(options: GameRuntimeOptions) {
     cameraRef,
     cameraModeRef,
     inputRef,
+    touchDriving,
     interactionPulseRef,
     jumpPulseRef,
     modeRef,
@@ -127,7 +130,7 @@ export function useGameRuntime(options: GameRuntimeOptions) {
     let currentNavigation = navigationController.update(gameRef.current);
     let wasInterior = isInterior(gameRef.current);
     let previousEffectiveCameraMode = cameraRef.current.mode;
-    const music = new BackgroundMusic();
+    const music = new BackgroundMusic(undefined, Math.random, () => audioRef.current);
     music.update(gameRef.current, modeRef.current, mutedRef.current, document.hidden, selectingDriverRef.current);
     window.addEventListener("pointerdown", music.unlock);
     window.addEventListener("keydown", music.unlock);
@@ -222,13 +225,16 @@ export function useGameRuntime(options: GameRuntimeOptions) {
 
         if (currentMode === "playing") {
           while (accumulator >= FIXED_DT && modeRef.current === "playing") {
+            const input = isDriving(game)
+              ? mergeDrivingInput(inputRef.current, touchDriving.input(game.drivingModel === "simulation"))
+              : inputRef.current;
             const tickInput = interactionPulseRef.current || jumpPulseRef.current
               ? {
-                  ...inputRef.current,
-                  interact: interactionPulseRef.current || inputRef.current.interact,
-                  jump: jumpPulseRef.current || inputRef.current.jump,
+                  ...input,
+                  interact: interactionPulseRef.current || input.interact,
+                  jump: jumpPulseRef.current || input.jump,
                 }
-              : inputRef.current;
+              : input;
             let events: readonly SimulationEvent[];
             const randomValues: number[] = [];
             if (diagnosticsActive) {
@@ -487,6 +493,7 @@ export function useGameRuntime(options: GameRuntimeOptions) {
     finishRun,
     gameRef,
     inputRef,
+    touchDriving,
     interactionPulseRef,
     jumpPulseRef,
     modeRef,
