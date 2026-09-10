@@ -91,6 +91,10 @@ test("tow preserves the occupied job, custom destination, run clock, score and f
   const plan = nav.update(game);
   assert.deepEqual(plan.route[0], { x: game.x, y: game.y, z: game.z });
   assert.ok(Math.hypot(plan.route[1].x - game.x, plan.route[1].y - game.y) < 100, "navigation replans at the recovered cab");
+  game.towRecovery = null;
+  game.elapsed += 4;
+  assert.equal(nav.update(game).diagnostics?.revision, plan.diagnostics?.revision,
+    "ending the tow animation does not recalculate the selected route");
 });
 
 test("walking and interior rescues reunite the player with the taxi near their exterior position", () => {

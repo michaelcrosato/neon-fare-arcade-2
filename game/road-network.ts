@@ -361,16 +361,6 @@ export function isRoadSurface(point: WorldPoint, margin = 0) {
   return vertical || horizontal;
 }
 
-/** Four-lane authored corridors receive the highway top-speed bonus. */
-export function isHighwaySpeedSurface(point: WorldPoint, margin = 0) {
-  return specialRoadSurfaceIndex.query(point, Math.max(0.05, margin)).some((sample) => (
-    (pathMetrics.get(sample.roadId)?.road.lanes ?? 0) >= 4
-    && Math.abs((point.z ?? 0) - sample.point.z) < 1.25
-    && sample.surfaceDistance <= Math.max(0.025, margin)
-    && Math.abs(sample.lateralOffset) <= sample.halfWidth + margin
-  ));
-}
-
 export function roadHalfWidthAtPoint(point: WorldPoint) {
   const projection = nearestRoadProjection(point);
   return projection.centerDistance <= projection.halfWidth + 3 ? projection.halfWidth : ROAD_HALF;

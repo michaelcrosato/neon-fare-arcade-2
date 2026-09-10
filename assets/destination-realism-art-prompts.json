@@ -1,0 +1,1058 @@
+{
+  "date": "2026-09-10",
+  "tool": "built-in image_gen.imagegen",
+  "mode": "native generation",
+  "atlas": {
+    "width": 1536,
+    "height": 1024,
+    "columns": 3,
+    "rows": 2
+  },
+  "inspection": "All new atlases inspected in source and final WebP format; every frame visually categorized against owning world models.",
+  "sheets": [
+    {
+      "file": "/fare-destinations-7.webp",
+      "cells": [
+        36,
+        41
+      ],
+      "subjects": [
+        {
+          "artCell": 36,
+          "subject": "Pulse Stadium",
+          "category": "culture",
+          "requiresWater": false
+        },
+        {
+          "artCell": 37,
+          "subject": "Skyport airport terminal",
+          "category": "transport",
+          "requiresWater": false
+        },
+        {
+          "artCell": 38,
+          "subject": "Nova Megamall",
+          "category": "retail",
+          "requiresWater": false
+        },
+        {
+          "artCell": 39,
+          "subject": "Neon Titan robot plaza",
+          "category": "civic",
+          "requiresWater": false
+        },
+        {
+          "artCell": 40,
+          "subject": "Deep Blue Aquarium",
+          "category": "culture",
+          "requiresWater": false
+        },
+        {
+          "artCell": 41,
+          "subject": "Neon General Hospital",
+          "category": "civic",
+          "requiresWater": false
+        }
+      ],
+      "record": {
+        "asset": "public/fare-destinations-7.webp",
+        "source": "outputs/destination-audit/art-city-7.png",
+        "generatedSource": "C:/Users/micha/.codex/generated_images/01a08b97-0ecb-7a03-853a-965c9fd0381b/exec-4819841a-c03d-4caf-ae40-bead4a53b45f.png",
+        "tool": "built-in image_gen.imagegen",
+        "attempt": 1,
+        "dimensions": [
+          1536,
+          1024
+        ],
+        "grid": {
+          "columns": 3,
+          "rows": 2,
+          "cellWidth": 512,
+          "cellHeight": 512,
+          "gutters": 0
+        },
+        "cells": [
+          {
+            "frame": 36,
+            "subject": "PULSE STADIUM",
+            "verified": "Open American football field, colored seating, cream/teal shade canopies, tall floodlights, brick urban entrance"
+          },
+          {
+            "frame": 37,
+            "subject": "SKYPORT INTERNATIONAL",
+            "verified": "Teal gabled terminal and hangar, white/orange aircraft, cyan control tower, paved apron and drop-off"
+          },
+          {
+            "frame": 38,
+            "subject": "NOVA MEGAMALL",
+            "verified": "Broad shopping wings, repeated teal roof forms, tall cyan glass atrium with teal pyramid roof, urban parking"
+          },
+          {
+            "frame": 39,
+            "subject": "NEON TITAN PLAZA",
+            "verified": "Gold/steel humanoid statue with cyan raised arm and gold torch, dark/gold plinth, rectangular reflection pool, kiosk"
+          },
+          {
+            "frame": 40,
+            "subject": "DEEP BLUE AQUARIUM",
+            "verified": "Teal dome, cyan viewing tanks with aquatic silhouettes, visible water lagoon and white bridges"
+          },
+          {
+            "frame": 41,
+            "subject": "NEON GENERAL HOSPITAL",
+            "verified": "White medical campus, cyan window bands, red accents and medical cross, ambulance entrance"
+          }
+        ],
+        "styleReferences": [
+          "public/fare-destinations.webp",
+          "public/fare-destinations-3.webp"
+        ],
+        "modelReferences": [
+          "game/world.ts",
+          "game/city-landmarks.ts"
+        ],
+        "inspection": {
+          "status": "accepted",
+          "description": "Six distinct and complete scenes, ordered correctly in a 3x2 no-gutter atlas. Recognizable modeled features and semantic surroundings. Brighter daylight illustration than existing night atlases, with geometric planes and subtle sky halftone. No captions, labels, brands or logos. Tiny football field yard numerals function as field markings.",
+          "retryNeeded": false,
+          "packaging": "ImageGen produced PNG; needs unchanged-dimensions WebP conversion before use as public/fare-destinations-7.webp."
+        },
+        "prompt": "Use case: stylized-concept.\nAsset type: one final game destination sprite atlas. Generate ONE landscape image exactly 1536 x 1024 pixels containing SIX independent square destination illustrations in a strict 3 columns by 2 rows grid. Each frame is exactly 512 x 512 pixels. NO gutters, NO margins, NO frame borders, NO text, letters, numbers, captions, logos, signatures, or watermarks anywhere. Frame boundaries exactly x=512 and x=1024, y=512. Do not allow any subject to cross into another frame.\n\nStyle: richly composed geometric comic illustration matching the supplied conversation's Neon Fare destination atlases: bold angular ink silhouettes, faceted architectural planes, strong cyan/teal, magenta accents and golden highlights, subtle halftone rays in sky, confident perspective, crisp readable primary subject. Use warm late-afternoon daylight, cyan sky, deep navy shadows, restrained pink accents; retain the graphic comic identity rather than photorealism. This is recognizable location artwork, not a generic sci-fi skyline. Architecture is friendly stylized low-poly civic architecture with pitched teal roofs, cream or brick walls. Every scene must be distinct and read clearly at small card size. Frame views may be slightly elevated to show the landmark and context.\n\nTOP LEFT, frame 36, football stadium: a large OPEN rectangular American football stadium. Broad green pitch with white yard lines, red and blue end zones, yellow U-shaped goal posts; tiered colorful stands all around with cream and teal angular shade canopies, four tall floodlight towers. Prominent brick entrance columns with dark gold-topped lintel in near foreground. Set in a paved urban campus, not a park. Do not add stadium text or scoreboard numbers.\n\nTOP MIDDLE, frame 37, international airport: compact airport campus with a long low steel-and-cream terminal and big pitched teal gable roof, cyan terminal windows, a clearly visible parked WHITE passenger aircraft with ORANGE tail on gray tarmac, neighboring teal-roofed hangar, and a square tall control tower with cyan-glazed observation cap, teal pyramidal roof, orange antenna. Runway markings and urban drop-off forecourt. No airline logos or words.\n\nTOP RIGHT, frame 38, megamall: a substantial urban shopping mall campus, two broad low commercial wings with cream and muted-brick walls, cyan and pink storefront panels without writing, unmistakable repeated sawtooth roofs; a taller central glassy cyan atrium crowned by a dramatic teal pyramidal hip roof, pink-and-gold trim, paved entrance plaza and modest car parking. Shopping destination, not office skyscrapers or a park.\n\nBOTTOM LEFT, frame 39, civic robot plaza: a monumental blocky humanoid ROBOT STATUE on a dark diamond-shaped plinth with a gold upper step. Tall slender STEEL legs, GOLD rectangular torso, CREAM faceted cuboid head, one raised CYAN arm holding a faceted GOLD torch. It is a friendly angular civic sculpture, not a battle machine. In front is a long rectangular BLUE reflection pool, cream tiled plaza, benches and a few small trimmed trees. Small brick kiosk with teal pitched roof. Ensure robot has readable humanoid head/torso/arms/two legs and torch silhouette, matching the described game model.\n\nBOTTOM MIDDLE, frame 40, aquarium: a broad dark navy aquarium entrance hall with vivid cyan windows and a large distinctive TEAL hemispherical dome. Adjacent paired long blue aquarium tank halls have teal pitched roofs and large cyan-glazed viewing windows with subtle fish silhouettes. A generous bright blue outdoor lagoon and short white pedestrian bridges are clearly visible beside the entrance. Include a slender white-and-cyan research tower with blue roof cap in background. Aquarium water must be obvious, welcoming paved entry.\n\nBOTTOM RIGHT, frame 41, general hospital: large WHITE and cream multi-building medical campus tied together by continuous low cream podium with RED edge trim, tallest white inpatient tower crowned with a TEAL hip roof and a WHITE medical cross symbol on a red rooftop plaque, cyan horizontal window bands. Adjacent lower emergency wing, red covered ambulance entrance, two white ambulances with restrained red accents. Paved urban medical drop-off forecourt. Medical cross symbols are allowed; no words, letters, or numbers.\n\nFinal constraints: exact 3-by-2 equal grid with 6 complete square scenes in the stated order; no extra subdivisions; no blank cells; no gutters or visible grid strokes; no readable text; no arbitrary futuristic landmark substitutions; central landmark is the dominant shape in every frame."
+      }
+    },
+    {
+      "file": "/fare-destinations-8.webp",
+      "cells": [
+        42,
+        47
+      ],
+      "subjects": [
+        {
+          "artCell": 42,
+          "subject": "Apex University campus",
+          "category": "civic",
+          "requiresWater": false
+        },
+        {
+          "artCell": 43,
+          "subject": "Volt Expo exhibition halls",
+          "category": "culture",
+          "requiresWater": false
+        },
+        {
+          "artCell": 44,
+          "subject": "Starfall twin observatory domes",
+          "category": "culture",
+          "requiresWater": false
+        },
+        {
+          "artCell": 45,
+          "subject": "Lucky 88 Casino",
+          "category": "hospitality",
+          "requiresWater": false
+        },
+        {
+          "artCell": 46,
+          "subject": "Cedar Vale gateway station",
+          "category": "transport",
+          "requiresWater": false
+        },
+        {
+          "artCell": 47,
+          "subject": "Maple Commons gazebo and park",
+          "category": "park",
+          "requiresWater": false
+        }
+      ],
+      "record": {
+        "asset": "fare-destinations-8",
+        "requestedFinalPath": "C:/dev/neon-fare-arcade-2/public/fare-destinations-8.webp",
+        "sourcePath": "C:/dev/neon-fare-arcade-2/outputs/destination-audit/fare-destinations-8.png",
+        "generatedOriginalPath": "C:/Users/micha/.codex/generated_images/01a08b97-c422-7ed3-b196-31db2bbfd30b/exec-9db89d1b-070a-433d-936b-4dd5b210678e.png",
+        "generationRoute": "built-in Codex ImageGen",
+        "attempts": 1,
+        "format": "PNG",
+        "width": 1536,
+        "height": 1024,
+        "columns": 3,
+        "rows": 2,
+        "cellSize": 512,
+        "bytes": 3517771,
+        "packagingRequired": "Coordinator: lossless geometry-preserving PNG-to-WebP encoding into public/fare-destinations-8.webp. No image edit or resize required.",
+        "subjects": [
+          {
+            "frame": 42,
+            "row": 0,
+            "column": 0,
+            "name": "APEX UNIVERSITY",
+            "visual": "Brick colonnaded administration hall, cyan windows, gabled roofs, teal-roofed library, lawns, paths and cyan sculpture."
+          },
+          {
+            "frame": 43,
+            "row": 0,
+            "column": 1,
+            "name": "VOLT EXPO CENTER",
+            "visual": "Sawtooth-roof convention halls, orange blank fascia, freestanding black/yellow entry arch and blank pink panel."
+          },
+          {
+            "frame": 44,
+            "row": 0,
+            "column": 2,
+            "name": "STARFALL OBSERVATORY",
+            "visual": "Two cream telescope domes with dark slits, telescope barrel, cyan-window visitor center and starry hillside sky."
+          },
+          {
+            "frame": 45,
+            "row": 1,
+            "column": 0,
+            "name": "LUCKY 88 CASINO",
+            "visual": "Dark casino hall, blank pink neon marquee with three gold diamonds, red hotel with teal hip roof and pink spire, reflecting pool and limousine."
+          },
+          {
+            "frame": 46,
+            "row": 1,
+            "column": 1,
+            "name": "CEDAR VALE GATEWAY",
+            "visual": "Small cream pitched-roof station with long powder-blue canopy, blue door, bench, blank blue stop panel, temperate trees and nearby modest homes."
+          },
+          {
+            "frame": 47,
+            "row": 1,
+            "column": 2,
+            "name": "MAPLE COMMONS",
+            "visual": "Open blue-roof pavilion, pale crossing paths, mature broadleaf trees, benches, lawns and pitched-roof neighborhood homes."
+          }
+        ],
+        "visualInspection": {
+          "inspected": true,
+          "sixDistinctSubjects": true,
+          "rowMajorOrderCorrect": true,
+          "noGuttersOrBorders": true,
+          "noReadableText": true,
+          "cedarClearlyTemperateSuburban": true,
+          "acceptsModeledArchitectureApproximation": true,
+          "notes": "All subjects fit their architectural/environment category. University main facade has four visible large columns and Commons pavilion uses a blue pyramidal hip silhouette rather than the exact modeled gable, acceptable broad-area postcard approximation. No essential retry needed."
+        },
+        "prompt": "Use case: illustration-story. Asset type: one production destination-card sprite atlas for the Neon Fare driving game.\nCreate ONE 1536 x 1024 pixel landscape bitmap. The entire bitmap is exactly a 3-column by 2-row grid of six square 512 x 512 pixel illustrations, touching edge to edge: columns x=0..511, 512..1023, 1024..1535; rows y=0..511 and 512..1023. No padding, no gutters, no borders, no captions, no labels, no typography, no letters or numbers, no watermark. Each panel is an independent full-bleed postcard scene with its own horizon; do not blend or share objects across the straight panel edges. Compose every important building clearly inside its own square. Output WebP if available.\n\nStyle: vivid geometric illustrated travel postcards for a comic arcade game. Bold ink outlines, clean faceted architectural silhouettes, rich saturated cyan/teal, warm amber, pink and terracotta highlights, crisp clear focal architecture, subtle printed halftone shading. The city panels can have urban dusk, while the last two panels must feel like pleasant temperate suburban daytime. A little angular illustration texture, not photorealistic, not a raw 3D render. Show a plausible public entrance and its surrounding place; do not fill every panel with generic skyscrapers. Quiet architectural scenes, no foreground characters.\n\nExact subjects in row-major order:\nTOP LEFT (frame 42), APEX UNIVERSITY: a recognizable low-rise university campus, with a red brick administration building, a broad dark steep gabled roof, five slender cream columns supporting a dark entrance lintel, cyan windows. Include an adjacent cream lecture hall with dark gabled roof and a taller dark library with a teal pyramidal hip roof in the background. A cared-for green courtyard, mature broadleaf trees, light paved path, wooden benches and a small cyan geometric sculpture. Focus on brick academic architecture and the colonnaded main entrance, warm late afternoon. No skyscraper campus.\n\nTOP MIDDLE (frame 43), VOLT EXPO CENTER: a broad low industrial convention campus with two exhibition halls separated by a paved entry plaza. Grey steel main hall with an orange horizontal blank fascia and a distinctive repeating sawtooth roof; secondary cream hall with cyan/orange accents and matching roof. In the central plaza a freestanding rectangular entrance arch: two slim dark pillars with a yellow top beam and a suspended blank magenta rectangular panel. Bright event-building architecture, no readable posters or lettering. Urban evening light, visitors' curb at foreground; no giant glass cathedral or stadium.\n\nTOP RIGHT (frame 44), STARFALL OBSERVATORY: a pair of cream hemispherical telescope domes with dark telescope slots, one large dome on a low cream plinth and one smaller dome on a low cream visitor-center building with cyan windows. A dark telescope barrel angles gently upward from the large dome slot. Light stone terrace and quiet hillside-city edge with low vegetation; cool starry blue dusk sky. Scientific astronomy architecture is unmistakable. No crystalline sphere, no radio satellite dish, no skyscraper skyline dominating the subject.\n\nBOTTOM LEFT (frame 45), LUCKY 88 CASINO: a low wide dark charcoal casino hall with a teal hipped roof, glowing blank pink entrance marquee and three simple gold diamond-shaped ornaments; a taller muted red hotel block behind it, cyan windows, a steep teal hip roof and a slender pink roof spire. A formal paved forecourt, restrained blue reflecting-pool corner, black limousine at curb. Warm gold doors, vivid neon pink and cyan illumination at twilight. An elegant angular arcade casino, not a pyramid, no names, digits, cards or readable text.\n\nBOTTOM MIDDLE (frame 46), CEDAR VALE GATEWAY station: a modest one-story suburban transit station hall, cream clapboard-like walls, broad charcoal gabled roof, small orderly windows with white trim and a blue entrance door. A long powder-blue pitched canopy shelters the front platform/curb and a wooden waiting bench. A simple bus-stop pole with a blank blue panel. Surrounding leafy maple/oak trees, tidy lawns and a few modest pitched-roof homes beyond. Soft golden daytime, blue sky, temperate North American suburb. No palms, no ocean, no high-rise buildings, no giant city railway terminal, no large train.\n\nBOTTOM RIGHT (frame 47), MAPLE COMMONS: an inviting suburban civic green with a small OPEN pavilion as the focal point: blue pitched roof on four slim white corner posts, no enclosing walls, on a light cream paving pad. Pale paths cross neatly through green lawns; mature maple and oak trees, wooden benches, low shrubs. Quiet modest cream and sage pitched-roof houses glimpsed at the edges. Pleasant warm daytime, temperate trees with touches of early autumn gold. The green itself and the blue-roof pavilion are the destination. No city hall, no clock tower, no palm trees, no skyscrapers, no monumental building.\n\nKeep all six destinations distinct and recognizable at thumbnail size. Their real architecture and nearby landscape matter more than spectacle. Absolutely no text of any kind. Exactly six equal square panels in the specified order and 1536x1024 atlas geometry."
+      }
+    },
+    {
+      "file": "/fare-destinations-9.webp",
+      "cells": [
+        48,
+        53
+      ],
+      "subjects": [
+        {
+          "artCell": 48,
+          "subject": "Bellwether School",
+          "category": "civic",
+          "requiresWater": false
+        },
+        {
+          "artCell": 49,
+          "subject": "Cedar Branch Library",
+          "category": "civic",
+          "requiresWater": false
+        },
+        {
+          "artCell": 50,
+          "subject": "Brookside recreation center and pool",
+          "category": "civic",
+          "requiresWater": false
+        },
+        {
+          "artCell": 51,
+          "subject": "Engine House 9 fire station",
+          "category": "civic",
+          "requiresWater": false
+        },
+        {
+          "artCell": 52,
+          "subject": "Garden End Water Tower",
+          "category": "civic",
+          "requiresWater": false
+        },
+        {
+          "artCell": 53,
+          "subject": "Moonbeam Drive-In cinema",
+          "category": "culture",
+          "requiresWater": false
+        }
+      ],
+      "record": "# Cedar destination atlas 9\n\nMode: built-in `image_gen`; use case: `illustration-story`.\n\nSources inspected: `game/residential.ts`, `game/residential-buildings.ts`, `game/cedar-assets.ts`, `docs/regions.md`, `public/fare-destinations-5.webp`, and `public/fare-destinations-6.webp`.\n\nRequired frames 48–53, row-major: Bellwether School; Cedar Branch Library; Brookside Rec Center; Engine House 9; Garden End Water Tower; Moonbeam Drive-In.\n\n## Exact generation prompt\n\nUse case: illustration-story\nAsset type: production game destination-card sprite atlas, ONE image containing exactly six square postcard frames.\nPrimary request: Create a polished 1536 x 1024 pixel raster sprite atlas for the sunny temperate suburb Cedar Vale in a stylized arcade driving game. Exact layout: 3 columns by 2 rows, six 512 x 512 pixel square scenes, all edge-to-edge. Frame boundaries exactly x=512 and x=1024, y=512. No margins, no gutters, no borders, no divider strokes, no overlapping frames. Each cell is a complete independent scene, not one panorama.\nStyle/medium: vivid clean illustrated travel postcards, detailed but readable at small card size, rich geometric and comic shapes, fine dark ink outlines, restrained halftone texture, confident painterly color blocks, charming believable civic architecture. Crisp sunny blue skies with soft cream clouds, warm cream and rust brick, slate and muted teal-blue roofs, green deciduous maple/oak trees. Similar consistent rendering and contrast across all six cards. Viewpoints slightly elevated or street-level three-quarter perspective, subject fills most of each frame with its street approach and leafy context visible.\nSix frames in exact row-major order:\nTOP LEFT / cell 48 / Bellwether School: a broad low red-brown brick suburban school campus with three connected pitched dark slate-roof wings, the middle wing slightly taller, small cream octagonal bell cupola with pointed cap over the center, cream-trim windows and covered front doorway. Include the small yellow school bus at the side and a glimpse of a green playing field, sidewalks and deciduous trees. No lettering on the building.\nTOP MIDDLE / cell 49 / Cedar Branch Library: a welcoming long low cream community library with a dark gabled roof, broad blue-green glass front window wall, simple blue horizontal fascia, glazed entrance, paved front walk and wooden benches. Leafy neighborhood civic grounds. Books on shelves can be visible through the glass, no readable lettering.\nTOP RIGHT / cell 50 / Brookside Rec Center: the dominant feature is a rectangular outdoor bright blue swimming pool set into a cream paved deck with six white lounge chairs, and next to it a modest cream recreation clubhouse with a muted blue gabled roof. A small blue basketball court with a hoop is visible behind or beside it. Green lawns and deciduous trees, unmistakable local outdoor swimming facility rather than beach or hotel resort. Show actual pool water clearly.\nBOTTOM LEFT / cell 51 / Engine House 9: a compact low red-brown brick neighborhood fire station with a dark gabled roof, exactly two large pale cream garage bay doors, warm amber horizontal fascia above, modest side windows, paved apron meeting the street, leafy residential neighbors. The two-bay fire station should be easy to recognize. No text or digits, no tall downtown buildings.\nBOTTOM MIDDLE / cell 52 / Garden End Water Tower: an elevated muted blue cylindrical water tank with a tapered lower shoulder and conical pointed roof, carried high on FOUR slender white steel legs with diagonal cross-bracing. The whole landmark silhouette including all legs is visible. A quiet grassy plot with a paved access path, wooden-fenced gardens, modest homes and deciduous trees, no water body required.\nBOTTOM RIGHT / cell 53 / Moonbeam Drive-In: an outdoor drive-in movie theater in a leafy temperate suburban neighborhood, huge pale cream blank cinema screen on a dark freestanding structure, rows of compact blue and brick-red parked cars facing it, small cream ticket office with a muted blue pitched roof at the entrance, simple parking lines and low speaker posts. Bright late-afternoon daylight so the venue is unmistakable even with the screen blank.\nConstraints: Subjects must stay within their own 512px square cells. All six are independent compositions and there must be exactly six. No titles, captions, labels, lettering, digits, logos, watermarks, decorative card frames, UI, text of any kind, or photographic collage. No palms, tropical plants, ocean, ferry docks, high-rise downtown, nighttime neon, mountains dominating the scene, or generic parks replacing the buildings. Preserve the stated model-specific silhouettes and six-frame order. Final image dimensions exactly 1536 x 1024.\n\n## Output provenance\n\nGeneration succeeded on attempt 1 with the built-in `image_gen` tool. No retry.\n\nOriginal generated file: `C:/Users/micha/.codex/generated_images/01a08b97-5988-7ba1-8126-6e16bf9f4cc5/exec-a0523bcb-b4b5-4d3b-808d-ed7da9607542.png` (1536 × 1024 PNG, 3,522,548 bytes). The original remains in place.\n\nProject asset: `C:/dev/neon-fare-arcade-2/public/fare-destinations-9.webp` (1536 × 1024 WebP, 592,018 bytes).\n\nPackaging: repo-local `sharp`, `.webp({ quality: 88, effort: 6 })`, no crop, resize, compositing, or visual retouching. Exclusive file creation prevented overwriting any existing asset.\n\nInspection: viewed generated image and final WebP. Six full 512 × 512 frames in the required order; no gutters, captions, labels, text, logos, ocean, palms, or downtown towers. The sheet uses consistent sunny, richly detailed illustration. Model-specific school cupola, library glass facade, recreation pool and basketball court, two firehouse bays, white-braced blue water tank, and outdoor drive-in screen are all recognizable. Minor illustrative landscaping enriches the shared temperate setting without changing venue categories.\n\nNo game, app, or test files changed by this worker. Coordinator owns atlas registration and in-game verification.\n"
+    },
+    {
+      "file": "/fare-destinations-10.webp",
+      "cells": [
+        54,
+        59
+      ],
+      "subjects": [
+        {
+          "artCell": 54,
+          "subject": "Northstar gateway depot",
+          "category": "transport",
+          "requiresWater": false
+        },
+        {
+          "artCell": 55,
+          "subject": "Timber Pass gas and general store",
+          "category": "retail",
+          "requiresWater": false
+        },
+        {
+          "artCell": 56,
+          "subject": "Northstar village square",
+          "category": "civic",
+          "requiresWater": false
+        },
+        {
+          "artCell": 57,
+          "subject": "Timberline mountain lodge",
+          "category": "hospitality",
+          "requiresWater": false
+        },
+        {
+          "artCell": 58,
+          "subject": "Pinewatch Ranger Station",
+          "category": "civic",
+          "requiresWater": false
+        },
+        {
+          "artCell": 59,
+          "subject": "Old Spruce timber mill",
+          "category": "industry",
+          "requiresWater": false
+        }
+      ],
+      "record": {
+        "asset": "public/fare-destinations-10.webp",
+        "source": "outputs/destination-audit/art-northstar-10.png",
+        "generatedSource": "C:/Users/micha/.codex/generated_images/01a08b97-0ecb-7a03-853a-965c9fd0381b/exec-be72043a-9004-4b91-9178-9ba13dace948.png",
+        "tool": "built-in image_gen.imagegen",
+        "attempt": 1,
+        "dimensions": [
+          1536,
+          1024
+        ],
+        "grid": {
+          "columns": 3,
+          "rows": 2,
+          "cellWidth": 512,
+          "cellHeight": 512,
+          "gutters": 0
+        },
+        "packaging": {
+          "tool": "repo-local sharp",
+          "format": "webp",
+          "quality": 88,
+          "effort": 6,
+          "resize": false,
+          "bytes": 841660
+        },
+        "references": [
+          "game/mountain.ts",
+          "game/terrain/northstar-forms.ts",
+          "docs/regions.md",
+          "outputs/destination-audit/art-city-7.png"
+        ],
+        "cells": [
+          {
+            "frame": 54,
+            "subject": "NORTHSTAR GATE",
+            "inspection": "Granite gateway pillars and timber lintel, cream visitor depot with berry gable roof, conifer-lined approach."
+          },
+          {
+            "frame": 55,
+            "subject": "TIMBER PASS GAS & GENERAL",
+            "inspection": "Cream/red-roof store, berry fuel canopy, two yellow pumps, amber blank pylon, forest roadside setting."
+          },
+          {
+            "frame": 56,
+            "subject": "NORTHSTAR VILLAGE SQUARE",
+            "inspection": "Dark timber clock tower with berry cap, slate-roof cream/berry village shops, open public square."
+          },
+          {
+            "frame": 57,
+            "subject": "TIMBERLINE LODGE",
+            "inspection": "Large connected cream chalet hotel with multiple berry gables, timber trim, stone chimneys and arrival porch."
+          },
+          {
+            "frame": 58,
+            "subject": "PINEWATCH RANGER STATION",
+            "inspection": "Timber cabin with berry roof, moss-green pickup, steel communications mast with berry cap, forest clearing."
+          },
+          {
+            "frame": 59,
+            "subject": "OLD SPRUCE MILL",
+            "inspection": "Two brown timber mill sheds with slate roofs, parallel cut-log/timber stacks, orange pickup and granite yard."
+          }
+        ],
+        "inspection": {
+          "status": "accepted",
+          "retryNeeded": false,
+          "description": "All six row-major subjects recognizable and consistent with modeled regional palette/forms. Temperate conifers and mountains throughout, no tropical/city substitutions. Exact 3x2 grid, no gutters/captions/logos. Generated first pass accepted."
+        },
+        "prompt": "Use case: stylized-concept.\nAsset type: one final Neon Fare destination sprite atlas. Produce ONE landscape image exactly 1536×1024 pixels, with SIX independent square illustrations arranged in a strict 3 columns × 2 rows grid, each 512×512. Frame boundaries exactly x=512,1024 and y=512. No gutters, margins, borders, captions, lettering, numbers, words, logos, brands, signatures, or watermarks. Subjects never cross between cells. This is one six-frame sprite asset, not a presentation.\n\nStyle reference: match the completed city landmark atlas visible in this conversation: clean, detailed illustrated travel-postcard aesthetic, clear low-poly geometric architecture, crisp silhouettes, subtle halftone printed sky texture, warm daylight and cool blue shadows, saturated but natural colors, slightly elevated three-quarter views. No photoreal camera effects. Northstar's distinctive palette is deep spruce and pine greens, moss green meadows, granite gray, dark timber brown, cream walls, BERRY RED pitched roofs, dark slate roofs, warm AMBER windows. Set all six scenes in a temperate mountain region with conifer forests, gray mountain ridges, winding paved access roads and believable small settlements. No tropical trees, city towers, neon-nightlife architecture, beaches, or random lakes. High distant summits may have small snowcaps, but these six destinations have green summer ground. Keep every destination dominant and readable at small thumbnail size.\n\nTOP LEFT, frame 54, Northstar Gate: a broad rustic gateway marking the entrance to the mountain region, built from TWO tall square GRANITE stone pillars and a heavy dark TIMBER horizontal lintel spanning the paved road. The lintel has no writing. Beside the gateway is a small welcoming CREAM timber-trimmed visitor depot cabin with BERRY RED gable roof, amber windows and a stone chimney, much smaller than the gateway. Conifer forest begins behind, road curves toward mountain foothills. Show a usable visitor pull-off and entrance, no barrier across road.\n\nTOP MIDDLE, frame 55, Timber Pass Gas & General: a modest rural fuel stop beside a mountain road. A small CREAM general-store cabin with BERRY RED pitched gable roof, warm amber windows, dark timber corner trim and stone base. In front/alongside it is a simple wide flat BERRY RED fuel canopy covering TWO conspicuous YELLOW vintage-style gasoline pumps with hoses; no pump digits or brand names. A tall simple pole has an AMBER rectangular blank sign. Small paved forecourt, a local pickup, conifers and granite foothills. Clear gas station identity.\n\nTOP RIGHT, frame 56, Northstar Village Square: a compact mountain town square anchored by a slender square DARK TIMBER CLOCK TOWER with a small broad BERRY RED cap and a white round clock face with simple hands, no numbers. Behind the square stand THREE substantial chalet-like main-street shop/town-hall buildings with steep DARK SLATE gable roofs, cream side buildings and a BERRY RED central building, amber windows, timber trim, stone bases. Open pale-stone civic plaza bordered by moss-green lawn, a handful of tiny townspeople and conifers. Small village scale, no urban high-rise.\n\nBOTTOM LEFT, frame 57, Timberline Lodge: a LARGE welcoming mountain hotel, a connected four-wing timber-framed CREAM chalet complex with multiple prominent BERRY RED gabled roofs, dark wood beam trim, granite lower foundations, stone chimneys, and warm amber windows. Two-to-three stories, broad front entrance with a small dark timber porte-cochere/covered porch. A paved arrival drive on a gently raised meadow terrace with conifers and rugged mountain backdrop. This is the biggest lodging building among these scenes, not a little cabin and not a ski slope.\n\nBOTTOM MIDDLE, frame 58, Pinewatch Ranger Station: a functional small DARK BROWN TIMBER ranger cabin with BERRY RED gable roof, amber windows and stone foundation/chimney, in a forest service clearing. A MOSS GREEN pickup truck parked near its entrance. A tall thin STEEL communications mast with a small BERRY RED rectangular cap/platform stands beside the station. A few tiny ranger/hiker silhouettes and a short gravel/paved approach from the road, dense conifers and granite slopes. No huge firewatch tower, no text or badges.\n\nBOTTOM RIGHT, frame 59, Old Spruce Mill: an authentic MOUNTAIN LUMBER MILL, a broad granite-gray working yard with TWO long brown TIMBER sawmill sheds with DARK SLATE pitched roofs, open processing bays, and orderly long stacks of cut TIMBER/logs in several parallel rows in foreground. An ORANGE pickup truck parked beside a small mill office area. Conifer forest and granite mountains behind. Clearly an operating forestry/sawmill destination, no giant smokestacks, no waterwheel, no river, no invented lake, no city factory.\n\nFinal checks: exactly six complete distinct square scenes, in precisely the stated row-major order. Exact 3×2 equal grid, no subdivisions, no gaps. Architectural and landscape details must visibly distinguish all six locations. No readable text or typography anywhere."
+      }
+    },
+    {
+      "file": "/fare-destinations-11.webp",
+      "cells": [
+        60,
+        65
+      ],
+      "subjects": [
+        {
+          "artCell": 60,
+          "subject": "Mirror Lake fishing lodge and dock",
+          "category": "waterfront",
+          "requiresWater": true
+        },
+        {
+          "artCell": 61,
+          "subject": "Silver Run ski resort",
+          "category": "hospitality",
+          "requiresWater": false
+        },
+        {
+          "artCell": 62,
+          "subject": "Aurora Lookout observatory",
+          "category": "culture",
+          "requiresWater": false
+        },
+        {
+          "artCell": 63,
+          "subject": "Sundown gateway depot",
+          "category": "transport",
+          "requiresWater": false
+        },
+        {
+          "artCell": 64,
+          "subject": "Roadrunner trading post",
+          "category": "retail",
+          "requiresWater": false
+        },
+        {
+          "artCell": 65,
+          "subject": "Copper Junction town plaza",
+          "category": "civic",
+          "requiresWater": false
+        }
+      ],
+      "record": "# Range and Mesa destination atlas 11\n\nMode: built-in `image_gen`; use case: `illustration-story`.\n\nSources inspected: `game/mountain.ts`, `game/desert.ts`, `game/copper-assets.ts`, `docs/regions.md`; existing destination atlas 5 and 6 visual style inspected earlier in this worker session.\n\nFrames 60–65 row-major: Mirror Lake; Silver Run Resort; Aurora Lookout; Sundown Gate; Roadrunner Trading Post; Copper Junction.\n\nAurora Lookout is illustrated with its current observatory dome and visitor overlook campus, following the actual `buildAnchorLot` geometry.\n\n## Exact generation prompt\n\nUse case: illustration-story\nAsset type: production game destination-card sprite atlas, ONE image with exactly six square postcard scenes.\nPrimary request: Create a polished raster image, EXACTLY 1536 pixels wide by 1024 high. The entire image is a precise 3-column by 2-row grid of independent 512 x 512 pixel square scenes. Boundaries at x=512, x=1024, and y=512. No margins, gutters, borders, divider lines, titles, or captions. Each frame is its own full-bleed composition, not one continuous panorama. Keep its important subject within the cell with a little breathing room.\nStyle: vivid, clear, clean illustrated travel postcards for an arcade driving game, rich geometric/comic shapes, confident fine ink contours, subtle halftone and painterly texture, detailed welcoming places rendered with coherent light and bold color. Readable as small game cards. Daylight and recognizable venue architecture are the priority. Top row uses cold alpine blues, pine greens, granite, cream and berry-red roofs; bottom row uses warm sand, red rock, cream adobe, terracotta, turquoise and restrained magenta accents.\nExactly these six frames, in this exact row-major order:\nTOP LEFT, cell 60 — MIRROR LAKE: A large calm bright blue alpine LAKE fills a substantial part of this scene, reflecting conifer forest and distant snow-streaked mountain peaks. On its near shore stands a small dark timber fishing lodge with a berry-red gabled roof, warm amber windows, stone footing, and a simple wooden deck and short fishing dock at the edge of the actual water. A small red or white rowboat floats beside the shore. Lodge and blue lake both clearly visible. Mossy shoreline, granite rocks, pine forest; no tropical vegetation or ocean surf.\nTOP MIDDLE, cell 61 — SILVER RUN RESORT: A substantial connected three-wing alpine ski lodge with cream plaster walls, dark timber details, berry-red steep gabled roofs and stone foundations. Center wing is taller and wider, with a welcoming timber-framed main entrance and warm windows. It sits at the bottom of genuine SNOW-covered ski slopes; visible ski lift pylons and suspended red chairlift seats, a few tiny skiers and winter pines help identify the ski resort. Clear cold blue daytime sky and snow mountains. The resort building must be the primary subject, not a generic ski landscape.\nTOP RIGHT, cell 62 — AURORA LOOKOUT: A high alpine public lookout and small observatory campus perched above a mountain valley, with a recognizable white hemispherical astronomical OBSERVATORY DOME on a low square cream stone base, a cyan window strip, a nearby compact cream visitor cabin with berry-red gabled roof, and a stone viewing terrace with wooden safety balustrade and one public brass telescope on a pedestal. Sweeping cold blue mountain vista, gray granite and a light dusting of snow. Daylight, not aurora lights or outer space. Clearly show both the dome landmark and the overlook, without inventing a city around it.\nBOTTOM LEFT, cell 63 — SUNDOWN GATE: A distinctive Southwest desert visitor entrance beside a paved road: TWO tall rectangular red sandstone/adobe pillars support one broad TURQUOISE horizontal gate beam, topped at center by a GOLD DIAMOND-shaped emblem, with no lettering or logo. A compact cream adobe visitor depot with turquoise trim stands just behind and beside the gate. Low flat parapet roofs, sandy forecourt, a saguaro cactus and agave, red mesas in the background, warm sunny blue sky. Show the complete gate silhouette and its depot so this reads as an actual visitor arrival point.\nBOTTOM MIDDLE, cell 64 — ROADRUNNER TRADING POST: A small inhabited desert roadside trading store and fuel stop, cream adobe one-story building with turquoise fascia/trim and flat parapet roof, shaded porch/storefront, a terracotta flat fuel canopy and TWO simple gold-yellow fuel pumps, one parked pickup truck. A tall retro roadside pole carries a plain magenta sign panel with a small simple gold decorative bar; all signs are blank, no lettering, logos or digits. Saguaro, agave and warm red-rock scenery beyond a paved road and compact forecourt. An inviting useful roadside stop, not an abandoned shack.\nBOTTOM RIGHT, cell 65 — COPPER JUNCTION: The lively civic heart of a small Southwest desert town: cream and terracotta adobe buildings with turquoise accents and arched shaded arcades face a broad cream paved pedestrian square. A distinctive slim square cream bell/clock tower with a terracotta projecting cap and small gold face is the focal landmark; the face is plain and has no digits. A taller terracotta civic hall and lower cream shops surround it. Strings or bars of turquoise and magenta festive lights between terracotta posts, a few tiny people and benches, desert landscaping and distant warm mesas. A believable compact town center, not a bare desert or modern high-rise city.\nConstraints: EXACT 1536 x 1024 image, six independent square full-bleed frames in 3x2 grid. No visible dividers or gutters. No readable text, letters, numerals, captions, signs with words, watermarks, logos, UI, decorative card frames. No scene should bleed into another. No photomontage or photographic realism; preserve the polished illustrative arcade postcard look. No tropical palms, ocean coastlines, boats except the Mirror Lake rowboat, high-rise cities, unrelated fountains, or vegetation crossing the cold mountain/desert settings. Each required venue and its model-specific silhouette must be clearly recognizable.\n\n## Output provenance\n\nGeneration succeeded on attempt 1 with the built-in `image_gen` tool. No retry.\n\nOriginal PNG retained: `C:/Users/micha/.codex/generated_images/01a08b97-5988-7ba1-8126-6e16bf9f4cc5/exec-57532cdd-77bd-478c-9e87-ed6e8e810604.png` (1536 × 1024, 3,569,385 bytes).\n\nProject output: `C:/dev/neon-fare-arcade-2/public/fare-destinations-11.webp` (1536 × 1024 WebP, 601,344 bytes).\n\nPackaging: repo-local `sharp`, `.webp({ quality: 88, effort: 6 })`; no resizing, cropping, compositing, or visual retouching. Exclusive file creation prevented overwriting any existing atlas.\n\nInspection: viewed both generated image and final WebP. Correct six-cell row-major arrangement with 512px square frames and no gutters, captions or title text. Mirror Lake prominently shows real water next to a timber fishing lodge; Silver Run has the connected cream/berry ski lodge and snow/lifts; Aurora has its dome, visitor cabin, telescope and mountain terrace. Sundown retains its two red pillars, turquoise beam and gold diamond; Roadrunner is a recognizable store/fuel stop; Copper Junction is a compact adobe civic square with arcades and bell tower. Cold alpine and warm Sonoran settings remain distinct. No tropical foliage or modern downtown imagery.\n\nNo game, app, or test source files were edited by this worker. Coordinator owns atlas registration and gameplay/browser verification.\n"
+    },
+    {
+      "file": "/fare-destinations-12.webp",
+      "cells": [
+        66,
+        71
+      ],
+      "subjects": [
+        {
+          "artCell": 66,
+          "subject": "Coyote desert motor court",
+          "category": "hospitality",
+          "requiresWater": false
+        },
+        {
+          "artCell": 67,
+          "subject": "Desert Bloom resort",
+          "category": "hospitality",
+          "requiresWater": false
+        },
+        {
+          "artCell": 68,
+          "subject": "Dustwind Airpark hangars",
+          "category": "transport",
+          "requiresWater": false
+        },
+        {
+          "artCell": 69,
+          "subject": "Ocotillo arts gallery",
+          "category": "culture",
+          "requiresWater": false
+        },
+        {
+          "artCell": 70,
+          "subject": "Sunstone Solar Field",
+          "category": "industry",
+          "requiresWater": false
+        },
+        {
+          "artCell": 71,
+          "subject": "Saguaro Rodeo Grounds",
+          "category": "culture",
+          "requiresWater": false
+        }
+      ],
+      "record": {
+        "asset": "fare-destinations-12",
+        "finalPath": "C:/dev/neon-fare-arcade-2/public/fare-destinations-12.webp",
+        "sourcePath": "C:/dev/neon-fare-arcade-2/outputs/destination-audit/fare-destinations-12.png",
+        "generatedOriginalPath": "C:/Users/micha/.codex/generated_images/01a08b97-c422-7ed3-b196-31db2bbfd30b/exec-55e7c7ea-9b8f-44eb-a1f3-ff3e7e25b2f6.png",
+        "generationRoute": "built-in Codex ImageGen",
+        "attempts": 1,
+        "format": "WebP",
+        "width": 1536,
+        "height": 1024,
+        "columns": 3,
+        "rows": 2,
+        "cellSize": 512,
+        "bytes": 759708,
+        "sha256": "cf175374b60b26a53caca3e8142a7926528571955fa20801845b176e6b4d4892",
+        "packaging": {
+          "tool": "repo-local sharp",
+          "quality": 90,
+          "effort": 6,
+          "resized": false,
+          "compositionalEdits": false
+        },
+        "subjects": [
+          {
+            "frame": 66,
+            "row": 0,
+            "column": 0,
+            "name": "COYOTE MOTOR COURT",
+            "inspection": "Low cream adobe guest wings, magenta room doors/trim and blank pole sign, motor court and modest pool. Clear roadside desert motel."
+          },
+          {
+            "frame": 67,
+            "row": 0,
+            "column": 1,
+            "name": "DESERT BLOOM RESORT",
+            "inspection": "Larger cream adobe courtyard resort, turquoise windows, broad blue pool, two irrigated palms and dry red desert ridge immediately behind."
+          },
+          {
+            "frame": 68,
+            "row": 0,
+            "column": 2,
+            "name": "DUSTWIND AIRPARK",
+            "inspection": "Low cream flat-roof hangars with orange doors, two cream/turquoise light aircraft, marked runway, windsock and mesas."
+          },
+          {
+            "frame": 69,
+            "row": 1,
+            "column": 0,
+            "name": "OCOTILLO ARTS CENTER",
+            "inspection": "Cream/terracotta adobe gallery volumes, turquoise/magenta openings, broad ochre steps and simple sculptures/pottery amid desert landscaping."
+          },
+          {
+            "frame": 70,
+            "row": 1,
+            "column": 1,
+            "name": "SUNSTONE SOLAR FIELD",
+            "inspection": "Extensive blue photovoltaic rows, small cream/turquoise operations building, slim gold diamond-capped mast, dry desert and mountains."
+          },
+          {
+            "frame": 71,
+            "row": 1,
+            "column": 2,
+            "name": "SAGUARO RODEO GROUNDS",
+            "inspection": "Long rectangular sandy arena, terracotta low barriers, simple entrance rails and covered low grandstands with a few small visitors."
+          }
+        ],
+        "visualInspection": {
+          "inspected": true,
+          "sixDistinctSubjects": true,
+          "rowMajorOrderCorrect": true,
+          "noGuttersOrBorders": true,
+          "noReadableText": true,
+          "desertSettingAllFrames": true,
+          "acceptedFirstPass": true,
+          "notes": "All subjects closely match the modeled low-rise adobe forms and region. Image has polished illustrated texture with restrained geometric faceting and clear thumbnail silhouettes."
+        },
+        "prompt": "Use case: illustration-story. Asset type: production destination-card sprite atlas for Neon Fare.\nCreate ONE 1536 x 1024 pixel image, exactly 3 columns by 2 rows of six independent equal 512 x 512 pixel square illustrations. Full-bleed panels touch edge to edge at x=512 and x=1024 and y=512, with NO padding, NO gutters, NO borders, NO typography, NO text, letters, digits, captions, logos, or watermark. Each square has its own scene and horizon. No imagery crosses a panel boundary. Six distinct destinations in the exact row-major order below. Output WebP if available.\n\nArt direction: vibrant geometric illustrated postcards from a Sonoran-desert arcade driving game. Clean angular architecture, boldly outlined ink shapes, crisp sunlit silhouettes, controlled facets and subtle halftone grain, richly colored but plausibly built places. Match warm adobe-cream, ochre sand, rust terracotta, dark red rock, sage/saguaro green and turquoise or magenta accent colors. Low-rise desert architecture with chamfered plaster corners, flat roofs and raised parapets, exposed timber roof beams and inset windows. Dry desert and distant layered mountains provide geographic context. No generic city skyscrapers, oceans, coastlines, tropical forest, or snow. Avoid excessive lush greenery. Architecture and place are the protagonists, readable at thumbnail size, not photorealism or a raw 3D render.\n\nTOP LEFT — frame 66, COYOTE MOTOR COURT: a modest low roadside motel formed by two broad one-story cream adobe wings around a motor court, dark exposed timber beams, small windows and guest-room doors, magenta trim and a freestanding tall skinny dark pole topped with a completely blank magenta rectangle. A small blue rectangular courtyard pool or tiled basin visible to one side; simple car parking and one older parked sedan. Saguaros and sparse desert shrubs, red desert ridges beyond. Nostalgic dry-desert highway stop at golden evening light. Do not turn this into a luxury resort.\n\nTOP MIDDLE — frame 67, DESERT BLOOM RESORT: an inviting larger low-rise cream adobe hotel campus surrounding a blue rectangular courtyard pool, with turquoise inset windows and accents, thick rounded/chamfered walls, flat parapets and timber vigas. The main lobby slightly taller than the side wings but still only two stories. A carefully irrigated oasis court with two small palm-like shade trees and restrained flowering cactus/agave planters. Sunbaked sand and red rocky hills immediately beyond the resort grounds. Warm clear daylight. Distinct from the humble motel: elegant enclosed courtyard, broad calm pool, shaded terrace and landscaped entry; no tropical coastline or tower hotel.\n\nTOP RIGHT — frame 68, DUSTWIND AIRPARK: a small working desert airfield. Low broad cream adobe hangars with flat parapet roofs and wide orange-accented hangar doors border a simple gray runway/apron with white dashed center markings. Two small light aircraft, cream bodies and turquoise wings, parked on the apron. Dusty sand, creosote, a windsock and distant dry mesas. Clear intense blue sky. It must read as a rural aviation destination with visible runway, not a commercial mega-airport. No jets or tall control tower.\n\nBOTTOM LEFT — frame 69, OCOTILLO ARTS CENTER: a small contemporary Southwestern art-campus courtyard, interlocking low cream and terracotta-red adobe gallery volumes with flat parapets and visible timber beams; alternating vivid turquoise and magenta inset windows and doors. Four broad shallow golden-ochre terrace steps create a modest outdoor amphitheater adjoining the gallery entrance. Sparse sculptural agave and red-flowered ocotillo landscaping in gravel beds, blue sky and dry ridges behind. A few simple glazed pots or geometric sculptures on the paved forecourt convey the art destination without text or posters. No glass city museum or cathedral.\n\nBOTTOM MIDDLE — frame 70, SUNSTONE SOLAR FIELD: an orderly utility campus of many low rows of blue photovoltaic panels on short tilted supports, receding across a flat ochre desert bench. In the foreground at the road entrance, a small cream flat-roofed adobe operations building with turquoise inset windows and a plain door. Among the panels in mid-distance, one very slender steel mast topped with a small gold diamond-shaped receiver cap, as a distinctive landmark. Wide dry desert and layered mountains, clean bright sun, sparse cactus at edge. Show solid recognizable photovoltaic rectangles with grid lines, no wind turbines, no skyscraper, no futuristic domed laboratory.\n\nBOTTOM RIGHT — frame 71, SAGUARO RODEO GROUNDS: a broad rectangular sandy rodeo arena enclosed by low terracotta side barriers, simple rail gates and modest terracotta adobe grandstand/stable buildings along each side. All buildings low with flat raised parapets, timber beams and gold accents. A central open entrance gate looks down the long tan arena; shallow side seating, shaded porches and a couple of small distant visitors in cowboy hats make the local event grounds legible without dominating. Dry saguaro cactus country, red-rock shelves, warm sunset sky. A humble Southwestern rodeo venue, not a giant sports stadium, not an urban plaza.\n\nExact output composition: six equally sized square full-bleed panels in 3x2 layout at 1536x1024, in the order specified. Keep all named subjects recognizable, authentic to their low-rise modeled forms, and distinct from one another. Absolutely no readable or invented text anywhere."
+      }
+    },
+    {
+      "file": "/fare-destinations-13.webp",
+      "cells": [
+        72,
+        77
+      ],
+      "subjects": [
+        {
+          "artCell": 72,
+          "subject": "Painted Canyon visitor center",
+          "category": "scenic",
+          "requiresWater": false
+        },
+        {
+          "artCell": 73,
+          "subject": "Solana Sunset Gate",
+          "category": "transport",
+          "requiresWater": false
+        },
+        {
+          "artCell": 74,
+          "subject": "Tidal coastal aquarium",
+          "category": "culture",
+          "requiresWater": false
+        },
+        {
+          "artCell": 75,
+          "subject": "Pacific Palms club",
+          "category": "hospitality",
+          "requiresWater": false
+        },
+        {
+          "artCell": 76,
+          "subject": "Sunset Bowl outdoor amphitheater",
+          "category": "culture",
+          "requiresWater": false
+        },
+        {
+          "artCell": 77,
+          "subject": "Woodland trailhead and overlook",
+          "category": "scenic",
+          "requiresWater": false
+        }
+      ],
+      "record": {
+        "asset": "public/fare-destinations-13.webp",
+        "source": "outputs/destination-audit/art-canyon-coast-13.png",
+        "generatedSource": "C:/Users/micha/.codex/generated_images/01a08b97-0ecb-7a03-853a-965c9fd0381b/exec-f8c54497-b417-4e6e-b63a-8fa39322d905.png",
+        "tool": "built-in image_gen.imagegen",
+        "attempt": 1,
+        "dimensions": [
+          1536,
+          1024
+        ],
+        "grid": {
+          "columns": 3,
+          "rows": 2,
+          "cellWidth": 512,
+          "cellHeight": 512,
+          "gutters": 0
+        },
+        "packaging": {
+          "tool": "repo-local sharp",
+          "format": "webp",
+          "quality": 88,
+          "effort": 6,
+          "resize": false
+        },
+        "references": [
+          "game/desert.ts",
+          "game/coastal.ts",
+          "game/coast-assets.ts",
+          "game/terrain/copper-forms.ts",
+          "docs/regions.md",
+          "public/fare-destinations-10.webp"
+        ],
+        "cells": [
+          {
+            "frame": 72,
+            "subject": "PAINTED CANYON",
+            "inspection": "Layered red-rock canyon and visible winding river below, cream adobe visitor center with turquoise trim, timber shade pergolas and rim overlook."
+          },
+          {
+            "frame": 73,
+            "subject": "SUNSET GATE",
+            "inspection": "Mint gate pillars, coral beam and cream crown, compact stucco visitor station with upswept Googie roof, palm boulevard and dry hills. No misplaced immediate beach."
+          },
+          {
+            "frame": 74,
+            "subject": "TIDAL AQUARIUM",
+            "inspection": "Cream Deco campus, turquoise front fins and long cyan glass barrel vault, aquarium viewing windows, ocean and golden shore nearby."
+          },
+          {
+            "frame": 75,
+            "subject": "PACIFIC PALMS CLUB",
+            "inspection": "Low cream Spanish Revival courtyard with terracotta roofs, three round arcade arches, turquoise rectangular pool, palms and flowers."
+          },
+          {
+            "frame": 76,
+            "subject": "SUNSET BOWL",
+            "inspection": "One broad cream/mint bandshell over timber music stage, tiered cream audience benches on coral paving, palms and coastal arts neighborhood."
+          },
+          {
+            "frame": 77,
+            "subject": "WOODLAND TRAILHEAD / SCENIC OVERLOOK",
+            "inspection": "Blank wooden trail arrow sign, stepped woodland path and timber-railed overlook, temperate conifers and granite mountains. No buildings, ocean, or lake."
+          }
+        ],
+        "inspection": {
+          "status": "accepted",
+          "retryNeeded": false,
+          "description": "All six row-major subjects complete and semantically matched to their setting. Exact 3x2 grid, no gutters/captions/logos. Clear architectural differences and appropriate water context. First generation accepted."
+        },
+        "prompt": "Use case: stylized-concept.\nAsset type: ONE final Neon Fare game destination sprite atlas. Generate a single image exactly 1536×1024 pixels, with SIX independent complete square destination illustrations in a strict 3 columns × 2 rows grid. Each cell is 512×512; exact vertical boundaries x=512 and1024, horizontal boundary y=512. NO gutters, margins, borders, captions, words, letters, numbers, logos, brands, signatures, watermarks, or extra subdivisions. Subjects must not cross cell boundaries. No readable text on any sign.\n\nStyle: match the completed landmark atlases visible in this conversation: clear detailed illustrated travel-postcard look, crisp architectural silhouettes and lightly faceted forms, subtle printed halftone sky texture, warm daylight, natural saturated colors, restrained cool shadows, slight elevated three-quarter views that show the landmark and setting. Each scene reads instantly at a small thumbnail. Preserve regional differences: desert terracotta/sand/turquoise in frame72; Southern California cream stucco/coral/mint/terracotta/blue/palms in frames73–76; deep temperate conifer green/timber/granite in frame77. Not photoreal, not generic nighttime neon architecture.\n\nTOP LEFT, frame72, Painted Canyon: an impressive layered red-rock DESERT CANYON with scalloped terracotta and ochre sandstone cliffs, a narrow winding blue-green RIVER visibly far below on the canyon floor. View from the real rim-top visitor campus: a small CREAM ADOBE visitor center with flat parapet roof and TURQUOISE trim in near foreground, plus timber-beam shade pergolas, simple cream seating ledges and a safe overlook railing. Agaves and sparse small desert palo verde trees around the sandy rim. Canyon and river dominate; visitor building is modest, no hotel or large city. Do not place conifers or palms here.\n\nTOP MIDDLE, frame73, Sunset Gate: a Southern California coastal-region welcome gateway at a low-rise town entrance, NOT at a beach. Two slender tall MINT GREEN square gate pillars with a wide CORAL horizontal beam across their top and a small cream blank geometric crown above. A compact CREAM STUCCO visitor station behind/alongside it with coral accents and a distinctive wide upswept slanted GOOGIE canopy roof. Palm-lined paved boulevard and pedestrian forecourt, low pastel buildings and dry sage hills in the distance. No ocean immediately beside the gate, no giant hotel, no words on arch.\n\nTOP RIGHT, frame74, Tidal Aquarium: a substantial low white/CREAM ART DECO aquarium campus near the California shoreline. Beveled rectangular cream façades with broad cyan glass windows, three vivid TURQUOISE vertical fins on the entry front, and a very distinctive long CYAN GLASS BARREL-VAULT roof, a half-cylinder with cream ribs, NOT a spherical dome. Fish and ray silhouettes can appear behind the large tank glass. Paved sandy-colored entrance terrace, a few palms, and the blue ocean and golden shore clearly visible nearby in the background. Clean welcoming modern marine institution, not a nightclub.\n\nBOTTOM LEFT, frame75, Pacific Palms Club: an elegant LOW-RISE SPANISH REVIVAL leisure club/hotel centered on an inviting turquoise RECTANGULAR COURTYARD SWIMMING POOL. Warm white stucco courtyard wings, TERRACOTTA tile gable roofs, an arcade of three broad ROUND ARCHES with columns at the courtyard entrance, bright blue courtyard paving accents, magenta flowers, and two tall palms. Small tasteful poolside seating, warm sunshine, coastal town context. Emphasize recognizable intimate mission-arcade architecture and pool, no skyscraper or giant all-inclusive resort.\n\nBOTTOM MIDDLE, frame76, Sunset Bowl: an OUTDOOR MUSIC AMPHITHEATER in a Southern California arts district. A SINGLE very broad cream and pale MINT semicircular BAND SHELL arches over one wide timber stage; its curved shell has clearly spaced ribs and a pale blue interior. Facing it are stepped rows of pale cream stone audience benches arranged across a CORAL paved bowl. A few small musician silhouettes and seated visitors make its live-music use clear. Palms, low pastel neighborhood buildings and dry green-brown hills beyond. Open sky, no roof covering audience, no sports field, no bowling lanes, no duplicated stages.\n\nBOTTOM RIGHT, frame77, woodland trailhead and scenic overlook: a small clearly established hiking access point in TEMPERATE CONIFER FOREST. A simple dark timber wayfinding post with BLANK wooden arrow sign boards marks a narrow packed-earth path, with a few modest trail steps. The path leads toward a small timber-railed scenic overlook over a forested mountain valley. Deep spruce and pine trees, moss, ferns, granite rocks, warm filtered sun. No buildings, cabins, visitor center, cars, tropical palms, ocean, lake, river, or city. The sign and access path should look purposeful so a passenger could reasonably want to stop here, while the natural landscape remains dominant.\n\nFinal checks: exactly6 complete and distinct 512-square scenes in that exact row-major order, strict1536×1024 equal3×2 grid, no gutters or text. Regional architecture and water context should agree with descriptions."
+      }
+    },
+    {
+      "file": "/fare-destinations-14.webp",
+      "cells": [
+        78,
+        83
+      ],
+      "subjects": [
+        {
+          "artCell": 78,
+          "subject": "Palm Reach gateway",
+          "category": "transport",
+          "requiresWater": false
+        },
+        {
+          "artCell": 79,
+          "subject": "Flamingo Park tennis and roller rink",
+          "category": "park",
+          "requiresWater": false
+        },
+        {
+          "artCell": 80,
+          "subject": "Sun Kiss Art Deco motor inn",
+          "category": "hospitality",
+          "requiresWater": false
+        },
+        {
+          "artCell": 81,
+          "subject": "Channel 86 television studios",
+          "category": "culture",
+          "requiresWater": false
+        },
+        {
+          "artCell": 82,
+          "subject": "Saint Lumina church",
+          "category": "civic",
+          "requiresWater": false
+        },
+        {
+          "artCell": 83,
+          "subject": "Tropical public beach",
+          "category": "waterfront",
+          "requiresWater": true
+        }
+      ],
+      "record": {
+        "asset": "fare-destinations-14",
+        "finalPath": "C:/dev/neon-fare-arcade-2/public/fare-destinations-14.webp",
+        "sourcePath": "C:/dev/neon-fare-arcade-2/outputs/destination-audit/fare-destinations-14.png",
+        "generatedOriginalPath": "C:/Users/micha/.codex/generated_images/01a08b97-c422-7ed3-b196-31db2bbfd30b/exec-05b70b3b-efff-475a-942e-e6a025f5a768.png",
+        "generationRoute": "built-in Codex ImageGen",
+        "attempts": 1,
+        "format": "WebP",
+        "width": 1536,
+        "height": 1024,
+        "columns": 3,
+        "rows": 2,
+        "cellSize": 512,
+        "bytes": 854456,
+        "sha256": "b44dfed385e6685d7e0fe01ea8b885b2f9947e49829f332d89d1aa855baea66f",
+        "packaging": {
+          "tool": "repo-local sharp",
+          "quality": 90,
+          "effort": 6,
+          "resized": false,
+          "compositionalEdits": false
+        },
+        "subjects": [
+          {
+            "frame": 78,
+            "row": 0,
+            "column": 0,
+            "name": "PALM REACH GATEWAY",
+            "inspection": "Compact one-story ivory welcome pavilion, shell-pink roof cap and blank pink neon fascia, turquoise glass, two royal palms and boulevard setting."
+          },
+          {
+            "frame": 79,
+            "row": 0,
+            "column": 1,
+            "name": "FLAMINGO PARK",
+            "inspection": "Seafoam tennis court with white markings/net, adjacent lilac roller court, small ivory/pink kiosk, benches, lawns and palms. No swamp or bird-preserve imagery."
+          },
+          {
+            "frame": 80,
+            "row": 0,
+            "column": 2,
+            "name": "SUN KISS MOTOR INN",
+            "inspection": "Low two-story seafoam Deco motor inn, rounded porthole corner, ivory shades/roof caps, pink-neon canopy, cream period sedan and palms."
+          },
+          {
+            "frame": 81,
+            "row": 1,
+            "column": 0,
+            "name": "CHANNEL 86 STUDIOS",
+            "inspection": "Lilac Deco studio campus with stepped roofs, rounded corners, ivory mast and exactly three shrinking pink neon rings, cyan entry fascia, small broadcast van and cases."
+          },
+          {
+            "frame": 82,
+            "row": 1,
+            "column": 1,
+            "name": "SAINT LUMINA",
+            "inspection": "Peach chapel with pink gabled roof, plain ivory bell tower and pink cross, small ivory/pink front pavilion, palms and softly lit approach."
+          },
+          {
+            "frame": 83,
+            "row": 1,
+            "column": 2,
+            "name": "PALM REACH PUBLIC BEACH",
+            "inspection": "Low sandy dune access between sea oats, pale beach, striped pink/ivory and seafoam umbrellas, loungers, small distant lifeguard hut, turquoise ocean and low surf."
+          }
+        ],
+        "visualInspection": {
+          "inspected": true,
+          "sixDistinctSubjects": true,
+          "rowMajorOrderCorrect": true,
+          "noGuttersOrBorders": true,
+          "noReadableText": true,
+          "currentPalmReachSetting": true,
+          "acceptedFirstPass": true,
+          "notes": "Viewed generated PNG and packaged WebP. Pastel illustrated architecture matches the current Miami-inspired model families; old legacy IDs did not introduce bayou/shipyard imagery. Beach has a clear open ocean horizon and no city-building focus."
+        },
+        "prompt": "Use case: illustration-story. Asset type: production destination sprite atlas for the Neon Fare arcade driving game.\nCreate ONE 1536 x 1024 pixel image. Exact layout: three columns and two rows of six independent square 512 x 512 pixel destination postcards, touching edge to edge at x=512, x=1024 and y=512. No gutters, no padding, no panel borders. Each panel has its own scene and horizon. No objects cross panel boundaries. No text, no letters, no digits, no captions, no logos or watermark anywhere; all sign faces blank. Output WebP if available.\n\nArt direction: Miami-inspired pastel Art Deco illustrated postcards, consistent across all six scenes. Vibrant shell pink, seafoam green, peach, lilac, warm ivory, turquoise glass and ocean, cyan and hot pink neon accents. Elegant low-rise tropical architecture, smooth rounded corners and stepped rooflines, bold clean comic-ink contours, precise geometric shapes, rich illustrated detail and subtle printed halftone grain. Warm tropical light and palms in every appropriate scene. This is the current sunny Palm Reach peninsula, NOT an old bayou: no swamps, cypress wetlands, shipyards, wooden swamp shacks, ferries, locks or riverboats. No unnecessary gigantic skyscrapers. Show the destination itself and its credible surroundings, each place easily distinguishable at thumbnail scale.\n\nExact row-major subjects:\nTOP LEFT — frame 78, PALM REACH GATEWAY: a welcoming northern district entry plaza focused on a modest single-story ivory visitor/welcome pavilion, simple rectangular stucco form, broad flat shell-pink roof cap with a slight overhang, large turquoise-glass entrance and a blank narrow pink glowing sign fascia. Two tall royal palms frame the pavilion, one each side. Pale paved forecourt and a quiet palm-lined boulevard entering low pastel neighborhood streets behind it, tidy tropical planted edges. Golden hour, clear sky. This is a realistic compact welcome house at the road entrance to Palm Reach, not a huge triumphal arch, bridge or grand railway station. The architecture must remain one story.\n\nTOP MIDDLE — frame 79, FLAMINGO PARK: an actual active tropical neighborhood recreation park, with a seafoam-green tennis court with crisp white boundary markings and a dark net, an adjoining lilac roller-skating court with low pink skate rails, pale pedestrian paths, royal palms, grassy edges and benches. A small ivory park entry kiosk with a shell-pink flat roof cap in one corner; low pastel residences glimpsed through the palms, no dominant skyline. Two or three tiny distant recreation visitors are fine, but the courts and setting must remain the focus. Bright warm late-afternoon sun, cheerful urban green recreation. No flamingo bird flock, no marsh, no nature preserve, no enormous stadium or concert venue.\n\nTOP RIGHT — frame 80, SUN KISS MOTOR INN: a modest two-story seafoam-green Art Deco motor inn, low broad proportions, rounded projecting corner with a single nautical porthole window, horizontal ivory eyebrow shades over turquoise-glass windows, stepped ivory flat roof caps. A small ivory lobby pavilion and broad pale entrance canopy with hot pink neon edging/blank pink fascia gives it a pink-lit tropical motel identity. A simple curbside motor court with one cream vintage sedan and a couple of royal palms, warm pink-orange sunset, low tropical coastal neighborhood. Cozy period motor inn, NOT a luxury high-rise hotel. Keep the seafoam walls and the prominent pink accents; no readable motel lettering.\n\nBOTTOM LEFT — frame 81, CHANNEL 86 STUDIOS: a recognizable tropical television/radio production studio campus, with lilac Art Deco buildings, rounded corners, horizontal ivory window eyebrows, stepped flat roof caps and turquoise windows. One central building is taller than the side wings, about five stories, topped by a slender ivory broadcast mast surrounded by THREE horizontal glowing pink rings that decrease in diameter as they rise. A low ivory studio entrance pavilion at the paved front court, blank cyan/pink glowing rectangular sign panels, a modest satellite uplink vehicle or equipment case near the entrance can suggest production without obscuring the building. Royal palms, tropical dusk sky, warm window glow. The ringed rooftop broadcast beacon is the landmark. No text or digits, no giant satellite dish, no shipyard, no industrial dock.\n\nBOTTOM MIDDLE — frame 82, SAINT LUMINA: a quiet pastel tropical church complex: low peach stucco chapel with a broad shell-pink gabled roof and ivory triangular gable face. Beside it a slender plain ivory square bell tower capped by a small glowing hot-pink Christian cross, simple and dignified. A low ivory entrance pavilion with a pink flat roof cap toward the front, pale paved approach, palms and a few flowering shrubs. Warm peach-pink early evening sky, softly lit entry, humble coastal neighborhood church. The gabled chapel and narrow cross tower clearly distinguish it from the Deco hotels. No Gothic cathedral, no large dome, no readable church signage.\n\nBOTTOM RIGHT — frame 83, PALM REACH PUBLIC BEACH: an inviting public tropical ocean beach, absolutely dominated by pale warm sand and bright turquoise Atlantic water with low gentle white surf. A short low dune access path threads through sea oats and low dune plants from the lower foreground to the open beach, no steep cliffs or mountain backdrop. A few striped ivory-and-shell-pink or seafoam beach umbrellas and simple cream/peach loungers stand on the sand. Royal palms at the far land edge, a tiny distant seafoam lifeguard hut with pink flat canopy is allowed but not the focal point. Blue sky with soft warm sunset clouds; open ocean horizon. No hotels, city skyline, harbor, pier, marina, lake or bayou. It must read as a public beach drop-off with easy low access to actual ocean water.\n\nConstraints: exactly six square panels in the required order on one 1536x1024 atlas. Distinct modeled architectural silhouettes, nearby landscaping consistent with a flat subtropical peninsula. No text of any kind. No gutters or borders. Clear postcard compositions with readable subjects, clean finish, no blurry small-scale clutter."
+      }
+    },
+    {
+      "file": "/fare-destinations-15.webp",
+      "cells": [
+        84,
+        89
+      ],
+      "subjects": [
+        {
+          "artCell": 84,
+          "subject": "Inland city arcade and covered market",
+          "category": "culture",
+          "requiresWater": false
+        },
+        {
+          "artCell": 85,
+          "subject": "City bus terminal and covered platforms",
+          "category": "transport",
+          "requiresWater": false
+        },
+        {
+          "artCell": 86,
+          "subject": "Leafy suburban bungalow street",
+          "category": "residential",
+          "requiresWater": false
+        },
+        {
+          "artCell": 87,
+          "subject": "Mountain cabin and A-frame lane",
+          "category": "residential",
+          "requiresWater": false
+        },
+        {
+          "artCell": 88,
+          "subject": "Desert adobe courtyard home",
+          "category": "residential",
+          "requiresWater": false
+        },
+        {
+          "artCell": 89,
+          "subject": "Palm Art Deco residential condos",
+          "category": "residential",
+          "requiresWater": false
+        }
+      ],
+      "record": {
+        "asset": "public/fare-destinations-15.webp",
+        "source": "outputs/destination-audit/art-corrections-residences-15.png",
+        "generatedSource": "C:/Users/micha/.codex/generated_images/01a08b97-0ecb-7a03-853a-965c9fd0381b/exec-6647f60d-2045-4f14-ad70-21126214d015.png",
+        "tool": "built-in image_gen.imagegen",
+        "attempt": 1,
+        "dimensions": [
+          1536,
+          1024
+        ],
+        "grid": {
+          "columns": 3,
+          "rows": 2,
+          "cellWidth": 512,
+          "cellHeight": 512,
+          "gutters": 0
+        },
+        "packaging": {
+          "tool": "repo-local sharp",
+          "format": "webp",
+          "quality": 90,
+          "effort": 6,
+          "resize": false
+        },
+        "modelReferences": [
+          "game/world.ts",
+          "game/city-landmarks.ts",
+          "game/residential-buildings.ts",
+          "game/mountain.ts",
+          "game/desert.ts",
+          "game/copper-assets.ts",
+          "game/reach-buildings.ts",
+          "game/reach-assets.ts"
+        ],
+        "imageReferences": [
+          "public/fare-destinations-7.webp",
+          "public/fare-destinations-9.webp",
+          "public/fare-destinations-10.webp",
+          "public/fare-destinations-12.webp",
+          "public/fare-destinations-14.webp"
+        ],
+        "cells": [
+          {
+            "frame": 84,
+            "subject": "INLAND CITY ARCADE / MARINA ARCADE",
+            "inspection": "Broad brick covered market with sawtooth roof, teal entrance gallery and blank neon-pink fascia; arcade cabinets, stalls, city streets and buildings. No water, boats, docks, cranes or containers."
+          },
+          {
+            "frame": 85,
+            "subject": "SOUTH TERMINAL / CITY BUS TERMINAL",
+            "inspection": "Four parallel orange-topped platform canopies on white posts, steel/cyan station hall with sawtooth roof, red passenger bus and waiting travelers. No planes, trains, cranes, containers or maritime scenery."
+          },
+          {
+            "frame": 86,
+            "subject": "CEDAR VALE SUBURBAN HOME",
+            "inspection": "Sage/cream gabled bungalow, porch, blue door, attached garage, mailbox, family car, flower gardens and leafy suburban street."
+          },
+          {
+            "frame": 87,
+            "subject": "NORTHSTAR MOUNTAIN HOME",
+            "inspection": "Timber cabin with slate roof, stone chimney and porch, smaller berry A-frame along residential lane, conifers and mountain backdrop."
+          },
+          {
+            "frame": 88,
+            "subject": "COPPER MESA ADOBE HOMESTEAD",
+            "inspection": "Cream adobe parapet home with vigas, turquoise entrance and windows, shaded porch and small private courtyard, desert plants and neighboring adobe homes."
+          },
+          {
+            "frame": 89,
+            "subject": "PALM REACH RESIDENTIAL CONDO",
+            "inspection": "Seafoam/lilac Art Deco condo with rounded porthole corner, horizontal bands and balconies, stepped roof, pink-trim lobby canopy, palms and period sedan."
+          }
+        ],
+        "inspection": {
+          "status": "accepted",
+          "retryNeeded": false,
+          "description": "First pass accepted. Six complete row-major square scenes, no gutters or large text/logos. Corrected inland arcade and bus terminal read clearly. Regional homes have visible street and front-door access. No water anywhere."
+        },
+        "prompt": "Use case: stylized-concept.\nAsset type: ONE final Neon Fare destination sprite atlas. Make one 1536×1024 landscape image with SIX independent complete 512×512 square illustrations in a strict 3 columns × 2 rows grid. Exact vertical boundaries x=512,1024; horizontal boundary y=512. NO gutters, margins, borders, extra panels, captions, text, letters, numbers, logos, brands, signatures or watermarks. No writing on signs, buildings, buses, vehicles or arcade machines. Each subject stays inside its own square. No water anywhere in this atlas.\n\nStyle: same detailed colorful illustrated travel-postcard style as the completed city, Cedar, Northstar, Copper and Palm Reach atlas references shown in this conversation. Crisp architecture, subtly faceted shapes, warm golden daylight, cool colored shadows, painterly detail and very subtle print texture, inviting atmosphere, readable destinations at thumbnail size. Distinct regional palettes rather than one generic city. Perspectives are slightly elevated three-quarter views that show the front entrance and street context. No photoreal effects, no generic nightclub or sci-fi towers.\n\nTOP LEFT, frame84, inland city arcade and covered market: a broad low BRICK market hall with cyan glass shopfronts, a distinctive repeated SAWTOOTH roof, and a long covered TEAL pedestrian gallery. A wide luminous PINK blank neon fascia over the public entrance. Several colorful upright arcade game cabinets with glowing abstract screens are visibly set beneath the covered entrance along with small red, orange, blue and pink market booths. Small pedestrians on a pale stone sidewalk, ordinary low-to-mid-rise city buildings and paved streets around it. This is an INLAND urban arcade and market. Absolutely NO water, boats, ships, marina, docks, piers, beaches, cranes or containers anywhere in this scene. Do not put the building on a waterfront.\n\nTOP MIDDLE, frame85, city BUS terminal: a compact passenger bus station with FOUR parallel narrow covered platforms under flat ORANGE-topped canopies supported by slender WHITE posts. A low STEEL-gray and CYAN-glass station hall with a small SAWTOOTH roof sits behind. One clearly recognizable large RED CITY BUS with passenger windows and road wheels is parked alongside the platforms, with several waiting travelers. Paved bus lanes and city buildings beyond. A small blank orange wayfinding pylon. Absolutely NO airplanes, trains, rail tracks, cranes, shipping containers, boats or freight-port scenery. Bus station identity must be immediately obvious.\n\nTOP RIGHT, frame86, Cedar Vale suburban home: a welcoming modest SAGE/CREAM single-family bungalow with a proper dark GRAY GABLED roof, small BRICK chimney, covered front porch on white posts, BLUE front door, pale window trim, and an attached single-car garage. A short path connects the front door to the residential sidewalk, with a small blank mailbox by the curb, tidy front lawn, flower gardens and leafy maple trees. A quiet street with a couple more varied gabled homes partly visible, wood side fencing and a parked family car. Sunny temperate suburban neighborhood, not a park without homes, no palms, no ocean.\n\nBOTTOM LEFT, frame87, Northstar mountain home: a cozy DARK TIMBER cabin with a steep SLATE pitched roof, stone foundation and chimney, warm AMBER windows and a timber porch beside a short quiet paved residential lane. One smaller BERRY RED A-FRAME home with a dark roof is visible farther along the lane, making a modest inhabited mountain settlement. Deep spruce and pine trees, mossy green slopes and granite mountain ridges. A simple parked pickup and short front path indicate a real home address. No lake, ocean, large hotel, empty wilderness-only scene or tropical palms.\n\nBOTTOM MIDDLE, frame88, Copper Mesa adobe courtyard homestead: a warm CREAM/TAN adobe residence with chamfered plaster corners, FLAT PARAPET roof, exposed dark timber VIGAS, inset TURQUOISE windows and front door. A shaded front PORCH with terracotta posts and a low flat terracotta canopy, opening onto a small private earthen courtyard with a few clay pots. Saguaro cactus, agave and sparse desert plants, ochre sandy ground, neighboring low adobe homes and distant layered red-rock mesas. Small residential drive/path to the street. It must look like a lived-in desert home, not a museum, hotel or gas station. No water, pools or lush grass.\n\nBOTTOM RIGHT, frame89, Palm Reach residential condominium frontage: a period pastel ART DECO residential condo building along a PALM-LINED neighborhood street. SEAFOAM and LILAC façades with ivory trim, dark teal glass, repeated horizontal balcony/floor bands, rounded projecting entrance corner with one nautical porthole window, stepped flat-roof crown, and a small ivory residential lobby canopy with a restrained hot-pink light edge. About six to eight stories, with warm residential windows, an ordinary welcoming entrance path, flower beds, tidy shrubs and a parked period sedan. Nearby pastel residential blocks. Elegant Miami-style apartment living, no hotel sign, no storefront branding, no nightclub, no beach or water.\n\nFinal constraints: exactly six complete distinct square scenes in the stated row-major order, 3×2 no-gutter atlas, exact1536×1024. No text or logos. Frames84 and85 must visibly correct the old misunderstanding: INLAND arcade/covered market and passenger BUS station, with no maritime scenery. All residential scenes must depict appropriate regional homes and obvious street/entry access."
+      }
+    },
+    {
+      "file": "/fare-destinations-16.webp",
+      "cells": [
+        90,
+        95
+      ],
+      "subjects": [
+        {
+          "artCell": 90,
+          "subject": "Coastwatch roadside rescue station",
+          "category": "civic",
+          "requiresWater": false
+        },
+        {
+          "artCell": 91,
+          "subject": "City working marina with boats and slips",
+          "category": "waterfront",
+          "requiresWater": true
+        },
+        {
+          "artCell": 92,
+          "subject": "City apartment building",
+          "category": "residential",
+          "requiresWater": false
+        },
+        {
+          "artCell": 93,
+          "subject": "Solana Spanish Revival courtyard homes",
+          "category": "residential",
+          "requiresWater": false
+        },
+        {
+          "artCell": 94,
+          "subject": "Northstar roadside mountain motel",
+          "category": "hospitality",
+          "requiresWater": false
+        },
+        {
+          "artCell": 95,
+          "subject": "Copper Mesa adobe main street shops",
+          "category": "retail",
+          "requiresWater": false
+        }
+      ],
+      "record": {
+        "asset": "fare-destinations-16",
+        "finalPath": "C:/dev/neon-fare-arcade-2/public/fare-destinations-16.webp",
+        "sourcePath": "C:/dev/neon-fare-arcade-2/outputs/destination-audit/fare-destinations-16.png",
+        "generatedOriginalPath": "C:/Users/micha/.codex/generated_images/01a08b97-c422-7ed3-b196-31db2bbfd30b/exec-f664dfae-1e06-4518-9c41-7d4382eaa2f6.png",
+        "generationRoute": "built-in Codex ImageGen",
+        "attempts": 1,
+        "format": "WebP",
+        "width": 1536,
+        "height": 1024,
+        "columns": 3,
+        "rows": 2,
+        "cellSize": 512,
+        "bytes": 842342,
+        "sha256": "90fc059df80e155f429bc7f2eeea0bd349c5a47737240a243bae4698ebe0dfdb",
+        "packaging": {
+          "tool": "repo-local sharp",
+          "quality": 90,
+          "effort": 6,
+          "resized": false,
+          "compositionalEdits": false
+        },
+        "subjects": [
+          {
+            "frame": 90,
+            "row": 0,
+            "column": 0,
+            "name": "COASTWATCH RESCUE",
+            "inspection": "Inland white stucco station with terracotta pitched roof, coral garage door, coral raised lookout/radio, practical rescue pickup, paved road and forecourt, palms and dry sage bluff hills. No beach or water anywhere."
+          },
+          {
+            "frame": 91,
+            "row": 0,
+            "column": 1,
+            "name": "NEON CITY WORKING MARINA",
+            "inspection": "Compact urban basin with three modest red/white/orange working boats, finger docks, bollards and small cream/teal gabled harbor office. Brick city harbor background; no tropical yacht-club styling or giant cranes."
+          },
+          {
+            "frame": 92,
+            "row": 0,
+            "column": 2,
+            "name": "NEON CITY APARTMENTS",
+            "inspection": "Four-story brick urban apartment building, three cream balcony bands, warm windows, teal hip roof and gold lobby canopy beside residential sidewalk."
+          },
+          {
+            "frame": 93,
+            "row": 1,
+            "column": 0,
+            "name": "SOLANA COURTYARD HOMES",
+            "inspection": "Low white stucco residential courtyard homes with terracotta tiles, small arches, turquoise doors, bougainvillea, palms and dry hills. Clearly residential, no church or mission tower."
+          },
+          {
+            "frame": 94,
+            "row": 1,
+            "column": 1,
+            "name": "NORTHSTAR ROADSIDE MOTEL",
+            "inspection": "Low cream/timber motel with long steep berry-red gabled roof, blank blue office fascia, guest rooms, stone base/chimney, blue pickup and conifer mountain setting. No lake or luxury resort."
+          },
+          {
+            "frame": 95,
+            "row": 1,
+            "column": 2,
+            "name": "COPPER MESA MAIN STREET",
+            "inspection": "Compact cream/terracotta adobe storefronts with flat parapets, timber vigas and porch roofs, turquoise trim and blank gold fascia, agave/cacti and dry mesas. Human-scale local shops rather than civic monument."
+          }
+        ],
+        "visualInspection": {
+          "inspected": true,
+          "sixDistinctSubjects": true,
+          "rowMajorOrderCorrect": true,
+          "noGuttersOrBorders": true,
+          "noReadableText": true,
+          "geographyMatchesCategories": true,
+          "coastwatchDryInlandVerified": true,
+          "acceptedFirstPass": true,
+          "notes": "Viewed full generated PNG and final WebP. Strong category differentiation and plausible modeled architecture. Only the marina scene contains visible water. No essential retry required."
+        },
+        "prompt": "Use case: illustration-story. Asset type: production destination sprite atlas for the Neon Fare driving game.\nGenerate ONE 1536 x 1024 pixel bitmap. EXACTLY six independent full-bleed square postcard panels arranged 3 columns by 2 rows, every panel 512 x 512 pixels. Vertical boundaries at x=512 and 1024, horizontal boundary at y=512. NO gutters, borders, padding, separators, text, words, digits, logos or watermark. Every panel has its own horizon and complete composition, no objects crossing boundaries. Output WebP if available.\n\nShared art style: vivid, clean geometric illustrated travel postcards with rich warm lighting, careful architectural silhouettes, confident comic-ink edge lines, subtle halftone print grain, angular shapes and controlled detail. Recognizable places rather than abstract buildings; polished illustration, not photography or raw 3D. Compositions should remain legible as small game cards. Each location has its own true geographic setting: these six are NOT all tropical or all urban. Use the exact order below.\n\nTOP LEFT (frame 90) — COASTWATCH RESCUE, an INLAND roadside coastal rescue station on a dry Southern California-style bluff:\nA broad modest one-story warm white stucco rescue-station building with a low terracotta-red pitched tile roof, coral trim and light-blue windows. Include a simple coral garage/service door, small forecourt and one parked practical rescue utility truck. Beside the building stands a small raised coral lookout cabin with blue windows, on four white support legs, an ivory flat canopy and a slim radio antenna. The important setting is a fully DRY, PAVED ROAD and forecourt beside sage-covered sandy bluff terrain, palms and coastal shrubs, with low dry hills behind. The station is several streets INLAND. Absolutely no beach, no surf, no foreground water, no ocean, no dock, no swimming equipment, no beach umbrellas. The raised lookout is part of the inland station compound, NOT a shack standing on a sandy beach. Bright warm afternoon.\n\nTOP MIDDLE (frame 91) — compact NEON CITY working marina:\nA small rectangular dark-teal harbor basin at the edge of an urban neighborhood, narrow timber/stone finger docks and three modest red, white and orange small working motorboats in slips. A tiny warm cream harbor office with a simple teal gabled roof and cyan-glass windows sits on the quay, with plain dock hardware and bollards. A brick promenade and ordinary mid-rise brick/stone city buildings frame the distant harbor. Warm dusk, gold lights reflected in the actual water. Intimate everyday city marina, no giant cranes, no industrial container terminal, no luxury tropical yacht club, no palm trees, no enormous white yachts or Art Deco resort.\n\nTOP RIGHT (frame 92) — NEON CITY urban residential flats:\nA compact red-brown brick apartment block about four stories tall, clearly stacked residential floors with rows of warm-lit windows, three cream horizontal balcony/ledge bands, a low teal hipped roof and a small gold/ochre canopy over the sidewalk lobby door. A lived-in urban residential street with pavement, curb, one ordinary parked car and a modest broadleaf street tree. Nearby brick apartment blocks sit behind it; friendly residential density, no giant office skyscraper or manor house, no broad park or townhouse-row substitution. The apartment facade is the focal point. Rich early-evening sky and warm windows.\n\nBOTTOM LEFT (frame 93) — SOLANA Spanish Revival courtyard homes:\nA small residential court of low white/cream stucco homes enclosing a private paved courtyard, terracotta tile pitched roofs, three low arched porch openings, modest turquoise-painted residential doors and small windows, blooming bougainvillea over one wall, a few palms and sage plantings. View from a quiet residential street through an open low courtyard entrance. The size and details must clearly read as people's homes, not a civic or religious landmark. No church, mission bell tower, cross, cathedral, fountain monument, hotel signage, or large ceremonial plaza. Warm sunny Southern California neighborhood, low dry hills or neighboring stucco homes in the background; no waterfront required.\n\nBOTTOM MIDDLE (frame 94) — NORTHSTAR roadside mountain motel:\nA humble low one-story cream/timber motel building with a long steep red/berry pitched gabled roof, deep eaves, amber-lit windows, dark timber corner posts, rough gray stone foundation and a small stone chimney. A broad blank BLUE rectangular fascia over its practical office entry, a row of modest guest doors, a blue pickup truck parked in a small paved roadside motor court. Dense dark-green conifers, a few granite boulders and forested mountain slopes behind. It is a small affordable roadside mountain motel, NOT a grand ski resort, multi-story chalet palace, campsite or lakeside lodge. No lake, no ocean, no palms. Crisp clear alpine late-afternoon light, snow confined to distant high peaks if any.\n\nBOTTOM RIGHT (frame 95) — COPPER MESA compact adobe main-street shops:\nA short row of modest one-story cream and terracotta adobe storefronts, flat parapet roofs, exposed dark timber vigas, small turquoise-trimmed doors/windows and simple blank gold/ochre horizontal sign fascias. Low shaded storefront porches, a couple of glazed pots, saguaro cactus and agave in sandy planting beds. A pale sidewalk meets a simple desert-town street; dry rust-red mesas and sparse desert plants visible beyond the shops. Everyday local shops at human scale, NO giant civic palace, bell tower, temple, grand gateway, big plaza, tall buildings or water. Bright clean desert sun with turquoise and warm terracotta accents.\n\nFinal requirements: six equal independent square panels in the exact 3x2 row-major order, 1536x1024 overall, no text or borders. Make the geographical differences unmistakable. Most critical: frame90 is a dry inland roadside rescue station, while actual visible harbor water belongs in frame91 only. Frame93 must read residential, frame94 a modest motel, frame95 small-town shops."
+      }
+    }
+  ]
+}

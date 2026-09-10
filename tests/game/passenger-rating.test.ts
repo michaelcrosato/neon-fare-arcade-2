@@ -7,6 +7,7 @@ import { passengerDistanceQuote } from "../../game/fare-market";
 import { stepGame } from "../../game/simulation";
 import { FIXED_DT } from "../../game/config";
 import { makeTestWorld, TEST_IDLE_INPUT } from "./support/fixtures";
+import { destinationCardsForPlace } from "../../game/destination-cards";
 
 test("time is the primary rating factor; collisions deduct one star", () => {
   for (const [seconds, expected] of [[1, 5], [100, 5], [100.01, 4], [135, 4], [135.01, 3], [180, 3], [180.01, 2], [240, 2], [241, 1]]) {
@@ -26,6 +27,16 @@ test("every passenger has a unique comment at every rating", () => {
     const comments = FARE_RIDERS.map(rider => passengerComment(rider, stars));
     assert.equal(new Set(comments).size, FARE_RIDERS.length);
     assert.ok(comments.every(comment => !comment.includes("my next adventure")));
+  }
+});
+
+test("a booked destination occasion replaces an unrelated legacy travel plan in passenger reviews", () => {
+  const destinationCard = destinationCardsForPlace("pulse-stadium")[0];
+  const job = { passengerArtCell: 5, destinationCard };
+  for (const stars of [1, 2, 3, 4, 5] as const) {
+    const comment = passengerComment(job, stars);
+    assert.match(comment, /championship game/i);
+    assert.doesNotMatch(comment, /vinyl digging/i);
   }
 });
 

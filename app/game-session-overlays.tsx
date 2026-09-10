@@ -28,6 +28,7 @@ type GameSessionOverlaysProps = Readonly<{
   onSetCameraMode: (mode: CameraMode) => void;
   onSetMode: (mode: Mode) => void;
   onOpenHow: () => void;
+  onOpenOptions: () => void;
   onFinishRun: () => void;
   onToggleFareDispatch: () => void;
   onRequestStartRun: (runKind: RunKind, drivingModel?: DrivingModel) => void;
@@ -50,6 +51,7 @@ export function GameSessionOverlays({
   onSetCameraMode,
   onSetMode,
   onOpenHow,
+  onOpenOptions,
   onFinishRun,
   onToggleFareDispatch,
   onRequestStartRun,
@@ -113,11 +115,12 @@ export function GameSessionOverlays({
                 <strong>GET UNSTUCK · CALL A TOW</strong>
                 <small>{hud.towReceipt ? "TOW COMPLETE · RESUME TO DRIVE" : hud.towCost ? `$${hud.towCost} FROM RUN FARE · BACK TO THE NEAREST ROAD` : "FREE RESCUE · UNDER $100? ON THE HOUSE"}</small>
               </button>
+              <button onClick={onOpenOptions}>OPTIONS · DEV MODE</button>
               <button onClick={onOpenHow}>HOW TO PLAY</button>
               {diagnosticsActive && <button onClick={onCopyDiagnostics}>COPY DIAGNOSTICS</button>}
               {diagnosticsNotice && <small className="duty-lock-note" role="status" aria-live="polite">{diagnosticsNotice}</small>}
               {hud.runKind === "free-run"
-                ? <button onClick={onFinishRun}>END FREE RUN · BANK FARE</button>
+                ? <button onClick={onFinishRun}>{hud.playtest ? "END PLAYTEST" : "END FREE RUN · BANK FARE"}</button>
                 : <button onClick={() => onSetMode("menu")}>QUIT TO MENU</button>}
             </div>
             {mobile ? <details className="pause-fares"><summary>FARE HISTORY <span>{fareCards.length}</span></summary><FareCardBrowser cards={fareCards} /></details> : <FareCardBrowser cards={fareCards} />}
@@ -129,8 +132,8 @@ export function GameSessionOverlays({
         <div className="end-overlay">
           <div className={`rank-burst ${hud.runKind === "free-run" ? "is-free-run" : ""}`}><small>{hud.runKind === "free-run" ? "MODE" : "RANK"}</small><strong>{hud.runKind === "free-run" ? "FREE" : rankFor(hud.score)}</strong></div>
           <div className="end-paper">
-            <p>{hud.runKind === "free-run" ? "CAB PARKED · FARE BANKED" : "SHIFT'S OVER"}</p>
-            <h2>{hud.runKind === "free-run" ? "FREE RUN SAVED!" : "RUN COMPLETE!"}</h2>
+            <p>{hud.playtest ? "PLAYTEST · LOCAL PROGRESS UNCHANGED" : hud.runKind === "free-run" ? "CAB PARKED · FARE BANKED" : "SHIFT'S OVER"}</p>
+            <h2>{hud.playtest ? "PLAYTEST COMPLETE!" : hud.runKind === "free-run" ? "FREE RUN SAVED!" : "RUN COMPLETE!"}</h2>
             <div className="end-total"><span>TOTAL SCORE</span><strong>{hud.score.toLocaleString()}</strong></div>
             <div className="end-grid">
               <span><small>FARE</small><b>${hud.fare}</b></span>
@@ -139,7 +142,7 @@ export function GameSessionOverlays({
               <span><small>BEST MULTI</small><b>{hud.bestMultiplier.toFixed(1)}×</b></span>
               <span><small>CRASHES</small><b>{hud.collisions}</b></span>
             </div>
-            <p className="banked-callout">FARE BANKED +${hud.fare} · CAREER TOTAL ${careerBank} · NEON LOFTS IS NEAR THE STARTING BLOCK</p>
+            <p className="banked-callout">{hud.playtest ? "PLAYTEST EARNINGS AND SCORES ARE NOT SAVED" : `FARE BANKED +$${hud.fare} · CAREER TOTAL $${careerBank} · NEON LOFTS IS NEAR THE STARTING BLOCK`}</p>
             <button className="primary-small" onClick={() => onRequestStartRun(hud.runKind, hud.drivingModel)}>{hud.drivingModel === "simulation" ? "SIMULATION AGAIN" : hud.runKind === "free-run" ? "FREE RUN AGAIN" : "RUN IT BACK"}</button>
             {hud.runKind === "timed"
               ? <><button onClick={onOpenScores}>VIEW RUN LOG</button>{mobile && <button onClick={() => onSetMode("menu")}>RETURN TO MENU</button>}</>

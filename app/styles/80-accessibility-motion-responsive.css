@@ -549,6 +549,7 @@
   .mobile-notice { position: absolute; z-index: 1; top: calc(116px + env(safe-area-inset-top)); left: 50%; width: max-content; max-width: calc(100% - 40px); padding: 6px 12px; transform: translateX(-50%); background: var(--yellow); color: var(--ink); border-radius: 6px; text-align: center; }
   .mobile-notice strong { display: block; font-size: 16px; line-height: 1.2; }
   .mobile-notice span { display: block; margin-top: 3px; font-size: 14px; }
+  .mobile-notice .fare-card-occasion { display: block; margin: 5px 0 0; font-size: 11px; }
   .mobile-notice.is-event { background: var(--paper); padding-block: 9px; }
   .mobile-controls { position: absolute; z-index: 1; left: var(--mobile-left); right: var(--mobile-right); bottom: max(12px, env(safe-area-inset-bottom)); height: 176px; }
   .mobile-controls::before { content: ""; position: absolute; inset: -24px calc(-1 * var(--mobile-right)) calc(-1 * max(12px, env(safe-area-inset-bottom))) calc(-1 * var(--mobile-left)); z-index: -1; background: linear-gradient(transparent, rgb(0 0 0 / 30%)); }

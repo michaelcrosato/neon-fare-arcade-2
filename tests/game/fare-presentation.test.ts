@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { destinationCardsForPlace } from "../../game/destination-cards";
 
 import { PASSENGER_ART_CELL_COUNT } from "../../game/config";
 import { FARE_RIDERS } from "../../game/passengers";
@@ -10,6 +11,17 @@ import {
   makeDropoffFareImpact,
   makePickupFareImpact,
 } from "../../game/fare-presentation";
+
+test("pickup and dropoff cards retain the selected destination occasion", () => {
+  const destinationCard = destinationCardsForPlace("pulse-stadium")[1];
+  const common = { fareId: "dex", fareNumber: 6, rider: "DEX", destination: destinationCard.label,
+    destinationCard, bonusSeconds: 4, runKind: "timed" as const };
+  const pickup = makePickupFareImpact({ ...common, artCell: 5 });
+  const dropoff = makeDropoffFareImpact({ ...common, artCell: destinationCard.artCell, fareAward: 100, multiplier: 1 });
+  assert.deepEqual(pickup.destinationCard, destinationCard);
+  assert.deepEqual(dropoff.destinationCard, destinationCard);
+  assert.equal(dropoff.destinationCard!.occasion, "STADIUM CONCERT");
+});
 
 test("every stable fare ID maps to one unique art cell", () => {
   const cells = FARE_RIDERS.map((rider) => makePickupFareImpact({

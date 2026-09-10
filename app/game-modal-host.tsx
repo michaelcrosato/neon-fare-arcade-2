@@ -24,6 +24,7 @@ import { DriverTraitPanel } from "./driver-trait-panel";
 import { GasStationPanel } from "./gas-station-panel";
 import { GpsMap } from "./gps-map";
 import { HomeBasePanel } from "./home-base-panel";
+import { DevelopmentPanel, type DevelopmentPanelProps } from "./development-panel";
 
 type GameModalHostProps = Readonly<{
   modal: Modal;
@@ -38,6 +39,7 @@ type GameModalHostProps = Readonly<{
   homeNotice: string;
   courierNotice: string;
   gasNotice: string;
+  development: Omit<DevelopmentPanelProps, "hud" | "onClose">;
   dialogRef: RefObject<HTMLElement | null>;
   onClose: () => void;
   onBeginRun: (id: DrivingTraitId) => void;
@@ -65,6 +67,7 @@ export function GameModalHost({
   homeNotice,
   courierNotice,
   gasNotice,
+  development,
   dialogRef,
   onClose,
   onBeginRun,
@@ -89,13 +92,15 @@ export function GameModalHost({
         <button className="modal-close" onClick={onClose} aria-label={modal === "traits" ? "Back without starting" : modalParent === "home" && modal !== "home" ? "Back to Home Hub" : "Close dialog"}>×</button>
         {modal === "traits" ? (
           <DriverTraitPanel onSelect={onBeginRun} runKind={pendingRunKind} drivingModel={pendingDrivingModel} />
+        ) : modal === "options" ? (
+          <DevelopmentPanel {...development} hud={hud} onClose={onClose} />
         ) : modal === "how" ? (
           <>
             <p className="modal-kicker">DRIVER ORIENTATION</p>
             <h2 id="modal-title">HOW TO PLAY</h2>
             <div className="instruction-grid">
               <article><b>01</b><h3>CHOOSE YOUR SHIFT</h3><p>Play a 75-second Arcade Shift, untimed Arcade Free Run, or Simulation Free Run in the 1990s Crown Cab.</p></article>
-              <article><b>02</b><h3>FOLLOW THE GPS</h3><p>The floating yellow arrow marks your next turn and its distance. Open the regional map with G and tap a street to set your route instantly.</p></article>
+              <article><b>02</b><h3>FOLLOW THE GPS</h3><p>The floating yellow arrow marks your next turn and shows the total distance remaining to your destination. Open the regional map with G and tap a street to set your route instantly.</p></article>
               <article><b>03</b><h3>HIT THE STREET</h3><p>Stop and press E to explore on foot. Run, jump, crouch, enter marked buildings, or return to the parked taxi whenever you are ready.</p></article>
             </div>
             <div className="mobile-help mobile-control-guide">

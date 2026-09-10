@@ -116,6 +116,7 @@ export const FareCardBrowser = memo(function FareCardBrowser({ cards }: FareCard
               <small>{card.eyebrow}</small>
               <h3>{card.headline}</h3>
               <p><b>{card.rider}</b><i aria-hidden="true">➜</i><span>{card.destination}</span></p>
+              {card.destinationCard && <div className="fare-card-occasion">{card.destinationCard.occasion}</div>}
               <em>{card.detail}</em>
             </div>
           </article>

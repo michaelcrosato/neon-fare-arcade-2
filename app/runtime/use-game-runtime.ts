@@ -21,6 +21,7 @@ import type {
   WorldView,
 } from "@/game/model";
 import { NavigationController } from "@/game/navigation";
+import { developmentTimeScale, navigationSettingsForGame } from "@/game/development-settings";
 import {
   cameraBoomLimit,
   effectiveCameraMode,
@@ -133,7 +134,7 @@ export function useGameRuntime(options: GameRuntimeOptions) {
     const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
     let currentCityWorld = cityStream.update(0, 0);
     let currentWorld = sceneWorld(gameRef.current, currentCityWorld);
-    let currentNavigation = navigationController.update(gameRef.current);
+    let currentNavigation = navigationController.update(gameRef.current, navigationSettingsForGame(gameRef.current));
     let wasInterior = isInterior(gameRef.current);
     let previousEffectiveCameraMode = cameraRef.current.mode;
     const music = new BackgroundMusic(undefined, Math.random, () => audioRef.current);
@@ -205,8 +206,8 @@ export function useGameRuntime(options: GameRuntimeOptions) {
         const wallElapsed = Math.max(0, (now - last) / 1000);
         const elapsed = Math.min(0.05, wallElapsed);
         last = now;
-        accumulator += elapsed;
         const game = gameRef.current;
+        accumulator += elapsed * developmentTimeScale(game);
         const currentMode = modeRef.current;
         const preStepFocus = controlledPose(game);
         const preStepStreamFocus = isInterior(game) ? { x: game.x, y: game.y } : preStepFocus;
@@ -367,7 +368,7 @@ export function useGameRuntime(options: GameRuntimeOptions) {
         } else {
           camera.boom = 0;
         }
-        currentNavigation = navigationController.update(game);
+        currentNavigation = navigationController.update(game, navigationSettingsForGame(game));
         music.update(game, modeRef.current, mutedRef.current, document.hidden, selectingDriverRef.current);
         renderFrame(game, now, currentWorld, currentNavigation);
         if (navigationDistanceRef.current) {
@@ -447,7 +448,7 @@ export function useGameRuntime(options: GameRuntimeOptions) {
       }
       try {
         candidate.resize();
-        currentNavigation = navigationController.update(gameRef.current);
+        currentNavigation = navigationController.update(gameRef.current, navigationSettingsForGame(gameRef.current));
         candidate.render(gameRef.current, cameraRef.current, reducedMotion ? 0 : performance.now() / 1000, currentWorld, currentNavigation);
         if (cancelled || gpuUnavailable) {
           candidate.destroy();

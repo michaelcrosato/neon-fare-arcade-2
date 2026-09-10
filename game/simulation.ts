@@ -10,7 +10,6 @@ import {
   FARE_DROPOFF_RADIUS,
   FARE_HANDOFF_SECONDS,
   FARE_PICKUP_RADIUS,
-  HIGHWAY_SPEED_BONUS_WORLD_UNITS,
   RED,
   ROAD_SPACING,
   TAXI_TOP_SPEED_WORLD_UNITS,
@@ -46,8 +45,8 @@ import {
   normalizeAngle,
   rightHandTrafficLane,
 } from "./math";
-import type { FareId, Game, InputState, RunKind, WorldView } from "./model";
-import { isHighwaySpeedSurface, isRoadSurface, nearestRoadProjection } from "./road-network";
+import type { DestinationCard, FareId, Game, InputState, RunKind, WorldView } from "./model";
+import { isRoadSurface, nearestRoadProjection } from "./road-network";
 import { activePassengerJob, getObjective } from "./state";
 import { advancePathTraffic, alignGridTraffic } from "./traffic";
 import { terrainBarrier } from "./terrain/surface";
@@ -91,6 +90,7 @@ export type SimulationEvent = ExplorationEvent
       artCell: number;
       rider: string;
       destination: string;
+      destinationCard?: DestinationCard;
       bonusSeconds: number;
       runKind: RunKind;
     }
@@ -101,6 +101,7 @@ export type SimulationEvent = ExplorationEvent
       artCell: number;
       rider: string;
       destination: string;
+      destinationCard?: DestinationCard;
       fareAward: number;
       stars: PassengerStars;
       tip: number;
@@ -209,6 +210,9 @@ export function stepGame(
   random: RandomSource = Math.random,
 ): SimulationEvent[] {
   const events: SimulationEvent[] = [];
+  const development = game.development?.enabled ? game.development : undefined;
+  const infiniteBoost = development?.infiniteBoost && game.drivingModel === "arcade";
+  if (infiniteBoost) game.boost = 100;
   ensureVehicleRoadMotion(game);
   game.arcadeVehicle ??= makeArcadeVehicleState();
   const previousVx = game.vx, previousVy = game.vy;
@@ -306,9 +310,6 @@ export function stepGame(
     game.boost = Math.max(0, game.boost - 30 * drivingTrait.boostDrainMultiplier * coolerDrain * dt);
   }
 
-  const highwaySpeedBonus = isHighwaySpeedSurface(game)
-    ? HIGHWAY_SPEED_BONUS_WORLD_UNITS
-    : 0;
   const speedRatio = clamp(
     Math.abs(forwardSpeed) / drivingTrait.steeringReferenceSpeed,
     0,
@@ -468,9 +469,8 @@ export function stepGame(
   forwardSpeed -= Math.sign(forwardSpeed) * Math.min(Math.abs(forwardSpeed), drag * dt);
   const overdriveActive = game.boosting && hasRunUpgrade(game, "boost-overdrive");
   const requestedMaxSpeed = overdriveActive
-    ? drivingTrait.maxForwardSpeed + BOOST_OVERDRIVE_BONUS_WORLD_UNITS + highwaySpeedBonus
-    : (game.boosting ? drivingTrait.maxBoostSpeed : drivingTrait.maxForwardSpeed)
-      + highwaySpeedBonus;
+    ? drivingTrait.maxForwardSpeed + BOOST_OVERDRIVE_BONUS_WORLD_UNITS
+    : (game.boosting ? drivingTrait.maxBoostSpeed : drivingTrait.maxForwardSpeed);
   const maxSpeed = Math.min(
     overdriveActive ? BOOST_OVERDRIVE_TOP_SPEED_WORLD_UNITS : TAXI_TOP_SPEED_WORLD_UNITS,
     requestedMaxSpeed,
@@ -885,6 +885,7 @@ export function stepGame(
           artCell: job.passengerArtCell,
           rider: job.rider,
           destination: job.destination,
+          ...(job.destinationCard ? { destinationCard: job.destinationCard } : {}),
           bonusSeconds: pickupBonus,
           runKind: game.runKind,
         });
@@ -934,6 +935,7 @@ export function stepGame(
           artCell: job.destinationArtCell,
           rider: job.rider,
           destination: job.destination,
+          ...(job.destinationCard ? { destinationCard: job.destinationCard } : {}),
           fareAward,
           stars,
           tip,
@@ -968,7 +970,7 @@ export function stepGame(
 
   // Walking is active exploration, not a lifecycle pause. Free exploration
   // freezes the visible meter; an onboard passenger keeps the fare clock live.
-  if (shouldAdvanceRunClock(game)) {
+  if (shouldAdvanceRunClock(game) && !development?.freezeClock) {
     game.timeLeft = Math.max(0, game.timeLeft - dt);
     const whole = Math.ceil(game.timeLeft);
     if (whole <= 10 && whole > 0 && whole !== game.lastBeep) {
@@ -976,5 +978,6 @@ export function stepGame(
       events.push({ type: "clock-warning", secondsRemaining: whole });
     }
   }
+  if (infiniteBoost) game.boost = 100;
   return events;
 }

@@ -8,6 +8,7 @@ import { GameSessionOverlays } from "../../../app/game-session-overlays";
 import { makeCareerState } from "../../../game/career";
 import { createRef } from "react";
 import { TouchDriving } from "../../../app/runtime/touch-driving";
+import { normalizeDevelopmentSettings } from "../../../game/development-settings";
 
 const host = document.createElement("div");
 document.body.appendChild(host);
@@ -38,6 +39,7 @@ function renderModal(modal: "home" | "gas" | "courier" | "how" | "traits" | "sco
   flushSync(() => root.render(<GameModalHost modal={modal} modalParent={null} mode="paused"
     pendingRunKind="free-run" pendingDrivingModel="arcade" hud={EMPTY_HUD} career={makeCareerState()} records={[]}
     mapNotice="" homeNotice="" courierNotice="" gasNotice=""
+    development={{ settings: normalizeDevelopmentSettings(null), activeRun: false, notice: "", onChange: noop, onAction: noop }}
     dialogRef={createRef()} onClose={noop} onBeginRun={noop} onSelectDestination={noop}
     onRemoveDestination={noop} onToggleFareDispatch={noop} onPurchaseHomeItem={noop}
     onRechargeAtHome={noop} onOpenHomeSubview={noop} onPurchaseGasOffer={noop}
@@ -48,7 +50,7 @@ function renderEnd() {
   flushSync(() => root.render(<main className="arcade-shell mode-ended"><section className="game-stage">
     <GameSessionOverlays mode="ended" hud={{ ...EMPTY_HUD, runKind: "timed", score: 9876543, fare: 98765 }} cameraMode="chase-low"
       careerBank={98765} fareCards={[]} diagnosticsActive={false} diagnosticsNotice="" muted={false}
-      onToggleMute={noop} onOpenMap={noop} onSetCameraMode={noop} onSetMode={noop} onOpenHow={noop}
+      onToggleMute={noop} onOpenMap={noop} onSetCameraMode={noop} onSetMode={noop} onOpenHow={noop} onOpenOptions={noop}
       onFinishRun={noop} onToggleFareDispatch={noop} onRequestStartRun={noop} onOpenScores={noop} onCopyDiagnostics={noop} onRecover={noop} />
   </section></main>));
 }

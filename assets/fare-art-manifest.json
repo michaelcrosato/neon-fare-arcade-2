@@ -38,6 +38,16 @@
     { "file": "/fare-destinations-3.webp", "cells": [12, 17], "sha256": "bd1515ad05ee5852ab3500c9c13f20573e4a3a0796cec177681a1544a7ad7d87" },
     { "file": "/fare-destinations-4.webp", "cells": [18, 23], "sha256": "f7a4b07194e4e922a04feaa2db20a9b4bfd5b91df009d0ea7fd6261872afb2a9" },
     {"file": "/fare-destinations-5.webp", "cells": [24, 29], "sha256": "437f56d49a3d40beac638c6215bcd5920f3fa226b1eb82c3429ceb2acc0296de", "provenanceFile": "assets/solana-coast-art-prompts.json" },
-    {"file": "/fare-destinations-6.webp", "cells": [30, 35], "sha256": "6bcc3ef023f1dcd67c2e66cc8e7798fb57bad65ff13ce9e4b9372fe6e1808163", "provenanceFile": "assets/palm-reach-art-prompts.json" }
+    {"file": "/fare-destinations-6.webp", "cells": [30, 35], "sha256": "6bcc3ef023f1dcd67c2e66cc8e7798fb57bad65ff13ce9e4b9372fe6e1808163", "provenanceFile": "assets/palm-reach-art-prompts.json" },
+    {"file":"/fare-destinations-7.webp","cells":[36,41],"sha256":"fc41293fdac8e9f3d37ec2937c9de0c53b53a18415f7c72269314e1b049426dd","provenanceFile":"assets/destination-realism-art-prompts.json"},
+    {"file":"/fare-destinations-8.webp","cells":[42,47],"sha256":"1e28239faddd3cd1d08eb998b0c5eaec4c59ffa426927c881e4c1e2de30ed9a2","provenanceFile":"assets/destination-realism-art-prompts.json"},
+    {"file":"/fare-destinations-9.webp","cells":[48,53],"sha256":"49cc0901e6c2b922c0f51789707d08f3a701c21afa5d1439c6f2ac849f81af9b","provenanceFile":"assets/destination-realism-art-prompts.json"},
+    {"file":"/fare-destinations-10.webp","cells":[54,59],"sha256":"0cb9c41cb72d793898aa0221b2e5c66941d11dd2b34c8ea554547a0ae759aa59","provenanceFile":"assets/destination-realism-art-prompts.json"},
+    {"file":"/fare-destinations-11.webp","cells":[60,65],"sha256":"b3957fa9a0bdbff63b2e1900260a5a87e0ddf4a5c590ecef372b5a6c736aedb2","provenanceFile":"assets/destination-realism-art-prompts.json"},
+    {"file":"/fare-destinations-12.webp","cells":[66,71],"sha256":"cf175374b60b26a53caca3e8142a7926528571955fa20801845b176e6b4d4892","provenanceFile":"assets/destination-realism-art-prompts.json"},
+    {"file":"/fare-destinations-13.webp","cells":[72,77],"sha256":"4da4c813c7b4e69319a73651c4341c0cd27302643921efebfe736c408e4f7f0f","provenanceFile":"assets/destination-realism-art-prompts.json"},
+    {"file":"/fare-destinations-14.webp","cells":[78,83],"sha256":"b44dfed385e6685d7e0fe01ea8b885b2f9947e49829f332d89d1aa855baea66f","provenanceFile":"assets/destination-realism-art-prompts.json"},
+    {"file":"/fare-destinations-15.webp","cells":[84,89],"sha256":"a3c8b57c5d3bbfe25835c5e1c28eca1676e95337f96152c19953a43a38f074e6","provenanceFile":"assets/destination-realism-art-prompts.json"},
+    {"file":"/fare-destinations-16.webp","cells":[90,95],"sha256":"90fc059df80e155f429bc7f2eeea0bd349c5a47737240a243bae4698ebe0dfdb","provenanceFile":"assets/destination-realism-art-prompts.json"}
   ]
 }

@@ -41,6 +41,7 @@ import {
 } from "./state";
 import { districtName } from "./world";
 import { recoveryCost } from "./recovery";
+import { navigationSettingsForGame } from "./development-settings";
 
 export const EMPTY_HUD: Hud = {
   towCost: 0,
@@ -144,7 +145,7 @@ export function makeHud(game: Game, navigation?: NavigationPlan, world?: WorldVi
   const target = getObjective(game);
   const navigationTarget = getNavigationTarget(game);
   const player = { x: game.x, y: game.y, ...(game.z ? { z: game.z } : {}) };
-  const plan = navigation ?? buildNavigationPlan(player, navigationTarget, game.heading);
+  const plan = navigation ?? buildNavigationPlan(player, navigationTarget, game.heading, navigationSettingsForGame(game));
   const navigationSuppressed = !game.fareDispatchEnabled
     && !game.onboard
     && !game.activeCourier
@@ -167,6 +168,10 @@ export function makeHud(game: Game, navigation?: NavigationPlan, world?: WorldVi
     ? game.player.location.venue.label
     : specialRoadNamesNear(controlled, 1)[0] ?? districtName(controlled.x, controlled.y);
   return {
+    playtest: game.playtest ?? false,
+    navigationDiagnostics: plan.diagnostics,
+    runSeed: game.runSeed,
+    elapsed: game.elapsed,
     time: Math.max(0, game.timeLeft),
     towCost: recoveryCost(game),
     towReceipt: game.towRecovery && game.elapsed - game.towRecovery.startedAt < TOW_SECONDS
@@ -234,7 +239,7 @@ export function makeHud(game: Game, navigation?: NavigationPlan, world?: WorldVi
     placeName,
     interactionPrompt: prompt.label,
     interactionDetail: prompt.detail,
-    clockPaused: game.runKind === "timed" && !shouldAdvanceRunClock(game),
+    clockPaused: game.runKind === "timed" && (!shouldAdvanceRunClock(game) || Boolean(game.development?.enabled && game.development.freezeClock)),
     homeRechargeUsed: game.homeRechargeUsed,
     gasTimePurchases: game.gasTimePurchases,
     gasTaxiNearby: isTaxiNearGasStation(game),

@@ -5,10 +5,8 @@ import test from "node:test";
 
 import {
   BOOST_OVERDRIVE_BONUS_KMH,
-  BOOST_OVERDRIVE_TOP_SPEED_KMH,
   BOOST_OVERDRIVE_TOP_SPEED_WORLD_UNITS,
   FIXED_DT,
-  HIGHWAY_SPEED_BONUS_KMH,
   SPEED_KMH_PER_WORLD_UNIT,
   TAXI_TOP_SPEED_KMH,
   TAXI_TOP_SPEED_WORLD_UNITS,
@@ -18,7 +16,7 @@ import { taxiHitsBuilding } from "../../game/collision";
 import { DRIVING_TRAIT_PACKAGES } from "../../game/driving-traits";
 import { passengerDistanceQuote } from "../../game/fare-market";
 import type { InputState, Job, WorldView } from "../../game/model";
-import { isHighwaySpeedSurface, isRoadSurface, sampleSpecialRoad } from "../../game/road-network";
+import { isRoadSurface, sampleSpecialRoad } from "../../game/road-network";
 import { stepGame } from "../../game/simulation";
 import { makeGame } from "../../game/state";
 import { makeTestWorld } from "./support/fixtures";
@@ -369,7 +367,7 @@ test("countersteering catches a slide faster than holding the turn", () => {
   assert.ok(Math.abs(counter.driftAngle) < Math.abs(continued.driftAngle) * 0.25);
 });
 
-test("every four-lane corridor raises normal and boosted top speed by exactly 10 km/h", () => {
+test("four-lane corridors keep the same normal and boosted speed as ordinary streets", () => {
   const bonusRoads = [
     "aurora-boulevard",
     "crosstown-boulevard",
@@ -418,7 +416,7 @@ test("every four-lane corridor raises normal and boosted top speed by exactly 10
       );
       approximate(
         (highwaySpeed - streetSpeed) * SPEED_KMH_PER_WORLD_UNIT,
-        HIGHWAY_SPEED_BONUS_KMH,
+        0,
       );
 
       const highwayBoostSpeed = cappedSpeed(
@@ -430,7 +428,7 @@ test("every four-lane corridor raises normal and boosted top speed by exactly 10
       );
       approximate(
         (highwayBoostSpeed - streetBoostSpeed) * SPEED_KMH_PER_WORLD_UNIT,
-        HIGHWAY_SPEED_BONUS_KMH,
+        0,
       );
 
       approximate(cappedSpeed(
@@ -445,7 +443,7 @@ test("every four-lane corridor raises normal and boosted top speed by exactly 10
   }
 });
 
-test("the global highway ceiling is exactly 180 km/h", () => {
+test("a boosted drift on a corridor respects the package speed cap", () => {
   const sample = sampleSpecialRoad("aurora-boulevard", 700);
   assert.ok(sample);
   for (const trait of DRIVING_TRAIT_PACKAGES) {
@@ -469,7 +467,8 @@ test("the global highway ceiling is exactly 180 km/h", () => {
       () => 1,
     );
     assert.equal(events.filter((event) => event.type === "brake-drift-kick").length, 1);
-    approximate(game.speed * SPEED_KMH_PER_WORLD_UNIT, TAXI_TOP_SPEED_KMH);
+    approximate(game.speed, trait.modifiers.maxBoostSpeed);
+    assert.ok(game.speed * SPEED_KMH_PER_WORLD_UNIT <= TAXI_TOP_SPEED_KMH);
   }
 });
 
@@ -504,12 +503,12 @@ test("Boost Overdrive adds exactly 60 km/h of same-road boosted headroom", () =>
     const highwayBoost = cappedSpeed(trait.id, highway.point.x, highway.point.y, highway.heading, true);
     approximate(streetBoost - streetNormal, BOOST_OVERDRIVE_BONUS_KMH);
     approximate(highwayBoost - highwayNormal, BOOST_OVERDRIVE_BONUS_KMH);
-    approximate(highwayNormal - streetNormal, HIGHWAY_SPEED_BONUS_KMH);
-    approximate(highwayBoost - streetBoost, HIGHWAY_SPEED_BONUS_KMH);
+    approximate(highwayNormal, streetNormal);
+    approximate(highwayBoost, streetBoost);
   }
   approximate(
     cappedSpeed("redline-rush", highway.point.x, highway.point.y, highway.heading, true),
-    BOOST_OVERDRIVE_TOP_SPEED_KMH,
+    165 + BOOST_OVERDRIVE_BONUS_KMH,
   );
 });
 
@@ -543,29 +542,6 @@ test("brake-kick steering remains collision-safe beside a facade", () => {
     assert.ok([game.x, game.y, game.heading, game.vx, game.vy].every(Number.isFinite));
   }
   assert.equal(kickEvents, 1);
-});
-
-test("only authored four-lane corridor surfaces activate the speed bonus", () => {
-  const aurora = sampleSpecialRoad("aurora-boulevard", 180);
-  const auroraShoulder = sampleSpecialRoad("aurora-boulevard", 180, 14);
-  const crosstown = sampleSpecialRoad("crosstown-boulevard", 180);
-  const crosstownShoulder = sampleSpecialRoad("crosstown-boulevard", 180, 14);
-  const parkway = sampleSpecialRoad("harbor-parkway", 180);
-  const ramp = sampleSpecialRoad("starfall-drive", 40);
-  const roundabout = sampleSpecialRoad("apex-circle", 30);
-  assert.ok(
-    aurora && auroraShoulder && crosstown && crosstownShoulder
-    && parkway && ramp && roundabout,
-  );
-
-  assert.equal(isHighwaySpeedSurface(aurora.point), true);
-  assert.equal(isHighwaySpeedSurface(crosstown.point), true);
-  assert.equal(isHighwaySpeedSurface(auroraShoulder.point), false);
-  assert.equal(isHighwaySpeedSurface(crosstownShoulder.point), false);
-  assert.equal(isHighwaySpeedSurface(parkway.point), false);
-  assert.equal(isHighwaySpeedSurface(ramp.point), false);
-  assert.equal(isHighwaySpeedSurface(roundabout.point), false);
-  assert.equal(isHighwaySpeedSurface({ x: 0, y: 0 }), false);
 });
 
 test("steering beside a facade cannot rotate the taxi into a permanent overlap", () => {
@@ -788,6 +764,7 @@ test("pickup mutates game state and emits one semantic event", () => {
     artCell: job.passengerArtCell,
     rider: job.rider,
     destination: job.destination,
+    destinationCard: job.destinationCard,
     bonusSeconds: quote.pickupSeconds,
     runKind: "timed",
   }]);
@@ -829,6 +806,7 @@ test("clean dropoff preserves fare math, combo, handoff lock, and event payload"
     artCell: job.destinationArtCell,
     rider: job.rider,
     destination: job.destination,
+    destinationCard: job.destinationCard,
     fareAward: expectedFare,
     stars: 5,
     tip,
@@ -885,6 +863,7 @@ test("Free Run passenger loops keep time fixed and remove hidden quick-time pres
     artCell: pickupJob.passengerArtCell,
     rider: pickupJob.rider,
     destination: pickupJob.destination,
+    destinationCard: pickupJob.destinationCard,
     bonusSeconds: 0,
     runKind: "free-run",
   }]);
@@ -916,6 +895,7 @@ test("Free Run passenger loops keep time fixed and remove hidden quick-time pres
     artCell: dropoffJob.destinationArtCell,
     rider: dropoffJob.rider,
     destination: dropoffJob.destination,
+    destinationCard: dropoffJob.destinationCard,
     fareAward: expectedFare,
     stars: 5,
     tip,

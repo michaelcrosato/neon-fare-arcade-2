@@ -153,16 +153,12 @@ updates the arcade launch, steering, road elevation and contact rules below.
   Holding brake continues normal deceleration but never retriggers the pulse;
   release and tap again after the cooldown to rotate again. Countersteering and
   collision-clipped turns suppress the effect.
-- The stock taxi top speed is 180 displayed km/h (about 112 mph). Standard
-  packages cap at 160 km/h on local streets and 170 km/h under boost; Redline
-  Rush reaches 165 km/h without boost. While the taxi center is on any authored
-  four-lane corridor—the Aurora or Crosstown boulevard—both
-  normal and boosted forward-speed caps increase by exactly 10 displayed km/h,
-  up to the stock ceiling. Boost Overdrive is the explicit exception: while
-  boosting, it replaces that governor with a cap exactly 60 km/h above the
-  selected package's normal cap on the same road, reaching at most 235 km/h.
-  Two-lane parkways, ramps, roundabouts, shoulders,
-  and local streets do not qualify. Reverse speed, trait modifiers, and payout
+- Standard packages cap at 160 displayed km/h and 170 km/h under boost;
+  Redline Rush reaches 165 km/h without boost. Road class never increases
+  those caps: highways and four-lane boulevards use the same handling package
+  as local streets. Boost Overdrive raises the boosted cap exactly 60 km/h
+  above the selected package's normal cap, reaching 225 km/h for Redline Rush.
+  Reverse speed, trait modifiers, and payout
   formulas remain unchanged; a
   faster trip may still earn a larger existing quick-time bonus. High-speed
   movement uses additional collision substeps so the taxi cannot tunnel through
@@ -257,8 +253,8 @@ updates the arcade launch, steering, road elevation and contact rules below.
   immediately and is copied into every fresh run by `applyCareerRunBonuses`.
   Boost Overdrive raises the active boosted cap exactly 60 km/h above the
   selected cab package's normal cap on that same road. It leaves acceleration,
-  boost drain, reverse, and non-boosted speed unchanged; the upgraded absolute
-  ceiling is 235 km/h for Redline Rush on a four-lane corridor.
+  boost drain, reverse, and non-boosted speed unchanged; Redline Rush's upgraded
+  boosted cap is 225 km/h on every road class.
 - Permanent upgrades remain purchasable during Simulation Free Run because
   ownership applies across modes. Rally Tires improve the simulation cab's
   off-road friction and rolling resistance while retaining the arcade taxi's
@@ -273,8 +269,17 @@ updates the arcade launch, steering, road elevation and contact rules below.
   Reach and Solana Coast. A* graph routing must keep every segment in an active cell;
   Palm Reach connects through Cedar or Copper and routes never cut across an
   inactive diagonal cell.
-- A reverse departure is allowed only when it saves at least one road spacing
-  and the forward route is at least 1.4× longer.
+- A reverse departure or U-turn recommendation requires at least 1,000 displayed
+  meters of actual road-distance savings compared with continuing forward.
+  Weighted graph costs and route ratios are not passenger-distance savings.
+  An unknown/unreachable forward route cannot prove the required savings.
+- The controller keeps the selected route until the player is more than 1,000
+  displayed meters from the closest point on any remaining segment, measured
+  in three dimensions. Passing a turn, leaving one lane, or reversing heading
+  cannot bypass that gate. Normal waypoint progress and a valid later rejoin
+  trim the existing route without recomputing it. A changed destination, new
+  run, explicit Dev Mode relocation, or actual roadside recovery starts a new route immediately; the end of
+  the tow animation does not. Dev Mode may adjust both distance thresholds.
 - U-turn guidance uses hysteresis and an alignment hold so the warning cannot
   flicker while the taxi rotates.
 - The minimap, instruction copy, and 3D cue consume the same
@@ -398,12 +403,27 @@ updates the arcade launch, steering, road elevation and contact rules below.
   cast contains 48 shared identities plus 24 pickup identities exclusive to
   each of Cedar Vale, Northstar Range, Copper Mesa, Palm Reach, and Solana
   Coast. Passenger cards have 168 stable art cells across twenty-eight physical
-  3x2 portrait sheets; destination cards have 36 cells across six sheets. Coast
-  stops use cells 24–29, Palm Reach uses 30–35, and the other regions use 0–23. They derive their
-  art from the stop ID before snapshotting. There is no fixed pickup or
-  destination catalog. Unit tests use
+  3x2 portrait sheets; destination artwork has 96 categorized cells across
+  sixteen sheets. The 63 named destinations use their actual model footprints,
+  each with three distinct occasion cards. Ordinary neighborhood cards use the
+  generated lot's building family. Art is selected by place semantics before
+  snapshotting; a stop-ID hash may select an occasion, never an unrelated image.
+  Curbs remain procedural and retain their stable IDs. Unit tests use
   explicit seeds for deterministic replay. The six-bit availability mask
   remains cycle-sized, never portrait- or procedural-supply-sized.
+- A fresh six-fare market targets four distinct landmarks before filling with
+  compatible neighborhood stops. Large/featured landmarks carry extra selection
+  weight. All candidates retain the same road distance, safety and separation
+  gates, so constrained markets can use more neighborhood stops.
+- Waterfront artwork requires a semantic water footprint within three local
+  street blocks. Named arrival curbs must serve the actual model; the long
+  Solana Pier uses its nearby coast-road access. Misleading legacy IDs do not
+  dictate the image: South Terminal is a bus station and Marina Arcade is inland.
+- Empty rural lots cannot receive ordinary dropoffs. A compatible outdoor rider
+  has a 1-in-20 outing roll, with at most one scenic fare per market; the stop
+  must be a real trailhead or beach-access lot with matching artwork and purpose.
+  The selected occasion persists through pickup, dropoff, the card deck and
+  passenger review. Fare quotes, tips, six slots and regional rider history stay unchanged.
 - Rider history is independent per service region. Selection excludes every
   identity already used in the active regional window until at least 50% of
   that region's eligible roster has appeared: 24 shared riders in Neon City or
@@ -552,3 +572,24 @@ High-value fixtures are in `tests/game/`:
 
 When behavior should change, update implementation and the relevant fixture in
 the same reviewed change, with the intended gameplay difference documented.
+
+## Dev Mode
+
+- Options is visible in the header and pause menu. Dev Mode defaults off and
+  stores its normalized settings on this device. Turning it off restores the
+  normal 1,000 m GPS thresholds and ordinary clock, boost and simulation speed.
+- GPS reroute distance and U-turn savings accept 0–10,000 displayed meters.
+  Updating thresholds does not itself discard the current route. A live
+  readout exposes route revision/reason, deviation, remaining distance, position,
+  speed, run seed and elapsed simulation time.
+- Clock freeze and infinite arcade boost run inside the fixed-step simulation.
+  Slow motion and 2× speed change step frequency, never `FIXED_DT`. Simulation
+  handling never receives arcade boost. Single-step runs exactly one idle-input
+  fixed frame while paused; seeded restart preserves run kind and driving model.
+- Test destinations use the same validated curbs and occasion cards as dispatch.
+  Teleport/reset checks real pavement, elevation, collision and traffic, and
+  places the taxi upright. Loading a test fare preserves six stable rider slots.
+- Position, time, boost, traffic, single-step, restart and test-fare tools mark
+  the run as a playtest. This flag remains after disabling Dev Mode. Playtest
+  results never add career earnings or run-log records; GPS tuning alone does
+  not mark a playtest.

@@ -248,6 +248,17 @@
 
 .fare-impact--dropoff .fare-impact__copy > strong { text-shadow: 5px 5px 0 var(--red); }
 
+.fare-card-occasion {
+  margin: 0.3rem 0;
+  color: var(--ink);
+  font-size: clamp(0.7rem, 1.3vw, 1rem);
+  font-weight: 900;
+  letter-spacing: 0.045em;
+  line-height: 1.2;
+}
+
+.fare-impact__copy > .fare-card-occasion { display: block; margin-top: 18px; }
+
 .fare-impact__copy > em {
   display: block;
   width: fit-content;

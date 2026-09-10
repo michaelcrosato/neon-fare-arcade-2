@@ -147,11 +147,8 @@ export const RUN_TIME = 75;
 export const FIXED_DT = 1 / 60;
 export const SPEED_KMH_PER_WORLD_UNIT = 3.1;
 export const TAXI_TOP_SPEED_KMH = 180;
-export const HIGHWAY_SPEED_BONUS_KMH = 10;
 export const BOOST_OVERDRIVE_BONUS_KMH = 60;
 export const BOOST_OVERDRIVE_TOP_SPEED_KMH = 235;
-export const HIGHWAY_SPEED_BONUS_WORLD_UNITS =
-  HIGHWAY_SPEED_BONUS_KMH / SPEED_KMH_PER_WORLD_UNIT;
 export const BOOST_OVERDRIVE_BONUS_WORLD_UNITS =
   BOOST_OVERDRIVE_BONUS_KMH / SPEED_KMH_PER_WORLD_UNIT;
 export const BOOST_OVERDRIVE_TOP_SPEED_WORLD_UNITS =
@@ -161,7 +158,7 @@ export const STANDARD_TAXI_FORWARD_SPEED_WORLD_UNITS =
 export const REDLINE_TAXI_FORWARD_SPEED_WORLD_UNITS =
   165 / SPEED_KMH_PER_WORLD_UNIT;
 export const TAXI_BOOST_SPEED_WORLD_UNITS =
-  (TAXI_TOP_SPEED_KMH - HIGHWAY_SPEED_BONUS_KMH) / SPEED_KMH_PER_WORLD_UNIT;
+  170 / SPEED_KMH_PER_WORLD_UNIT;
 export const TAXI_TOP_SPEED_WORLD_UNITS =
   TAXI_TOP_SPEED_KMH / SPEED_KMH_PER_WORLD_UNIT;
 /** Normal lots pull their authored contents inward to leave a broad, readable
@@ -182,8 +179,8 @@ export const NAV_VELOCITY_HEADING_ENTER_SPEED = 4;
 export const NAV_VELOCITY_HEADING_EXIT_SPEED = 2;
 export const UTURN_ENTER_ANGLE = Math.PI * 0.75;
 export const UTURN_EXIT_ANGLE = Math.PI * 0.19;
-export const UTURN_MIN_SAVINGS = ROAD_SPACING;
-export const UTURN_ROUTE_RATIO = 1.4;
+export const UTURN_MIN_SAVINGS_METERS = 1000;
+export const NAVIGATION_REROUTE_DISTANCE_METERS = 1000;
 export const UTURN_ALIGNMENT_HOLD = 0.22;
 export const NAVIGATION_ARRIVAL_RADIUS = 6;
 export const NAVIGATION_REPLAN_COOLDOWN = 0.35;
@@ -249,7 +246,7 @@ export const MAT_SANDSTONE = MATERIAL.SANDSTONE;
 
 /** Passenger and destination atlases scale independently. */
 export const PASSENGER_ART_CELL_COUNT = 168;
-export const DESTINATION_ART_CELL_COUNT = 36;
+export const DESTINATION_ART_CELL_COUNT = 96;
 
 /** A challenger must save half a block before the live GPS changes fares. */
 export const FARE_TARGET_SWITCH_MARGIN = ROAD_SPACING / 2;

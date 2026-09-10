@@ -65,8 +65,9 @@ const RIDER_PLANS = [
   "my saltwater taffy", "my tidepool tour", "my beachfront cinema", "my oceanfront dinner",
 ] as const;
 
-export function passengerComment(job: Pick<Job, "passengerArtCell">, stars: PassengerStars) {
-  const plan = RIDER_PLANS[job.passengerArtCell] ?? "my next adventure";
+export function passengerComment(job: Pick<Job, "passengerArtCell" | "destinationCard">, stars: PassengerStars) {
+  const plan = job.destinationCard ? `my ${job.destinationCard.occasion.toLowerCase()}`
+    : RIDER_PLANS[job.passengerArtCell] ?? "my next adventure";
   switch (stars) {
     case 5: return `Early for ${plan}! You're a legend. Keep the tip!`;
     case 4: return `Made it for ${plan}. Thanks — a little extra for you.`;

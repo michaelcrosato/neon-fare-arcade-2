@@ -75,6 +75,7 @@ export function MobileGameHud({ mode, hud, fareImpact, courierImpact, touchDrivi
 
     {mode === "playing" && (event || hud.message) && <div className={`mobile-notice ${event ? "is-event" : ""}`} aria-hidden="true">
       <strong>{event?.title ?? hud.message}</strong>{event && <span>{event.detail}</span>}
+      {event && fareImpact?.destinationCard && <small className="fare-card-occasion">{fareImpact.destinationCard.occasion}</small>}
     </div>}
 
     {mode === "playing" && driving && hud.interactionPrompt && <button type="button" ref={taxiExitRef}

@@ -23,6 +23,7 @@ const exhaustive = new Set([
   "copper-terrain.test.ts",
   "copper-gameplay.test.ts",
   "desert.test.ts",
+  "destination-cards.test.ts",
   "fare-market.test.ts",
   "landmarks.test.ts",
   "mountain-roads.test.ts",

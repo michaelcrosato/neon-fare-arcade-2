@@ -3,7 +3,6 @@ import { REACH_ROAD_IDS } from "./reach-roads";
 import {
   BLOCKS_PER_CHUNK,
   DISTRICT_LABELS,
-  DESTINATION_ART_CELL_COUNT,
   FARE_DROPOFF_RADIUS,
   FARE_PICKUP_RADIUS,
   FARE_STOP_RULES,
@@ -29,6 +28,7 @@ import { clamp, distance, nearestRoadX, nearestRoadY } from "./math";
 import type {
   CityChunk,
   Collider,
+  DestinationCard,
   Job,
   SurfaceRegion,
   Vec2,
@@ -43,7 +43,9 @@ import {
   nearestRoadProjection,
 } from "./road-network";
 import { gridStreetPointEnabled } from "./road-topology";
-import { districtForPosition, generateCityChunk } from "./world";
+import { districtForPosition, generateCityChunk, lotForBlock } from "./world";
+import { DESTINATION_PLACES, destinationCardsForPlace, destinationPlaceAt, distanceToDestinationPlace, type DestinationPlace } from "./destination-cards";
+import { neighborhoodDestinationCard, riderHasScenicTrip, scenicDestinationCard } from "./destination-environment";
 import {
   chunkCoordinateForBlock as owningChunkCoordinateForBlock,
   containingRegionForPosition,
@@ -68,6 +70,7 @@ type CurbCandidate = {
   side: CurbSide;
   slot: number;
   zone: WorldPoint;
+  destinationPlaceId?: string;
 };
 
 export type FareStopPlacement = {
@@ -80,6 +83,7 @@ export type FareStopPlacement = {
   district: ReturnType<typeof districtForPosition>;
   label: string;
   artCell: number;
+  destinationCard?: DestinationCard;
 };
 
 export type FareStopPlacementReport = {
@@ -529,12 +533,118 @@ function asPlacement(candidate: CurbCandidate, radius: number): FareStopPlacemen
     blockY: candidate.blockY,
     district,
     label: `${regionalPlaceName(candidate.zone.x, candidate.zone.y) ?? DISTRICT_LABELS[district]} · ${code}`,
-    // Regional atlases have fixed ranges so new art never reshuffles other regions.
-    artCell: district === "coastal"
-      ? 24 + stableHash(`destination-art:${candidate.id}`) % 6
-      : district === "wetland" ? 30 + stableHash(`destination-art:${candidate.id}`) % (DESTINATION_ART_CELL_COUNT - 30)
-        : stableHash(`destination-art:${candidate.id}`) % 24,
+    // Pickup placement has no destination artwork. The destination resolver below
+    // must attach a compatible, world-backed card before this can become a dropoff.
+    artCell: 0,
   };
+}
+
+export const DESTINATION_WATER_NEARBY_DISTANCE = ROAD_SPACING * 3;
+const destinationWaterCache = new Map<string, number>();
+
+/** Exact distance to semantic water footprints, including neighboring chunks. */
+export function destinationWaterDistance(point: Vec2) {
+  const key = `${point.x},${point.y}`;
+  const cached = destinationWaterCache.get(key);
+  if (cached !== undefined) return cached;
+  const radius = DESTINATION_WATER_NEARBY_DISTANCE;
+  const chunks = new Map<string, CityChunk>();
+  const minX = Math.floor((point.x - radius) / ROAD_SPACING);
+  const maxX = Math.ceil((point.x + radius) / ROAD_SPACING);
+  const minY = Math.floor((point.y - radius) / ROAD_SPACING);
+  const maxY = Math.ceil((point.y + radius) / ROAD_SPACING);
+  for (let x = minX; x <= maxX; x += 1) for (let y = minY; y <= maxY; y += 1) {
+    if (!isActiveBlock(x, y)) continue;
+    const chunk = chunkForBlock(x, y);
+    chunks.set(chunk.key, chunk);
+  }
+  let nearest = Infinity;
+  for (const chunk of chunks.values()) for (const water of chunk.surfaceRegions) {
+    const dx = point.x - water.x, dy = point.y - water.y;
+    const c = Math.cos(water.yaw), s = Math.sin(water.yaw);
+    nearest = Math.min(nearest, Math.hypot(Math.max(0, Math.abs(c * dx + s * dy) - water.halfX),
+      Math.max(0, Math.abs(-s * dx + c * dy) - water.halfY)));
+  }
+  destinationWaterCache.set(key, nearest);
+  return nearest;
+}
+
+function withDestinationCard(stop: FareStopPlacement, card: DestinationCard | null) {
+  if (!card || (card.requiresWater && destinationWaterDistance(stop.zone) > DESTINATION_WATER_NEARBY_DISTANCE)) return null;
+  return { ...stop, artCell: card.artCell, label: card.label, destinationCard: card };
+}
+
+function asDestinationPlacement(candidate: CurbCandidate, seed: number, scenicRiderId?: string) {
+  const place = candidate.destinationPlaceId
+    ? DESTINATION_PLACES.find(entry => entry.id === candidate.destinationPlaceId) ?? null
+    : destinationPlaceAt(candidate.zone);
+  const district = districtForPosition(candidate.zone.x, candidate.zone.y);
+  const lot = lotForBlock(candidate.blockX, candidate.blockY, district);
+  if (scenicRiderId ? !scenicDestinationCard(lot, scenicRiderId, candidate.id, "")
+    : !place && !neighborhoodDestinationCard(lot, candidate.id, "")) return null;
+  const stop = asPlacement(candidate, FARE_DROPOFF_RADIUS);
+  if (!stop) return null;
+  if (place && !scenicRiderId) {
+    const cards = destinationCardsForPlace(place.id);
+    return withDestinationCard(stop, cards[stableHash(`occasion:${place.id}`, seed) % cards.length]);
+  }
+  const card = scenicRiderId
+    ? scenicDestinationCard(lot, scenicRiderId, stop.id, regionalPlaceName(stop.zone.x, stop.zone.y) ?? stop.label)
+    : neighborhoodDestinationCard(lot, stop.id, stop.label);
+  return withDestinationCard(stop, card);
+}
+
+const landmarkCandidateCache = new Map<string, CurbCandidate[]>();
+function landmarkCandidates(place: DestinationPlace) {
+  const cached = landmarkCandidateCache.get(place.id);
+  if (cached) return cached;
+  const output: CurbCandidate[] = [];
+  for (let x = Math.floor((place.bounds.minX - place.arrivalRadius) / ROAD_SPACING); x < Math.ceil((place.bounds.maxX + place.arrivalRadius) / ROAD_SPACING); x += 1) {
+    for (let y = Math.floor((place.bounds.minY - place.arrivalRadius) / ROAD_SPACING); y < Math.ceil((place.bounds.maxY + place.arrivalRadius) / ROAD_SPACING); y += 1) {
+      for (const side of SIDES) for (let slot = 0; slot < ALONG_SLOTS.length; slot += 1) {
+        const candidate = curbCandidate(x, y, side, slot);
+        if (distanceToDestinationPlace(candidate.zone, place) <= place.arrivalRadius && candidateAdjacentGridRoadEnabled(candidate)) {
+          output.push({ ...candidate, destinationPlaceId: place.id });
+        }
+      }
+    }
+  }
+  output.push(...REGIONAL_ROADSIDE_CANDIDATES.filter(candidate => distanceToDestinationPlace(candidate.zone, place) <= place.arrivalRadius)
+    .map(candidate => ({ ...candidate, destinationPlaceId: place.id })));
+  landmarkCandidateCache.set(place.id, output);
+  return output;
+}
+
+function rankedLandmarkCandidates(seed: number, region: WorldRegion | null) {
+  return DESTINATION_PLACES.filter(place => !region || place.regionId === region.id)
+    .map(place => ({ place, rank: stableHash(`popular:${place.id}`, seed) / (place.major ? 3 : 1) }))
+    .sort((a, b) => a.rank - b.rank || a.place.id.localeCompare(b.place.id))
+    .flatMap(({ place }) => landmarkCandidates(place)
+      .map(candidate => ({ ...candidate, rank: stableHash(`landmark-curb:${candidate.id}`, seed) }))
+      .sort((a, b) => Math.floor(distanceToDestinationPlace(a.zone, place) / 10) - Math.floor(distanceToDestinationPlace(b.zone, place) / 10)
+        || a.rank - b.rank || a.id.localeCompare(b.id)));
+}
+
+/** Shared by destination audits and Dev Mode; every result passes normal curb safety. */
+export function landmarkDestinationStops(placeId: string, seed = 0): FareStopPlacement[] {
+  const place = DESTINATION_PLACES.find(entry => entry.id === placeId);
+  if (!place) return [];
+  return landmarkCandidates(place).map(candidate => asDestinationPlacement(candidate, seed))
+    .filter((stop): stop is NonNullable<typeof stop> => stop !== null);
+}
+
+function addRankedDestinations(
+  output: FareStopPlacement[], candidates: readonly CurbCandidate[], seed: number,
+  accept: (stop: FareStopPlacement) => boolean, targetCount: number,
+) {
+  if (output.length >= targetCount) return;
+  for (const candidate of candidates) {
+    if (output.some(stop => stop.id === candidate.id)) continue;
+    const stop = asDestinationPlacement(candidate, seed);
+    if (!stop || output.some(selected => selected.destinationCard?.placeId === stop.destinationCard?.placeId) || !accept(stop)) continue;
+    output.push(stop);
+    if (output.length >= targetCount) return;
+  }
 }
 
 function previousStopIds(previousJobs: readonly Job[]) {
@@ -684,6 +794,20 @@ function selectDestinationStops(
   const previousPoints = previousStopPoints(previousJobs);
   const pickupIds = new Set(pickups.map((stop) => stop.id));
   const output: FareStopPlacement[] = [];
+  const localRegion = region ?? containingRegionForPosition(anchor.x, anchor.y);
+  const accept = (stop: FareStopPlacement) => (
+    !pickupIds.has(stop.id)
+    && (!localRegion || stopBelongsToRegion(stop, localRegion))
+    && avoidsPreviousStops(stop, previousIds, previousPoints)
+    && pickups.every((pickup) => {
+      const routeDistance = streetRouteDistance(pickup.approach, stop.approach);
+      return routeDistance >= MIN_FARE_HANDOFF_DISTANCE && routeDistance <= MAX_FARE_TRIP_DISTANCE;
+    })
+    && output.every((selected) => distance(selected.zone, stop.zone) >= ROAD_SPACING)
+  );
+  const popularCount = targetCount === 1 ? (seed % 4 === 0 ? 0 : 1) : Math.round(targetCount * 0.7);
+  addRankedDestinations(output, rankedLandmarkCandidates(seed, localRegion), seed, accept, popularCount);
+  if (output.length === targetCount) return output;
   const radii = [
     FARE_STOP_RULES.destinationRadius,
     FARE_STOP_RULES.destinationRadius * 1.5,
@@ -692,19 +816,9 @@ function selectDestinationStops(
   for (const searchRadius of radii) {
     const candidates = candidatesInRegion(
       rankedCandidates(seed, `dropoff:${searchRadius}`, anchor, searchRadius),
-      region,
+      localRegion,
     );
-    addRankedStops(output, candidates, FARE_DROPOFF_RADIUS, (stop) => (
-      !pickupIds.has(stop.id)
-      && (!region || stopBelongsToRegion(stop, region))
-      && avoidsPreviousStops(stop, previousIds, previousPoints)
-      && pickups.every((pickup) => {
-        const routeDistance = streetRouteDistance(pickup.approach, stop.approach);
-        return routeDistance >= MIN_FARE_HANDOFF_DISTANCE
-          && routeDistance <= MAX_FARE_TRIP_DISTANCE;
-      })
-      && output.every((selected) => distance(selected.zone, stop.zone) >= ROAD_SPACING)
-    ), targetCount);
+    addRankedDestinations(output, candidates, seed, accept, targetCount);
     if (output.length === targetCount) return output;
   }
   throw new Error(`Procedural fare placement could not find ${targetCount} safe destination curbs`);
@@ -733,6 +847,8 @@ export type FareStopPairOptions = {
   count?: number;
   /** Number of pickups guaranteed inside the local nearby-search radius. */
   nearbyPickupCount?: number;
+  /** Rare outdoor outings are matched to the already selected fictional rider. */
+  riderIds?: readonly string[];
 };
 
 /** Finite, seeded selection over procedural curb slots derived from city bounds. */
@@ -779,6 +895,27 @@ export function createProceduralFareStopPairs(
     count,
   );
   const pairedDestinations = shuffled(destinations, stableHash("pairing-stream", seed));
+  // At most one scenic outing in a six-fare market, and only on a 1-in-20
+  // eligible-rider roll. Ordinary selection never admits wilderness lots.
+  const scenicIndex = options.riderIds?.findIndex(id => riderHasScenicTrip(id)
+    && stableHash(`scenic-outing:${id}`, seed) % 20 === 0) ?? -1;
+  if (scenicIndex >= 0) {
+    const riderId = options.riderIds![scenicIndex];
+    const previousIds = previousStopIds(previousJobs), previousPoints = previousStopPoints(previousJobs);
+    const candidates = candidatesInRegion(rankedCandidates(seed, "scenic-outing", anchor, FARE_STOP_RULES.destinationRadius * 1.5), region);
+    for (const candidate of candidates) {
+      const stop = asDestinationPlacement(candidate, seed, riderId);
+      if (!stop || !avoidsPreviousStops(stop, previousIds, previousPoints)
+        || pickups.some(pickup => pickup.id === stop.id)
+        || pairedDestinations.some((other, index) => index !== scenicIndex && distance(other.zone, stop.zone) < ROAD_SPACING)) continue;
+      if (!pickups.every(pickup => {
+        const length = streetRouteDistance(pickup.approach, stop.approach);
+        return length >= MIN_FARE_HANDOFF_DISTANCE && length <= MAX_FARE_TRIP_DISTANCE;
+      })) continue;
+      pairedDestinations[scenicIndex] = stop;
+      break;
+    }
+  }
   return pickups.map((pickup, index) => ({ pickup, dropoff: pairedDestinations[index] }));
 }
 
@@ -816,7 +953,7 @@ function selectRegionalDestinationStop(
         : true;
     return eastWest && northSouth;
   };
-  addRankedStops(output, candidates, FARE_DROPOFF_RADIUS, (stop) => {
+  const accept = (stop: FareStopPlacement) => {
     const routeDistance = streetRouteDistance(pickup.approach, stop.approach);
     return stop.id !== pickup.id
       && stopBelongsToRegion(stop, target)
@@ -824,7 +961,9 @@ function selectRegionalDestinationStop(
       && routeDistance >= MIN_REGIONAL_FARE_TRIP_DISTANCE
       && routeDistance <= maxDistance
       && avoidsPreviousStops(stop, previousIds, previousPoints);
-  }, 1);
+  };
+  addRankedDestinations(output, rankedLandmarkCandidates(seed, target), seed, accept, 1);
+  if (!output.length) addRankedDestinations(output, candidates, seed, accept, 1);
   return output[0] ?? null;
 }
 

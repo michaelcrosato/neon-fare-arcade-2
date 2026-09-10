@@ -1,0 +1,34 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import { runDevelopmentCommand } from "../../app/runtime/development-actions";
+import { FIXED_DT } from "../../game/config";
+import { makeCareerState } from "../../game/career";
+import { applyDevelopmentSettings, developmentTimeScale } from "../../game/development-settings";
+import { makeGame } from "../../game/state";
+
+test("a paused playtest steps exactly once and a seeded restart reproduces its six fares", () => {
+  const game = makeGame("street-ace", 271, "free-run");
+  const career = makeCareerState();
+  applyDevelopmentSettings(game, { enabled: true, timeScale: .5 });
+  assert.equal(developmentTimeScale(game), .5);
+  const stepped = runDevelopmentCommand(game, { kind: "step" }, career);
+  assert.equal(stepped.ok, true);
+  assert.equal(stepped.game.elapsed, FIXED_DT, "single-step ignores render time scale");
+  assert.equal(stepped.game.playtest, true);
+  const first = runDevelopmentCommand(game, { kind: "restart", seed: 12345 }, career);
+  const second = runDevelopmentCommand(first.game, { kind: "restart", seed: 12345 }, career);
+  assert.equal(first.game.elapsed, 0);
+  assert.equal(first.game.drivingModel, game.drivingModel);
+  assert.equal(first.game.runKind, game.runKind);
+  assert.equal(first.game.playtest, true);
+  assert.deepEqual(first.game.fareJobs, second.game.fareJobs);
+  assert.deepEqual(first.game.development, game.development);
+  const invalid = runDevelopmentCommand(game, { kind: "restart", seed: NaN }, career);
+  assert.equal(invalid.ok, false);
+  assert.equal(invalid.game, game);
+  applyDevelopmentSettings(game, { enabled: false, timeScale: .5 });
+  assert.equal(developmentTimeScale(game), 1);
+  const before = structuredClone(game);
+  assert.equal(runDevelopmentCommand(game, { kind: "step" }, career).ok, false);
+  assert.deepEqual(game, before);
+});

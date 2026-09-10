@@ -39,6 +39,11 @@ import type {
 import { drivingTraitPackage } from "@/game/driving-traits";
 import { regionalPlaceName } from "@/game/regions";
 import { makeGame } from "@/game/state";
+import { applyDevelopmentSettings } from "@/game/development-settings";
+import type { DevelopmentAction } from "@/game/development-actions";
+import { presentDevelopmentCommand } from "./runtime/development-actions";
+import { useDevelopmentMode } from "./use-development-mode";
+import { DevelopmentReadout } from "./development-panel";
 import {
   refreshFareDispatch,
   setFareDispatchEnabled,
@@ -158,6 +163,7 @@ export default function Home() {
   const [diagnostics] = useState(() => new DiagnosticsRecorder());
   const [diagnosticsActive] = useState(() => diagnosticsEnabled());
   const [diagnosticsNotice, setDiagnosticsNotice] = useState("");
+  const [developmentNotice, setDevelopmentNotice] = useState("");
   const { career, careerRef, ready: careerReady, bankRun, buyItem, buyGasStationOffer } = useCareer();
   const {
     history: fareCards,
@@ -187,6 +193,12 @@ export default function Home() {
   const checkpointExternalGameChange = useCallback((reason: string) => {
     if (diagnosticsActive) diagnostics.recordExternalCheckpoint(reason, gameRef.current);
   }, [diagnostics, diagnosticsActive]);
+
+  const developmentSettingsChanged = useCallback(() => {
+    checkpointExternalGameChange("development:settings");
+    setHud(makeHud(gameRef.current));
+  }, [checkpointExternalGameChange]);
+  const { settings: development, settingsRef: developmentRef, changeSettings: changeDevelopment } = useDevelopmentMode(gameRef, developmentSettingsChanged);
 
   const triggerCourierImpact = useCallback((impact: Omit<CourierImpact, "id">) => {
     if (courierImpactTimerRef.current !== null) window.clearTimeout(courierImpactTimerRef.current);
@@ -455,6 +467,7 @@ export default function Home() {
     const runKind = pendingRunKind;
     const drivingModel = pendingDrivingModel;
     const game = makeGame(drivingTraitId, freshRunSeed(), runKind, drivingModel);
+    applyDevelopmentSettings(game, developmentRef.current);
     warmPassengerArt(game.fareJobs);
     runResultBankedRef.current = false;
     applyCareerRunBonuses(game, careerRef.current);
@@ -478,7 +491,7 @@ export default function Home() {
       ? "Crown Cab simulation ready. Automatic transmission in drive. Three, two, one."
       : `${drivingTraitPackage(drivingTraitId).name} locked in. ${runKind === "free-run" ? "Free Run" : "Arcade shift"} starting. Three, two, one.`);
     tone(420, 0.08, "square", 350);
-  }, [careerRef, clearInput, diagnostics, ensureAudio, pendingDrivingModel, pendingRunKind, resetFareCards, setMode, tone]);
+  }, [careerRef, clearInput, developmentRef, diagnostics, ensureAudio, pendingDrivingModel, pendingRunKind, resetFareCards, setMode, tone]);
 
   const finishRun = useCallback(() => {
     if (runResultBankedRef.current) return;
@@ -493,7 +506,7 @@ export default function Home() {
       rank,
       date: new Date().toLocaleDateString(undefined, { month: "short", day: "numeric" }),
     };
-    if (game.runKind === "timed") {
+    if (game.runKind === "timed" && !game.playtest) {
       setRecords((current) => {
         const next = [record, ...current].sort((a, b) => b.score - a.score).slice(0, 5);
         try {
@@ -504,7 +517,7 @@ export default function Home() {
       setBest((current) => Math.max(current, game.score));
     }
     setMode("ended");
-    setAudioAnnouncement(game.runKind === "free-run"
+    setAudioAnnouncement(game.playtest ? "Playtest complete. Earnings and scores were not saved." : game.runKind === "free-run"
       ? `Free Run parked. Score ${game.score}. ${game.fare} dollars banked. Career balance ${nextCareer.bank} dollars.`
       : `Run over. Rank ${rank}. Score ${game.score}. ${game.fare} dollars banked. Career balance ${nextCareer.bank} dollars.`);
     tone(520, 0.45, "sawtooth", 90);
@@ -637,6 +650,12 @@ export default function Home() {
       openModal,
     });
   }, [openModal, tone, triggerCourierImpact, triggerFareImpact]);
+
+  const runDevelopmentAction = useCallback((action: DevelopmentAction) => {
+    presentDevelopmentCommand(action, { gameRef, cameraRef, modeRef, careerRef, runResultBankedRef, diagnostics,
+      clearInput, resetFareCards, setCourierImpact, warmPassengerArt, onSimulationEvents, triggerFareImpact,
+      checkpointExternalGameChange, setHud, setDevelopmentNotice, setAudioAnnouncement });
+  }, [careerRef, checkpointExternalGameChange, clearInput, diagnostics, onSimulationEvents, resetFareCards, triggerFareImpact]);
 
   useGameRuntime({
     selectingDriverRef,
@@ -842,6 +861,8 @@ export default function Home() {
           <i aria-hidden="true"><b /><b /><b /><b /><b /><b /></i>
         </button>
         <nav aria-label="Game navigation">
+          <button onClick={() => openModal("options")} disabled={!careerReady}>OPTIONS</button>
+          <span aria-hidden="true" />
           <button onClick={() => openModal("how")} disabled={!careerReady}>HOW TO PLAY</button>
           <span aria-hidden="true" />
           <button onClick={() => openModal("scores")} disabled={!careerReady}>RUN LOG</button>
@@ -896,6 +917,8 @@ export default function Home() {
           touchDriving={touchDriving}
           taxiExitRef={taxiExitRef}
         />
+        {mode === "playing" && development.enabled && development.showDiagnostics && <DevelopmentReadout hud={hud} />}
+        {mode === "playing" && hud.playtest && !(development.enabled && development.showDiagnostics) && <div className="development-playtest-badge">PLAYTEST</div>}
         {mode === "menu" && (
           <GameModeMenu
             ready={careerReady}
@@ -920,6 +943,7 @@ export default function Home() {
           onSetCameraMode={setCameraMode}
           onSetMode={setMode}
           onOpenHow={() => openModal("how")}
+          onOpenOptions={() => openModal("options")}
           onFinishRun={finishRun}
           onToggleFareDispatch={toggleFareDispatch}
           onRequestStartRun={requestStartRun}
@@ -942,6 +966,7 @@ export default function Home() {
         homeNotice={homeNotice}
         courierNotice={courierNotice}
         gasNotice={gasNotice}
+        development={{ settings: development, activeRun: mode === "paused", notice: developmentNotice, onChange: changeDevelopment, onAction: runDevelopmentAction }}
         dialogRef={modalDialogRef}
         onClose={closeModal}
         onBeginRun={beginRun}

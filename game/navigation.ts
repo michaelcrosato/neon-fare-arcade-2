@@ -1,4 +1,5 @@
 import {
+  DISPLAY_METERS_PER_WORLD_UNIT,
   NAVIGATION_ARRIVAL_RADIUS,
   NAVIGATION_REPLAN_COOLDOWN,
   NAV_VELOCITY_HEADING_ENTER_SPEED,
@@ -12,8 +13,6 @@ import {
   UTURN_ALIGNMENT_HOLD,
   UTURN_ENTER_ANGLE,
   UTURN_EXIT_ANGLE,
-  UTURN_MIN_SAVINGS,
-  UTURN_ROUTE_RATIO,
 } from "./config";
 import {
   clamp,
@@ -33,6 +32,7 @@ import {
   routeRoadNetwork,
 } from "./road-network";
 import { getNavigationKey, getNavigationTarget } from "./state";
+import { DEFAULT_NAVIGATION_SETTINGS, normalizeNavigationSettings, type NavigationSettings } from "./navigation-policy";
 
 export { buildGpsRoute, compactRoute, routeLength, snapToRoad } from "./route-geometry";
 export type { RoadSnap } from "./route-geometry";
@@ -60,7 +60,8 @@ function graphRouteCandidateForDirection(start: WorldPoint, target: WorldPoint, 
   return route ? { ...route, route: compactRoute(route.route) } : null;
 }
 
-export function buildNavigationPlan(start: WorldPoint, target: WorldPoint, heading: number): NavigationPlan {
+export function buildNavigationPlan(start: WorldPoint, target: WorldPoint, heading: number,
+  settings: Readonly<NavigationSettings> = DEFAULT_NAVIGATION_SETTINGS): NavigationPlan {
   const directDistance = distance(start, target);
   if (directDistance <= NAVIGATION_ARRIVAL_RADIUS && Math.abs((start.z ?? 0) - (target.z ?? 0)) < 1.4) {
     return makeNavigationPlan({
@@ -72,9 +73,10 @@ export function buildNavigationPlan(start: WorldPoint, target: WorldPoint, headi
   }
   const forward = graphRouteCandidateForDirection(start, target, heading, 1);
   const reverse = graphRouteCandidateForDirection(start, target, heading, -1);
-  const forwardCost = forward?.cost ?? (forward ? routeLength(forward.route) : Number.POSITIVE_INFINITY);
-  const reverseCost = reverse?.cost ?? (reverse ? routeLength(reverse.route) : Number.POSITIVE_INFINITY);
-  const reverseIsWorthIt = Boolean(reverse) && preferReverseRoute(forwardCost, reverseCost);
+  const forwardDistance = forward ? routeLength(forward.route) : Number.POSITIVE_INFINITY;
+  const reverseDistance = reverse ? routeLength(reverse.route) : Number.POSITIVE_INFINITY;
+  const reverseIsWorthIt = Boolean(reverse) && preferReverseRoute(forwardDistance, reverseDistance,
+    normalizeNavigationSettings(settings).uTurnSavingsMeters / DISPLAY_METERS_PER_WORLD_UNIT);
   const chosen = reverseIsWorthIt ? reverse : forward || reverse;
   if (!chosen) {
     const networkFallback = routeRoadNetwork(start, target, heading, 1)
@@ -84,7 +86,7 @@ export function buildNavigationPlan(start: WorldPoint, target: WorldPoint, headi
     return makeNavigationPlan({
       route,
       departureYaw,
-      requiresUTurn: Math.abs(normalizeAngle(departureYaw - heading)) >= UTURN_ENTER_ANGLE,
+      requiresUTurn: false,
       travelHeading: heading,
     });
   }
@@ -96,9 +98,10 @@ export function buildNavigationPlan(start: WorldPoint, target: WorldPoint, headi
   });
 }
 
-export function preferReverseRoute(forwardCost: number, reverseCost: number) {
-  return Number.isFinite(reverseCost) && (forwardCost - reverseCost >= UTURN_MIN_SAVINGS
-    && forwardCost >= reverseCost * UTURN_ROUTE_RATIO);
+export function preferReverseRoute(forwardDistance: number, reverseDistance: number,
+  minimumSavings = DEFAULT_NAVIGATION_SETTINGS.uTurnSavingsMeters / DISPLAY_METERS_PER_WORLD_UNIT) {
+  return Number.isFinite(forwardDistance) && Number.isFinite(reverseDistance)
+    && forwardDistance - reverseDistance >= minimumSavings - 1e-9;
 }
 
 function makeNavigationPlan(plan: Omit<NavigationPlan, "turnCue">): NavigationPlan {
@@ -117,17 +120,39 @@ export function gameTravelHeading(game: Game, useVelocity = Math.hypot(game.vx, 
 }
 
 export function pointToSegmentDistance(point: WorldPoint, start: WorldPoint, end: WorldPoint) {
+  return routePointDistance(point, projectOntoSegment(point, start, end).point);
+}
+
+function routePointDistance(a: WorldPoint, b: WorldPoint) {
+  return Math.hypot(a.x - b.x, a.y - b.y, (a.z ?? 0) - (b.z ?? 0));
+}
+
+function projectOntoSegment(point: WorldPoint, start: WorldPoint, end: WorldPoint) {
   const dx = end.x - start.x;
   const dy = end.y - start.y;
-  const lengthSquared = dx * dx + dy * dy;
-  if (lengthSquared < 0.01) return distance(point, end);
-  const t = clamp(((point.x - start.x) * dx + (point.y - start.y) * dy) / lengthSquared, 0, 1);
-  const z = (start.z ?? 0) + ((end.z ?? 0) - (start.z ?? 0)) * t;
-  return Math.hypot(point.x - start.x - dx * t, point.y - start.y - dy * t, ((point.z ?? 0) - z) * 4);
+  const dz = (end.z ?? 0) - (start.z ?? 0);
+  const lengthSquared = dx * dx + dy * dy + dz * dz;
+  const t = lengthSquared < 1e-8 ? 0 : clamp(((point.x - start.x) * dx + (point.y - start.y) * dy
+    + ((point.z ?? 0) - (start.z ?? 0)) * dz) / lengthSquared, 0, 1);
+  return { point: { x: start.x + dx * t, y: start.y + dy * t, z: (start.z ?? 0) + dz * t },
+    progress: Math.sqrt(lengthSquared) * t };
+}
+
+/** All remaining legs participate, including curved roads and later rejoin points. */
+export function closestPointOnRoute(point: WorldPoint, route: readonly WorldPoint[]) {
+  if (!route.length) return null;
+  let closest = { point: route[0], segment: 0, progress: 0, distance: routePointDistance(point, route[0]) };
+  for (let index = 1; index < route.length; index += 1) {
+    const projection = projectOntoSegment(point, route[index - 1], route[index]);
+    const separation = routePointDistance(point, projection.point);
+    if (separation < closest.distance - 1e-8) closest = { ...projection, segment: index - 1, distance: separation };
+  }
+  return closest;
 }
 
 export class NavigationController {
   private objectiveKey = "";
+  private targetKey = "";
   private waypoints: WorldPoint[] = [];
   private activeStart: WorldPoint = { x: 0, y: 0 };
   private activeYaw = 0;
@@ -139,14 +164,26 @@ export class NavigationController {
   private turnCueVisible = false;
   private usingVelocityHeading = false;
   private recoveryAt: number | undefined;
+  private revision = 0;
+  private reason: NonNullable<NavigationPlan["diagnostics"]>["reason"] = "start";
+  private lastDirectionCheckAt = Number.NEGATIVE_INFINITY;
+  private policyKey = "";
+  private developmentRevision = 0;
 
-  private adoptPlan(plan: NavigationPlan, player: WorldPoint, elapsed: number) {
+  private adoptPlan(plan: NavigationPlan, player: WorldPoint, elapsed: number,
+    reason: NonNullable<NavigationPlan["diagnostics"]>["reason"], target: WorldPoint) {
     this.waypoints = plan.route.slice(1);
+    // Compaction merges an arrival's coincident points. Retain the destination
+    // as a waypoint so nearby movement keeps the same endpoint and plan.
+    if (!this.waypoints.length && distance(player, target) <= NAVIGATION_ARRIVAL_RADIUS) this.waypoints = [{ ...target }];
     this.activeStart = player;
     this.activeYaw = plan.departureYaw;
     this.wrongWay = plan.requiresUTurn;
     this.alignedFor = 0;
     this.lastReplanAt = elapsed;
+    this.lastDirectionCheckAt = elapsed;
+    this.revision += 1;
+    this.reason = reason;
   }
 
   private resolveTurnCue(player: WorldPoint, travelHeading: number): TurnCue | null {
@@ -190,13 +227,29 @@ export class NavigationController {
     return this.turnCueVisible ? cue : null;
   }
 
-  update(game: Game): NavigationPlan {
+  update(game: Game, settings: Readonly<NavigationSettings> = DEFAULT_NAVIGATION_SETTINGS): NavigationPlan {
+    const policy = normalizeNavigationSettings(settings);
+    const policyKey = `${policy.rerouteDistanceMeters}:${policy.uTurnSavingsMeters}`;
+    if (this.policyKey && policyKey !== this.policyKey) {
+      this.wrongWay = false;
+      this.alignedFor = 0;
+      this.lastDirectionCheckAt = Number.NEGATIVE_INFINITY;
+    }
+    this.policyKey = policyKey;
     const player = { x: game.x, y: game.y, z: game.z ?? 0 };
     const target = getNavigationTarget(game);
     const objectiveKey = getNavigationKey(game);
+    const targetKey = `${target.x}:${target.y}:${target.z ?? 0}`;
+    // Waiting fares can stream to a new curb while retaining their rider ID.
+    // Roaming's target is the taxi itself and must not count as a new objective.
+    const targetChanged = objectiveKey !== "off-duty" && targetKey !== this.targetKey;
+    this.targetKey = targetKey;
     const isNewRun = game.elapsed + 0.1 < this.lastElapsed;
-    const recovered = this.recoveryAt !== game.towRecovery?.startedAt;
-    this.recoveryAt = game.towRecovery?.startedAt;
+    const developmentChanged = (game.navigationRevision ?? 0) !== this.developmentRevision;
+    this.developmentRevision = game.navigationRevision ?? 0;
+    if (isNewRun) this.recoveryAt = undefined;
+    const recovered = game.towRecovery != null && game.towRecovery.startedAt !== this.recoveryAt;
+    if (recovered) this.recoveryAt = game.towRecovery!.startedAt;
     if (isNewRun) this.usingVelocityHeading = false;
     const velocity = Math.hypot(game.vx, game.vy);
     if (this.usingVelocityHeading) {
@@ -205,17 +258,23 @@ export class NavigationController {
       this.usingVelocityHeading = true;
     }
     const travelHeading = gameTravelHeading(game, this.usingVelocityHeading);
-    if (objectiveKey !== this.objectiveKey || isNewRun || recovered || this.waypoints.length === 0) {
-      if (objectiveKey !== this.objectiveKey || isNewRun || recovered) {
+    if (objectiveKey !== this.objectiveKey || targetChanged || isNewRun || recovered || developmentChanged || this.revision === 0) {
+      if (objectiveKey !== this.objectiveKey || targetChanged || isNewRun || recovered || developmentChanged) {
         this.turnCueKey = "";
         this.turnCueVisible = false;
       }
+      const reason = isNewRun ? "new-run" : recovered ? "recovery" : developmentChanged ? "development" : this.revision === 0 ? "start" : "destination";
       this.objectiveKey = objectiveKey;
-      this.adoptPlan(buildNavigationPlan(player, target, travelHeading), player, game.elapsed);
+      this.adoptPlan(buildNavigationPlan(player, target, travelHeading, policy), player, game.elapsed, reason, target);
     }
 
     const canReplan = game.elapsed - this.lastReplanAt >= NAVIGATION_REPLAN_COOLDOWN;
-    let replanned = false;
+    const plannedRoute = [this.activeStart, ...this.waypoints];
+    const nearest = closestPointOnRoute(player, plannedRoute);
+    const deviationMeters = (nearest?.distance ?? 0) * DISPLAY_METERS_PER_WORLD_UNIT;
+    if (canReplan && deviationMeters > policy.rerouteDistanceMeters + 1e-7) {
+      this.adoptPlan(buildNavigationPlan(player, target, travelHeading, policy), player, game.elapsed, "deviation", target);
+    }
     while (this.waypoints.length > 1) {
       const waypoint = this.waypoints[0];
       const next = this.waypoints[1];
@@ -224,6 +283,7 @@ export class NavigationController {
       const atIntersection = isRoadJunctionPoint(waypoint);
       if (!atIntersection && waypointDistance < ROAD_HALF + 1 && Math.abs((player.z ?? 0) - (waypoint.z ?? 0)) < 1.4) {
         this.activeStart = waypoint;
+        this.activeYaw = segmentYaw(waypoint, next);
         this.waypoints.shift();
         continue;
       }
@@ -242,10 +302,6 @@ export class NavigationController {
           this.waypoints.shift();
           continue;
         }
-        if (passedDistance > 1.5 && canReplan) {
-          this.adoptPlan(buildNavigationPlan(player, target, travelHeading), player, game.elapsed);
-          replanned = true;
-        }
       } else if (waypointDistance < 2 || passedDistance > 1.5) {
         this.activeStart = waypoint;
         this.activeYaw = outgoingYaw;
@@ -255,36 +311,44 @@ export class NavigationController {
       break;
     }
 
-    if (!replanned && canReplan && this.waypoints.length) {
-      const waypoint = this.waypoints[0];
-      const crossTrack = pointToSegmentDistance(player, this.activeStart, waypoint);
-      if (crossTrack > roadHalfWidthAtPoint(player) + 3 && distance(player, waypoint) > 12) {
-        this.adoptPlan(buildNavigationPlan(player, target, travelHeading), player, game.elapsed);
-        replanned = true;
+    // Rejoining a later leg consumes the existing prefix; it does not ask the
+    // road graph for another route. Require actual road/deck and exit alignment.
+    const remaining = [this.activeStart, ...this.waypoints];
+    const rejoin = closestPointOnRoute(player, remaining);
+    if (rejoin && rejoin.segment > 0 && (rejoin.segment > 1 || rejoin.progress >= TURN_EXIT_PROGRESS)
+      && rejoin.distance <= roadHalfWidthAtPoint(player) + 1
+      && Math.abs((player.z ?? 0) - (rejoin.point.z ?? 0)) < 1.5) {
+      const yaw = segmentYaw(remaining[rejoin.segment], remaining[rejoin.segment + 1]);
+      if (Math.abs(normalizeAngle(yaw - travelHeading)) < TURN_EXIT_ALIGNMENT_LIMIT) {
+        this.activeStart = remaining[rejoin.segment];
+        this.activeYaw = yaw;
+        this.waypoints = this.waypoints.slice(rejoin.segment);
       }
     }
 
-    let route = compactRoute([player, ...this.waypoints]);
-    let departureYaw = this.activeYaw;
+    const route = compactRoute([player, ...this.waypoints]);
+    const departureYaw = this.activeYaw;
     const nearDestination = routeLength(route) <= NAVIGATION_ARRIVAL_RADIUS + 0.2;
     const elapsedDelta = clamp(game.elapsed - this.lastElapsed, 0, 0.1);
-    let headingError = Math.abs(normalizeAngle(departureYaw - travelHeading));
+    const headingError = Math.abs(normalizeAngle(departureYaw - travelHeading));
     if (this.wrongWay) {
       this.alignedFor = headingError < UTURN_EXIT_ANGLE ? this.alignedFor + elapsedDelta : 0;
       if (this.alignedFor >= UTURN_ALIGNMENT_HOLD) {
         this.wrongWay = false;
         this.alignedFor = 0;
       }
-    } else if (!nearDestination && headingError > UTURN_ENTER_ANGLE && canReplan) {
-      this.adoptPlan(buildNavigationPlan(player, target, travelHeading), player, game.elapsed);
-      route = compactRoute([player, ...this.waypoints]);
-      departureYaw = this.activeYaw;
-      headingError = Math.abs(normalizeAngle(departureYaw - travelHeading));
-      this.wrongWay = this.wrongWay || headingError > UTURN_ENTER_ANGLE;
+    } else if (!nearDestination && headingError > UTURN_ENTER_ANGLE
+      && game.elapsed - this.lastDirectionCheckAt >= NAVIGATION_REPLAN_COOLDOWN) {
+      this.lastDirectionCheckAt = game.elapsed;
+      const forward = graphRouteCandidateForDirection(player, target, travelHeading, 1);
+      const reverse = graphRouteCandidateForDirection(player, target, travelHeading, -1);
+      this.wrongWay = Boolean(forward && reverse) && preferReverseRoute(
+        routeLength(forward!.route), routeLength(reverse!.route), policy.uTurnSavingsMeters / DISPLAY_METERS_PER_WORLD_UNIT);
     }
     this.lastElapsed = game.elapsed;
     const turnCue = this.resolveTurnCue(player, travelHeading);
-    return { route, departureYaw, requiresUTurn: this.wrongWay, travelHeading, turnCue };
+    return { route, departureYaw, requiresUTurn: this.wrongWay, travelHeading, turnCue,
+      diagnostics: { revision: this.revision, deviationMeters, reason: this.reason, ...policy } };
   }
 }
 

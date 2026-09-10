@@ -9,6 +9,37 @@
   backdrop-filter: blur(6px);
 }
 
+.development-panel { color: var(--ink); }
+.development-panel h2 { margin-right: 35px; }
+.development-panel p { font-size: .95rem; line-height: 1.4; margin: 10px 0 16px; }
+.development-enable { display: flex; align-items: center; gap: 14px; padding: 18px; border: 3px solid var(--ink); background: var(--yellow); cursor: pointer; }
+.development-enable strong { display: block; font-size: 1.6rem; }
+.development-enable small { display: block; font-weight: 650; }
+.development-panel input[type="checkbox"] { width: 24px; height: 24px; flex: 0 0 auto; accent-color: var(--ink); }
+.development-section { min-width: 0; margin: 22px 0; padding: 14px; border: 2px solid var(--ink); }
+.development-section legend { padding: 0 7px; font-size: 1.2rem; font-weight: 900; }
+.development-fields, .development-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)); align-items: end; gap: 10px; margin: 12px 0; }
+.development-fields label, .development-select { display: grid; gap: 6px; font-weight: 850; min-width: 0; }
+.development-select { margin: 12px 0; }
+.development-panel select, .development-panel input[type="number"] { min-width: 0; width: 100%; min-height: 44px; border: 2px solid var(--ink); border-radius: 0; padding: 8px; color: var(--ink); background: #fff9e9; font: inherit; }
+.development-panel button { min-height: 44px; padding: 10px 12px; border: 2px solid var(--ink); background: var(--ink); color: var(--paper); font-weight: 850; cursor: pointer; }
+.development-panel button:disabled { opacity: .4; cursor: default; }
+.development-panel .primary-small { width: 100%; background: var(--yellow); color: var(--ink); }
+.development-check { display: flex; align-items: center; gap: 10px; min-height: 44px; font-weight: 750; }
+.development-destination { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; margin: 16px 0; }
+.development-destination > div:last-child { flex: 1 1 120px; }
+.development-art { flex: 0 1 180px; width: 180px; aspect-ratio: 1; background-size: 300% 200%; border: 3px solid var(--ink); }
+.development-destination strong { font-size: 1.4rem; }
+.development-destination small { font-weight: 850; }
+.development-notice { padding: 12px; background: #fff9e9; border-left: 5px solid var(--cyan); }
+.development-readout, .development-playtest-badge { position: absolute; z-index: 48; left: 12px; bottom: 110px; max-width: calc(100% - 24px); padding: 8px 10px; background: rgba(8, 17, 25, .88); color: #eaffe9; border: 1px solid var(--cyan); font: 11px/1.5 monospace; pointer-events: none; }
+.development-readout { display: grid; }
+.development-readout strong, .development-playtest-badge { color: var(--yellow); }
+@media (max-width: 700px) {
+  .development-section { padding: 10px; }
+  .development-readout, .development-playtest-badge { bottom: 210px; font-size: 9px; }
+}
+
 .comic-modal {
   position: relative;
   width: min(820px, 100%);

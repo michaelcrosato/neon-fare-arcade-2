@@ -168,8 +168,9 @@ export function careerFromRunRecords(records: readonly RunRecord[]): CareerState
 
 export function bankCareerRun(
   career: CareerState,
-  result: Pick<Game, "fare" | "score" | "deliveries">,
+  result: Pick<Game, "fare" | "score" | "deliveries" | "playtest">,
 ): CareerState {
+  if (result.playtest) return career;
   const fare = safeWholeNumber(result.fare);
   return {
     ...career,

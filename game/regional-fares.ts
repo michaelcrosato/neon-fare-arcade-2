@@ -106,6 +106,7 @@ export function scheduleSixthFareTransfer(
     game.fareJobs = game.fareJobs.map((job, index) => index === jobIndex ? {
       ...job,
       destinationArtCell: dropoff.artCell,
+      destinationCard: dropoff.destinationCard,
       dropoffStopId: dropoff.id,
       dropoff: { ...dropoff.zone },
       dropoffApproach: { ...dropoff.approach },

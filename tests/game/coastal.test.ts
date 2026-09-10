@@ -129,7 +129,8 @@ test("coastal fares use their local cast and destination art, with City-only tra
     for (const job of market.jobs) {
       assert.equal(containingRegionForPosition(job.pickup.x, job.pickup.y)?.id, coast.id);
       assert.equal(containingRegionForPosition(job.dropoff.x, job.dropoff.y)?.id, coast.id);
-      assert.ok(job.destinationArtCell >= 24 && job.destinationArtCell <= 29);
+      assert.ok(job.destinationCard, "coastal destination has an environment-backed card");
+      assert.equal(job.destinationArtCell, job.destinationCard.artCell);
       assert.ok(job.passengerArtCell < 48 || job.passengerArtCell >= 144);
       if (job.passengerArtCell >= 144) seenLocal.add(job.rider);
     }

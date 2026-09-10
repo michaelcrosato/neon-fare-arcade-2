@@ -62,8 +62,8 @@ export function passengerDistanceQuote(
 
 /**
  * Build the initial six-fare market from seeded, world-validated curb slots.
- * There is no pickup or destination catalog: stop geography expands with the
- * city bounds and remains reproducible from the run seed and cycle.
+ * Pickup geography expands with the world. Dropoffs favor authored landmarks
+ * and match actual lot content while retaining procedural, validated curb IDs.
  */
 export function createFareMarket(
   runSeed: number,
@@ -88,6 +88,7 @@ export function createFareMarket(
     previousJobs,
     useOpeningPickup,
     region,
+    { riderIds: riderSelection.riders.map(rider => rider.id) },
   );
   const jobs = riderSelection.riders.map((rider, index): Job => {
     const { pickup, dropoff } = stopPairs[index];
@@ -96,6 +97,7 @@ export function createFareMarket(
       rider: rider.rider,
       passengerArtCell: rider.passengerArtCell,
       destinationArtCell: dropoff.artCell,
+      destinationCard: dropoff.destinationCard,
       pickupStopId: pickup.id,
       pickup: { ...pickup.zone },
       pickupApproach: { ...pickup.approach },
@@ -144,6 +146,7 @@ export function createFareStreamMarket(input: {
       anchor: input.anchor,
       count: input.count,
       nearbyPickupCount: Math.min(input.count, FARE_STREAM_NEARBY_TARGET),
+      riderIds: riderSelection.riders.map(rider => rider.id),
     },
   );
   const jobs = riderSelection.riders.map((rider, index): Job => {
@@ -153,6 +156,7 @@ export function createFareStreamMarket(input: {
       rider: rider.rider,
       passengerArtCell: rider.passengerArtCell,
       destinationArtCell: dropoff.artCell,
+      destinationCard: dropoff.destinationCard,
       pickupStopId: pickup.id,
       pickup: { ...pickup.zone },
       pickupApproach: { ...pickup.approach },

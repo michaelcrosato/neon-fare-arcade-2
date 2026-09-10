@@ -4,7 +4,7 @@ import { compileRoad } from "../../game/roads/geometry";
 import { RoadSpatialIndex } from "../../game/roads/spatial-index";
 import { groundContact, ROAD_SURFACE_HEIGHT } from "../../game/roads/contact";
 import { SPECIAL_ROADS } from "../../game/road-layout";
-import { sampleSpecialRoad, specialRoadLength, specialRoadSurfaceIndex, routeRoadNetworkShortest, isHighwaySpeedSurface } from "../../game/road-network";
+import { sampleSpecialRoad, specialRoadLength, specialRoadSurfaceIndex, routeRoadNetworkShortest } from "../../game/road-network";
 import { makeGame } from "../../game/state";
 import { stepVehicleRoadContact } from "../../game/vehicle-road-contact";
 import { findTaxiExitPose, canEnterTaxi, stepWalkingActor } from "../../game/player";
@@ -118,8 +118,6 @@ test("bridge height is shared by taxi geometry, walking and re-entry", () => {
   assert.ok(Math.abs((actor.elevation ?? 0) - game.z) < 0.02);
   assert.equal(canEnterTaxi(game, { ...actor, z: actor.elevation }), true);
   assert.equal(canEnterTaxi(game, { x: game.x, y: game.y, z: 0 }), false);
-  assert.equal(isHighwaySpeedSurface(game), false, "the two-lane regional bridge keeps its ordinary speed limit");
-  assert.equal(isHighwaySpeedSurface({ ...game, z: 0 }), false);
 });
 
 test("solid height intervals separate underpasses and ignore props below the actor", () => {

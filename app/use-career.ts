@@ -62,7 +62,7 @@ export function useCareer() {
     return () => window.cancelAnimationFrame(frame);
   }, []);
 
-  const bankRun = useCallback((result: Pick<Game, "fare" | "score" | "deliveries">) => {
+  const bankRun = useCallback((result: Pick<Game, "fare" | "score" | "deliveries" | "playtest">) => {
     return commitCareer(bankCareerRun(careerRef.current, result));
   }, [commitCareer]);
 

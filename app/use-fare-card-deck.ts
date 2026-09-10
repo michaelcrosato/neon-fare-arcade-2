@@ -7,6 +7,7 @@ import {
   viewFareCardDeck,
 } from "@/game/fare-card-deck";
 import type { FareImpact } from "@/game/model";
+import { fareArtAsset, fareArtFrame } from "@/game/fare-presentation";
 
 export function useFareCardDeck(paused: boolean) {
   const [state, dispatch] = useReducer(fareCardDeckReducer, undefined, createFareCardDeck);
@@ -51,6 +52,12 @@ export function useFareCardDeck(paused: boolean) {
   }, [deck.active, paused]);
 
   const addFareCard = useCallback((draft: Omit<FareImpact, "id">) => {
+    // Fetch this fare's destination while its passenger is being picked up;
+    // the full destination library is not downloaded at startup.
+    if (draft.kind === "pickup" && draft.destinationCard) {
+      const image = new window.Image();
+      image.src = fareArtAsset("dropoff", fareArtFrame(draft.destinationCard.artCell).sheet);
+    }
     const card = { ...draft, id: ++nextIdRef.current };
     dispatch({ type: "add-card", card });
     return card;

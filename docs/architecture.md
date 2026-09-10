@@ -63,8 +63,8 @@ page lifecycle. Free Run is deliberately excluded from the timed best score and
 Run Log.
 
 Passenger assignments are run-owned data rather than static config lookups.
-`game/passengers.ts` owns 48 shared identities plus four 24-rider pickup casts
-exclusive to Cedar Vale, Northstar Range, Copper Mesa, and Palm Reach, with
+`game/passengers.ts` owns 48 shared identities plus five 24-rider pickup casts
+exclusive to Cedar Vale, Northstar Range, Copper Mesa, Palm Reach and Solana Coast, with
 independent regional usage windows. A market draws only fresh eligible
 identities until half of that region's deck has appeared; the window then resets
 while the immediately previous six remain blocked.
@@ -78,6 +78,21 @@ shared distance quote. Selection, navigation, and rendering consume the same
 six stable `Game.fareJobs` slots. Unaccepted local slots beyond the rolling
 market radius may be replaced with fresh, region-eligible fares near the taxi;
 picked-up jobs, availability bits, completed progress, and fare six never move.
+
+`game/destination-cards.ts` classifies all destination artwork and connects
+named places to their actual model bounds and occasion cards.
+`game/destination-environment.ts` maps generated built lots and rare rider-matched
+outings to that artwork. Placement favors landmarks while retaining the same
+procedural safety, distance and six-slot invariants. Selected cards travel with
+the job through semantic events, reviews and both mobile and desktop presentation.
+
+Dev Mode settings are normalized in `game/development-settings.ts` and persisted
+by `app/use-development-mode.ts`. Pure landmark/reset commands live in
+`game/development-actions.ts`; paused stepping/restarting and their presentation
+live in `app/runtime/development-actions.ts`. The main frame loop reads the same
+settings and retains fixed-step physics. Clock/boost changes are deterministic
+simulation rules. A sticky run flag excludes playtest results from banking and
+the run log. Navigation diagnostics report adoption separately from progress.
 `game/fare-selection.ts` also owns the Free Run duty switch. Off Duty freezes
 passenger dispatch and presentation without discarding the market; returning
 On Duty performs one bounded stream/selection pass. Stream refreshes stay
@@ -150,8 +165,8 @@ The same definitions drive five consumers:
    road surfaces with their owning chunk.
 2. `navigation.ts` compares the legacy local-street route with graph shortcuts
    while preserving the forward-first U-turn policy.
-3. `simulation.ts` uses shared surface queries for off-road grip, recovery, and
-   the four-lane corridor top-speed bonus.
+3. `simulation.ts` uses shared surface queries for off-road grip, elevation,
+   and recovery. Road class does not grant a speed bonus.
 4. `traffic.ts` samples closed road paths with arbitrary headings and right-hand
    lane offsets.
 5. `GpsMap` draws the exact authored polylines.

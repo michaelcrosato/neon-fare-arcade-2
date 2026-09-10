@@ -1,7 +1,7 @@
 import type { WorldRegionId } from "./region-types";
 
 export type Mode = "menu" | "countdown" | "playing" | "paused" | "ended";
-export type Modal = "traits" | "how" | "scores" | "map" | "home" | "courier" | "gas" | null;
+export type Modal = "traits" | "how" | "scores" | "map" | "home" | "courier" | "gas" | "options" | null;
 export type CameraMode = "fixed" | "chase-high" | "chase-low" | "cab";
 export type DrivingTraitId = "street-ace" | "drift-demon" | "redline-rush";
 export type RunKind = "timed" | "free-run";
@@ -347,6 +347,14 @@ export type NavigationPlan = {
   travelHeading: number;
   /** The controller-stabilized turn cue shared by every presentation layer. */
   turnCue: TurnCue | null;
+  /** Read-only playtest evidence; ordinary route progress never increments revision. */
+  diagnostics?: {
+    revision: number;
+    deviationMeters: number;
+    reason: "start" | "destination" | "new-run" | "recovery" | "development" | "deviation";
+    rerouteDistanceMeters: number;
+    uTurnSavingsMeters: number;
+  };
 };
 
 export type FareImpact = {
@@ -359,6 +367,7 @@ export type FareImpact = {
   durationMs: number;
   rider: string;
   destination: string;
+  destinationCard?: DestinationCard;
   eyebrow: string;
   headline: string;
   detail: string;
@@ -510,11 +519,24 @@ export type Particle = {
   color: Color;
 };
 
+export type DestinationCategory = "waterfront" | "residential" | "retail" | "hospitality" | "transport" | "industry" | "culture" | "civic" | "park" | "scenic";
+export type DestinationCard = {
+  id: string;
+  placeId: string;
+  label: string;
+  occasion: string;
+  artCell: number;
+  category: DestinationCategory;
+  kind: "landmark" | "neighborhood" | "scenic";
+  requiresWater: boolean;
+};
+
 export type Job = {
   id: FareId;
   rider: string;
   passengerArtCell: number;
   destinationArtCell: number;
+  destinationCard?: DestinationCard;
   pickupStopId: string;
   /** Off-road fare-zone center used by world markers and dwell checks. */
   pickup: WorldPoint;
@@ -569,6 +591,11 @@ export type ArcadeVehicleState = {
 };
 
 export type Game = {
+  development?: import("./development-settings").DevelopmentSettings;
+  /** Sticky for this run after using tools that change time, supplies or position. */
+  playtest?: boolean;
+  /** Explicit playtest teleport/assignment; ordinary motion never changes this. */
+  navigationRevision?: number;
   /** Last roadside rescue. Its bounded departure path and receipt expire visually, not from history. */
   towRecovery?: { startedAt: number; cost: number; path: Array<WorldPoint & { heading: number }> } | null;
   /** The taxi pose. Never repurpose these fields for the walking avatar. */
@@ -699,6 +726,10 @@ export type CourierMapMarker = {
 };
 
 export type Hud = {
+  playtest?: boolean;
+  navigationDiagnostics?: NavigationPlan["diagnostics"];
+  runSeed?: number;
+  elapsed?: number;
   towCost: number;
   towReceipt: { cost: number; age: number } | null;
   time: number;

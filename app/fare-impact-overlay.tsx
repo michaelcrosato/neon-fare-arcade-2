@@ -44,6 +44,7 @@ export const FareImpactOverlay = memo(function FareImpactOverlay({ impact }: Far
             <span>{impact.destination}</span>
           </div>
           <strong>{impact.headline}</strong>
+          {impact.destinationCard && <p className="fare-card-occasion">{impact.destinationCard.occasion}</p>}
           <em>{impact.detail}</em>
         </div>
 

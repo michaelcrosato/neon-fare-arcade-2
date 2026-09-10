@@ -1,4 +1,4 @@
-import type { DrivingModel, FareId, FareImpact, RunKind } from "./model";
+import type { DestinationCard, DrivingModel, FareId, FareImpact, RunKind } from "./model";
 
 export const FARE_CARD_TIMING_MS = {
   enter: 180,
@@ -47,6 +47,7 @@ export function makePickupFareImpact(input: {
   bonusSeconds: number;
   runKind: RunKind;
   drivingModel?: DrivingModel;
+  destinationCard?: DestinationCard;
 }): FareImpactDraft {
   return {
     kind: "pickup",
@@ -56,6 +57,7 @@ export function makePickupFareImpact(input: {
     durationMs: FARE_IMPACT_DURATION_MS.pickup,
     rider: input.rider,
     destination: input.destination,
+    ...(input.destinationCard ? { destinationCard: input.destinationCard } : {}),
     eyebrow: "NEW FARE // PICKUP LOCKED",
     headline: `${input.rider} IN!`,
     detail: input.runKind === "free-run"
@@ -73,6 +75,7 @@ export function makeDropoffFareImpact(input: {
   rider: string;
   destination: string;
   fareAward: number;
+  destinationCard?: DestinationCard;
   stars?: number;
   tip?: number;
   bonusSeconds: number;
@@ -87,6 +90,7 @@ export function makeDropoffFareImpact(input: {
     durationMs: FARE_IMPACT_DURATION_MS.dropoff,
     rider: input.rider,
     destination: input.destination,
+    ...(input.destinationCard ? { destinationCard: input.destinationCard } : {}),
     eyebrow: "DESTINATION HIT // FARE COMPLETE",
     headline: `+$${input.fareAward}`,
     detail: input.stars !== undefined

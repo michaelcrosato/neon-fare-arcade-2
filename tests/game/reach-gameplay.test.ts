@@ -54,12 +54,19 @@ test("southern rolling dispatch finds six local pickups and Palm Reach destinati
     const pairs = createProceduralFareStopPairs(seed + 81, [], false, region, { anchor, nearbyPickupCount: 2 });
     assert.equal(pairs.length, 6);
     assert.ok(pairs.filter(pair => Math.hypot(pair.pickup.zone.x - anchor.x, pair.pickup.zone.y - anchor.y) < 360).length >= 2);
-    assert.ok(pairs.every(pair => pair.pickup.zone.y > 2376 && pair.dropoff.artCell >= 30 && pair.dropoff.artCell < 36));
+    assert.ok(pairs.every(pair => pair.pickup.zone.y > 2376));
+    for (const { dropoff } of pairs) {
+      assert.ok(dropoff.destinationCard, "southern stops need an environment-matched destination card");
+      assert.equal(dropoff.artCell, dropoff.destinationCard.artCell);
+      assert.equal(containingRegionForPosition(dropoff.zone.x, dropoff.zone.y)?.id, region.id);
+    }
     const game = makeGame("street-ace", seed + 81, "free-run");
     game.fareServiceRegionId = region.id;
     game.fareJobs = game.fareJobs.map((job, index) => ({ ...job,
       pickupStopId: pairs[index].pickup.id, pickup: pairs[index].pickup.zone, pickupApproach: pairs[index].pickup.approach,
       dropoffStopId: pairs[index].dropoff.id, dropoff: pairs[index].dropoff.zone, dropoffApproach: pairs[index].dropoff.approach,
+      destinationArtCell: pairs[index].dropoff.artCell, destinationCard: pairs[index].dropoff.destinationCard,
+      destination: pairs[index].dropoff.label,
     }));
     game.availableFareMask = 1 << 5;
     const offer = scheduleSixthFareTransfer(game, game.fareJobs[0]);

@@ -81,24 +81,42 @@
 
 1. Edit rider profiles in `game/passengers.ts`. The current cast is 48 shared
    riders plus five 24-rider pickup casts exclusive to Cedar Vale, Northstar
-   Range, Copper Mesa, Cypress Reach, and Solana Coast; keep
+   Range, Copper Mesa, Palm Reach, and Solana Coast; keep
    `FARES_PER_CYCLE` at six so roster growth never expands the six-bit
    availability mask or actor budget.
 2. Passenger art cells are global indices `0..167` across twenty-eight sheets;
-   destination art is `0..29` across five sheets. Coast destinations use the
-   six new cells; existing regions keep their original `0..23` mapping. Keep those counters
-   independent.
+   destination art is `0..95` across sixteen sheets. Keep those counters
+   independent. Every destination frame is categorized in `game/destination-cards.ts`.
 3. Keep all atlases at 1536×1024 with equal 512×512 cells, no panel bleed, and
    matching `300% 200%` CSS background sizing.
-4. Attach passenger art to the rider profile and derive destination art from
-   the procedural stop ID; carry both through the immutable job and semantic
-   event.
+4. Attach passenger art to the rider profile. Select destination art from the
+   actual named place or generated lot family, including the water requirement;
+   carry the card and occasion through the immutable job and semantic event.
+   A hash can choose among a place's occasions, never arbitrary destination art.
 5. Preserve the per-region 50% no-repeat window and keep region-exclusive rules
    scoped to pickup-market generation; fare six may deliver an existing rider
    across the seam.
 6. Test every sheet boundary plus shared and every regional eligibility, deck
    exhaustion, adjacent-market blocking, and independent regional history when
    a sixth-fare transfer leaves and later returns to a region.
+
+## Change destinations or GPS policy
+
+1. Audit the visible artwork and owning model before changing a destination's
+   category or mapping. Keep `DESTINATION_ART`, named occasion cards, the WebP
+   manifest and exact native-image prompts in agreement.
+2. Add new named places through the owning regional/landmark metadata. Validate
+   their arrival curbs and nearby semantic water in `destination-cards.test.ts`.
+   Preserve six slots, prior-stop clearance, all-pair route bounds and rare
+   rider-matched scenic outings.
+3. GPS policy uses displayed meters. Characterize exact-threshold and over-
+   threshold deviation, closest later segments, physical decks, direction-only
+   changes and actual forward/reverse road lengths in `navigation.test.ts`.
+4. Use Options → Dev Mode to adjust both thresholds, load any landmark occasion,
+   jump to its arrival, freeze time, step one fixed frame or restart a seed.
+   Verify both rendering paths and mobile/desktop layouts. GPS-only changes
+   retain ordinary scores; tools that alter time, position or supplies mark a
+   sticky playtest excluded from career and high scores.
 
 ## Add an enterable venue
 

@@ -65,7 +65,7 @@ test("the expanded cast contains 48 shared riders and five 24-rider regional cas
   assert.equal(SOLANA_COAST_FARE_RIDERS.length, 24);
   assert.equal(FARE_RIDERS.length, 168);
   assert.equal(PASSENGER_ART_CELL_COUNT, 168);
-  assert.equal(DESTINATION_ART_CELL_COUNT, 36);
+  assert.equal(DESTINATION_ART_CELL_COUNT, 96);
   assert.equal(new Set(FARE_RIDERS.map((rider) => rider.id)).size, FARE_RIDERS.length);
   assert.equal(new Set(FARE_RIDERS.map((rider) => rider.rider)).size, FARE_RIDERS.length);
   assert.deepEqual(
