@@ -12,6 +12,7 @@ import type {
 import { FareCardBrowser } from "./fare-card-deck";
 import { useMobileLayout } from "./use-mobile-layout";
 import { TowReceipt } from "./tow-receipt";
+import { PauseOverlay } from "./pause-overlay";
 
 type GameSessionOverlaysProps = Readonly<{
   mode: Mode;
@@ -69,7 +70,7 @@ export function GameSessionOverlays({
       )}
 
       {mode === "paused" && (
-        <div className="pause-overlay" role="region" aria-label="Game paused">
+        <PauseOverlay>
           <div className="pause-layout">
             <div className="pause-paper">
               <p>{hud.runKind === "free-run" ? "NO RUSH. NO CLOCK." : "THE CITY CAN WAIT…"}</p>
@@ -121,7 +122,7 @@ export function GameSessionOverlays({
             </div>
             {mobile ? <details className="pause-fares"><summary>FARE HISTORY <span>{fareCards.length}</span></summary><FareCardBrowser cards={fareCards} /></details> : <FareCardBrowser cards={fareCards} />}
           </div>
-        </div>
+        </PauseOverlay>
       )}
 
       {mode === "ended" && (

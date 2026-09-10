@@ -256,8 +256,13 @@ test.describe("mobile session tools", () => {
     await expect.poll(boostReserve).toBeLessThan(initialBoost - 2);
     await expect(gas).not.toContainText(/\d+%/);
     await send("touchEnd"); await expect(gas).not.toHaveClass(/is-boosting/);
-    await send("touchStart"); await page.keyboard.press("p"); await send("touchEnd");
-    await page.getByRole("button", { name: "RESUME FREE RUN" }).click();
+    await send("touchStart"); await page.keyboard.press("p");
+    const paused = page.getByRole("region", { name: "Game paused" });
+    await expect(paused).toBeVisible();
+    await send("touchEnd");
+    await expect(paused, "lifting the held pedal must not activate a pause-menu action").toBeVisible();
+    await paused.getByRole("button", { name: "RESUME FREE RUN" }).focus();
+    await page.keyboard.press("Enter");
     await expect(page.locator("[data-held], .mobile-thumbstick")).toHaveCount(0);
     await expect(gas).not.toHaveClass(/is-boosting/);
     const trace = await copyTrace(page);
