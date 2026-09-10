@@ -217,3 +217,8 @@ road approach, using nearest-clear-road recovery only when the approach is block
   suite now runs across four shards with 25-minute allowances. The temporary
   mobile arrival notice is checked for its exact visible occasion in one
   assertion so it cannot expire between separate visibility and text checks.
+- Existing scene-fixture, renderer-activation and menu-hydration checks still
+  used the generic eight-second assertion limit, causing slow CI startup to
+  fail before the world checks ran. Their readiness assertions now use the
+  shared `SCENE_START_TIMEOUT`, retaining the real enabled/active/hydrated
+  conditions and all subsequent gameplay and rendering assertions.

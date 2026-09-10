@@ -1,4 +1,5 @@
 import { expect, type Page } from "@playwright/test";
+import { SCENE_START_TIMEOUT } from "./browser-options";
 
 // Preserve the real app's styles, then unload its continuously animated menu.
 // Renderer fixtures own their game and GPU device; drawing a second world behind
@@ -6,7 +7,7 @@ import { expect, type Page } from "@playwright/test";
 // road-renderers.spec.ts separately checks the unmodified app and its lifecycle.
 export async function openScenePage(page: Page, bundle: string) {
   await page.goto("/");
-  await expect(page.getByRole("button", { name: /Start Free Run with arcade/i })).toBeEnabled();
+  await expect(page.getByRole("button", { name: /Start Free Run with arcade/i })).toBeEnabled({ timeout: SCENE_START_TIMEOUT });
   const styles = await page.locator('style, link[rel="stylesheet"]').evaluateAll((nodes) =>
     nodes.map((node) => node.outerHTML).join("\n"));
   await page.route("**/__renderer-fixture", (route) => route.fulfill({

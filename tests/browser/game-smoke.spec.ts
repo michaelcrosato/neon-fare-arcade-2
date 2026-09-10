@@ -1,6 +1,8 @@
 import { expect, test, type Page } from "@playwright/test";
 import { createRequire } from "node:module";
-import { SCENE_TEST_TIMEOUT } from "./browser-options";
+import { SCENE_START_TIMEOUT, SCENE_TEST_TIMEOUT } from "./browser-options";
+
+test.setTimeout(SCENE_TEST_TIMEOUT);
 
 const packageInfo = createRequire(import.meta.url)("../../package.json") as { version: string };
 const APP_ORIGIN = "http://127.0.0.1:4173";
@@ -40,12 +42,12 @@ test.afterEach(async ({}, testInfo) => {
 
 async function startFreeRun(page: Page) {
   await page.goto("/?diagnostics=1");
-  await expect(page.getByRole("group", { name: "Choose game mode" })).toBeVisible();
-  await expect(page.locator("canvas").first()).toHaveClass(/is-active/);
+  await expect(page.getByRole("group", { name: "Choose game mode" })).toBeVisible({ timeout: SCENE_START_TIMEOUT });
+  await expect(page.locator("canvas").first()).toHaveClass(/is-active/, { timeout: SCENE_START_TIMEOUT });
   await page.getByRole("button", { name: /Start Free Run/i }).click();
   await expect(page.getByRole("dialog", { name: "PICK YOUR EDGE" })).toBeVisible();
   await page.getByRole("button", { name: /Choose STREET ACE/i }).click();
-  await expect(page.getByRole("button", { name: "Pause game" })).toBeVisible({ timeout: 9_000 });
+  await expect(page.getByRole("button", { name: "Pause game" })).toBeVisible({ timeout: SCENE_START_TIMEOUT });
 }
 
 async function holdKeyUntil(page: Page, key: string, assertion: () => Promise<void>) {
@@ -122,7 +124,7 @@ test("Simulation Free Run selects the Crown cab and exposes real powertrain cont
   const specification = page.getByRole("dialog", { name: /CROWN CAB/i });
   await expect(specification).toContainText("1,900 KG");
   await specification.getByRole("button", { name: /Start Simulation Free Run/i }).click();
-  await expect(page.getByRole("button", { name: "Pause game" })).toBeVisible({ timeout: 9_000 });
+  await expect(page.getByRole("button", { name: "Pause game" })).toBeVisible({ timeout: SCENE_START_TIMEOUT });
   await expect(page.locator('button[aria-label="Parking brake"]')).toHaveCount(1);
   await page.keyboard.down("w");
   try {
@@ -154,8 +156,8 @@ test("modal focus is trapped, Escape closes, and focus returns to its trigger", 
 test("malformed career storage recovers to a normalized save", async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem("neon-fare-career-v1", "{not-json"));
   await page.goto("/");
-  await expect(page.getByRole("group", { name: "Choose game mode" })).toBeVisible();
-  await expect(page.getByRole("button", { name: /Start Free Run with arcade/i })).toBeEnabled();
+  await expect(page.getByRole("group", { name: "Choose game mode" })).toBeVisible({ timeout: SCENE_START_TIMEOUT });
+  await expect(page.getByRole("button", { name: /Start Free Run with arcade/i })).toBeEnabled({ timeout: SCENE_START_TIMEOUT });
   await expect.poll(async () => page.evaluate(() => JSON.parse(localStorage.getItem("neon-fare-career-v1") ?? "null"))).toEqual({
     version: 1,
     bank: 0,
@@ -183,8 +185,8 @@ test("valid career and run-log saves hydrate into the menu", async ({ page }) =>
     ]));
   });
   await page.goto("/");
-  await expect(page.getByText("BANK $4321", { exact: true })).toBeVisible();
-  await expect(page.getByText("BEST 4,321", { exact: true })).toBeVisible();
+  await expect(page.getByText("BANK $4321", { exact: true })).toBeVisible({ timeout: SCENE_START_TIMEOUT });
+  await expect(page.getByText("BEST 4,321", { exact: true })).toBeVisible({ timeout: SCENE_START_TIMEOUT });
   await page.getByRole("button", { name: "RUN LOG", exact: true }).click();
   await expect(page.getByRole("dialog", { name: "RUN LOG" })).toContainText("4,321");
   await expect(page.getByRole("dialog", { name: "RUN LOG" })).toContainText("3 DELIVERIES · $88 · AUG 25");

@@ -15,7 +15,7 @@ for (const renderer of ["WebGPU", "Canvas 2D"] as const) {
     await page.clock.install({ time: new Date("2026-01-01T00:00:00Z") });
     if (renderer === "Canvas 2D") await page.addInitScript(() => Object.defineProperty(navigator, "gpu", { configurable: true, value: undefined }));
     await page.goto("/?diagnostics=1");
-    await expect(page.locator(".game-canvas").nth(renderer === "WebGPU" ? 1 : 0)).toHaveClass(/is-active/);
+    await expect(page.locator(".game-canvas").nth(renderer === "WebGPU" ? 1 : 0)).toHaveClass(/is-active/, { timeout: SCENE_START_TIMEOUT });
     await page.getByRole("button", { name: /Start Free Run with arcade/ }).click();
     // Pause before starting: software-GPU screenshots can outlast the three-second countdown.
     await page.clock.pauseAt(new Date("2026-01-01T01:00:00Z"));
@@ -61,7 +61,7 @@ for (const renderer of ["WebGPU", "Canvas 2D"] as const) {
     // countdown clock control belongs to the isolated test above.
     if (renderer === "Canvas 2D") await page.addInitScript(() => Object.defineProperty(navigator, "gpu", { configurable: true, value: undefined }));
     await page.goto("/?diagnostics=1");
-    await expect(page.locator(".game-canvas").nth(renderer === "WebGPU" ? 1 : 0)).toHaveClass(/is-active/);
+    await expect(page.locator(".game-canvas").nth(renderer === "WebGPU" ? 1 : 0)).toHaveClass(/is-active/, { timeout: SCENE_START_TIMEOUT });
     await page.getByRole("button", { name: /Start Free Run with arcade/ }).click();
     await page.getByRole("button", { name: /Choose STREET ACE/ }).click();
     const guide = page.locator(".mobile-steer-guide");

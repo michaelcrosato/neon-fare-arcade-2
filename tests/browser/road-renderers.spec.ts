@@ -18,7 +18,7 @@ for (const renderer of ["WebGPU", "Canvas 2D"] as const) {
         if (fallback) Object.defineProperty(navigator, "gpu", { configurable: true, value: undefined });
       }, renderer === "Canvas 2D");
       await page.goto("/");
-      await expect(page.getByText(renderer === "WebGPU" ? "WEBGPU ACTIVE" : "CANVAS FALLBACK", { exact: true })).toBeVisible();
+      await expect(page.getByText(renderer === "WebGPU" ? "WEBGPU ACTIVE" : "CANVAS FALLBACK", { exact: true })).toBeVisible({ timeout: SCENE_START_TIMEOUT });
       await page.getByRole("button", { name: /Start Free Run with arcade/i }).click();
       await page.getByRole("button", { name: /Choose STREET ACE/i }).click();
       await expect(page.getByRole("button", { name: "Pause game" })).toBeVisible({ timeout: SCENE_START_TIMEOUT });
