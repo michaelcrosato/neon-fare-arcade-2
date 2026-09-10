@@ -210,3 +210,10 @@ road approach, using nearest-clear-road recovery only when the approach is block
   meters, but its slow fixed-step progress exceeded the new browser test's
   arrival deadline. That test now shares the existing software-renderer
   readiness allowance and has enough overall time for the complete flow.
+- The hosted full verification subsequently passed all 437 game, 22 runtime,
+  nine architecture and one rendered-HTML tests plus both builds. The corrected
+  desktop Dev Mode flow also passed on Linux software WebGPU. A browser shard
+  reached its 20-minute limit near its final regional cases; the full browser
+  suite now runs across four shards with 25-minute allowances. The temporary
+  mobile arrival notice is checked for its exact visible occasion in one
+  assertion so it cannot expire between separate visibility and text checks.

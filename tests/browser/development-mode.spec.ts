@@ -3,7 +3,7 @@ import type { Game } from "../../game/model";
 import { SCENE_START_TIMEOUT, SCENE_TEST_TIMEOUT, WEBGPU_TEST_OPTIONS } from "./browser-options";
 
 test.use(WEBGPU_TEST_OPTIONS);
-test.setTimeout(Math.max(120_000, SCENE_TEST_TIMEOUT * 2));
+test.setTimeout(Math.max(120_000, SCENE_TEST_TIMEOUT * 3));
 const gameplayTimeout = Math.max(15_000, SCENE_START_TIMEOUT);
 
 async function startRun(page: Page) {
@@ -69,8 +69,8 @@ for (const renderer of ["WebGPU", "Canvas"] as const) for (const mobile of [fals
     await resume(page);
     const arrival = mobile ? page.locator(".mobile-notice.is-event").filter({ hasText: "Fare complete" }) : page.locator(".fare-impact--dropoff");
     // Software WebGPU needs enough presented frames for the normal arrival dwell.
-    await expect(arrival).toBeVisible({ timeout: gameplayTimeout });
-    await expect(arrival.locator(".fare-card-occasion")).toHaveText("STADIUM CONCERT");
+    // Check content and visibility together before a mobile notice expires.
+    await expect(arrival.locator(".fare-card-occasion").filter({ hasText: /^STADIUM CONCERT$/ })).toBeVisible({ timeout: gameplayTimeout });
     await page.screenshot({ path: info.outputPath("stadium-arrival.png") });
     await page.getByRole("button", { name: "Pause game" }).click();
     await page.getByRole("button", { name: "COPY DIAGNOSTICS", exact: true }).click();
