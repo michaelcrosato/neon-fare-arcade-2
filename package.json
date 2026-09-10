@@ -9,6 +9,7 @@
   "scripts": {
     "install:ci": "bash scripts/install-ci.sh",
     "dev": "vite",
+    "play": "next dev --hostname 127.0.0.1 --port 4173",
     "build": "node scripts/platform-task.mjs build",
     "build:vercel": "next build",
     "start": "vite preview",

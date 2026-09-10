@@ -22,7 +22,7 @@ export class TerrainRaster {
     this.depths.fill(-Infinity);
   }
 
-  triangle(a: RasterVertex, b: RasterVertex, c: RasterVertex, color: Color) {
+  triangle(a: RasterVertex, b: RasterVertex, c: RasterVertex, color: Color, ghost = false) {
     const area = (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
     if (area <= 1e-8) return;
     const left = Math.max(0, Math.floor(Math.min(a.x, b.x, c.x))), right = Math.min(this.width - 1, Math.ceil(Math.max(a.x, b.x, c.x)));
@@ -42,8 +42,15 @@ export class TerrainRaster {
       let ab = abRow, bc = bcRow, ca = caRow, depth = depthRow;
       let pixel = y * this.width + left;
       for (let x = left; x <= right; x += 1) {
-        if (ab >= -1e-5 && bc >= -1e-5 && ca >= -1e-5 && depth > this.depths[pixel]) {
-          this.depths[pixel] = depth; this.colors[pixel] = packed;
+        if (ab >= -1e-5 && bc >= -1e-5 && ca >= -1e-5) {
+          if (!ghost && depth > this.depths[pixel]) {
+            this.depths[pixel] = depth; this.colors[pixel] = packed;
+          } else if (ghost && depth < this.depths[pixel]) {
+            const offset = pixel * 4, alpha = color[3];
+            this.pixels[offset] += (r - this.pixels[offset]) * alpha;
+            this.pixels[offset + 1] += (g - this.pixels[offset + 1]) * alpha;
+            this.pixels[offset + 2] += (blue - this.pixels[offset + 2]) * alpha;
+          }
         }
         ab += abX; bc += bcX; ca += caX; depth += depthX; pixel += 1;
       }

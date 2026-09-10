@@ -71,8 +71,25 @@ The Sites lifecycle prepares dependencies automatically. For a standalone
 checkout, run `npm ci` once. Edit deterministic gameplay and world code under
 `game/`; edit browser runtime, concrete renderers, UI, and styles under `app/`.
 
-Start locally with `npm run dev -- --host 127.0.0.1 --port 4173` and open
-`http://127.0.0.1:4173`. No credentials are needed. To inspect the new roads,
+For local play on Windows, open PowerShell and run:
+
+```powershell
+cd C:\dev\neon-fare-arcade-2
+npm ci
+npm run play
+```
+
+Open **http://127.0.0.1:4173**. Keep that terminal open; press Ctrl+C to stop.
+`npm ci` is needed only for the first setup or after dependencies change.
+`npm run play` uses Next.js, the same framework as the Vercel deployment.
+For the Vite/Sites development environment, use
+`npm run dev -- --host 127.0.0.1 --port 4173` instead. No credentials are needed.
+If that port is occupied, `npm run play -- --port 4175` selects another one.
+W/A/S/D drive, Space drifts, Shift boosts, C changes cameras, E exits/enters
+the taxi, and G opens GPS. Chase High, Chase Low, and Cab View remain 3D even
+when WebGPU is unavailable; the game falls back to WebGL or software rendering.
+
+To inspect the new roads,
 start Arcade Free Run and use GPS to set a waypoint on the outer Neon Beltway.
 Follow the route onto an interchange; C cycles through the four cameras.
 For the mountain region, select **N · RANGE** in the full GPS and set a waypoint

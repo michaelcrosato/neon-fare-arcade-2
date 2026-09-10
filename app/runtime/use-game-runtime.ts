@@ -186,7 +186,7 @@ export function useGameRuntime(options: GameRuntimeOptions) {
     };
 
     const requestedStreamRadius = (game: Game) =>
-      !isInterior(game) && (!isDriving(game) || cameraModeRef.current !== "fixed") && activeRenderer?.kind === "WebGPU"
+      !isInterior(game) && (!isDriving(game) || cameraModeRef.current !== "fixed")
         ? DISTANT_STREAM_RADIUS
         : COLLISION_STREAM_RADIUS;
 
@@ -363,7 +363,7 @@ export function useGameRuntime(options: GameRuntimeOptions) {
             passengerReviewRef.current.hidden = true;
           } else {
             const bounds = canvas2d.getBoundingClientRect();
-            presentPassengerReview(passengerReviewRef.current, game, cameraRef.current, activeRenderer?.kind === "WebGPU", bounds.width, bounds.height);
+            presentPassengerReview(passengerReviewRef.current, game, cameraRef.current, bounds.width, bounds.height);
           }
         }
 

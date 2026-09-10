@@ -43,15 +43,21 @@ GPU resources.
 
 Pavement and lane strips use the same mitered cross sections as tire contact
 and traffic. Deck sidewalls, undersides, guardrails and supports are generated
-with matching collision geometry. Canvas projects those same surfaces, culls
-back faces, and draws actors/routes on their decks. Cedar, Northstar, Copper, Solana Coast, and Palm Reach use
-full cuboid faces and `app/terrain-raster.ts` for per-pixel orthographic depth
-across terrain, structures, animated scenery, and the taxi. Intersecting faces
-resolve by pixel depth instead of a face's average depth, so large ground
-triangles cannot paint over nearer roads or vehicles. The reusable color/depth
-buffer is capped at 1.2 million pixels and scales back to the Canvas surface.
-It remains an overhead graphic fallback. An outline preserves taxi visibility
-under an elevated road.
+with matching collision geometry. Canvas projects those same surfaces with
+depth testing and draws actors/routes on their decks. All renderers use
+`game/render/view-projection.ts`: Fixed ISO is orthographic, while the two chase
+cameras and Cab View are perspective, including on foot. The Canvas-first
+startup and WebGPU first-frame activation remain unchanged. Canvas first tries
+WebGL2 on an internal surface, consuming the existing instanced boxes and
+surface vertex protocol. Boxes outside the camera frustum are culled before
+upload so software WebGL drivers avoid transforming the entire streamed city.
+If WebGL is unavailable or its context is lost,
+`app/software-scene.ts` clips faces in homogeneous coordinates and rasterizes
+their perspective depth using `app/terrain-raster.ts`. The software color/depth
+buffer is capped at 360,000 pixels; the HTML HUD stays at native resolution.
+Both compatibility paths draw the same cockpit, walking avatar, departing
+passengers, navigation glyphs and occlusion silhouettes. Perspective streaming
+uses the existing radius-three visual budget regardless of rendering backend.
 
 Cedar's broadleaf crowns, gables and continuous ground use this depth path too.
 Its authored pavement includes two-unit outer sidewalk bands; these share the
@@ -84,9 +90,8 @@ compression, airborne tuck, turn lean, and landing recovery. The base figure
 uses at least 20 boxes and must fit beside the parked taxi and optional courier
 parcel inside the 96-instance ghost budget.
 
-Canvas draws the same costume, proportions, stance, gait, jump elevation, and
-cargo ownership as a dedicated outlined comic silhouette. It need not project
-every limb box, but reduced motion and player state must match WebGPU.
+Canvas draws the same limb boxes, costume, stance, gait, jump elevation, and
+cargo ownership as WebGPU. Reduced motion and player state match in all paths.
 
 ## Navigation glyphs
 
@@ -94,9 +99,8 @@ Every WebGPU camera uses the same canonical turn or U-turn pieces. Camera mode
 changes only the plane pitch. Normal arrows use 16 boxes and U-turns use 30, so
 new decorative pieces require budget review.
 
-The Canvas fallback draws an equivalent 2D path because its projector does not
-support the WebGPU box pitch transform. It must not select a different symbol by
-camera mode.
+Canvas consumes these same pieces and their pitch transforms through its 3D
+projection. It must not select a different symbol by rendering backend.
 
 ## Landmark campuses
 
