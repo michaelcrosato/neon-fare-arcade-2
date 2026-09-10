@@ -47,12 +47,14 @@ import { BackgroundMusic } from "./background-music";
 import { mergeDrivingInput, type TouchDriving } from "./touch-driving";
 import { presentPassengerReview } from "./passenger-review";
 import { presentTaxiExitAction } from "./taxi-exit-action";
+import { presentNavigationDistance } from "./navigation-distance";
 
 type RefBox<T> = { current: T };
 
 export type GameRuntimeOptions = Readonly<{
   selectingDriverRef: RefBox<boolean>;
   passengerReviewRef: RefBox<HTMLDivElement | null>;
+  navigationDistanceRef: RefBox<HTMLDivElement | null>;
   taxiExitRef: RefBox<HTMLButtonElement | null>;
   canvas2dRef: RefBox<HTMLCanvasElement | null>;
   webGpuCanvasRef: RefBox<HTMLCanvasElement | null>;
@@ -85,6 +87,7 @@ export function useGameRuntime(options: GameRuntimeOptions) {
   const {
     selectingDriverRef,
     passengerReviewRef,
+    navigationDistanceRef,
     taxiExitRef,
     canvas2dRef,
     webGpuCanvasRef,
@@ -367,6 +370,14 @@ export function useGameRuntime(options: GameRuntimeOptions) {
         currentNavigation = navigationController.update(game);
         music.update(game, modeRef.current, mutedRef.current, document.hidden, selectingDriverRef.current);
         renderFrame(game, now, currentWorld, currentNavigation);
+        if (navigationDistanceRef.current) {
+          if (currentMode !== "playing") navigationDistanceRef.current.hidden = true;
+          else {
+            const bounds = canvas2d.getBoundingClientRect();
+            presentNavigationDistance(navigationDistanceRef.current, game, camera, reducedMotion ? 0 : now / 1000,
+              currentNavigation, bounds.width, bounds.height);
+          }
+        }
         if (taxiExitRef.current) {
           const bounds = canvas2d.getBoundingClientRect();
           presentTaxiExitAction(taxiExitRef.current, game, camera, bounds.width, bounds.height);
@@ -490,6 +501,7 @@ export function useGameRuntime(options: GameRuntimeOptions) {
     boostAudioActiveRef,
     selectingDriverRef,
     passengerReviewRef,
+    navigationDistanceRef,
     taxiExitRef,
     cameraModeRef,
     cameraRef,

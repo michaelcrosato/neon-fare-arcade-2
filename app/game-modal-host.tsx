@@ -1,5 +1,4 @@
 import type { RefObject } from "react";
-import { DISPLAY_METERS_PER_WORLD_UNIT } from "@/game/config";
 import type {
   CareerItemId,
   CareerState,
@@ -16,12 +15,10 @@ import type {
   Hud,
   Modal,
   Mode,
-  NavigationPlan,
   RunKind,
   RunRecord,
-  Vec2,
+  WorldPoint,
 } from "@/game/model";
-import { routeLength } from "@/game/navigation";
 import { CourierBoardPanel } from "./courier-board-panel";
 import { DriverTraitPanel } from "./driver-trait-panel";
 import { GasStationPanel } from "./gas-station-panel";
@@ -37,8 +34,6 @@ type GameModalHostProps = Readonly<{
   hud: Hud;
   career: CareerState;
   records: readonly RunRecord[];
-  mapDraft: Vec2 | null;
-  mapDraftPlan: NavigationPlan | null;
   mapNotice: string;
   homeNotice: string;
   courierNotice: string;
@@ -46,8 +41,7 @@ type GameModalHostProps = Readonly<{
   dialogRef: RefObject<HTMLElement | null>;
   onClose: () => void;
   onBeginRun: (id: DrivingTraitId) => void;
-  onDraftDestination: (point: Vec2) => void;
-  onCommitDestination: () => void;
+  onSelectDestination: (point: WorldPoint) => void;
   onRemoveDestination: () => void;
   onToggleFareDispatch: () => void;
   onPurchaseHomeItem: (id: CareerItemId) => void;
@@ -67,8 +61,6 @@ export function GameModalHost({
   hud,
   career,
   records,
-  mapDraft,
-  mapDraftPlan,
   mapNotice,
   homeNotice,
   courierNotice,
@@ -76,8 +68,7 @@ export function GameModalHost({
   dialogRef,
   onClose,
   onBeginRun,
-  onDraftDestination,
-  onCommitDestination,
+  onSelectDestination,
   onRemoveDestination,
   onToggleFareDispatch,
   onPurchaseHomeItem,
@@ -104,7 +95,7 @@ export function GameModalHost({
             <h2 id="modal-title">HOW TO PLAY</h2>
             <div className="instruction-grid">
               <article><b>01</b><h3>CHOOSE YOUR SHIFT</h3><p>Play a 75-second Arcade Shift, untimed Arcade Free Run, or Simulation Free Run in the 1990s Crown Cab.</p></article>
-              <article><b>02</b><h3>FOLLOW THE GPS</h3><p>The floating yellow arrow marks your next real turn. Open the regional map, tap any street, then set a custom route—or press G anytime.</p></article>
+              <article><b>02</b><h3>FOLLOW THE GPS</h3><p>The floating yellow arrow marks your next turn and its distance. Open the regional map with G and tap a street to set your route instantly.</p></article>
               <article><b>03</b><h3>HIT THE STREET</h3><p>Stop and press E to explore on foot. Run, jump, crouch, enter marked buildings, or return to the parked taxi whenever you are ready.</p></article>
             </div>
             <div className="mobile-help mobile-control-guide">
@@ -130,15 +121,13 @@ export function GameModalHost({
           <>
             <p className="modal-kicker">REGIONAL NAVIGATION</p>
             <h2 id="modal-title">REGIONAL GPS</h2>
-            <p className="full-map-help"><span className="desktop-help">TAP A STREET TO DROP A PIN · DRAG TO PAN · WHEEL OR +/− TO ZOOM · SHIFT+ARROWS MOVE PIN · ENTER SETS</span><span className="mobile-help">Tap a street to drop a pin. Drag to pan; use + / − to zoom.</span></p>
+            <p className="full-map-help"><span className="desktop-help">TAP A STREET TO SET GPS · DRAG TO PAN · WHEEL OR +/− TO ZOOM · SHIFT+ARROWS MOVE GPS · ENTER RETURNS</span><span className="mobile-help">Tap a street to set GPS instantly. Drag to pan; + / − to zoom.</span></p>
             <div className="full-map-shell">
               <GpsMap
                 hud={hud}
                 full
-                draftDestination={mapDraft}
-                draftPlan={mapDraftPlan}
-                onDestinationDraft={onDraftDestination}
-                onDestinationCommit={onCommitDestination}
+                onDestinationSelect={onSelectDestination}
+                onReturn={onClose}
               />
               <div className="full-map-legend">
                 <span><i className="taxi-dot" /> TAXI · {hud.district}</span>
@@ -148,18 +137,15 @@ export function GameModalHost({
                 {hud.customDestination && <span><i className="waypoint" /> CUSTOM ROUTE ACTIVE</span>}
                 <span><i className="courier-pickup" /> DIAMONDS · COURIER LOCATIONS</span>
                 <strong>
-                  {mapDraft
-                    ? hud.fareDispatchEnabled ? "CUSTOM DETOUR · JOB STAYS ACTIVE · PREVIEW ROUTE" : "CUSTOM ROUTE PREVIEW · OFF DUTY"
-                    : hud.objectiveType === "roam"
+                  {hud.objectiveType === "roam"
                       ? "OFF DUTY · EXPLORE OR SET A CUSTOM ROUTE"
                       : hud.runKind === "free-run" ? `FREE RUN · OPTIONAL ROUTE · ${hud.gpsInstruction}` : hud.gpsInstruction}
-                  {(mapDraft || hud.objectiveType !== "roam") && ` · ${mapDraftPlan ? Math.round(routeLength(mapDraftPlan.route) * DISPLAY_METERS_PER_WORLD_UNIT) : hud.distance}m`}
+                  {hud.objectiveType !== "roam" && ` · ${hud.distance}m`}
                 </strong>
               </div>
             </div>
             <p className="full-map-status" role="status" aria-label="GPS pin status" aria-live="polite">{mapNotice}</p>
             <div className="full-map-actions">
-              <button className="primary-small" onClick={onCommitDestination} disabled={!mapDraft}>SET GPS ROUTE</button>
               {hud.customDestination && <button onClick={onRemoveDestination}>{hud.fareDispatchEnabled ? "RETURN TO JOB ROUTE" : "CLEAR GPS ROUTE"}</button>}
               {hud.runKind === "free-run" && <button
                 className={`duty-toggle ${hud.fareDispatchEnabled ? "is-on-duty" : "is-off-duty"}`}
@@ -174,7 +160,7 @@ export function GameModalHost({
                 {hud.fareDispatchEnabled ? "GO OFF DUTY · ROAM FREELY" : "GO ON DUTY · FIND FARES"}
               </button>}
               {(hud.runKind === "free-run" && (hud.passengerOnboard || hud.courierActive)) && <span id="map-duty-lock-note" className="sr-only">Finish the current job before changing duty status.</span>}
-              <button onClick={onClose}>{modalParent === "home" ? "BACK TO HOME HUB" : "BACK TO THE STREET"}</button>
+              <button className="primary-small" onClick={onClose}>{modalParent === "home" ? "BACK TO HOME HUB" : "BACK TO THE STREET"}</button>
             </div>
           </>
         ) : modal === "home" ? (

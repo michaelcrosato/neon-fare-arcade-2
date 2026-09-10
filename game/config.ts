@@ -321,3 +321,5 @@ export const DISTRICT_LABELS: Record<DistrictKind, string> = {
   industrial: "SOUTH TERMINAL",
   harbor: "REDLINE HARBOR",
 };
+export const TOW_COST = 100;
+export const TOW_SECONDS = 3.6;

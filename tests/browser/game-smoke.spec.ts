@@ -76,7 +76,9 @@ test("free run supports exploration, GPS, driving, pause, and copyable replay di
   const map = gpsDialog.getByRole("img", { name: /Interactive Neon Fare regional GPS/i });
   await map.focus();
   await page.keyboard.press("Shift+ArrowRight");
-  await expect(gpsDialog.getByRole("status", { name: "GPS pin status" })).toContainText("PIN READY");
+  await expect(gpsDialog.getByRole("status", { name: "GPS pin status" })).toContainText("ROUTE SET");
+  await expect(gpsDialog.getByRole("button", { name: "SET GPS ROUTE" })).toHaveCount(0);
+  await expect(gpsDialog.getByText("CUSTOM ROUTE ACTIVE", { exact: true })).toBeVisible();
   await page.keyboard.press("Enter");
   await expect(page.locator(".gps-header b")).toHaveText("CUSTOM ROUTE");
 

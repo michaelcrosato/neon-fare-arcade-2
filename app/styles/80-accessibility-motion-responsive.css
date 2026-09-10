@@ -773,7 +773,21 @@
   .map-modal .full-map-actions { grid-area: actions; }
 }
 
+@media (max-width: 900px), (pointer: coarse) {
+  .tow-receipt { top: 96px; left: 18px; width: min(244px, calc(100% - 36px)); padding: 0 12px 9px; transform: rotate(-2deg); }
+  .tow-receipt__stripe { margin-inline: -12px; font-size: 8px; }
+  .tow-receipt__truck { width: 91px; height: 58px; }
+  .tow-receipt__amount { font-size: 40px; }
+  .tow-receipt > b { font-size: 25px; }
+  .tow-receipt > p { font-size: 8px; margin-block: 7px; }
+  .pause-recovery strong { font-size: 19px; }
+  .navigation-distance { min-width: 92px; }
+  .navigation-distance strong { font-size: 28px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .tow-receipt { animation: none; transition: opacity .01s; transform: none; }
+  .tow-receipt.is-leaving { transform: none; }
   *,
   *::before,
   *::after {

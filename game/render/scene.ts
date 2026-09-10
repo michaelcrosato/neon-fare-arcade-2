@@ -49,6 +49,8 @@ import type { WorldView } from "../model";
 import { vehicleGroundShadow } from "./lighting";
 import { placeBoxesOnRoad, type RoadPose } from "./road-pose";
 import { groundAt } from "../vehicle-road-contact";
+import { roadLanePose } from "../road-lanes";
+import { towTruckBoxes } from "./tow-truck";
 
 export function taxiRoadPose(game: Game): RoadPose {
   return { x: game.x, y: game.y, heading: game.heading, z: (game.z ?? 0) + (game.roadMotion?.heave ?? 0),
@@ -310,15 +312,19 @@ export function routeBoxes(
     const yaw = Math.atan2(b.y - a.y, b.x - a.x);
     while (nextDash <= traversed + segment && boxes.length < 120) {
       const t = (nextDash - traversed) / segment;
+      const lane = roadLanePose({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t,
+        z: (a.z ?? 0) + ((b.z ?? 0) - (a.z ?? 0)) * t }, yaw);
       boxes.push({
-        x: a.x + (b.x - a.x) * t,
-        y: a.y + (b.y - a.y) * t,
-        z: (a.z ?? 0) + ((b.z ?? 0) - (a.z ?? 0)) * t + 0.75,
-        screenLift: (a.z ?? 0) + ((b.z ?? 0) - (a.z ?? 0)) * t,
+        x: lane.x,
+        y: lane.y,
+        z: lane.pavementZ + .11,
+        screenLift: lane.z,
         sx: 2.8,
         sy: 0.48,
         sz: 0.1,
-        yaw,
+        yaw: lane.heading,
+        pitch: lane.roll,
+        tilt: lane.pitch,
         color,
         material: MAT_ROUTE,
       });
@@ -870,6 +876,7 @@ export function dynamicBoxes(
   }
 
   boxes.push(...boostTrailBoxes(game, seconds));
+  boxes.push(...towTruckBoxes(game, seconds));
   boxes.push(...mountainAnimatedBoxes(seconds, controlledPose(game)));
   boxes.push(...copperAnimatedBoxes(seconds, controlledPose(game)));
   boxes.push(...coastAnimatedBoxes(seconds, controlledPose(game)));

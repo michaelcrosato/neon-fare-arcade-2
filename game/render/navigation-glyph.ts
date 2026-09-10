@@ -1,5 +1,6 @@
 import {
   CYAN,
+  DISPLAY_METERS_PER_WORLD_UNIT,
   INK,
   MAT_TURN,
   RED,
@@ -16,6 +17,25 @@ import type {
   Vec2,
 } from "../model";
 import { isDriving } from "../player";
+import { routeLength } from "../route-geometry";
+
+export function navigationDistanceBadge(game: Game, seconds: number, navigation: NavigationPlan) {
+  if (!isDriving(game) || (!navigation.requiresUTurn && !navigation.turnCue)) return null;
+  const meters = (distance: number) => {
+    const value = Math.max(0, Math.round(distance * DISPLAY_METERS_PER_WORLD_UNIT));
+    return value >= 1000 ? `${(value / 1000).toFixed(1)}km` : `${value}m`;
+  };
+  const remaining = meters(routeLength(navigation.route));
+  const cue = navigation.turnCue;
+  const uTurn = navigation.requiresUTurn;
+  const origin = uTurn ? localPoint(game.x, game.y, game.heading, 10.5, 0) : cue!.point;
+  return {
+    point: { x: origin.x, y: origin.y, z: (uTurn ? game.z : cue!.point.z ?? 0) + 9.6 + Math.sin(seconds * 5) * .3 },
+    label: uTurn ? "U-TURN" : cue!.kind === "right" ? "TURN RIGHT" : "TURN LEFT",
+    distance: uTurn ? remaining : meters(cue!.distance),
+    remaining: uTurn ? "TO DESTINATION" : `${remaining} TO GO`,
+  };
+}
 
 export type ArrowGlyphPiece = { forward: number; cross: number; length: number; breadth: number };
 

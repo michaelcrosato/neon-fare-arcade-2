@@ -3,6 +3,7 @@ import {
   RUN_TIME,
   SPEED_KMH_PER_WORLD_UNIT,
   TAXI_START,
+  TOW_SECONDS,
 } from "./config";
 import {
   COURIER_HANDOFF_TAXI_RADIUS,
@@ -39,8 +40,11 @@ import {
   getObjectiveType,
 } from "./state";
 import { districtName } from "./world";
+import { recoveryCost } from "./recovery";
 
 export const EMPTY_HUD: Hud = {
+  towCost: 0,
+  towReceipt: null,
   time: RUN_TIME,
   fare: 0,
   score: 0,
@@ -164,6 +168,9 @@ export function makeHud(game: Game, navigation?: NavigationPlan, world?: WorldVi
     : specialRoadNamesNear(controlled, 1)[0] ?? districtName(controlled.x, controlled.y);
   return {
     time: Math.max(0, game.timeLeft),
+    towCost: recoveryCost(game),
+    towReceipt: game.towRecovery && game.elapsed - game.towRecovery.startedAt < TOW_SECONDS
+      ? { cost: game.towRecovery.cost, age: game.elapsed - game.towRecovery.startedAt } : null,
     fare: game.fare,
     score: game.score,
     speed: Math.round(

@@ -76,7 +76,7 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 320, height: 568 }
       await page.screenshot({ path: info.outputPath("driving-ready.png") });
     });
 
-    test("the route planner keeps a tappable map and confirmation in view", async ({ page }) => {
+    test("a map tap immediately sets the route and keeps the map controls in view", async ({ page }) => {
       await startFreeRun(page);
       await page.getByRole("button", { name: "Pause game" }).click();
       await page.getByRole("button", { name: "MAP", exact: true }).click();
@@ -86,11 +86,13 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 320, height: 568 }
       expect(box!.x).toBeGreaterThanOrEqual(0);
       expect(box!.y + box!.height).toBeLessThanOrEqual(viewport.height);
       await map.tap({ position: { x: box!.width * .6, y: box!.height * .5 } });
-      await expect(page.getByRole("status", { name: "GPS pin status" })).toContainText("PIN READY");
-      const confirm = page.getByRole("button", { name: "SET GPS ROUTE" });
-      const confirmBox = await confirm.boundingBox();
-      expect(confirmBox!.y + confirmBox!.height).toBeLessThanOrEqual(viewport.height);
-      await confirm.click();
+      await expect(page.getByRole("status", { name: "GPS pin status" })).toContainText("ROUTE SET");
+      await expect(page.getByRole("button", { name: "SET GPS ROUTE" })).toHaveCount(0);
+      await expect(page.getByRole("button", { name: "RETURN TO JOB ROUTE" })).toBeVisible();
+      const back = page.getByRole("button", { name: "BACK TO THE STREET" });
+      const backBox = await back.boundingBox();
+      expect(backBox!.y + backBox!.height).toBeLessThanOrEqual(viewport.height);
+      await back.click();
       await page.getByRole("button", { name: "RESUME FREE RUN" }).click();
       await expect(page.locator(".mobile-statusbar .mobile-distance")).toBeVisible();
       await expect(page.getByRole("button", { name: "Accelerate", exact: true })).toBeVisible();

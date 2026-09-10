@@ -138,6 +138,7 @@ export class NavigationController {
   private turnCueKey = "";
   private turnCueVisible = false;
   private usingVelocityHeading = false;
+  private recoveryAt: number | undefined;
 
   private adoptPlan(plan: NavigationPlan, player: WorldPoint, elapsed: number) {
     this.waypoints = plan.route.slice(1);
@@ -194,6 +195,8 @@ export class NavigationController {
     const target = getNavigationTarget(game);
     const objectiveKey = getNavigationKey(game);
     const isNewRun = game.elapsed + 0.1 < this.lastElapsed;
+    const recovered = this.recoveryAt !== game.towRecovery?.startedAt;
+    this.recoveryAt = game.towRecovery?.startedAt;
     if (isNewRun) this.usingVelocityHeading = false;
     const velocity = Math.hypot(game.vx, game.vy);
     if (this.usingVelocityHeading) {
@@ -202,8 +205,8 @@ export class NavigationController {
       this.usingVelocityHeading = true;
     }
     const travelHeading = gameTravelHeading(game, this.usingVelocityHeading);
-    if (objectiveKey !== this.objectiveKey || isNewRun || this.waypoints.length === 0) {
-      if (objectiveKey !== this.objectiveKey || isNewRun) {
+    if (objectiveKey !== this.objectiveKey || isNewRun || recovered || this.waypoints.length === 0) {
+      if (objectiveKey !== this.objectiveKey || isNewRun || recovered) {
         this.turnCueKey = "";
         this.turnCueVisible = false;
       }

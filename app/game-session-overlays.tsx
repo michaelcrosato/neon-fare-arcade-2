@@ -11,6 +11,7 @@ import type {
 } from "@/game/model";
 import { FareCardBrowser } from "./fare-card-deck";
 import { useMobileLayout } from "./use-mobile-layout";
+import { TowReceipt } from "./tow-receipt";
 
 type GameSessionOverlaysProps = Readonly<{
   mode: Mode;
@@ -31,6 +32,7 @@ type GameSessionOverlaysProps = Readonly<{
   onRequestStartRun: (runKind: RunKind, drivingModel?: DrivingModel) => void;
   onOpenScores: () => void;
   onCopyDiagnostics: () => void;
+  onRecover: () => void;
 }>;
 
 export function GameSessionOverlays({
@@ -52,10 +54,12 @@ export function GameSessionOverlays({
   onRequestStartRun,
   onOpenScores,
   onCopyDiagnostics,
+  onRecover,
 }: GameSessionOverlaysProps) {
   const mobile = useMobileLayout();
   return (
     <>
+      {mode === "playing" && hud.towReceipt && <TowReceipt receipt={hud.towReceipt} />}
       {mode === "countdown" && (
         <div className="countdown" aria-live="assertive">
           <small>{hud.drivingModel === "simulation" ? "SIMULATION FREE RUN" : hud.runKind === "free-run" ? "FREE RUN · NO TIMER" : "DRIVER PACKAGE"}</small>
@@ -104,6 +108,10 @@ export function GameSessionOverlays({
                 {(hud.passengerOnboard || hud.courierActive) && <small id="pause-duty-lock-note" className="duty-lock-note">FINISH CURRENT JOB TO CHANGE DUTY STATUS</small>}
               </>}
               {!mobile && <button className="primary-small" onClick={() => onSetMode("playing")}>{hud.runKind === "free-run" ? "RESUME FREE RUN" : "RESUME RUN"}</button>}
+              <button className="pause-recovery" onClick={onRecover} disabled={Boolean(hud.towReceipt)} aria-label="Get unstuck. Tow to the nearest clear road">
+                <strong>GET UNSTUCK · CALL A TOW</strong>
+                <small>{hud.towReceipt ? "TOW COMPLETE · RESUME TO DRIVE" : hud.towCost ? `$${hud.towCost} FROM RUN FARE · BACK TO THE NEAREST ROAD` : "FREE RESCUE · UNDER $100? ON THE HOUSE"}</small>
+              </button>
               <button onClick={onOpenHow}>HOW TO PLAY</button>
               {diagnosticsActive && <button onClick={onCopyDiagnostics}>COPY DIAGNOSTICS</button>}
               {diagnosticsNotice && <small className="duty-lock-note" role="status" aria-live="polite">{diagnosticsNotice}</small>}

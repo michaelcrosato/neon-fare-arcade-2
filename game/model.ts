@@ -569,6 +569,8 @@ export type ArcadeVehicleState = {
 };
 
 export type Game = {
+  /** Last roadside rescue. Its bounded departure path and receipt expire visually, not from history. */
+  towRecovery?: { startedAt: number; cost: number; path: Array<WorldPoint & { heading: number }> } | null;
   /** The taxi pose. Never repurpose these fields for the walking avatar. */
   x: number;
   y: number;
@@ -697,6 +699,8 @@ export type CourierMapMarker = {
 };
 
 export type Hud = {
+  towCost: number;
+  towReceipt: { cost: number; age: number } | null;
   time: number;
   fare: number;
   score: number;

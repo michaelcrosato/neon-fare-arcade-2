@@ -210,7 +210,8 @@ test("a custom cross-region route reaches its endpoint without exceeding the rou
   game.x = 0;
   game.y = 0;
   game.heading = 0;
-  game.customDestination = { x: 2300, y: 50 };
+  assert.ok(setCustomDestination(game, { x: 2300, y: 50 }));
+  assert.ok(game.customDestination);
   const plan = buildNavigationPlan({ x: game.x, y: game.y }, game.customDestination, game.heading);
   const boxes = routeBoxes(game, plan.route);
 

@@ -136,6 +136,20 @@
 2. Keep `material: MAT_TURN` and use explicit `Box.pitch`.
 3. Run `render-contract.test.ts`; remain at or below 32 boxes.
 4. Preview the same cue while cycling every camera.
+5. Distance labels belong to the shared glyph contract and HTML presenter;
+   test their units, live distances and projected desktop/mobile placement.
+   Road-lane markers belong to `game/road-lanes.ts` and `routeBoxes`, never the
+   canonical routing or fare-distance calculation.
+
+## Change roadside recovery
+
+1. Keep charging, safe-road search, actor reset and tow state in `game/recovery.ts`.
+2. Verify a fall below the Northstar gorge bridge, both driving models, walking,
+   interior returns, live traffic, all regions and the $0/$99/$100 boundaries.
+3. Preserve passenger/courier jobs, run clock and score. Record an external
+   diagnostic checkpoint when the pause-menu action changes the game.
+4. Verify the actual pause menu and free rescue, plus a paid receipt and the
+   moving red truck in both renderers, all cameras and narrow-phone layouts.
 
 ## Change WebGPU instance data
 

@@ -120,6 +120,7 @@ export function makeGame(
   const initialFareMarket = createFareMarket(normalizedSeed, 0, [], initialFareRegion);
   return {
     x: TAXI_START.x,
+    towRecovery: null,
     y: TAXI_START.y,
     z: 0,
     roadMotion: makeVehicleRoadMotion(),

@@ -279,11 +279,40 @@ updates the arcade launch, steering, road elevation and contact rules below.
   flicker while the taxi rotates.
 - The minimap, instruction copy, and 3D cue consume the same
   `NavigationPlan`/`TurnCue` semantics.
+- A world-anchored badge above each visible turn arrow shows distance to that
+  turn and total remaining route distance. A U-turn badge shows remaining
+  destination distance. Both use the same displayed-meter scale as GPS.
+- World route dashes follow the right-hand traffic lane, 2.25 units from the
+  road center, capped for narrower roads. Their height, grade and bank come from
+  the actual pavement. Canonical route geometry, GPS and fare distances remain
+  on the road graph; a taxi already in its lane must not double the offset.
+- Tapping a street or moving the GPS pin with Shift+Arrow sets the custom route
+  immediately. The map shows the active route without a confirmation step;
+  Enter or Back returns from the map. Panning does not place a destination.
 - All routes use one directed 3D road graph with physical crossing splits,
   virtual origin/destination projections, corridor weights and a small turn
   cost. Arrival direction is part of the search state, so sample vertices cannot
   manufacture U-turns. Height remains attached to route points through both GPS
   maps, the controller and world-space route markers.
+
+## Roadside recovery
+
+- Every active run exposes **Get Unstuck · Call a Tow** in the pause menu,
+  including while walking or inside a venue. Recovery returns the player to
+  the taxi on the nearest clear, active road at its actual elevation. Interior
+  recovery searches from the exterior return point, not pocket-room coordinates.
+- Placement checks pavement, terrain support, building clearance and live
+  traffic. The taxi starts stopped, upright and aligned with its driving lane;
+  airborne, rollover, drift, steering and held-input state is cleared.
+- A tow deducts exactly $100 from the current run fare when at least $100 is
+  available; otherwise it is free. It never spends the career bank, creates
+  debt, cancels a job or resets the run clock, score, fare roster or destination.
+  Carried courier cargo returns to the taxi with the driver.
+- Recovery resumes play immediately, snaps the camera to the rescued taxi and
+  replans guidance. A red tow truck drives along the road and a comic receipt
+  displays the charge (or complimentary service) for 3.6 simulation seconds.
+  The truck is visual, has no collider, and disappears after its departure.
+  Repeated activation during that same tow cannot charge the player twice.
 
 ## Street life
 

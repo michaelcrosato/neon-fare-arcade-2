@@ -103,6 +103,18 @@ new decorative pieces require budget review.
 Canvas consumes these same pieces and their pitch transforms through its 3D
 projection. It must not select a different symbol by rendering backend.
 
+Distance badges use `navigationDistanceBadge` and the shared `viewProjection`
+through one HTML presenter in `app/runtime/navigation-distance.ts`. Text stays
+crisp in every backend without spending navigation instances. Badge position
+follows the arrow's actual elevation and uses the same reduced-motion clock.
+`road-lanes.ts` resolves route dashes onto the right traffic lane and samples
+its physical height and normal; the canonical route is never modified.
+
+The brief red tow truck uses the actor buffer and renderer-neutral geometry in
+`render/tow-truck.ts`. Its bounded departure path follows physical roads. The
+receipt uses the same semantic charge in the HTML HUD and respects reduced
+motion. Neither effect changes the instance protocol or collision budgets.
+
 ## Landmark campuses
 
 Featured landmarks are composed from the same renderer-neutral box protocol as

@@ -1,3 +1,45 @@
+.pause-paper .pause-recovery {
+  display: grid;
+  gap: 6px;
+  width: 100%;
+  margin: 12px 0 6px;
+  padding: 14px;
+  color: var(--paper);
+  background: var(--ink);
+  border: 3px solid var(--red);
+  text-align: left;
+}
+.pause-recovery strong { font: italic 900 21px/1.1 Impact, sans-serif; }
+.pause-recovery small { color: var(--yellow); font: 800 10px/1.4 var(--font-geist-mono), monospace; }
+.pause-recovery:disabled { opacity: .55; cursor: default; }
+.tow-receipt {
+  position: absolute;
+  z-index: 35;
+  top: 25%;
+  left: 28px;
+  width: 270px;
+  padding: 0 16px 12px;
+  color: var(--ink);
+  background: var(--paper);
+  border: 4px solid var(--ink);
+  box-shadow: 7px 8px 0 var(--red), 11px 12px 0 var(--ink);
+  transform: rotate(-3deg);
+  pointer-events: none;
+  animation: tow-receipt-pop 260ms cubic-bezier(.2, .9, .3, 1.2);
+  transition: opacity .4s, transform .4s;
+}
+.tow-receipt.is-leaving { opacity: 0; transform: translateY(-14px) rotate(-6deg); }
+.tow-receipt__stripe { margin: 0 -16px; padding: 8px 7px; color: var(--paper); background: var(--ink); font: 900 9px/1.2 var(--font-geist-mono), monospace; letter-spacing: .04em; }
+.tow-receipt__truck { display: inline-block; width: 105px; height: 72px; margin-top: 7px; vertical-align: middle; }
+.tow-receipt__amount { display: inline-block; margin-left: 5px; color: var(--red); font: italic 900 46px/1 Impact, sans-serif; vertical-align: middle; }
+.tow-receipt > b { display: block; margin-top: 3px; font: italic 900 29px/1 Impact, sans-serif; }
+.tow-receipt > p { margin: 9px 0 10px; font: 900 9px/1.4 var(--font-geist-mono), monospace; }
+.tow-receipt__meter { height: 4px; background: var(--ink); }
+.tow-receipt__meter i { display: block; height: 100%; background: var(--red); transform-origin: left; }
+@keyframes tow-receipt-pop {
+  from { opacity: 0; transform: translateX(-50px) rotate(-12deg) scale(.8); }
+}
+
 .comic-callout {
   position: absolute;
   z-index: 24;

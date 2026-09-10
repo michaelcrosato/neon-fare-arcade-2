@@ -37,9 +37,9 @@ function render(scenario: Scenario) {
 function renderModal(modal: "home" | "gas" | "courier" | "how" | "traits" | "scores") {
   flushSync(() => root.render(<GameModalHost modal={modal} modalParent={null} mode="paused"
     pendingRunKind="free-run" pendingDrivingModel="arcade" hud={EMPTY_HUD} career={makeCareerState()} records={[]}
-    mapDraft={null} mapDraftPlan={null} mapNotice="" homeNotice="" courierNotice="" gasNotice=""
-    dialogRef={createRef()} onClose={noop} onBeginRun={noop} onDraftDestination={noop}
-    onCommitDestination={noop} onRemoveDestination={noop} onToggleFareDispatch={noop} onPurchaseHomeItem={noop}
+    mapNotice="" homeNotice="" courierNotice="" gasNotice=""
+    dialogRef={createRef()} onClose={noop} onBeginRun={noop} onSelectDestination={noop}
+    onRemoveDestination={noop} onToggleFareDispatch={noop} onPurchaseHomeItem={noop}
     onRechargeAtHome={noop} onOpenHomeSubview={noop} onPurchaseGasOffer={noop}
     onTakeCourierContract={() => { throw new Error("Layout fixture only"); }} onRequestStartRun={noop} />));
 }
@@ -49,7 +49,7 @@ function renderEnd() {
     <GameSessionOverlays mode="ended" hud={{ ...EMPTY_HUD, runKind: "timed", score: 9876543, fare: 98765 }} cameraMode="chase-low"
       careerBank={98765} fareCards={[]} diagnosticsActive={false} diagnosticsNotice="" muted={false}
       onToggleMute={noop} onOpenMap={noop} onSetCameraMode={noop} onSetMode={noop} onOpenHow={noop}
-      onFinishRun={noop} onToggleFareDispatch={noop} onRequestStartRun={noop} onOpenScores={noop} onCopyDiagnostics={noop} />
+      onFinishRun={noop} onToggleFareDispatch={noop} onRequestStartRun={noop} onOpenScores={noop} onCopyDiagnostics={noop} onRecover={noop} />
   </section></main>));
 }
 

@@ -19,9 +19,6 @@ import { EMPTY_HUD, makeHud } from "@/game/hud";
 import { TouchDriving } from "./runtime/touch-driving";
 import { rankFor } from "@/game/math";
 import {
-  buildNavigationPlan,
-} from "@/game/navigation";
-import {
   clearCustomDestination,
   setCustomDestination,
 } from "@/game/custom-destination";
@@ -35,10 +32,9 @@ import type {
   InputState,
   Modal,
   Mode,
-  NavigationPlan,
   RunKind,
   RunRecord,
-  Vec2,
+  WorldPoint,
 } from "@/game/model";
 import { drivingTraitPackage } from "@/game/driving-traits";
 import { regionalPlaceName } from "@/game/regions";
@@ -82,6 +78,7 @@ import { presentSimulationEvents } from "./runtime/present-simulation-events";
 import { reportRuntimeError } from "./runtime/runtime-errors";
 import { useGameRuntime } from "./runtime/use-game-runtime";
 import { copyText } from "./runtime/copy-text";
+import { recoverToRoad } from "@/game/recovery";
 
 
 function freshRunSeed() {
@@ -107,6 +104,7 @@ export default function Home() {
   const canvas2dRef = useRef<HTMLCanvasElement>(null);
   const webGpuCanvasRef = useRef<HTMLCanvasElement>(null);
   const passengerReviewRef = useRef<HTMLDivElement>(null);
+  const navigationDistanceRef = useRef<HTMLDivElement>(null);
   const taxiExitRef = useRef<HTMLButtonElement>(null);
   const selectingDriverRef = useRef(false);
   const [initialGame] = useState(() => makeGame());
@@ -155,9 +153,7 @@ export default function Home() {
   const [homeNotice, setHomeNotice] = useState("");
   const [courierNotice, setCourierNotice] = useState("");
   const [gasNotice, setGasNotice] = useState("");
-  const [mapDraft, setMapDraft] = useState<Vec2 | null>(null);
-  const [mapDraftPlan, setMapDraftPlan] = useState<NavigationPlan | null>(null);
-  const [mapNotice, setMapNotice] = useState("TAP A STREET TO DROP A PIN");
+  const [mapNotice, setMapNotice] = useState("TAP A STREET TO SET GPS");
   const [courierImpact, setCourierImpact] = useState<CourierImpact | null>(null);
   const [diagnostics] = useState(() => new DiagnosticsRecorder());
   const [diagnosticsActive] = useState(() => diagnosticsEnabled());
@@ -302,16 +298,12 @@ export default function Home() {
     if (next === "map") {
       const game = gameRef.current;
       const destination = game.customDestination;
-      setMapDraft(destination);
-      setMapDraftPlan(destination
-        ? buildNavigationPlan({ x: game.x, y: game.y }, destination, game.heading)
-        : null);
       setMapNotice(destination
         ? game.fareDispatchEnabled
           ? "CUSTOM ROUTE ACTIVE · MOVE THE PIN OR RETURN TO THE JOB"
           : "CUSTOM ROUTE ACTIVE · MOVE THE PIN OR CLEAR THE ROUTE"
         : game.fareDispatchEnabled
-          ? "TAP A STREET TO DROP A PIN"
+          ? "TAP A STREET TO SET GPS"
           : "OFF DUTY · TAP A STREET FOR AN OPTIONAL ROUTE");
     }
     if (shouldResume) {
@@ -340,32 +332,19 @@ export default function Home() {
     if (next === "map") {
       const game = gameRef.current;
       const destination = game.customDestination;
-      setMapDraft(destination);
-      setMapDraftPlan(destination
-        ? buildNavigationPlan({ x: game.x, y: game.y }, destination, game.heading)
-        : null);
       setMapNotice(destination
         ? game.fareDispatchEnabled
           ? "CUSTOM ROUTE ACTIVE · MOVE THE PIN OR RETURN TO THE JOB"
           : "CUSTOM ROUTE ACTIVE · MOVE THE PIN OR CLEAR THE ROUTE"
         : game.fareDispatchEnabled
-          ? "TAP A STREET TO DROP A PIN"
+          ? "TAP A STREET TO SET GPS"
           : "OFF DUTY · TAP A STREET FOR AN OPTIONAL ROUTE");
     }
     setModal(next);
   }, []);
 
-  const draftCustomDestination = useCallback((point: Vec2) => {
-    const place = regionalPlaceName(point.x, point.y) ?? districtName(point.x, point.y);
-    setMapDraft(point);
-    setMapDraftPlan(buildNavigationPlan({ x: gameRef.current.x, y: gameRef.current.y }, point, gameRef.current.heading));
-    setMapNotice(`PIN READY · ${place} · SELECT SET GPS ROUTE TO CONFIRM`);
-    setAudioAnnouncement(`Custom destination pin moved to ${place}. Select Set GPS Route to confirm.`);
-  }, []);
-
-  const commitCustomDestination = useCallback(() => {
-    if (!mapDraft) return;
-    const destination = setCustomDestination(gameRef.current, mapDraft);
+  const selectCustomDestination = useCallback((point: WorldPoint) => {
+    const destination = setCustomDestination(gameRef.current, point);
     if (!destination) {
       setMapNotice("CHOOSE A STREET INSIDE AN ACTIVE REGION");
       setAudioAnnouncement("That point is outside the active road network.");
@@ -380,8 +359,7 @@ export default function Home() {
       ? `Custom GPS route set for ${place}. Your current job remains active.`
       : `Custom GPS route set for ${place}. Passenger dispatch remains off.`);
     tone(660, 0.13, "square", 940);
-    closeModal();
-  }, [checkpointExternalGameChange, closeModal, mapDraft, tone]);
+  }, [checkpointExternalGameChange, tone]);
 
   const removeCustomDestination = useCallback(() => {
     const game = gameRef.current;
@@ -389,8 +367,6 @@ export default function Home() {
     const streamed = game.fareDispatchEnabled && refreshFareDispatch(game);
     if (streamed) warmPassengerArt(game.fareJobs);
     checkpointExternalGameChange("custom-destination:clear");
-    setMapDraft(null);
-    setMapDraftPlan(null);
     setHud(makeHud(game));
     setMapNotice(game.fareDispatchEnabled
       ? "CUSTOM ROUTE CLEARED · JOB ROUTE RESTORED"
@@ -400,6 +376,25 @@ export default function Home() {
       : "Custom GPS route cleared. Remaining off duty.");
     tone(310, 0.1, "square", 180);
   }, [checkpointExternalGameChange, tone]);
+
+  const getUnstuck = useCallback(() => {
+    if (modeRef.current !== "paused") return;
+    clearInput();
+    const game = gameRef.current;
+    const recovery = recoverToRoad(game);
+    if (!recovery) {
+      setAudioAnnouncement("Rescue is not ready. Resume your run and try again.");
+      return;
+    }
+    Object.assign(cameraRef.current, { x: game.x, y: game.y, heading: game.heading, heightOffset: game.z,
+      onFoot: false, boom: defaultCameraBoom(cameraModeRef.current), zoom: 1 });
+    checkpointExternalGameChange("roadside-recovery");
+    setHud(makeHud(game));
+    setMode("playing");
+    setAudioAnnouncement(recovery.cost ? `Back on the nearest clear road. Tow paid: ${recovery.cost} dollars from run fare.`
+      : "Back on the nearest clear road. This tow is on the house.");
+    tone(220, .13, "triangle", 440);
+  }, [checkpointExternalGameChange, clearInput, setMode, tone]);
 
   const toggleFareDispatch = useCallback(() => {
     const game = gameRef.current;
@@ -646,6 +641,7 @@ export default function Home() {
   useGameRuntime({
     selectingDriverRef,
     passengerReviewRef,
+    navigationDistanceRef,
     taxiExitRef,
     canvas2dRef,
     webGpuCanvasRef,
@@ -873,6 +869,9 @@ export default function Home() {
         />
         <div className="print-noise" aria-hidden="true" />
         <div ref={passengerReviewRef} className="passenger-review" role="status" hidden />
+        <div ref={navigationDistanceRef} className="navigation-distance" role="img" aria-label="Road guidance" hidden>
+          <span /><strong /><small />
+        </div>
         <div className="speed-fx" aria-hidden="true">
           <i /><i /><i /><i /><i /><i /><i /><i />
           <i /><i /><i /><i /><i /><i /><i /><i />
@@ -926,6 +925,7 @@ export default function Home() {
           onRequestStartRun={requestStartRun}
           onOpenScores={() => openModal("scores")}
           onCopyDiagnostics={copyDiagnostics}
+          onRecover={getUnstuck}
         />
       </section>
 
@@ -938,8 +938,6 @@ export default function Home() {
         hud={hud}
         career={career}
         records={records}
-        mapDraft={mapDraft}
-        mapDraftPlan={mapDraftPlan}
         mapNotice={mapNotice}
         homeNotice={homeNotice}
         courierNotice={courierNotice}
@@ -947,8 +945,7 @@ export default function Home() {
         dialogRef={modalDialogRef}
         onClose={closeModal}
         onBeginRun={beginRun}
-        onDraftDestination={draftCustomDestination}
-        onCommitDestination={commitCustomDestination}
+        onSelectDestination={selectCustomDestination}
         onRemoveDestination={removeCustomDestination}
         onToggleFareDispatch={toggleFareDispatch}
         onPurchaseHomeItem={purchaseHomeItem}

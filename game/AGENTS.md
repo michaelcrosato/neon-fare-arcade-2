@@ -20,6 +20,8 @@ fixed-step cadence and returns semantic events.
   dispatch: `fare-selection.ts`; sixth fare: `regional-fares.ts`.
 - Custom waypoint: `custom-destination.ts`; courier: `courier.ts`; career:
   `career.ts`; gas service: `gas-station.ts`.
+- Roadside rescue and tow charging: `recovery.ts`; right-lane surface poses:
+  `road-lanes.ts`; departing truck geometry: `render/tow-truck.ts`.
 - Region registry/containment: `regions.ts`; shared regional metadata:
   `regional-content.ts`; regional map math: `regional-map.ts`.
 - Cedar parcels/data/portals: `residential.ts`; street plan: `cedar-layout.ts`;

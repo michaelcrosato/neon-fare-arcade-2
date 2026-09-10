@@ -309,6 +309,17 @@ export function nearestRoadProjection(point: WorldPoint, heading?: number): Road
   };
 }
 
+/** On-demand rescue search across real roads, without the normal same-deck routing bias. */
+export function recoveryRoadProjections(point: WorldPoint): Array<RoadProjection & { allowAB: boolean; allowBA: boolean }> {
+  return physicalSegments.map(segment => {
+    const projected = projectPointToSegment(point, segment.a, segment.b);
+    return { roadId: segment.pathId, kind: segment.kind, point: projected.point,
+      centerDistance: projected.distance, surfaceDistance: projected.distance - segment.halfWidth,
+      tangentYaw: Math.atan2(segment.b.y - segment.a.y, segment.b.x - segment.a.x), halfWidth: segment.halfWidth,
+      allowAB: segment.allowAB, allowBA: segment.allowBA };
+  }).sort((a, b) => roadDistance(point, a.point) - roadDistance(point, b.point));
+}
+
 export function nearestSpecialRoadProjection(point: WorldPoint) {
   let best: (RoadProjection & { segment: SpecialRoadSegment }) | null = null;
   for (const segment of SPECIAL_ROAD_SEGMENTS) {

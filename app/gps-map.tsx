@@ -21,14 +21,13 @@ import {
   WORLD_ROAD_MIN_Y,
 } from "@/game/config";
 import { nearestRoadX, nearestRoadY, normalizeAngle } from "@/game/math";
-import { nextTurnCue } from "@/game/navigation";
 import {
   CUSTOM_DESTINATION_KEYBOARD_STEP,
   customDestinationForMapPoint,
   mapClientPointToWorld,
   moveCustomDestination,
 } from "@/game/custom-destination";
-import type { Hud, NavigationPlan, Vec2 } from "@/game/model";
+import type { Hud, Vec2, WorldPoint } from "@/game/model";
 import { FEATURED_CITY_LANDMARKS, landmarkWorldCenter } from "@/game/landmarks";
 import { ACTIVE_WORLD_REGIONS, regionForPosition, regionRoadBounds } from "@/game/regions";
 import {
@@ -56,19 +55,15 @@ import { inCityTerrain } from "@/game/terrain/city-forms";
 type GpsMapProps = {
   hud: Hud;
   full?: boolean;
-  draftDestination?: Vec2 | null;
-  draftPlan?: NavigationPlan | null;
-  onDestinationDraft?: (point: Vec2) => void;
-  onDestinationCommit?: () => void;
+  onDestinationSelect?: (point: WorldPoint) => void;
+  onReturn?: () => void;
 };
 
 export function GpsMap({
   hud,
   full = false,
-  draftDestination = null,
-  draftPlan = null,
-  onDestinationDraft,
-  onDestinationCommit,
+  onDestinationSelect,
+  onReturn,
 }: GpsMapProps) {
   const svgRef = useRef<SVGSVGElement | null>(null);
   const mapAspectReadyRef = useRef(false);
@@ -120,9 +115,8 @@ export function GpsMap({
   const copperPlayer = inCopperTerrain(hud.player.x, hud.player.y);
   const coastPlayer = inCoastTerrain(hud.player.x, hud.player.y);
   const cityPlayer = inCityTerrain(hud.player.x, hud.player.y);
-  const activeDraftPlan = full && draftDestination ? draftPlan : null;
-  const displayedRoute = activeDraftPlan?.route ?? hud.route;
-  const displayedRouteType = full && draftDestination ? "waypoint" : hud.objectiveType;
+  const displayedRoute = hud.route;
+  const displayedRouteType = hud.objectiveType;
   const showNavigationTarget = displayedRouteType !== "roam";
   const routePoints = displayedRoute.map(pointFor).map((point) => `${point.x},${point.y}`).join(" ");
   const specialRoadPolylines = SPECIAL_ROADS.map((road) => {
@@ -227,7 +221,7 @@ export function GpsMap({
       }
     }
   }
-  const target = pointFor(full && draftDestination ? draftDestination : hud.navigationTarget);
+  const target = pointFor(hud.navigationTarget);
   const player = pointFor(hud.player);
   const walker = hud.walker ? pointFor(hud.walker) : null;
   const pickupMarkers = hud.availablePickups.map((marker) => ({
@@ -238,11 +232,7 @@ export function GpsMap({
     ...marker,
     screenPoint: pointFor(marker.point),
   }));
-  const turnCue = full
-    ? activeDraftPlan
-      ? activeDraftPlan.requiresUTurn ? null : nextTurnCue(activeDraftPlan.route, activeDraftPlan.departureYaw)
-      : hud.routeTurnCue
-    : hud.turnCue;
+  const turnCue = full ? hud.routeTurnCue : hud.turnCue;
   const turnPoint = turnCue ? pointFor(turnCue.point) : null;
   const turnRotation = turnCue
     ? full
@@ -277,11 +267,11 @@ export function GpsMap({
   };
 
   const selectDestination = (clientX: number, clientY: number, svg: SVGSVGElement) => {
-    if (!full || !onDestinationDraft) return;
+    if (!full || !onDestinationSelect) return;
     const point = clientPointToMap(clientX, clientY, svg);
     if (!point) return;
     const destination = customDestinationForMapPoint(point);
-    if (destination) onDestinationDraft(destination);
+    if (destination) onDestinationSelect(destination);
   };
 
   const focusPlayer = () => {
@@ -352,9 +342,9 @@ export function GpsMap({
   const handleMapKeyDown = (event: ReactKeyboardEvent<SVGSVGElement>) => {
     if (!full) return;
     if (event.key === "Enter" || event.key === " ") {
-      if (draftDestination && onDestinationCommit) {
+      if (onReturn) {
         event.preventDefault();
-        onDestinationCommit();
+        onReturn();
       }
       return;
     }
@@ -394,9 +384,9 @@ export function GpsMap({
             : null;
     if (!movement) return;
     event.preventDefault();
-    if (event.shiftKey && onDestinationDraft) {
-      const origin = draftDestination ?? hud.customDestination ?? hud.player;
-      onDestinationDraft(moveCustomDestination(origin, movement[0], movement[1]));
+    if (event.shiftKey && onDestinationSelect) {
+      const origin = hud.customDestination ?? hud.player;
+      onDestinationSelect(moveCustomDestination(origin, movement[0], movement[1]));
       return;
     }
     setMapView((current) => panRegionalMapView(current, mapAspect, {
@@ -612,8 +602,8 @@ export function GpsMap({
         {showNavigationTarget && (full
           ? <g transform={`translate(${target.x} ${target.y}) scale(${markerScale})`}><circle className={`gps-target ${displayedRouteType}`} r="9" /></g>
           : <circle className={`gps-target ${displayedRouteType}`} cx={target.x} cy={target.y} r="5.4" />)}
-        {full && draftDestination && (
-          <g className="gps-custom-pin is-draft" transform={`translate(${draftDestination.x} ${draftDestination.y}) scale(${markerScale})`} aria-hidden="true">
+        {full && hud.customDestination && (
+          <g className="gps-custom-pin" transform={`translate(${hud.customDestination.x} ${hud.customDestination.y}) scale(${markerScale})`} aria-hidden="true">
             <circle r="14" />
             <path d="M 0 -18 C 10 -18 14 -6 9 2 L 0 17 L -9 2 C -14 -6 -10 -18 0 -18 Z" />
             <circle className="gps-custom-pin-core" r="4" cy="-5" />
@@ -625,7 +615,7 @@ export function GpsMap({
             <polygon points={full ? "0,-31 24,7 9,5 9,28 -9,28 -9,5 -24,7" : "0,-11 8,3 3,2 3,9 -3,9 -3,2 -8,3"} />
           </g>
         )}
-        {(activeDraftPlan?.requiresUTurn ?? hud.needsUTurn) && (
+        {hud.needsUTurn && (
           <g className="gps-uturn-cue" transform={`translate(${player.x} ${player.y})${full ? ` scale(${markerScale})` : ""}`}>
             <circle r={full ? 39 : 13} />
             <text y={full ? 15 : 5} fontSize={full ? 49 : 17}>↶</text>

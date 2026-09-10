@@ -825,3 +825,40 @@
 @keyframes interaction-pop {
   from { opacity: 0; transform: translateX(-50%) translateY(18px) rotate(-3deg) scale(.82); }
 }
+
+.navigation-distance {
+  position: absolute;
+  z-index: 24;
+  width: max-content;
+  min-width: 104px;
+  padding: 0 10px 7px;
+  color: var(--paper);
+  background: var(--ink);
+  border: 2px solid var(--yellow);
+  border-radius: 5px;
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, .6);
+  transform: translate(-50%, -100%);
+  text-align: center;
+  pointer-events: none;
+}
+.navigation-distance[hidden] { display: none; }
+.navigation-distance::after {
+  content: "";
+  position: absolute;
+  left: calc(50% - 6px);
+  bottom: -10px;
+  border: 6px solid transparent;
+  border-top: 8px solid var(--yellow);
+  border-bottom: 0;
+}
+.navigation-distance span {
+  display: block;
+  margin: 0 -10px 4px;
+  padding: 4px 7px;
+  color: var(--ink);
+  background: var(--yellow);
+  font: 900 10px/1 var(--font-geist-mono), monospace;
+  letter-spacing: .06em;
+}
+.navigation-distance strong { display: block; font: italic 900 34px/.95 Impact, sans-serif; }
+.navigation-distance small { display: block; margin-top: 5px; color: var(--cyan); font: 800 9px/1.2 var(--font-geist-mono), monospace; }
