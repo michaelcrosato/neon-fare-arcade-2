@@ -3,17 +3,26 @@ import { build } from "esbuild";
 import { openScenePage } from "./scene-page";
 import type {} from "./fixtures/mobile-hud-scene";
 import type { DiagnosticsSnapshot } from "../../app/runtime/diagnostics";
+import { SCENE_TEST_TIMEOUT } from "./browser-options";
 
+test.setTimeout(SCENE_TEST_TIMEOUT);
 test.use({ contextOptions: { hasTouch: true, isMobile: true, reducedMotion: "reduce" } });
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => Object.defineProperty(navigator, "gpu", { configurable: true, value: undefined }));
 });
 
 async function startFreeRun(page: Page, checkCountdown?: () => Promise<void>) {
+  if (checkCountdown) await page.clock.install({ time: new Date("2026-01-01T00:00:00Z") });
   await page.goto("/?diagnostics=1");
   await page.getByRole("button", { name: /Start Free Run with arcade/ }).click();
+  if (checkCountdown) await page.clock.pauseAt(new Date("2026-01-01T01:00:00Z"));
   await page.getByRole("button", { name: /Choose STREET ACE/ }).click();
-  await checkCountdown?.();
+  if (checkCountdown) {
+    await page.clock.runFor(100);
+    await checkCountdown();
+    await page.clock.fastForward(3500);
+    await page.clock.resume();
+  }
   await expect(page.getByRole("button", { name: "Pause game" })).toBeEnabled();
 }
 

@@ -30,6 +30,11 @@ jobs:
   browser-smoke:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    # Separate runners keep the full software-GPU suite within the job budget.
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -39,11 +44,11 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - run: sudo apt-get install -y libvulkan1 mesa-vulkan-drivers xauth
-      - run: xvfb-run --auto-servernum npm run test:browser
+      - run: xvfb-run --auto-servernum npm run test:browser -- --shard=${{ matrix.shard }}/2
       - if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-artifacts
+          name: playwright-artifacts-${{ matrix.shard }}
           path: |
             playwright-report
             test-results

@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { WEBGPU_TEST_OPTIONS } from "./browser-options";
+import { SCENE_TEST_TIMEOUT, WEBGPU_TEST_OPTIONS } from "./browser-options";
 import type { DiagnosticsSnapshot } from "../../app/runtime/diagnostics";
 
 test.use({ ...WEBGPU_TEST_OPTIONS, viewport: { width: 390, height: 844 },
@@ -7,16 +7,20 @@ test.use({ ...WEBGPU_TEST_OPTIONS, viewport: { width: 390, height: 844 },
 
 for (const renderer of ["WebGPU", "Canvas 2D"] as const) {
   test(`${renderer}: countdown teaches both thumbs, steering fades its guide, and the door action follows the cab`, async ({ page, context }, info) => {
-    test.setTimeout(60000);
+    test.setTimeout(Math.max(60000, SCENE_TEST_TIMEOUT));
     const errors: string[] = [];
     page.on("pageerror", error => errors.push(error.message));
     page.on("console", message => { if (message.type() === "error") errors.push(message.text()); });
     page.on("response", response => { if (response.status() >= 400) errors.push(`${response.status()} ${response.url()}`); });
+    await page.clock.install({ time: new Date("2026-01-01T00:00:00Z") });
     if (renderer === "Canvas 2D") await page.addInitScript(() => Object.defineProperty(navigator, "gpu", { configurable: true, value: undefined }));
     await page.goto("/?diagnostics=1");
     await expect(page.locator(".game-canvas").nth(renderer === "WebGPU" ? 1 : 0)).toHaveClass(/is-active/);
     await page.getByRole("button", { name: /Start Free Run with arcade/ }).click();
+    // Pause before starting: software-GPU screenshots can outlast the three-second countdown.
+    await page.clock.pauseAt(new Date("2026-01-01T01:00:00Z"));
     await page.getByRole("button", { name: /Choose STREET ACE/ }).click();
+    await page.clock.runFor(100);
     const guide = page.locator(".mobile-steer-guide");
     const gas = page.getByRole("button", { name: "Accelerate", exact: true });
     const brake = page.getByRole("button", { name: "Brake or reverse", exact: true });
@@ -37,6 +41,8 @@ for (const renderer of ["WebGPU", "Canvas 2D"] as const) {
     thumb.x += 56;
     await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [thumb, pedal] });
     await expect(page.locator("[data-held], .mobile-thumbstick")).toHaveCount(0);
+    await page.clock.fastForward(3500);
+    await page.clock.resume();
     await expect(gas).toBeEnabled();
     await expect(page.locator(".mobile-speed > strong")).toHaveText("0");
     await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });

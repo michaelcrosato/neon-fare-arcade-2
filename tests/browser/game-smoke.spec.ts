@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { createRequire } from "node:module";
+import { SCENE_TEST_TIMEOUT } from "./browser-options";
 
 const packageInfo = createRequire(import.meta.url)("../../package.json") as { version: string };
 const APP_ORIGIN = "http://127.0.0.1:4173";
@@ -60,6 +61,7 @@ async function holdKeyUntil(page: Page, key: string, assertion: () => Promise<vo
 }
 
 test("free run supports exploration, GPS, driving, pause, and copyable replay diagnostics", async ({ page }) => {
+  test.setTimeout(SCENE_TEST_TIMEOUT);
   await startFreeRun(page);
 
   await expect(page.getByRole("button", { name: /EXIT TAXI/i })).toBeVisible();
