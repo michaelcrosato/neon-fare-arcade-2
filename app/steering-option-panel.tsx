@@ -151,7 +151,7 @@ export function SteeringOptionPanel({ currentMode, onSelect, onBack }: SteeringO
               <button
                 type="button"
                 className="driver-trait__pick"
-                data-modal-autofocus={isSelected ? "true" : option.id === "default" ? "true" : undefined}
+                data-modal-autofocus={isSelected ? "true" : undefined}
                 onClick={() => onSelect(option.id)}
                 aria-label={`Select ${option.name}. ${option.description}`}
               >

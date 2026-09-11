@@ -216,6 +216,7 @@ test("the runtime page delegates browser orchestration and presentation surfaces
     "./runtime/use-game-runtime",
     "./runtime/present-simulation-events",
     "./runtime/diagnostics",
+    "./runtime/steering-mode",
     "./game-modal-host",
     "./game-mode-menu",
     "./game-session-overlays",

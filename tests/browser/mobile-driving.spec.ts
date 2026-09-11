@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { SCENE_START_TIMEOUT, SCENE_TEST_TIMEOUT, WEBGPU_TEST_OPTIONS } from "./browser-options";
+import { lockSteeringIfPrompted } from "./start-helpers";
 import type { DiagnosticsSnapshot } from "../../app/runtime/diagnostics";
 
 test.use({ ...WEBGPU_TEST_OPTIONS, viewport: { width: 390, height: 844 },
@@ -20,6 +21,7 @@ for (const renderer of ["WebGPU", "Canvas 2D"] as const) {
     // Pause before starting: software-GPU screenshots can outlast the three-second countdown.
     await page.clock.pauseAt(new Date("2026-01-01T01:00:00Z"));
     await page.getByRole("button", { name: /Choose STREET ACE/ }).click();
+    await lockSteeringIfPrompted(page);
     await page.clock.runFor(100);
     const guide = page.locator(".mobile-steer-guide");
     const gas = page.getByRole("button", { name: "Accelerate", exact: true });
@@ -64,6 +66,7 @@ for (const renderer of ["WebGPU", "Canvas 2D"] as const) {
     await expect(page.locator(".game-canvas").nth(renderer === "WebGPU" ? 1 : 0)).toHaveClass(/is-active/, { timeout: SCENE_START_TIMEOUT });
     await page.getByRole("button", { name: /Start Free Run with arcade/ }).click();
     await page.getByRole("button", { name: /Choose STREET ACE/ }).click();
+    await lockSteeringIfPrompted(page);
     const guide = page.locator(".mobile-steer-guide");
     const gas = page.getByRole("button", { name: "Accelerate", exact: true });
     const brake = page.getByRole("button", { name: "Brake or reverse", exact: true });

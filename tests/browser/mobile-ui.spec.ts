@@ -3,7 +3,8 @@ import { build } from "esbuild";
 import { openScenePage } from "./scene-page";
 import type {} from "./fixtures/mobile-hud-scene";
 import type { DiagnosticsSnapshot } from "../../app/runtime/diagnostics";
-import { SCENE_TEST_TIMEOUT } from "./browser-options";
+import { SCENE_START_TIMEOUT, SCENE_TEST_TIMEOUT } from "./browser-options";
+import { lockSteeringIfPrompted } from "./start-helpers";
 
 test.setTimeout(SCENE_TEST_TIMEOUT);
 test.use({ contextOptions: { hasTouch: true, isMobile: true, reducedMotion: "reduce" } });
@@ -17,6 +18,7 @@ async function startFreeRun(page: Page, checkCountdown?: () => Promise<void>) {
   await page.getByRole("button", { name: /Start Free Run with arcade/ }).click();
   if (checkCountdown) await page.clock.pauseAt(new Date("2026-01-01T01:00:00Z"));
   await page.getByRole("button", { name: /Choose STREET ACE/ }).click();
+  await lockSteeringIfPrompted(page);
   if (checkCountdown) {
     await page.clock.runFor(100);
     await checkCountdown();
@@ -32,6 +34,33 @@ async function copyTrace(page: Page): Promise<DiagnosticsSnapshot> {
   await expect(page.getByRole("status")).toContainText("DIAGNOSTICS COPIED");
   return JSON.parse(await page.evaluate(() => navigator.clipboard.readText()));
 }
+
+test.describe("steering lock-in", () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+  test("locking joystick then wheel starts each run with that control, not the stored default", async ({ page }, info) => {
+    await page.addInitScript(() => localStorage.setItem("neon-fare-steering-mode", "default"));
+    await page.goto("/?diagnostics=1");
+    await page.getByRole("button", { name: /Start Free Run with arcade/ }).click();
+    await page.getByRole("button", { name: /Choose STREET ACE/ }).click();
+    await expect(page.getByRole("dialog", { name: "STEERING SYSTEM" })).toBeVisible();
+    await page.getByRole("button", { name: /Select JOYSTICK/ }).click();
+    await expect(page.getByLabel(/Virtual joystick/)).toBeVisible();
+    await expect(page.locator(".mobile-steer-guide")).toHaveCount(0);
+    await page.screenshot({ path: info.outputPath("steering-joystick.png") });
+
+    await expect(page.getByRole("button", { name: "Pause game" })).toBeEnabled({ timeout: SCENE_START_TIMEOUT });
+    await page.getByRole("button", { name: "Pause game" }).click();
+    await page.getByRole("button", { name: /END FREE RUN/ }).click();
+    await page.getByRole("button", { name: /FREE RUN AGAIN/ }).click();
+    await page.getByRole("button", { name: /Choose STREET ACE/ }).click();
+    await expect(page.getByRole("dialog", { name: "STEERING SYSTEM" })).toBeVisible();
+    await page.getByRole("button", { name: /Select WHEEL/ }).click();
+    await expect(page.getByLabel(/Virtual steering wheel/)).toBeVisible();
+    await expect(page.locator(".mobile-steer-guide")).toHaveCount(0);
+    await expect(page.getByLabel(/Virtual joystick/)).toHaveCount(0);
+    await page.screenshot({ path: info.outputPath("steering-wheel.png") });
+  });
+});
 
 for (const viewport of [{ width: 390, height: 844 }, { width: 320, height: 568 }, { width: 844, height: 390 }, { width: 1280, height: 800 }]) {
   test.describe(`${viewport.width}×${viewport.height}`, () => {

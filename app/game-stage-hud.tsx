@@ -16,7 +16,7 @@ import { FareCardStack } from "./fare-card-deck";
 import { GpsMap } from "./gps-map";
 import { MobileGameHud } from "./mobile-game-hud";
 import { useMobileLayout } from "./use-mobile-layout";
-import type { TouchDriving } from "./runtime/touch-driving";
+import type { SteeringMode, TouchDriving } from "./runtime/touch-driving";
 
 type GameStageHudProps = Readonly<{
   mode: Mode;
@@ -33,6 +33,7 @@ type GameStageHudProps = Readonly<{
   onSetMode: (mode: Mode) => void;
   onTouch: PointerEventHandler<HTMLButtonElement>;
   touchDriving: TouchDriving;
+  steeringMode?: SteeringMode;
   taxiExitRef: RefObject<HTMLButtonElement | null>;
 }>;
 
@@ -51,11 +52,12 @@ export function GameStageHud({
   onSetMode,
   onTouch,
   touchDriving,
+  steeringMode,
   taxiExitRef,
 }: GameStageHudProps) {
   const mobile = useMobileLayout();
   if (mobile) return <MobileGameHud mode={mode} hud={hud} fareImpact={fareImpact} courierImpact={courierImpact}
-    touchDriving={touchDriving} taxiExitRef={taxiExitRef} onPulseInteraction={onPulseInteraction} onSetMode={onSetMode} onTouch={onTouch} />;
+    touchDriving={touchDriving} steeringMode={steeringMode} taxiExitRef={taxiExitRef} onPulseInteraction={onPulseInteraction} onSetMode={onSetMode} onTouch={onTouch} />;
   const simulationDriving = hud.playerMode === "driving" && hud.drivingModel === "simulation";
   const simulationGear = simulationGearLabel(hud.simulationVehicle.gear);
   const cabRollScale = 1 + Math.abs(Math.sin(hud.simulationVehicle.bodyRoll)) * 0.42;

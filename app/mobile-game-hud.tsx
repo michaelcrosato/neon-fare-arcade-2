@@ -3,7 +3,7 @@ import type { FareImpact, Hud, InputState, Mode } from "@/game/model";
 import { simulationGearLabel } from "@/game/simulation-vehicle";
 import type { CourierImpact } from "./courier-impact-overlay";
 import { MobileDriveControls } from "./mobile-drive-controls";
-import type { TouchDriving } from "./runtime/touch-driving";
+import type { SteeringMode, TouchDriving } from "./runtime/touch-driving";
 
 type Props = {
   mode: Mode;
@@ -11,6 +11,7 @@ type Props = {
   fareImpact: FareImpact | null;
   courierImpact: CourierImpact | null;
   touchDriving: TouchDriving;
+  steeringMode?: SteeringMode;
   taxiExitRef?: RefObject<HTMLButtonElement | null>;
   onPulseInteraction: () => void;
   onSetMode: (mode: Mode) => void;
@@ -39,7 +40,7 @@ function walkingDestination(hud: Hud) {
 }
 
 /** Mobile has its own information hierarchy; no mini-map or desktop card stack. */
-export function MobileGameHud({ mode, hud, fareImpact, courierImpact, touchDriving, taxiExitRef, onPulseInteraction, onSetMode, onTouch }: Props) {
+export function MobileGameHud({ mode, hud, fareImpact, courierImpact, touchDriving, steeringMode, taxiExitRef, onPulseInteraction, onSetMode, onTouch }: Props) {
   if (mode !== "playing" && mode !== "countdown") return null;
   const driving = hud.playerMode === "driving";
   const simulation = driving && hud.drivingModel === "simulation";
@@ -55,7 +56,7 @@ export function MobileGameHud({ mode, hud, fareImpact, courierImpact, touchDrivi
     <TouchButton input={input} label={label} onTouch={onTouch}>{content}</TouchButton>;
 
   return <div className={`mobile-hud ${driving ? "is-driving" : "is-on-foot"}`}>
-    {driving && <MobileDriveControls controller={touchDriving} enabled={mode === "playing"}
+    {driving && <MobileDriveControls key={steeringMode ?? touchDriving.getMode()} controller={touchDriving} enabled={mode === "playing"}
       boost={hud.boost} boosting={hud.boosting} simulation={simulation} />}
     <div className="mobile-statusbar">
       <div className="mobile-journey">

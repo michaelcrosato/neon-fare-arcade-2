@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import type { Game } from "../../game/model";
 import { SCENE_START_TIMEOUT, SCENE_TEST_TIMEOUT, WEBGPU_TEST_OPTIONS } from "./browser-options";
+import { lockSteeringIfPrompted } from "./start-helpers";
 
 test.use(WEBGPU_TEST_OPTIONS);
 test.setTimeout(Math.max(120_000, SCENE_TEST_TIMEOUT * 3));
@@ -9,6 +10,7 @@ const gameplayTimeout = Math.max(15_000, SCENE_START_TIMEOUT);
 async function startRun(page: Page) {
   await page.getByRole("button", { name: /Start Free Run with arcade/ }).click();
   await page.getByRole("button", { name: /Choose STREET ACE/ }).click();
+  await lockSteeringIfPrompted(page);
   await expect(page.getByRole("button", { name: "Pause game" })).toBeEnabled({ timeout: gameplayTimeout });
 }
 

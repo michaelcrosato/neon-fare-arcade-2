@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { createRequire } from "node:module";
 import { SCENE_START_TIMEOUT, SCENE_TEST_TIMEOUT } from "./browser-options";
+import { lockSteeringIfPrompted } from "./start-helpers";
 
 test.setTimeout(SCENE_TEST_TIMEOUT);
 
@@ -47,6 +48,7 @@ async function startFreeRun(page: Page) {
   await page.getByRole("button", { name: /Start Free Run/i }).click();
   await expect(page.getByRole("dialog", { name: "PICK YOUR EDGE" })).toBeVisible();
   await page.getByRole("button", { name: /Choose STREET ACE/i }).click();
+  await lockSteeringIfPrompted(page);
   await expect(page.getByRole("button", { name: "Pause game" })).toBeVisible({ timeout: SCENE_START_TIMEOUT });
 }
 

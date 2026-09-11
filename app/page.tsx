@@ -21,6 +21,11 @@ import {
 } from "@/game/config";
 import { EMPTY_HUD, makeHud } from "@/game/hud";
 import { TouchDriving, type SteeringMode } from "./runtime/touch-driving";
+import {
+  STEERING_MODE_STORAGE_KEY,
+  applySteeringForRun,
+  parseStoredSteeringMode,
+} from "./runtime/steering-mode";
 import { rankFor } from "@/game/math";
 import { clearCustomDestination, setCustomDestination } from "@/game/custom-destination";
 import type {
@@ -136,16 +141,17 @@ export default function Home() {
   const [pendingDrivingTrait, setPendingDrivingTrait] = useState<DrivingTraitId>("street-ace");
   const [steeringMode, setSteeringModeState] = useState<SteeringMode>(() => {
     try {
-      const s = localStorage.getItem("neon-fare-steering-mode");
-      if (s === "default" || s === "joystick" || s === "wheel") return s;
+      return parseStoredSteeringMode(localStorage.getItem(STEERING_MODE_STORAGE_KEY));
     } catch {}
     return "default";
   });
-  const setSteeringMode = useCallback((s: SteeringMode) => {
-    setSteeringModeState(s);
-    touchDriving.setMode(s);
-    try { localStorage.setItem("neon-fare-steering-mode", s); } catch {}
-  }, [touchDriving]);
+  const persistSteeringMode = useCallback((next: SteeringMode) => {
+    setSteeringModeState(next);
+    try { localStorage.setItem(STEERING_MODE_STORAGE_KEY, next); } catch {}
+  }, []);
+  const setSteeringMode = useCallback((next: SteeringMode) => {
+    applySteeringForRun(touchDriving, next, persistSteeringMode);
+  }, [persistSteeringMode, touchDriving]);
   const [modal, setModal] = useState<Modal>(null);
   const [optionsTab, setOptionsTab] = useState<"game" | "dev">("game");
   useEffect(() => { selectingDriverRef.current = modal === "traits" || modal === "steering"; }, [modal]);
@@ -468,11 +474,11 @@ export default function Home() {
     tone(300, 0.08, "square", 520);
   }, [clearInput, ensureAudio, tone]);
 
-  const beginRun = useCallback((drivingTraitId: DrivingTraitId) => {
+  const beginRun = useCallback((drivingTraitId: DrivingTraitId, lockedSteering?: SteeringMode) => {
     selectingDriverRef.current = false;
     clearInput();
     ensureAudio();
-    touchDriving.setMode(steeringMode);
+    applySteeringForRun(touchDriving, lockedSteering ?? steeringMode, persistSteeringMode);
     resetFareCards();
     setCourierImpact(null);
     setCourierNotice("");
@@ -501,7 +507,7 @@ export default function Home() {
       ? "Crown Cab simulation ready. Automatic transmission in drive. Three, two, one."
       : `${drivingTraitPackage(drivingTraitId).name} locked in. ${runKind === "free-run" ? "Free Run" : "Arcade shift"} starting. Three, two, one.`);
     tone(420, 0.08, "square", 350);
-  }, [careerRef, clearInput, developmentRef, diagnostics, ensureAudio, pendingDrivingModel, pendingRunKind, resetFareCards, setMode, steeringMode, tone, touchDriving]);
+  }, [careerRef, clearInput, developmentRef, diagnostics, ensureAudio, pendingDrivingModel, pendingRunKind, persistSteeringMode, resetFareCards, setMode, steeringMode, tone, touchDriving]);
 
   const selectDriverTrait = useCallback((drivingTraitId: DrivingTraitId) => {
     setPendingDrivingTrait(drivingTraitId);
@@ -515,9 +521,8 @@ export default function Home() {
   }, [beginRun, isMobile, tone]);
 
   const selectSteeringAndBegin = useCallback((selectedMode: SteeringMode) => {
-    setSteeringMode(selectedMode);
-    beginRun(pendingDrivingTrait);
-  }, [beginRun, pendingDrivingTrait, setSteeringMode]);
+    beginRun(pendingDrivingTrait, selectedMode);
+  }, [beginRun, pendingDrivingTrait]);
 
   const finishRun = useCallback(() => {
     if (runResultBankedRef.current) return;
@@ -927,6 +932,7 @@ export default function Home() {
           onSetMode={setMode}
           onTouch={handleTouch}
           touchDriving={touchDriving}
+          steeringMode={steeringMode}
           taxiExitRef={taxiExitRef}
         />
         {mode === "playing" && development.enabled && development.showDiagnostics && <DevelopmentReadout hud={hud} />}
