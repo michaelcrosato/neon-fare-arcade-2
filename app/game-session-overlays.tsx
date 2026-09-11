@@ -1,4 +1,4 @@
-import { CAMERA_OPTIONS } from "@/game/config";
+import { CAMERA_DISTANCE_SCALES, CAMERA_OPTIONS, type CameraDistanceScale } from "@/game/config";
 import { drivingTraitPackage } from "@/game/driving-traits";
 import { rankFor } from "@/game/math";
 import type {
@@ -18,6 +18,7 @@ type GameSessionOverlaysProps = Readonly<{
   mode: Mode;
   hud: Hud;
   cameraMode: CameraMode;
+  cameraDistanceScale: CameraDistanceScale;
   careerBank: number;
   fareCards: readonly FareImpact[];
   diagnosticsActive: boolean;
@@ -26,6 +27,7 @@ type GameSessionOverlaysProps = Readonly<{
   onToggleMute: () => void;
   onOpenMap: () => void;
   onSetCameraMode: (mode: CameraMode) => void;
+  onSetCameraDistanceScale: (scale: CameraDistanceScale) => void;
   onSetMode: (mode: Mode) => void;
   onOpenHow: () => void;
   onOpenOptions: () => void;
@@ -41,6 +43,7 @@ export function GameSessionOverlays({
   mode,
   hud,
   cameraMode,
+  cameraDistanceScale,
   careerBank,
   fareCards,
   diagnosticsActive,
@@ -49,6 +52,7 @@ export function GameSessionOverlays({
   onToggleMute,
   onOpenMap,
   onSetCameraMode,
+  onSetCameraDistanceScale,
   onSetMode,
   onOpenHow,
   onOpenOptions,
@@ -86,14 +90,24 @@ export function GameSessionOverlays({
                   <button onClick={onToggleMute}>{muted ? "AUDIO OFF" : "AUDIO ON"}</button>
                 </div>
               </>}
-              {hud.playerMode === "driving" && <div className="pause-camera-options" role="group" aria-label="Camera view">
-                <small>CAMERA VIEW</small>
-                <div>
-                  {CAMERA_OPTIONS.map((option) => (
-                    <button key={option.id} onClick={() => onSetCameraMode(option.id)} aria-pressed={cameraMode === option.id}>{option.shortLabel}</button>
-                  ))}
+              {hud.playerMode === "driving" && <>
+                <div className="pause-camera-options" role="group" aria-label="Camera view">
+                  <small>CAMERA VIEW</small>
+                  <div>
+                    {CAMERA_OPTIONS.map((option) => (
+                      <button key={option.id} onClick={() => onSetCameraMode(option.id)} aria-pressed={cameraMode === option.id}>{option.shortLabel}</button>
+                    ))}
+                  </div>
                 </div>
-              </div>}
+                <div className="pause-camera-options" role="group" aria-label="Camera distance">
+                  <small>CAMERA DISTANCE</small>
+                  <div>
+                    {CAMERA_DISTANCE_SCALES.map((scale) => (
+                      <button key={scale} onClick={() => onSetCameraDistanceScale(scale)} aria-pressed={cameraDistanceScale === scale}>{scale}x</button>
+                    ))}
+                  </div>
+                </div>
+              </>}
               {hud.runKind === "free-run" && <>
                 <button
                   className={`duty-toggle ${hud.fareDispatchEnabled ? "is-on-duty" : "is-off-duty"}`}

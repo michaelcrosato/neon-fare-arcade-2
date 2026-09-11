@@ -50,9 +50,9 @@ function draw(kind: "turn" | "uturn" | "tow", mode: CameraMode, age = .2) {
     fareImpact={null} courierImpact={null} dockedFareCards={[]} onOpenFareDeck={noop} onOpenMap={noop}
     onCycleCamera={noop} onPulseInteraction={noop} onSetMode={noop} onTouch={noop}
     touchDriving={touchDriving} taxiExitRef={taxiExitRef} />
-    <GameSessionOverlays mode="playing" hud={hud} cameraMode={mode}
+    <GameSessionOverlays mode="playing" hud={hud} cameraMode={mode} cameraDistanceScale={1}
     careerBank={0} fareCards={[]} diagnosticsActive={false} diagnosticsNotice="" muted={true}
-    onToggleMute={noop} onOpenMap={noop} onSetCameraMode={noop} onSetMode={noop} onOpenHow={noop} onOpenOptions={noop}
+    onToggleMute={noop} onOpenMap={noop} onSetCameraMode={noop} onSetCameraDistanceScale={noop} onSetMode={noop} onOpenHow={noop} onOpenOptions={noop}
     onFinishRun={noop} onToggleFareDispatch={noop} onRequestStartRun={noop} onOpenScores={noop} onCopyDiagnostics={noop} onRecover={noop} /></>));
   presentNavigationDistance(badge, game, camera, 0, plan, innerWidth, innerHeight);
   const truck = towTruckBoxes(game);

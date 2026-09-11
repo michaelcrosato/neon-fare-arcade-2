@@ -49,8 +49,9 @@ function renderModal(modal: "home" | "gas" | "courier" | "how" | "traits" | "sco
 function renderEnd() {
   flushSync(() => root.render(<main className="arcade-shell mode-ended"><section className="game-stage">
     <GameSessionOverlays mode="ended" hud={{ ...EMPTY_HUD, runKind: "timed", score: 9876543, fare: 98765 }} cameraMode="chase-low"
+      cameraDistanceScale={1}
       careerBank={98765} fareCards={[]} diagnosticsActive={false} diagnosticsNotice="" muted={false}
-      onToggleMute={noop} onOpenMap={noop} onSetCameraMode={noop} onSetMode={noop} onOpenHow={noop} onOpenOptions={noop}
+      onToggleMute={noop} onOpenMap={noop} onSetCameraMode={noop} onSetCameraDistanceScale={noop} onSetMode={noop} onOpenHow={noop} onOpenOptions={noop}
       onFinishRun={noop} onToggleFareDispatch={noop} onRequestStartRun={noop} onOpenScores={noop} onCopyDiagnostics={noop} onRecover={noop} />
   </section></main>));
 }

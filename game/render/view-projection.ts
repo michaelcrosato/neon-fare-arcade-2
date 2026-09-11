@@ -1,27 +1,65 @@
-import { chaseCameraPreset } from "../config";
+import { cameraDistanceScale, chaseCameraPreset } from "../config";
+import { localPoint } from "../math";
 import type { Camera, Game } from "../model";
-import { cabViewMatrix } from "./cab-camera";
+import { isDriving, isInterior } from "../player";
+import { CAB_EYE_HEIGHT, cabViewMatrix } from "./cab-camera";
 import { lookAt, mat4Multiply, orthoZO, perspectiveSkyView, perspectiveZO } from "./camera";
 
+export function requestedChaseBoom(camera: Camera) {
+  if (camera.mode !== "chase-high" && camera.mode !== "chase-low") return 0;
+  return chaseCameraPreset(camera.mode, camera.onFoot).distance * cameraDistanceScale(camera.distanceScale);
+}
+
+export function cameraFraming(game: Game, camera: Camera) {
+  const scale = isInterior(game) ? 1 : cameraDistanceScale(camera.distanceScale);
+  if (camera.mode === "fixed") {
+    return {
+      eye: [camera.x + 25 * scale, camera.y + 25 * scale, 29 * scale + camera.heightOffset] as [number, number, number],
+      target: [camera.x, camera.y, camera.heightOffset] as [number, number, number],
+      orthoHalfHeight: 20 * scale / camera.zoom,
+    };
+  }
+  if (camera.mode === "cab") {
+    const eye = localPoint(camera.x, camera.y, camera.heading, 0.02, -0.46);
+    const target = localPoint(camera.x, camera.y, camera.heading, 26, -0.32);
+    const eyeZ = (isDriving(game) ? CAB_EYE_HEIGHT : 1.52) + camera.heightOffset;
+    const targetZ = (isDriving(game) ? 1.35 : 1.15) + camera.heightOffset;
+    return {
+      eye: [eye.x, eye.y, eyeZ] as [number, number, number],
+      target: [target.x, target.y, targetZ] as [number, number, number],
+      orthoHalfHeight: null as number | null,
+    };
+  }
+  const preset = chaseCameraPreset(camera.mode, camera.onFoot);
+  const forwardX = Math.cos(camera.heading);
+  const forwardY = Math.sin(camera.heading);
+  const height = 1.65 + (preset.height - 1.65) * camera.boom / preset.distance + camera.heightOffset;
+  return {
+    eye: [camera.x - forwardX * camera.boom, camera.y - forwardY * camera.boom, height] as [number, number, number],
+    target: [
+      camera.x + forwardX * preset.lookAhead,
+      camera.y + forwardY * preset.lookAhead,
+      preset.targetZ + camera.heightOffset,
+    ] as [number, number, number],
+    orthoHalfHeight: null as number | null,
+  };
+}
+
 export function viewProjection(game: Game, camera: Camera, aspect: number, drawDistance: number) {
-  const forwardX = Math.cos(camera.heading), forwardY = Math.sin(camera.heading);
+  const framing = cameraFraming(game, camera);
   let projection: Float32Array;
   let view: Float32Array;
   if (camera.mode === "fixed") {
-    const halfHeight = 20 / camera.zoom;
-    projection = orthoZO(halfHeight * aspect, -halfHeight * aspect, -halfHeight, halfHeight, 0.1, 140);
-    view = lookAt([camera.x + 25, camera.y + 25, 29 + camera.heightOffset], [camera.x, camera.y, camera.heightOffset]);
+    const halfHeight = framing.orthoHalfHeight!;
+    const scale = isInterior(game) ? 1 : cameraDistanceScale(camera.distanceScale);
+    projection = orthoZO(halfHeight * aspect, -halfHeight * aspect, -halfHeight, halfHeight, 0.1, 140 * scale);
+    view = lookAt(framing.eye, framing.target);
   } else if (camera.mode === "cab") {
     projection = perspectiveZO(perspectiveSkyView(camera)!.fovY, aspect, 0.08, drawDistance);
     view = cabViewMatrix(game, camera);
   } else {
-    const preset = chaseCameraPreset(camera.mode, camera.onFoot);
-    const height = 1.65 + (preset.height - 1.65) * camera.boom / preset.distance + camera.heightOffset;
     projection = perspectiveZO(perspectiveSkyView(camera)!.fovY, aspect, 0.15, drawDistance);
-    view = lookAt(
-      [camera.x - forwardX * camera.boom, camera.y - forwardY * camera.boom, height],
-      [camera.x + forwardX * preset.lookAhead, camera.y + forwardY * preset.lookAhead, preset.targetZ + camera.heightOffset],
-    );
+    view = lookAt(framing.eye, framing.target);
   }
   return mat4Multiply(projection, view);
 }

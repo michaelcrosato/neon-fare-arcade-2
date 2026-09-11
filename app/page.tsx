@@ -11,9 +11,11 @@ import {
   CAMERA_OPTIONS,
   CAMERA_STORAGE_KEY,
   DEFAULT_CAMERA_MODE,
+  cameraDistanceScale,
   cameraLabel,
   defaultCameraBoom,
   isCameraMode,
+  type CameraDistanceScale,
 } from "@/game/config";
 import { EMPTY_HUD, makeHud } from "@/game/hud";
 import { TouchDriving } from "./runtime/touch-driving";
@@ -114,8 +116,9 @@ export default function Home() {
   const selectingDriverRef = useRef(false);
   const [initialGame] = useState(() => makeGame());
   const gameRef = useRef<Game>(initialGame);
-  const cameraRef = useRef<Camera>({ x: 0, y: 0, zoom: 1, heading: -Math.PI / 2, mode: DEFAULT_CAMERA_MODE, boom: defaultCameraBoom(DEFAULT_CAMERA_MODE), heightOffset: 0, onFoot: false });
+  const cameraRef = useRef<Camera>({ x: 0, y: 0, zoom: 1, heading: -Math.PI / 2, mode: DEFAULT_CAMERA_MODE, boom: defaultCameraBoom(DEFAULT_CAMERA_MODE), heightOffset: 0, onFoot: false, distanceScale: 1 });
   const cameraModeRef = useRef<CameraMode>(DEFAULT_CAMERA_MODE);
+  const cameraDistanceScaleRef = useRef<CameraDistanceScale>(1);
   const inputRef = useRef<InputState>({
     up: false,
     down: false,
@@ -150,6 +153,7 @@ export default function Home() {
   const [modalParent, setModalParent] = useState<"home" | null>(null);
   const [muted, setMuted] = useState(false);
   const [cameraMode, setCameraModeState] = useState<CameraMode>(DEFAULT_CAMERA_MODE);
+  const [cameraDistance, setCameraDistanceState] = useState<CameraDistanceScale>(1);
   const [hud, setHud] = useState<Hud>(EMPTY_HUD);
   const [rendererKind, setRendererKind] = useState("CANVAS FALLBACK");
   const [records, setRecords] = useState<RunRecord[]>([]);
@@ -235,10 +239,19 @@ export default function Home() {
     cameraModeRef.current = next;
     cameraRef.current.mode = next;
     cameraRef.current.heading = gameRef.current.heading;
-    cameraRef.current.boom = defaultCameraBoom(next);
+    cameraRef.current.boom = defaultCameraBoom(next, cameraDistanceScaleRef.current);
     setCameraModeState(next);
     setAudioAnnouncement(`Camera changed to ${cameraLabel(next)}.`);
     try { localStorage.setItem(CAMERA_STORAGE_KEY, next); } catch {}
+  }, []);
+
+  const setCameraDistanceScale = useCallback((next: CameraDistanceScale) => {
+    const scale = cameraDistanceScale(next);
+    cameraDistanceScaleRef.current = scale;
+    cameraRef.current.distanceScale = scale;
+    cameraRef.current.boom = defaultCameraBoom(cameraModeRef.current, scale);
+    setCameraDistanceState(scale);
+    setAudioAnnouncement(`Camera distance ${scale}x.`);
   }, []);
 
   const cycleCamera = useCallback(() => {
@@ -399,7 +412,8 @@ export default function Home() {
       return;
     }
     Object.assign(cameraRef.current, { x: game.x, y: game.y, heading: game.heading, heightOffset: game.z,
-      onFoot: false, boom: defaultCameraBoom(cameraModeRef.current), zoom: 1 });
+      onFoot: false, boom: defaultCameraBoom(cameraModeRef.current, cameraDistanceScaleRef.current),
+      distanceScale: cameraDistanceScaleRef.current, zoom: 1 });
     checkpointExternalGameChange("roadside-recovery");
     setHud(makeHud(game));
     setMode("playing");
@@ -473,14 +487,9 @@ export default function Home() {
     applyCareerRunBonuses(game, careerRef.current);
     gameRef.current = game;
     cameraRef.current = {
-      x: game.x,
-      y: game.y,
-      zoom: 1,
-      heading: game.heading,
-      mode: cameraModeRef.current,
-      boom: defaultCameraBoom(cameraModeRef.current),
-      heightOffset: 0,
-      onFoot: false,
+      x: game.x, y: game.y, zoom: 1, heading: game.heading, mode: cameraModeRef.current,
+      boom: defaultCameraBoom(cameraModeRef.current, cameraDistanceScaleRef.current),
+      heightOffset: 0, onFoot: false, distanceScale: cameraDistanceScaleRef.current,
     };
     setHud(makeHud(game));
     resumeAfterModalRef.current = false;
@@ -933,6 +942,7 @@ export default function Home() {
           mode={mode}
           hud={hud}
           cameraMode={cameraMode}
+          cameraDistanceScale={cameraDistance}
           careerBank={career.bank}
           fareCards={fareCards}
           diagnosticsActive={diagnosticsActive}
@@ -941,6 +951,7 @@ export default function Home() {
           onToggleMute={toggleMute}
           onOpenMap={() => openModal("map")}
           onSetCameraMode={setCameraMode}
+          onSetCameraDistanceScale={setCameraDistanceScale}
           onSetMode={setMode}
           onOpenHow={() => openModal("how")}
           onOpenOptions={() => openModal("options")}

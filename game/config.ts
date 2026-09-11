@@ -31,6 +31,13 @@ export const CAMERA_OPTIONS: readonly {
   { id: "cab", label: "CAB VIEW", shortLabel: "CAB" },
 ];
 
+export const CAMERA_DISTANCE_SCALES = [1, 2, 4, 8] as const;
+export type CameraDistanceScale = (typeof CAMERA_DISTANCE_SCALES)[number];
+
+export function cameraDistanceScale(value?: number): CameraDistanceScale {
+  return value === 2 || value === 4 || value === 8 ? value : 1;
+}
+
 export const CHASE_CAMERA = {
   "chase-high": { distance: 14, height: 11.5, lookAhead: 5, targetZ: 1, fov: 50 },
   "chase-low": { distance: 9.5, height: 4.4, lookAhead: 8, targetZ: 1.05, fov: 61 },
@@ -81,9 +88,9 @@ export function cameraLabel(mode: CameraMode) {
   return CAMERA_OPTIONS.find((option) => option.id === mode)?.label ?? "FIXED ISO";
 }
 
-export function defaultCameraBoom(mode: CameraMode) {
-  if (mode === "chase-high") return CHASE_CAMERA["chase-high"].distance;
-  if (mode === "chase-low") return CHASE_CAMERA["chase-low"].distance;
+export function defaultCameraBoom(mode: CameraMode, scale: CameraDistanceScale = 1) {
+  if (mode === "chase-high") return CHASE_CAMERA["chase-high"].distance * scale;
+  if (mode === "chase-low") return CHASE_CAMERA["chase-low"].distance * scale;
   return 0;
 }
 

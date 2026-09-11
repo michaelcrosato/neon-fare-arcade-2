@@ -817,6 +817,8 @@ export type Camera = {
   heightOffset: number;
   /** Uses the closer pedestrian chase framing while preserving the selected mode. */
   onFoot?: boolean;
+  /** Player-selected chase/fixed distance multiplier. Cab ignores it. */
+  distanceScale?: 1 | 2 | 4 | 8;
 };
 
 export type InputState = {

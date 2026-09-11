@@ -5,6 +5,7 @@ import {
   COLLISION_STREAM_RADIUS,
   DISTANT_STREAM_RADIUS,
   FIXED_DT,
+  cameraDistanceScale,
   chaseCameraPreset,
 } from "@/game/config";
 import { makeHud } from "@/game/hud";
@@ -360,8 +361,10 @@ export function useGameRuntime(options: GameRuntimeOptions) {
         camera.zoom += (targetZoom - camera.zoom) * (1 - Math.exp(-zoomRate * elapsed));
         if (camera.mode === "chase-high" || camera.mode === "chase-low") {
           const preset = chaseCameraPreset(camera.mode, camera.onFoot);
-          if (cameraModeChanged) camera.boom = preset.distance;
-          const limit = cameraBoomLimit(camera, currentWorld, preset.distance, preset.height);
+          const requested = preset.distance * cameraDistanceScale(camera.distanceScale);
+          const requestedHeight = 1.65 + (preset.height - 1.65) * cameraDistanceScale(camera.distanceScale);
+          if (cameraModeChanged) camera.boom = requested;
+          const limit = cameraBoomLimit(camera, currentWorld, requested, requestedHeight);
           camera.boom = limit < camera.boom
             ? limit
             : camera.boom + (limit - camera.boom) * (1 - Math.exp(-4 * elapsed));
