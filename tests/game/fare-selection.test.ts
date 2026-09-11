@@ -345,7 +345,8 @@ test("HUD markers and world presentation expose all waiting passengers", () => {
 
   const seekingBoxes = farePresentationBoxes(game, 0);
   assert.equal(seekingBoxes.filter((box) => box.material === MAT_PERSON).length, FARES_PER_CYCLE * 11);
-  assert.equal(seekingBoxes.filter((box) => box.material === MAT_MARKER).length, FARES_PER_CYCLE * 12 + 2);
+  assert.equal(seekingBoxes.filter((box) => box.material === MAT_MARKER).length, FARES_PER_CYCLE * 24 + 2);
+  assert.equal(seekingBoxes.filter((box) => (box.color[3] ?? 1) < 0.99).length, FARES_PER_CYCLE * 12);
 
   markFarePickedUp(game, game.jobIndex);
   game.onboard = true;
@@ -355,7 +356,8 @@ test("HUD markers and world presentation expose all waiting passengers", () => {
   assert.equal(onboardMarkers.some((marker) => marker.selected), false);
   const onboardBoxes = farePresentationBoxes(game, 0);
   assert.equal(onboardBoxes.filter((box) => box.material === MAT_PERSON).length, (FARES_PER_CYCLE - 1) * 11);
-  assert.equal(onboardBoxes.filter((box) => box.material === MAT_MARKER).length, (FARES_PER_CYCLE - 1) * 12 + 16);
+  assert.equal(onboardBoxes.filter((box) => box.material === MAT_MARKER).length, (FARES_PER_CYCLE - 1) * 24 + 30);
+  assert.equal(onboardBoxes.filter((box) => (box.color[3] ?? 1) < 0.99).length, (FARES_PER_CYCLE - 1) * 12 + 14);
 });
 
 test("all fares, traffic, particles, a full route, and the densest crowd stay inside actor budget", () => {

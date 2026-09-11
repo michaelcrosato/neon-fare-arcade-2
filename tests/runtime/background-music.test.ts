@@ -107,3 +107,45 @@ test("street music fades after 30 idle seconds, survives breaks, and restarts on
   await update(181.5); assert.equal(audio.paused, false);
   music.destroy();
 });
+
+test("audio preloads eagerly and pre-arms menu track when in browser window", async () => {
+  const audio = new FakeAudio();
+  const music = new BackgroundMusic(audio as unknown as HTMLAudioElement, () => 0.3);
+  assert.equal(audio.preload, "auto");
+  music.destroy();
+
+  (globalThis as unknown as Record<string, unknown>).window = {};
+  try {
+    const browserAudio = new FakeAudio();
+    const browserMusic = new BackgroundMusic(browserAudio as unknown as HTMLAudioElement, () => 0.3);
+    await settled();
+    assert.equal(browserAudio.src, "/music/bgm_02.mp3");
+    assert.equal(browserAudio.loop, true);
+    assert.equal(browserAudio.paused, false);
+    browserMusic.destroy();
+  } finally {
+    delete (globalThis as unknown as Record<string, unknown>).window;
+  }
+});
+
+test("adopts existing neon-fare-bgm element if already present in document", async () => {
+  const earlyAudio = new FakeAudio();
+  earlyAudio.src = "/music/bgm_02.mp3";
+  earlyAudio.paused = false;
+
+  (globalThis as unknown as Record<string, unknown>).window = {};
+  (globalThis as unknown as Record<string, unknown>).document = {
+    getElementById: (id: string) => (id === "neon-fare-bgm" ? earlyAudio : null),
+  };
+  try {
+    const music = new BackgroundMusic(undefined, () => 0.3);
+    await settled();
+    assert.equal(earlyAudio.src, "/music/bgm_02.mp3");
+    assert.equal(earlyAudio.paused, false);
+    music.destroy();
+  } finally {
+    delete (globalThis as unknown as Record<string, unknown>).window;
+    delete (globalThis as unknown as Record<string, unknown>).document;
+  }
+});
+

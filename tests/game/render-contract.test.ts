@@ -14,7 +14,8 @@ import { cabViewMatrix } from "../../game/render/cab-camera";
 import { renderTargetSize } from "../../game/render/resolution";
 import { groundShadowOffset, litSurfaceColor } from "../../game/render/lighting";
 import { makeWalkingActor } from "../../game/player";
-import { makeGame } from "../../game/state";
+import { NavigationController } from "../../game/navigation";
+import { makeGame, activePassengerJob } from "../../game/state";
 import {
   GHOST_INSTANCE_CAPACITY,
   NAVIGATION_INSTANCE_CAPACITY,
@@ -23,7 +24,7 @@ import {
   cubeVertices,
   packBoxes,
 } from "../../game/render/packing";
-import { navigationArrowBoxes } from "../../game/render/navigation-glyph";
+import { navigationArrowBoxes, navigationDistanceBadge } from "../../game/render/navigation-glyph";
 import {
   effectiveCameraMode,
   lookAt,
@@ -36,8 +37,10 @@ import {
   cabInteriorBoxes,
   crownVehiclePointPose,
   crownVehicleUpVector,
+  farePresentationBoxes,
   particleBoxes,
   playerAvatarBoxes,
+  routeBoxes,
   taxiBoxes,
   taxiGroundShadow,
 } from "../../game/render/scene";
@@ -218,6 +221,102 @@ test("one navigation glyph model fits every camera and budget", () => {
     assert.ok(turn.filter((box) => box.pitch !== undefined).every((box) => Math.abs(box.pitch ?? 0) === expectedPitch[mode]));
     assert.ok(uTurn.filter((box) => box.pitch !== undefined).every((box) => box.pitch === expectedPitch[mode]));
   }
+});
+
+test("navigation updates show a vehicle departure arrow above the player taxi for 3 seconds", () => {
+  const game = makeGame();
+  game.x = 100;
+  game.y = 200;
+  game.z = 5;
+  game.elapsed = 10;
+
+  const planWithPrompt: NavigationPlan = {
+    route: [
+      { x: 100, y: 200, z: 5 },
+      { x: 100, y: 250, z: 5 },
+    ],
+    requiresUTurn: false,
+    departureYaw: Math.PI / 2,
+    travelHeading: Math.PI / 2,
+    turnCue: null,
+    departurePromptUntil: 13.0,
+  };
+
+  // 1. While departure prompt is active, departure arrow is rendered above the taxi
+  const activeBoxes = navigationArrowBoxes(game, 0, planWithPrompt, "chase-low");
+  assert.equal(activeBoxes.length, 13);
+  assert.ok(activeBoxes.length <= NAVIGATION_INSTANCE_CAPACITY);
+  assert.ok(activeBoxes.every((box) => box.material === MAT_TURN));
+  // Hovering above the taxi
+  assert.ok(activeBoxes.every((box) => box.z > 8));
+  // Centered over taxi x=100, y=200
+  assert.ok(activeBoxes.every((box) => Math.abs(box.x - 100) < 5 && Math.abs(box.y - 200) < 5));
+  // Pointing in departureYaw
+  assert.ok(activeBoxes.every((box) => box.yaw === Math.PI / 2));
+
+  // 2. Fits together with a U-turn arrow inside NAVIGATION_INSTANCE_CAPACITY
+  const uTurnWithPrompt: NavigationPlan = { ...planWithPrompt, requiresUTurn: true };
+  const combinedBoxes = navigationArrowBoxes(game, 0, uTurnWithPrompt, "chase-low");
+  assert.equal(combinedBoxes.length, 30 + 13);
+  assert.ok(combinedBoxes.length <= NAVIGATION_INSTANCE_CAPACITY);
+
+  // 3. Once 3 seconds elapse, departure arrow disappears
+  game.elapsed = 13.0;
+  const expiredBoxes = navigationArrowBoxes(game, 0, planWithPrompt, "chase-low");
+  assert.equal(expiredBoxes.length, 0);
+
+  // 4. NavigationController sets departurePromptUntil to elapsed + 3 on new plan
+  const controller = new NavigationController();
+  game.customDestination = { x: 100, y: 300, z: 5 };
+  game.elapsed = 20;
+  const updatedPlan = controller.update(game);
+  assert.equal(updatedPlan.departurePromptUntil, 23.0);
+
+  // 5. Arrival prompt shows arrow within 100m even after departure timer expires
+  const planArrival: NavigationPlan = {
+    ...planWithPrompt,
+    arrivalPromptActive: true,
+    arrivalSpot: { x: 150, y: 200, z: 5 },
+    departureArrowYaw: 0,
+    turnCue: { point: { x: 100, y: 200 }, incomingYaw: 0, yaw: Math.PI / 2, kind: "right", distance: 20 },
+  };
+  game.elapsed = 15.0;
+  const arrivalBoxes = navigationArrowBoxes(game, 0, planArrival, "chase-low");
+  assert.equal(arrivalBoxes.length, 13, "only vehicle arrow rendered; street turn arrow stopped");
+  assert.ok(arrivalBoxes.every((box) => box.yaw === 0));
+
+  // Street U-turn arrows also stop when arrival prompt is active
+  const planArrivalWithUTurn: NavigationPlan = { ...planArrival, requiresUTurn: true };
+  const arrivalUTurnBoxes = navigationArrowBoxes(game, 0, planArrivalWithUTurn, "chase-low");
+  assert.equal(arrivalUTurnBoxes.length, 13, "street u-turn arrows stopped on arrival");
+
+  // Street distance badge stopped on arrival
+  assert.equal(navigationDistanceBadge(game, 0, planArrival), null, "street distance badge stopped on arrival");
+
+  // 6. Within 100m of drop off or pick up zone, GPS nav routing red lines stop
+  const job = activePassengerJob(game);
+  game.customDestination = null;
+  game.fareDispatchEnabled = true;
+  game.onboard = true;
+  // Place taxi 40m away from dropoff zone
+  game.x = job.dropoff.x + 40;
+  game.y = job.dropoff.y;
+  const dropoffRoute = [
+    { x: game.x, y: game.y },
+    { ...job.dropoffApproach },
+  ];
+  const arrivingRouteBoxes = routeBoxes(game, dropoffRoute);
+  assert.equal(arrivingRouteBoxes.length, 0, "GPS nav routing red lines stop within 100m of dropoff zone");
+
+  // When > 100m away, GPS nav routing lines render normally
+  game.x = job.dropoff.x + 200;
+  game.y = job.dropoff.y;
+  const farRoute = [
+    { x: game.x, y: game.y },
+    { ...job.dropoffApproach },
+  ];
+  const farRouteBoxes = routeBoxes(game, farRoute);
+  assert.ok(farRouteBoxes.length > 0, "GPS nav routing lines render when beyond 100m");
 });
 
 test("boost widens perspective FOV without changing the fixed camera", () => {
@@ -435,4 +534,26 @@ test("the Crown cab and cockpit rotate as one grounded body through side and roo
   const parcel = taxiBoxes(simulation).filter((box) => box.material === MAT_MARKER);
   assert.equal(parcel.length, 2);
   assert.ok(parcel.every((box) => box.pitch === simulation.simulationVehicle.bodyRoll));
+});
+
+test("objective rings include a transparent cylinder along their edge", () => {
+  const game = makeGame();
+  const seekingBoxes = farePresentationBoxes(game, 0);
+  const pickupCylinders = seekingBoxes.filter((box) => box.material === MAT_MARKER && (box.color[3] ?? 1) < 0.99);
+  // 6 fares * 12 segments each
+  assert.equal(pickupCylinders.length, 6 * 12);
+  for (const panel of pickupCylinders) {
+    assert.equal(panel.color[3], 0.2);
+    assert.ok(panel.sz >= 100, `expected cylinder height >= 100, got ${panel.sz}`);
+    assert.ok(panel.sy <= 0.1, `expected thin cylinder wall <= 0.1, got ${panel.sy}`);
+    assert.ok(panel.sx >= 1.5, `expected panel width >= 1.5, got ${panel.sx}`);
+    assert.ok(Number.isFinite(panel.yaw));
+  }
+
+  // Onboard dropoff ring also produces transparent cylinder panels
+  game.onboard = true;
+  const onboardBoxes = farePresentationBoxes(game, 0);
+  const onboardCylinders = onboardBoxes.filter((box) => box.material === MAT_MARKER && (box.color[3] ?? 1) < 0.99);
+  // 5 remaining waiting fares * 12 + 1 dropoff * 14 segments
+  assert.equal(onboardCylinders.length, 5 * 12 + 14);
 });

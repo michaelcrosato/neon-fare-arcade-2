@@ -29,6 +29,8 @@ import {
   WORLD_BLOCK_MAX_Y,
   WORLD_BLOCK_MIN_X,
   WORLD_BLOCK_MIN_Y,
+  DISPLAY_METERS_PER_WORLD_UNIT,
+  OBJECTIVE_ARRIVAL_PROMPT_DISTANCE_METERS,
   YELLOW,
 } from "../config";
 import { clamp, distance, localPoint } from "../math";
@@ -37,7 +39,7 @@ import { buildGpsRoute, routeLength } from "../route-geometry";
 import { waitingFares } from "../fare-selection";
 import { landmarkTileForBlock } from "../landmarks";
 import { campusTileForBlock } from "../campuses";
-import { getNavigationTarget, getObjective } from "../state";
+import { activeObjectiveRing, getNavigationTarget, getObjective } from "../state";
 import { specialRoadIntersectsSquare } from "../road-network";
 import { controlledPose, isDriving, isInterior, walkingMotion } from "../player";
 import { northstarPedestrianCountForBlock } from "../mountain";
@@ -295,6 +297,12 @@ export function routeBoxes(
   route: readonly WorldPoint[] = buildGpsRoute(game, getNavigationTarget(game)),
 ) {
   if (!isDriving(game)) return [];
+  const ring = activeObjectiveRing(game);
+  const target = getNavigationTarget(game);
+  const isRouteToObjective = route.length >= 2 && distance(route[route.length - 1], target) < 2;
+  if (ring && isRouteToObjective && distance(game, ring) * DISPLAY_METERS_PER_WORLD_UNIT <= OBJECTIVE_ARRIVAL_PROMPT_DISTANCE_METERS) {
+    return [];
+  }
   const boxes: Box[] = [];
   const color = game.customDestination
     ? YELLOW
@@ -794,18 +802,37 @@ function addObjectiveRing(
   segments = 14,
 ) {
   const pulse = 1 + Math.sin(seconds * 6) * 0.12;
+  const radius = 4.1 * pulse;
+  const cylinderHeight = 120;
+  const panelWidth = ((2 * Math.PI * radius) / segments) * 1.04;
+  const cylinderColor: Color = [color[0], color[1], color[2], 0.2];
   for (let index = 0; index < segments; index += 1) {
     const angle = (index / segments) * Math.PI * 2 + seconds * direction;
+    const x = point.x + Math.cos(angle) * radius;
+    const y = point.y + Math.sin(angle) * radius;
+    const yaw = angle + Math.PI / 2;
     boxes.push({
-      x: point.x + Math.cos(angle) * 4.1 * pulse,
-      y: point.y + Math.sin(angle) * 4.1 * pulse,
+      x,
+      y,
       z: (point.z ?? 0) + 0.38,
       screenLift: point.z ?? 0,
       sx: 1.3,
       sy: 0.42,
       sz: 0.32,
-      yaw: angle + Math.PI / 2,
+      yaw,
       color,
+      material: MAT_MARKER,
+    });
+    boxes.push({
+      x,
+      y,
+      z: (point.z ?? 0) + cylinderHeight / 2,
+      screenLift: point.z ?? 0,
+      sx: panelWidth,
+      sy: 0.08,
+      sz: cylinderHeight,
+      yaw,
+      color: cylinderColor,
       material: MAT_MARKER,
     });
   }

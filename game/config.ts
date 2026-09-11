@@ -19,7 +19,9 @@ export const PINK: Color = [0.92, 0.22, 0.46, 1];
 export const MUTED_RED: Color = [0.54, 0.09, 0.06, 1];
 
 export const CAMERA_STORAGE_KEY = "neon-fare-camera-v1";
+export const CAMERA_DISTANCE_STORAGE_KEY = "neon-fare-camera-distance-v1";
 export const DEFAULT_CAMERA_MODE: CameraMode = "chase-low";
+export const DEFAULT_CAMERA_DISTANCE_SCALE: CameraDistanceScale = 4;
 export const CAMERA_OPTIONS: readonly {
   id: CameraMode;
   label: string;
@@ -35,7 +37,7 @@ export const CAMERA_DISTANCE_SCALES = [1, 2, 4, 8] as const;
 export type CameraDistanceScale = (typeof CAMERA_DISTANCE_SCALES)[number];
 
 export function cameraDistanceScale(value?: number): CameraDistanceScale {
-  return value === 2 || value === 4 || value === 8 ? value : 1;
+  return value === 1 || value === 2 || value === 8 ? value : 4;
 }
 
 export const CHASE_CAMERA = {
@@ -88,7 +90,7 @@ export function cameraLabel(mode: CameraMode) {
   return CAMERA_OPTIONS.find((option) => option.id === mode)?.label ?? "FIXED ISO";
 }
 
-export function defaultCameraBoom(mode: CameraMode, scale: CameraDistanceScale = 1) {
+export function defaultCameraBoom(mode: CameraMode, scale: CameraDistanceScale = DEFAULT_CAMERA_DISTANCE_SCALE) {
   if (mode === "chase-high") return CHASE_CAMERA["chase-high"].distance * scale;
   if (mode === "chase-low") return CHASE_CAMERA["chase-low"].distance * scale;
   return 0;
@@ -257,10 +259,14 @@ export const DESTINATION_ART_CELL_COUNT = 96;
 
 /** A challenger must save half a block before the live GPS changes fares. */
 export const FARE_TARGET_SWITCH_MARGIN = ROAD_SPACING / 2;
-/** Canonical conversion used by fare quotes and every GPS distance readout. */
-export const DISPLAY_METERS_PER_WORLD_UNIT = 18;
+/** Canonical conversion used by fare quotes and every GPS distance readout (1 world unit = 1 meter). */
+export const DISPLAY_METERS_PER_WORLD_UNIT = 1;
+/** Within this distance (in meters) of a pickup or dropoff ring, the vehicle directional arrow activates pointing to the ring center. */
+export const OBJECTIVE_ARRIVAL_PROMPT_DISTANCE_METERS = 100;
+/** Scale factor used by navigation settings (U-turn savings and reroute thresholds). */
+export const NAVIGATION_METERS_PER_WORLD_UNIT = 18;
 /** A stale passenger target may never hold GPS beyond five displayed kilometres. */
-export const FARE_GPS_RETARGET_DISTANCE = 5000 / DISPLAY_METERS_PER_WORLD_UNIT;
+export const FARE_GPS_RETARGET_DISTANCE = 5000 / NAVIGATION_METERS_PER_WORLD_UNIT;
 /** Rolling fare maintenance is intentionally much slower than the simulation tick. */
 export const FARE_STREAM_CHECK_INTERVAL = 0.5;
 export const FARE_STREAM_MIN_TRAVEL = ROAD_SPACING;

@@ -1,7 +1,7 @@
 import type { WorldRegionId } from "./region-types";
 
 export type Mode = "menu" | "countdown" | "playing" | "paused" | "ended";
-export type Modal = "traits" | "how" | "scores" | "map" | "home" | "courier" | "gas" | "options" | null;
+export type Modal = "traits" | "steering" | "how" | "scores" | "map" | "home" | "courier" | "gas" | "options" | null;
 export type CameraMode = "fixed" | "chase-high" | "chase-low" | "cab";
 export type DrivingTraitId = "street-ace" | "drift-demon" | "redline-rush";
 export type RunKind = "timed" | "free-run";
@@ -347,6 +347,14 @@ export type NavigationPlan = {
   travelHeading: number;
   /** The controller-stabilized turn cue shared by every presentation layer. */
   turnCue: TurnCue | null;
+  /** Game elapsed seconds until which a vehicle departure arrow is shown above the player taxi. */
+  departurePromptUntil?: number;
+  /** Controller-smoothed world heading for the vehicle departure arrow, pointing continuously toward the nav line or arrival spot. */
+  departureArrowYaw?: number;
+  /** True when the vehicle is within 100m of the active pickup or dropoff ring. */
+  arrivalPromptActive?: boolean;
+  /** Center point of the active pickup or dropoff ring when arrival prompt is active. */
+  arrivalSpot?: WorldPoint | null;
   /** Read-only playtest evidence; ordinary route progress never increments revision. */
   diagnostics?: {
     revision: number;

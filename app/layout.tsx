@@ -51,12 +51,19 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+        <link rel="preload" as="audio" href="/music/bgm_02.mp3" type="audio/mpeg" />
         <link rel="prefetch" as="image" href="/fare-destinations.webp" type="image/webp" />
         <link rel="prefetch" as="image" href="/fare-destinations-2.webp" type="image/webp" />
         <link rel="prefetch" as="image" href="/fare-destinations-3.webp" type="image/webp" />
         <link rel="prefetch" as="image" href="/fare-destinations-4.webp" type="image/webp" />
       </head>
       <body className="antialiased">
+        <audio id="neon-fare-bgm" src="/music/bgm_02.mp3" preload="auto" loop playsInline autoPlay />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var a=document.getElementById("neon-fare-bgm");if(!a)return;a.volume=0.38;var u=function(){if(a.paused)a.play().catch(function(){});window.removeEventListener("pointerdown",u);window.removeEventListener("keydown",u);window.removeEventListener("touchstart",u);window.removeEventListener("mousedown",u);window.removeEventListener("click",u);};window.addEventListener("pointerdown",u,{passive:true});window.addEventListener("keydown",u,{passive:true});window.addEventListener("touchstart",u,{passive:true});window.addEventListener("mousedown",u,{passive:true});window.addEventListener("click",u,{passive:true});a.play().catch(function(){});}catch(e){}})();`,
+          }}
+        />
         {children}
       </body>
     </html>

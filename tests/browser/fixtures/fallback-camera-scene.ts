@@ -30,7 +30,7 @@ window.fallbackCamera = {
   render(mode) {
     renderer.resize();
     const start = performance.now();
-    renderer.render(game, {x:0,y:0,heading:-Math.PI/2,heightOffset:0,zoom:1,mode,boom:defaultCameraBoom(mode)}, 0, world, buildNavigationPlan(game, game, game.heading));
+    renderer.render(game, {x:0,y:0,heading:-Math.PI/2,heightOffset:0,zoom:1,mode,boom:defaultCameraBoom(mode, 1),distanceScale:1}, 0, world, buildNavigationPlan(game, game, game.heading));
     const milliseconds = performance.now() - start;
     const pixels = canvas.getContext("2d")!.getImageData(0,0,canvas.width,canvas.height).data;
     const near = {min:Infinity,max:-Infinity}, far = {min:Infinity,max:-Infinity};

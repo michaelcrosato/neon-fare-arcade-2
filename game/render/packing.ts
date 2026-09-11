@@ -13,7 +13,7 @@ export const CAMERA_UNIFORM_FLOATS = 24;
 export const CAMERA_UNIFORM_BYTES =
   CAMERA_UNIFORM_FLOATS * Float32Array.BYTES_PER_ELEMENT;
 export const ACTOR_INSTANCE_CAPACITY = 2048;
-export const NAVIGATION_INSTANCE_CAPACITY = 32;
+export const NAVIGATION_INSTANCE_CAPACITY = 48;
 export const GHOST_INSTANCE_CAPACITY = 96;
 
 export function cubeVertices() {

@@ -302,6 +302,45 @@
   transform: translate(4px, 4px) skewX(-3deg);
 }
 
+.menu-options-bar {
+  display: flex;
+  margin: 0 0 16px 5px;
+  animation: rise-in 460ms 470ms ease both;
+}
+
+.menu-options-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 18px 7px 16px;
+  color: var(--ink);
+  background: var(--paper);
+  border: 3px solid var(--ink);
+  box-shadow: 5px 5px 0 var(--ink);
+  font-family: Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif;
+  font-size: clamp(0.95rem, 1.2vw, 1.15rem);
+  font-style: italic;
+  letter-spacing: 0.06em;
+  transform: skewX(-4deg);
+  cursor: pointer;
+  transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
+}
+
+.menu-options-button > * {
+  transform: skewX(4deg);
+}
+
+.menu-options-button:hover {
+  background: var(--yellow);
+  box-shadow: 7px 7px 0 var(--ink);
+  transform: translate(-2px, -2px) skewX(-4deg);
+}
+
+.menu-options-button:active {
+  box-shadow: 2px 2px 0 var(--ink);
+  transform: translate(2px, 2px) skewX(-4deg);
+}
+
 /* The renderer supplies the windshield, dash, wheel, gauges, and mirror as
    cab-space geometry. Keep only a compact readable instrument overlay. */
 .cab-frame::before {

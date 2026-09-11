@@ -9,6 +9,7 @@ import {
 } from "@/game/courier";
 import type { GasStationOfferId } from "@/game/gas-station";
 import type {
+  CameraMode,
   CourierContractId,
   DrivingModel,
   DrivingTraitId,
@@ -21,10 +22,14 @@ import type {
 } from "@/game/model";
 import { CourierBoardPanel } from "./courier-board-panel";
 import { DriverTraitPanel } from "./driver-trait-panel";
+import { SteeringOptionPanel } from "./steering-option-panel";
+import type { SteeringMode } from "./runtime/touch-driving";
 import { GasStationPanel } from "./gas-station-panel";
 import { GpsMap } from "./gps-map";
 import { HomeBasePanel } from "./home-base-panel";
-import { DevelopmentPanel, type DevelopmentPanelProps } from "./development-panel";
+import type { DevelopmentPanelProps } from "./development-panel";
+import { GameOptionsPanel } from "./game-options-panel";
+import { DEFAULT_CAMERA_DISTANCE_SCALE, type CameraDistanceScale } from "@/game/config";
 
 type GameModalHostProps = Readonly<{
   modal: Modal;
@@ -41,6 +46,20 @@ type GameModalHostProps = Readonly<{
   gasNotice: string;
   development: Omit<DevelopmentPanelProps, "hud" | "onClose">;
   dialogRef: RefObject<HTMLElement | null>;
+  optionsTab?: "game" | "dev";
+  onSelectOptionsTab?: (tab: "game" | "dev") => void;
+  muted?: boolean;
+  onToggleMute?: () => void;
+  cameraMode?: CameraMode;
+  onSetCameraMode?: (mode: CameraMode) => void;
+  cameraDistanceScale?: CameraDistanceScale;
+  onSetCameraDistanceScale?: (scale: CameraDistanceScale) => void;
+  rendererKind?: string;
+  steeringMode?: SteeringMode;
+  onSetSteeringMode?: (mode: SteeringMode) => void;
+  onSelectDriverTrait?: (id: DrivingTraitId) => void;
+  onSelectSteering?: (mode: SteeringMode) => void;
+  onBackToTraits?: () => void;
   onClose: () => void;
   onBeginRun: (id: DrivingTraitId) => void;
   onSelectDestination: (point: WorldPoint) => void;
@@ -69,6 +88,20 @@ export function GameModalHost({
   gasNotice,
   development,
   dialogRef,
+  optionsTab,
+  onSelectOptionsTab,
+  muted,
+  onToggleMute,
+  cameraMode,
+  onSetCameraMode,
+  cameraDistanceScale,
+  onSetCameraDistanceScale,
+  rendererKind,
+  steeringMode,
+  onSetSteeringMode,
+  onSelectDriverTrait,
+  onSelectSteering,
+  onBackToTraits,
   onClose,
   onBeginRun,
   onSelectDestination,
@@ -88,12 +121,35 @@ export function GameModalHost({
       if (event.currentTarget !== event.target) return;
       onClose();
     }}>
-      <section ref={dialogRef} className={`comic-modal ${modal === "traits" ? "trait-modal" : modal === "gas" ? "gas-modal" : modal === "map" ? "map-modal" : ""}`} role="dialog" aria-modal="true" aria-labelledby="modal-title" aria-describedby={modal === "traits" ? "trait-modal-description" : modal === "gas" ? "gas-station-description" : undefined} tabIndex={-1}>
-        <button className="modal-close" onClick={onClose} aria-label={modal === "traits" ? "Back without starting" : modalParent === "home" && modal !== "home" ? "Back to Home Hub" : "Close dialog"}>×</button>
+      <section ref={dialogRef} className={`comic-modal ${modal === "traits" || modal === "steering" ? "trait-modal" : modal === "gas" ? "gas-modal" : modal === "map" ? "map-modal" : ""}`} role="dialog" aria-modal="true" aria-labelledby="modal-title" aria-describedby={modal === "traits" ? "trait-modal-description" : modal === "steering" ? "steering-modal-description" : modal === "gas" ? "gas-station-description" : undefined} tabIndex={-1}>
+        <button className="modal-close" onClick={onClose} aria-label={modal === "traits" ? "Back without starting" : modal === "steering" ? "Back to vehicle selection" : modalParent === "home" && modal !== "home" ? "Back to Home Hub" : "Close dialog"}>×</button>
         {modal === "traits" ? (
-          <DriverTraitPanel onSelect={onBeginRun} runKind={pendingRunKind} drivingModel={pendingDrivingModel} />
+          <DriverTraitPanel onSelect={onSelectDriverTrait ?? onBeginRun} runKind={pendingRunKind} drivingModel={pendingDrivingModel} />
+        ) : modal === "steering" ? (
+          <SteeringOptionPanel
+            currentMode={steeringMode ?? "default"}
+            onSelect={onSelectSteering ?? (() => {})}
+            onBack={onBackToTraits ?? onClose}
+          />
         ) : modal === "options" ? (
-          <DevelopmentPanel {...development} hud={hud} onClose={onClose} />
+          <GameOptionsPanel
+            tab={optionsTab ?? "game"}
+            onSelectTab={onSelectOptionsTab ?? (() => {})}
+            muted={muted ?? false}
+            onToggleMute={onToggleMute ?? (() => {})}
+            cameraMode={cameraMode ?? "chase-low"}
+            onSetCameraMode={onSetCameraMode ?? (() => {})}
+            cameraDistanceScale={cameraDistanceScale ?? DEFAULT_CAMERA_DISTANCE_SCALE}
+            onSetCameraDistanceScale={onSetCameraDistanceScale ?? (() => {})}
+            steeringMode={steeringMode}
+            onSetSteeringMode={onSetSteeringMode}
+            rendererKind={rendererKind ?? "WEBGPU ACTIVE"}
+            isFreeRun={hud.runKind === "free-run"}
+            fareDispatchEnabled={hud.fareDispatchEnabled}
+            onToggleFareDispatch={onToggleFareDispatch}
+            development={{ ...development, hud, onClose }}
+            onClose={onClose}
+          />
         ) : modal === "how" ? (
           <>
             <p className="modal-kicker">DRIVER ORIENTATION</p>

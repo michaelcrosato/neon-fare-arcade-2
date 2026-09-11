@@ -6,6 +6,7 @@ type GameModeMenuProps = Readonly<{
   careerBank: number;
   best: number;
   onRequestStartRun: (runKind: RunKind, drivingModel?: DrivingModel) => void;
+  onOpenOptions?: () => void;
 }>;
 
 export function GameModeMenu({
@@ -14,6 +15,7 @@ export function GameModeMenu({
   careerBank,
   best,
   onRequestStartRun,
+  onOpenOptions,
 }: GameModeMenuProps) {
   return (
     <div className="menu-screen">
@@ -54,6 +56,19 @@ export function GameModeMenu({
             </button>
           </div>
         </div>
+        {onOpenOptions ? (
+          <div className="menu-options-bar">
+            <button
+              type="button"
+              className="menu-options-button"
+              onClick={onOpenOptions}
+              aria-label="Game options and settings"
+            >
+              <span aria-hidden="true">⚙</span>
+              <span>OPTIONS</span>
+            </button>
+          </div>
+        ) : null}
         <div className="control-strip">
           <div className="key-cluster" aria-hidden="true"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></div>
           <strong>WASD / ARROWS</strong>

@@ -38,9 +38,12 @@ export class SoftwareScene {
     for (const surface of world.landscapeSurfaces ?? []) face(surface);
     for (const surface of world.surfaces ?? []) face(surface);
     for (const shape of world.boxes) box(shape);
-    for (const shape of scene.actors) box(shape);
+    const opaqueActors = scene.actors.filter(shape => (shape.color[3] ?? 1) >= 0.99);
+    const transparentActors = scene.actors.filter(shape => (shape.color[3] ?? 1) < 0.99);
+    for (const shape of opaqueActors) box(shape);
     for (const shape of [...scene.focus, ...scene.navigation]) box(shape, true);
     for (const shape of [...scene.focus, ...scene.navigation]) box(shape);
+    for (const shape of transparentActors) box(shape);
     return new ImageData(new Uint8ClampedArray(this.raster.pixels), width, height);
   }
 }

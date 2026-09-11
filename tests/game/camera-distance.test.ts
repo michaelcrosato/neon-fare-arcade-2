@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { DEFAULT_CAMERA_DISTANCE_SCALE, cameraDistanceScale, defaultCameraBoom } from "../../game/config";
 import type { Camera, CameraMode } from "../../game/model";
 import { cabViewMatrix } from "../../game/render/cab-camera";
 import { cameraFraming, requestedChaseBoom } from "../../game/render/view-projection";
@@ -60,4 +61,41 @@ test("cab framing is identical at 1x and 8x", () => {
   const eight = cameraAt("cab", 8);
   assert.deepEqual(cabViewMatrix(game, one), cabViewMatrix(game, eight));
   assert.deepEqual(cameraFraming(game, one).eye, cameraFraming(game, eight).eye);
+});
+
+test("starting camera distance scale is 4x for chase-low, chase-high, and fixed while excluding cab", () => {
+  const game = makeGame();
+  assert.equal(DEFAULT_CAMERA_DISTANCE_SCALE, 4);
+  assert.equal(cameraDistanceScale(undefined), 4);
+  assert.equal(defaultCameraBoom("chase-low"), 9.5 * 4);
+  assert.equal(defaultCameraBoom("chase-high"), 14 * 4);
+  assert.equal(defaultCameraBoom("fixed"), 0);
+  assert.equal(defaultCameraBoom("cab"), 0);
+
+  const defaultChaseLow: Camera = {
+    x: 0, y: 0, zoom: 1, heading: 0, mode: "chase-low", boom: defaultCameraBoom("chase-low"),
+    heightOffset: 0, onFoot: false, distanceScale: DEFAULT_CAMERA_DISTANCE_SCALE,
+  };
+  assert.equal(behindTaxi(defaultChaseLow), 9.5 * 4);
+
+  const defaultChaseHigh: Camera = {
+    x: 0, y: 0, zoom: 1, heading: 0, mode: "chase-high", boom: defaultCameraBoom("chase-high"),
+    heightOffset: 0, onFoot: false, distanceScale: DEFAULT_CAMERA_DISTANCE_SCALE,
+  };
+  assert.equal(behindTaxi(defaultChaseHigh), 14 * 4);
+
+  const defaultFixed: Camera = {
+    x: 0, y: 0, zoom: 1, heading: 0, mode: "fixed", boom: defaultCameraBoom("fixed"),
+    heightOffset: 0, onFoot: false, distanceScale: DEFAULT_CAMERA_DISTANCE_SCALE,
+  };
+  const fixed = cameraFraming(game, defaultFixed);
+  assert.deepEqual(fixed.eye, [100, 100, 116]);
+  assert.equal(fixed.orthoHalfHeight, 80);
+
+  const defaultCab: Camera = {
+    x: 0, y: 0, zoom: 1, heading: 0, mode: "cab", boom: defaultCameraBoom("cab"),
+    heightOffset: 0, onFoot: false, distanceScale: DEFAULT_CAMERA_DISTANCE_SCALE,
+  };
+  const cab1x = cameraFraming(game, cameraAt("cab", 1));
+  assert.deepEqual(cameraFraming(game, defaultCab).eye, cab1x.eye);
 });

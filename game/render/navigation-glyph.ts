@@ -18,9 +18,11 @@ import type {
 } from "../model";
 import { isDriving } from "../player";
 import { routeLength } from "../route-geometry";
+import { navLineTargetAngle } from "../navigation";
+import { NAVIGATION_INSTANCE_CAPACITY } from "./packing";
 
 export function navigationDistanceBadge(game: Game, seconds: number, navigation: NavigationPlan) {
-  if (!isDriving(game) || (!navigation.requiresUTurn && !navigation.turnCue)) return null;
+  if (!isDriving(game) || navigation.arrivalPromptActive || (!navigation.requiresUTurn && !navigation.turnCue)) return null;
   const meters = (distance: number) => {
     const value = Math.max(0, Math.round(distance * DISPLAY_METERS_PER_WORLD_UNIT));
     return value >= 1000 ? `${(value / 1000).toFixed(1)}km` : `${value}m`;
@@ -146,9 +148,63 @@ export function uTurnArrowBoxes(game: Game, seconds: number, cameraMode: CameraM
   return boxes;
 }
 
+export function vehicleDepartureArrowBoxes(
+  game: Game,
+  seconds: number,
+  navigation: NavigationPlan,
+  cameraMode: CameraMode,
+): Box[] {
+  if (!isDriving(game)) return [];
+  const departureActive = navigation.departurePromptUntil != null
+    && game.elapsed < navigation.departurePromptUntil
+    && navigation.route.length >= 2;
+  const arrivalActive = Boolean(navigation.arrivalPromptActive);
+  if (!departureActive && !arrivalActive) return [];
+
+  const remaining = (navigation.departurePromptUntil ?? 0) - game.elapsed;
+  const fade = arrivalActive ? 1 : clamp(remaining / 0.3, 0, 1);
+  const scale = (0.72 + Math.sin(seconds * 7) * 0.03) * (0.8 + 0.2 * fade);
+  const hover = (game.z ?? 0) + (cameraMode === "cab" ? 2.6 : 3.8) + Math.sin(seconds * 5) * 0.15;
+  const origin = cameraMode === "cab"
+    ? localPoint(game.x, game.y, game.heading, 3.2, 0)
+    : { x: game.x, y: game.y };
+
+  const pieces: ArrowGlyphPiece[] = [
+    { forward: 1.4, cross: 0, length: 4.8, breadth: 0.95 },
+    { forward: 4.45, cross: 0, length: 1.8, breadth: 0.95 },
+    { forward: 3.9, cross: 0.85, length: 1.7, breadth: 0.95 },
+    { forward: 3.9, cross: -0.85, length: 1.7, breadth: 0.95 },
+    { forward: 3.15, cross: 1.65, length: 1.35, breadth: 0.95 },
+    { forward: 3.15, cross: -1.65, length: 1.35, breadth: 0.95 },
+  ];
+
+  const boxes: Box[] = [];
+  const yaw = navigation.departureArrowYaw
+    ?? (arrivalActive && navigation.arrivalSpot
+      ? Math.atan2(navigation.arrivalSpot.y - game.y, navigation.arrivalSpot.x - game.x)
+      : navigation.route.length >= 2
+      ? navLineTargetAngle(game, navigation.route, 10)
+      : navigation.departureYaw);
+
+  addArrowGlyphLayer(boxes, origin, yaw, hover, 0, scale, pieces, INK, 1.16, 0);
+  addArrowGlyphLayer(boxes, origin, yaw, hover, 0, scale, pieces, YELLOW, 1, 0.46);
+  addArrowGlyphLayer(boxes, origin, yaw, hover, 0, scale, [
+    { forward: 1.35, cross: 0.32, length: 2.6, breadth: 0.13 },
+  ], WHITE, 1, 0.86, 0.12);
+
+  return boxes;
+}
+
 export function navigationArrowBoxes(game: Game, seconds: number, navigation: NavigationPlan, cameraMode: CameraMode) {
   if (!isDriving(game)) return [];
-  return navigation.requiresUTurn
+  const roadArrows = navigation.arrivalPromptActive
+    ? []
+    : navigation.requiresUTurn
     ? uTurnArrowBoxes(game, seconds, cameraMode)
     : turnArrowBoxes(seconds, navigation, cameraMode);
+  const departureArrows = vehicleDepartureArrowBoxes(game, seconds, navigation, cameraMode);
+  const combined = [...roadArrows, ...departureArrows];
+  return combined.length > NAVIGATION_INSTANCE_CAPACITY
+    ? combined.slice(0, NAVIGATION_INSTANCE_CAPACITY)
+    : combined;
 }

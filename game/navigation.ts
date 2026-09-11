@@ -1,9 +1,11 @@
 import {
   DISPLAY_METERS_PER_WORLD_UNIT,
   NAVIGATION_ARRIVAL_RADIUS,
+  NAVIGATION_METERS_PER_WORLD_UNIT,
   NAVIGATION_REPLAN_COOLDOWN,
   NAV_VELOCITY_HEADING_ENTER_SPEED,
   NAV_VELOCITY_HEADING_EXIT_SPEED,
+  OBJECTIVE_ARRIVAL_PROMPT_DISTANCE_METERS,
   ROAD_HALF,
   TURN_APPROACH_LIMIT,
   TURN_CUE_ENTER_DISTANCE,
@@ -31,7 +33,7 @@ import {
   roadHalfWidthAtPoint,
   routeRoadNetwork,
 } from "./road-network";
-import { getNavigationKey, getNavigationTarget } from "./state";
+import { activeObjectiveRing, getNavigationKey, getNavigationTarget } from "./state";
 import { DEFAULT_NAVIGATION_SETTINGS, normalizeNavigationSettings, type NavigationSettings } from "./navigation-policy";
 
 export { buildGpsRoute, compactRoute, routeLength, snapToRoad } from "./route-geometry";
@@ -76,7 +78,7 @@ export function buildNavigationPlan(start: WorldPoint, target: WorldPoint, headi
   const forwardDistance = forward ? routeLength(forward.route) : Number.POSITIVE_INFINITY;
   const reverseDistance = reverse ? routeLength(reverse.route) : Number.POSITIVE_INFINITY;
   const reverseIsWorthIt = Boolean(reverse) && preferReverseRoute(forwardDistance, reverseDistance,
-    normalizeNavigationSettings(settings).uTurnSavingsMeters / DISPLAY_METERS_PER_WORLD_UNIT);
+    normalizeNavigationSettings(settings).uTurnSavingsMeters / NAVIGATION_METERS_PER_WORLD_UNIT);
   const chosen = reverseIsWorthIt ? reverse : forward || reverse;
   if (!chosen) {
     const networkFallback = routeRoadNetwork(start, target, heading, 1)
@@ -99,7 +101,7 @@ export function buildNavigationPlan(start: WorldPoint, target: WorldPoint, headi
 }
 
 export function preferReverseRoute(forwardDistance: number, reverseDistance: number,
-  minimumSavings = DEFAULT_NAVIGATION_SETTINGS.uTurnSavingsMeters / DISPLAY_METERS_PER_WORLD_UNIT) {
+  minimumSavings = DEFAULT_NAVIGATION_SETTINGS.uTurnSavingsMeters / NAVIGATION_METERS_PER_WORLD_UNIT) {
   return Number.isFinite(forwardDistance) && Number.isFinite(reverseDistance)
     && forwardDistance - reverseDistance >= minimumSavings - 1e-9;
 }
@@ -150,6 +152,50 @@ export function closestPointOnRoute(point: WorldPoint, route: readonly WorldPoin
   return closest;
 }
 
+export function navLineTargetPoint(
+  player: WorldPoint,
+  route: readonly WorldPoint[],
+  lookaheadDistance = 10,
+): WorldPoint {
+  if (route.length < 2) return route[0] ?? player;
+  let remaining = lookaheadDistance;
+  let target = route.at(-1)!;
+
+  for (let index = 1; index < route.length; index += 1) {
+    const a = route[index - 1];
+    const b = route[index];
+    const segDist = distance(a, b);
+    if (segDist < 1e-4) continue;
+    if (remaining <= segDist) {
+      const t = remaining / segDist;
+      return {
+        x: a.x + (b.x - a.x) * t,
+        y: a.y + (b.y - a.y) * t,
+        z: (a.z ?? 0) + ((b.z ?? 0) - (a.z ?? 0)) * t,
+      };
+    }
+    remaining -= segDist;
+    target = b;
+  }
+  return target;
+}
+
+export function navLineTargetAngle(
+  game: WorldPoint,
+  route: readonly WorldPoint[],
+  lookaheadDistance = 10,
+): number {
+  if (route.length < 2) return 0;
+  const target = navLineTargetPoint(game, route, lookaheadDistance);
+  const dx = target.x - game.x;
+  const dy = target.y - game.y;
+  if (Math.hypot(dx, dy) >= 0.25) {
+    return Math.atan2(dy, dx);
+  }
+  const next = route[1] ?? route[0];
+  return Math.atan2(next.y - game.y, next.x - game.x);
+}
+
 export class NavigationController {
   private objectiveKey = "";
   private targetKey = "";
@@ -169,6 +215,8 @@ export class NavigationController {
   private lastDirectionCheckAt = Number.NEGATIVE_INFINITY;
   private policyKey = "";
   private developmentRevision = 0;
+  private departurePromptUntil = 0;
+  private departureArrowYaw: number | undefined = undefined;
 
   private adoptPlan(plan: NavigationPlan, player: WorldPoint, elapsed: number,
     reason: NonNullable<NavigationPlan["diagnostics"]>["reason"], target: WorldPoint) {
@@ -182,6 +230,10 @@ export class NavigationController {
     this.alignedFor = 0;
     this.lastReplanAt = elapsed;
     this.lastDirectionCheckAt = elapsed;
+    if (reason !== "deviation" || elapsed >= this.departurePromptUntil || this.revision === 0) {
+      this.departureArrowYaw = undefined;
+    }
+    this.departurePromptUntil = elapsed + 3.0;
     this.revision += 1;
     this.reason = reason;
   }
@@ -271,7 +323,7 @@ export class NavigationController {
     const canReplan = game.elapsed - this.lastReplanAt >= NAVIGATION_REPLAN_COOLDOWN;
     const plannedRoute = [this.activeStart, ...this.waypoints];
     const nearest = closestPointOnRoute(player, plannedRoute);
-    const deviationMeters = (nearest?.distance ?? 0) * DISPLAY_METERS_PER_WORLD_UNIT;
+    const deviationMeters = (nearest?.distance ?? 0) * NAVIGATION_METERS_PER_WORLD_UNIT;
     if (canReplan && deviationMeters > policy.rerouteDistanceMeters + 1e-7) {
       this.adoptPlan(buildNavigationPlan(player, target, travelHeading, policy), player, game.elapsed, "deviation", target);
     }
@@ -343,11 +395,44 @@ export class NavigationController {
       const forward = graphRouteCandidateForDirection(player, target, travelHeading, 1);
       const reverse = graphRouteCandidateForDirection(player, target, travelHeading, -1);
       this.wrongWay = Boolean(forward && reverse) && preferReverseRoute(
-        routeLength(forward!.route), routeLength(reverse!.route), policy.uTurnSavingsMeters / DISPLAY_METERS_PER_WORLD_UNIT);
+        routeLength(forward!.route), routeLength(reverse!.route), policy.uTurnSavingsMeters / NAVIGATION_METERS_PER_WORLD_UNIT);
     }
+
+    const ring = activeObjectiveRing(game);
+    const ringDist = ring ? distance(player, ring) : Number.POSITIVE_INFINITY;
+    const arrivalPromptActive = ring !== null && ringDist * DISPLAY_METERS_PER_WORLD_UNIT <= OBJECTIVE_ARRIVAL_PROMPT_DISTANCE_METERS;
+    const departurePromptActive = game.elapsed < this.departurePromptUntil && route.length >= 2;
+    const arrowActive = arrivalPromptActive || departurePromptActive;
+
+    if (arrowActive) {
+      let targetYaw: number;
+      if (arrivalPromptActive && ring) {
+        targetYaw = ringDist >= 0.2
+          ? Math.atan2(ring.y - player.y, ring.x - player.x)
+          : (this.departureArrowYaw ?? game.heading);
+      } else {
+        targetYaw = navLineTargetAngle(player, route, 10);
+      }
+
+      if (this.departureArrowYaw === undefined) {
+        this.departureArrowYaw = targetYaw;
+      } else {
+        const angleDiff = normalizeAngle(targetYaw - this.departureArrowYaw);
+        const rate = 14;
+        const smoothFactor = elapsedDelta > 0 ? (1 - Math.exp(-rate * elapsedDelta)) : 1;
+        this.departureArrowYaw = normalizeAngle(this.departureArrowYaw + angleDiff * smoothFactor);
+      }
+    } else {
+      this.departureArrowYaw = undefined;
+    }
+
     this.lastElapsed = game.elapsed;
     const turnCue = this.resolveTurnCue(player, travelHeading);
     return { route, departureYaw, requiresUTurn: this.wrongWay, travelHeading, turnCue,
+      departurePromptUntil: this.departurePromptUntil,
+      departureArrowYaw: this.departureArrowYaw,
+      arrivalPromptActive,
+      arrivalSpot: arrivalPromptActive ? ring : null,
       diagnostics: { revision: this.revision, deviationMeters, reason: this.reason, ...policy } };
   }
 }

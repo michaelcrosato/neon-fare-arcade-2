@@ -21,7 +21,7 @@ Hard budgets:
 
 - streamed city: 37,240 instances;
 - actors: 2,048;
-- navigation: 32;
+- navigation: 48;
 - ghost/occlusion pass: 96;
 - camera uniform: 24 floats / 96 bytes.
 
@@ -78,7 +78,7 @@ authored venues target and enforce 128 boxes, 24 colliders, and six interactions
 Door beacons use the actor buffer. The walking avatar shares the taxi's ghost
 buffer for its silhouette and final opaque passes; drawing it after the ghost
 pass prevents its own rear faces from appearing occluded. Never spend the
-32-instance navigation buffer on exploration UI.
+48-instance navigation buffer on exploration UI.
 
 ## Controlled player avatar
 
@@ -97,8 +97,8 @@ cargo ownership as WebGPU. Reduced motion and player state match in all paths.
 ## Navigation glyphs
 
 Every WebGPU camera uses the same canonical turn or U-turn pieces. Camera mode
-changes only the plane pitch. Normal arrows use 16 boxes and U-turns use 30, so
-new decorative pieces require budget review.
+changes only the plane pitch. Normal arrows use 16 boxes and U-turns use 30, with
+up to 13 additional boxes for the initial vehicle departure arrow (total budget: 48 instances).
 
 Canvas consumes these same pieces and their pitch transforms through its 3D
 projection. It must not select a different symbol by rendering backend.

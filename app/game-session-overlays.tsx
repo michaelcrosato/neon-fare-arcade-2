@@ -30,7 +30,7 @@ type GameSessionOverlaysProps = Readonly<{
   onSetCameraDistanceScale: (scale: CameraDistanceScale) => void;
   onSetMode: (mode: Mode) => void;
   onOpenHow: () => void;
-  onOpenOptions: () => void;
+  onOpenOptions: (tab?: "game" | "dev") => void;
   onFinishRun: () => void;
   onToggleFareDispatch: () => void;
   onRequestStartRun: (runKind: RunKind, drivingModel?: DrivingModel) => void;
@@ -129,7 +129,8 @@ export function GameSessionOverlays({
                 <strong>GET UNSTUCK · CALL A TOW</strong>
                 <small>{hud.towReceipt ? "TOW COMPLETE · RESUME TO DRIVE" : hud.towCost ? `$${hud.towCost} FROM RUN FARE · BACK TO THE NEAREST ROAD` : "FREE RESCUE · UNDER $100? ON THE HOUSE"}</small>
               </button>
-              <button onClick={onOpenOptions}>OPTIONS · DEV MODE</button>
+              <button onClick={() => onOpenOptions("game")}>GAME OPTIONS</button>
+              <button onClick={() => onOpenOptions("dev")}>OPTIONS · DEV MODE</button>
               <button onClick={onOpenHow}>HOW TO PLAY</button>
               {diagnosticsActive && <button onClick={onCopyDiagnostics}>COPY DIAGNOSTICS</button>}
               {diagnosticsNotice && <small className="duty-lock-note" role="status" aria-live="polite">{diagnosticsNotice}</small>}

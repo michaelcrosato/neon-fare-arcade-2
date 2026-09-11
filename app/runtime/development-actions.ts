@@ -75,7 +75,7 @@ export function presentDevelopmentCommand(action: DevelopmentAction, services: D
   }
   if (result.ok && (action.kind === "restart" || action.kind === "reset-taxi" || action.kind.startsWith("teleport-"))) {
     services.cameraRef.current = { ...services.cameraRef.current, x: game.x, y: game.y, heading: game.heading,
-      heightOffset: game.z, boom: defaultCameraBoom(services.cameraRef.current.mode), onFoot: false };
+      heightOffset: game.z, boom: defaultCameraBoom(services.cameraRef.current.mode, services.cameraRef.current.distanceScale), onFoot: false };
   }
   services.checkpointExternalGameChange(`development:${action.kind}`);
   services.setHud(makeHud(game));

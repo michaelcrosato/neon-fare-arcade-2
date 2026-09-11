@@ -8,8 +8,10 @@ import {
   type CSSProperties,
 } from "react";
 import {
+  CAMERA_DISTANCE_STORAGE_KEY,
   CAMERA_OPTIONS,
   CAMERA_STORAGE_KEY,
+  DEFAULT_CAMERA_DISTANCE_SCALE,
   DEFAULT_CAMERA_MODE,
   cameraDistanceScale,
   cameraLabel,
@@ -18,12 +20,9 @@ import {
   type CameraDistanceScale,
 } from "@/game/config";
 import { EMPTY_HUD, makeHud } from "@/game/hud";
-import { TouchDriving } from "./runtime/touch-driving";
+import { TouchDriving, type SteeringMode } from "./runtime/touch-driving";
 import { rankFor } from "@/game/math";
-import {
-  clearCustomDestination,
-  setCustomDestination,
-} from "@/game/custom-destination";
+import { clearCustomDestination, setCustomDestination } from "@/game/custom-destination";
 import type {
   Camera,
   CameraMode,
@@ -46,19 +45,13 @@ import type { DevelopmentAction } from "@/game/development-actions";
 import { presentDevelopmentCommand } from "./runtime/development-actions";
 import { useDevelopmentMode } from "./use-development-mode";
 import { DevelopmentReadout } from "./development-panel";
-import {
-  refreshFareDispatch,
-  setFareDispatchEnabled,
-} from "@/game/fare-selection";
-import {
-  acceptCourierContract,
-} from "@/game/courier";
+import { refreshFareDispatch, setFareDispatchEnabled } from "@/game/fare-selection";
+import { acceptCourierContract } from "@/game/courier";
 import { districtName } from "@/game/world";
 import { effectiveCameraMode } from "@/game/render/camera";
-import {
-  isDriving,
-  isInterior,
-} from "@/game/player";
+import { isDriving, isInterior } from "@/game/player";
+import { useMobileLayout } from "./use-mobile-layout";
+import { WebGpuStatusNotice } from "./webgpu-status-notice";
 import {
   applyCareerRunBonuses,
   rechargeTaxiAtHome,
@@ -108,6 +101,7 @@ function warmPassengerArt(jobs: Game["fareJobs"]) {
 }
 
 export default function Home() {
+  const isMobile = useMobileLayout();
   const canvas2dRef = useRef<HTMLCanvasElement>(null);
   const webGpuCanvasRef = useRef<HTMLCanvasElement>(null);
   const passengerReviewRef = useRef<HTMLDivElement>(null);
@@ -116,19 +110,10 @@ export default function Home() {
   const selectingDriverRef = useRef(false);
   const [initialGame] = useState(() => makeGame());
   const gameRef = useRef<Game>(initialGame);
-  const cameraRef = useRef<Camera>({ x: 0, y: 0, zoom: 1, heading: -Math.PI / 2, mode: DEFAULT_CAMERA_MODE, boom: defaultCameraBoom(DEFAULT_CAMERA_MODE), heightOffset: 0, onFoot: false, distanceScale: 1 });
+  const cameraRef = useRef<Camera>({ x: 0, y: 0, zoom: 1, heading: -Math.PI / 2, mode: DEFAULT_CAMERA_MODE, boom: defaultCameraBoom(DEFAULT_CAMERA_MODE, DEFAULT_CAMERA_DISTANCE_SCALE), heightOffset: 0, onFoot: false, distanceScale: DEFAULT_CAMERA_DISTANCE_SCALE });
   const cameraModeRef = useRef<CameraMode>(DEFAULT_CAMERA_MODE);
-  const cameraDistanceScaleRef = useRef<CameraDistanceScale>(1);
-  const inputRef = useRef<InputState>({
-    up: false,
-    down: false,
-    left: false,
-    right: false,
-    boost: false,
-    sprint: false,
-    jump: false,
-    crouch: false,
-  });
+  const cameraDistanceScaleRef = useRef<CameraDistanceScale>(DEFAULT_CAMERA_DISTANCE_SCALE);
+  const inputRef = useRef<InputState>({ up: false, down: false, left: false, right: false, boost: false, sprint: false, jump: false, crouch: false, interact: false });
   const interactionPulseRef = useRef(false);
   const [touchDriving] = useState(() => new TouchDriving());
   const jumpPulseRef = useRef(false);
@@ -148,14 +133,28 @@ export default function Home() {
   const [mode, setModeState] = useState<Mode>("menu");
   const [pendingRunKind, setPendingRunKind] = useState<RunKind>("timed");
   const [pendingDrivingModel, setPendingDrivingModel] = useState<DrivingModel>("arcade");
+  const [pendingDrivingTrait, setPendingDrivingTrait] = useState<DrivingTraitId>("street-ace");
+  const [steeringMode, setSteeringModeState] = useState<SteeringMode>(() => {
+    try {
+      const s = localStorage.getItem("neon-fare-steering-mode");
+      if (s === "default" || s === "joystick" || s === "wheel") return s;
+    } catch {}
+    return "default";
+  });
+  const setSteeringMode = useCallback((s: SteeringMode) => {
+    setSteeringModeState(s);
+    touchDriving.setMode(s);
+    try { localStorage.setItem("neon-fare-steering-mode", s); } catch {}
+  }, [touchDriving]);
   const [modal, setModal] = useState<Modal>(null);
-  useEffect(() => { selectingDriverRef.current = modal === "traits"; }, [modal]);
+  const [optionsTab, setOptionsTab] = useState<"game" | "dev">("game");
+  useEffect(() => { selectingDriverRef.current = modal === "traits" || modal === "steering"; }, [modal]);
   const [modalParent, setModalParent] = useState<"home" | null>(null);
   const [muted, setMuted] = useState(false);
   const [cameraMode, setCameraModeState] = useState<CameraMode>(DEFAULT_CAMERA_MODE);
-  const [cameraDistance, setCameraDistanceState] = useState<CameraDistanceScale>(1);
+  const [cameraDistance, setCameraDistanceState] = useState<CameraDistanceScale>(DEFAULT_CAMERA_DISTANCE_SCALE);
   const [hud, setHud] = useState<Hud>(EMPTY_HUD);
-  const [rendererKind, setRendererKind] = useState("CANVAS FALLBACK");
+  const [rendererKind, setRendererKind] = useState("INITIALIZING WEBGPU...");
   const [records, setRecords] = useState<RunRecord[]>([]);
   const [best, setBest] = useState(0);
   const [audioAnnouncement, setAudioAnnouncement] = useState("");
@@ -179,17 +178,7 @@ export default function Home() {
 
   const clearInput = useCallback(() => {
     touchDriving.reset();
-    inputRef.current = {
-      up: false,
-      down: false,
-      left: false,
-      right: false,
-      boost: false,
-      sprint: false,
-      jump: false,
-      crouch: false,
-      interact: false,
-    };
+    inputRef.current = { up: false, down: false, left: false, right: false, boost: false, sprint: false, jump: false, crouch: false, interact: false };
     interactionPulseRef.current = false;
     jumpPulseRef.current = false;
   }, [touchDriving]);
@@ -252,6 +241,7 @@ export default function Home() {
     cameraRef.current.boom = defaultCameraBoom(cameraModeRef.current, scale);
     setCameraDistanceState(scale);
     setAudioAnnouncement(`Camera distance ${scale}x.`);
+    try { localStorage.setItem(CAMERA_DISTANCE_STORAGE_KEY, String(scale)); } catch {}
   }, []);
 
   const cycleCamera = useCallback(() => {
@@ -338,7 +328,17 @@ export default function Home() {
     setModal(next);
   }, [setMode]);
 
+  const openOptions = useCallback((tab: "game" | "dev" = "game") => {
+    setOptionsTab(tab);
+    openModal("options");
+  }, [openModal]);
+
   const closeModal = useCallback(() => {
+    if (modal === "steering") {
+      setModal("traits");
+      setAudioAnnouncement("Back to vehicle selection.");
+      return;
+    }
     if (modalParent === "home" && modal !== "home") {
       setModalParent(null);
       setModal("home");
@@ -472,6 +472,7 @@ export default function Home() {
     selectingDriverRef.current = false;
     clearInput();
     ensureAudio();
+    touchDriving.setMode(steeringMode);
     resetFareCards();
     setCourierImpact(null);
     setCourierNotice("");
@@ -500,7 +501,23 @@ export default function Home() {
       ? "Crown Cab simulation ready. Automatic transmission in drive. Three, two, one."
       : `${drivingTraitPackage(drivingTraitId).name} locked in. ${runKind === "free-run" ? "Free Run" : "Arcade shift"} starting. Three, two, one.`);
     tone(420, 0.08, "square", 350);
-  }, [careerRef, clearInput, developmentRef, diagnostics, ensureAudio, pendingDrivingModel, pendingRunKind, resetFareCards, setMode, tone]);
+  }, [careerRef, clearInput, developmentRef, diagnostics, ensureAudio, pendingDrivingModel, pendingRunKind, resetFareCards, setMode, steeringMode, tone, touchDriving]);
+
+  const selectDriverTrait = useCallback((drivingTraitId: DrivingTraitId) => {
+    setPendingDrivingTrait(drivingTraitId);
+    if (isMobile) {
+      setModal("steering");
+      setAudioAnnouncement("Vehicle locked in. Choose steering option.");
+      tone(360, 0.08, "square", 480);
+    } else {
+      beginRun(drivingTraitId);
+    }
+  }, [beginRun, isMobile, tone]);
+
+  const selectSteeringAndBegin = useCallback((selectedMode: SteeringMode) => {
+    setSteeringMode(selectedMode);
+    beginRun(pendingDrivingTrait);
+  }, [beginRun, pendingDrivingTrait, setSteeringMode]);
 
   const finishRun = useCallback(() => {
     if (runResultBankedRef.current) return;
@@ -624,12 +641,28 @@ export default function Home() {
 
   useEffect(() => {
     let saved: unknown;
-    try { saved = localStorage.getItem(CAMERA_STORAGE_KEY); } catch {}
-    if (!isCameraMode(saved)) return;
-    cameraModeRef.current = saved;
-    cameraRef.current.mode = saved;
-    cameraRef.current.boom = defaultCameraBoom(saved);
-    const frame = window.requestAnimationFrame(() => setCameraModeState(saved));
+    let savedDistance: unknown;
+    try {
+      saved = localStorage.getItem(CAMERA_STORAGE_KEY);
+      savedDistance = localStorage.getItem(CAMERA_DISTANCE_STORAGE_KEY);
+    } catch {}
+    let scaleToSet: CameraDistanceScale | null = null;
+    if (savedDistance !== null && savedDistance !== undefined) {
+      const scale = cameraDistanceScale(Number(savedDistance));
+      cameraDistanceScaleRef.current = scale;
+      cameraRef.current.distanceScale = scale;
+      scaleToSet = scale;
+    }
+    const mode = isCameraMode(saved) ? saved : cameraModeRef.current;
+    if (isCameraMode(saved)) {
+      cameraModeRef.current = saved;
+      cameraRef.current.mode = saved;
+    }
+    cameraRef.current.boom = defaultCameraBoom(mode, cameraDistanceScaleRef.current);
+    const frame = window.requestAnimationFrame(() => {
+      if (scaleToSet) setCameraDistanceState(scaleToSet);
+      if (isCameraMode(saved)) setCameraModeState(saved);
+    });
     return () => window.cancelAnimationFrame(frame);
   }, []);
 
@@ -667,34 +700,10 @@ export default function Home() {
   }, [careerRef, checkpointExternalGameChange, clearInput, diagnostics, onSimulationEvents, resetFareCards, triggerFareImpact]);
 
   useGameRuntime({
-    selectingDriverRef,
-    passengerReviewRef,
-    navigationDistanceRef,
-    taxiExitRef,
-    canvas2dRef,
-    webGpuCanvasRef,
-    gameRef,
-    cameraRef,
-    cameraModeRef,
-    inputRef,
-    touchDriving,
-    interactionPulseRef,
-    jumpPulseRef,
-    modeRef,
-    mutedRef,
-    audioRef,
-    engineRef,
-    boostAudioActiveRef,
-    diagnostics,
-    diagnosticsActive,
-    clearInput,
-    finishRun,
-    setMode,
-    setHud,
-    setRendererKind,
-    setAudioAnnouncement,
-    tone,
-    onSimulationEvents,
+    selectingDriverRef, passengerReviewRef, navigationDistanceRef, taxiExitRef, canvas2dRef, webGpuCanvasRef,
+    gameRef, cameraRef, cameraModeRef, inputRef, touchDriving, interactionPulseRef, jumpPulseRef, modeRef,
+    mutedRef, audioRef, ensureAudio, engineRef, boostAudioActiveRef, diagnostics, diagnosticsActive,
+    clearInput, finishRun, setMode, setHud, setRendererKind, setAudioAnnouncement, tone, onSimulationEvents,
   });
 
   const copyDiagnostics = useCallback(async () => {
@@ -737,17 +746,10 @@ export default function Home() {
     }
     previousModalRef.current = modal;
 
-    const focusableSelector = [
-      "button:not([disabled])",
-      "a[href]",
-      "input:not([disabled])",
-      "select:not([disabled])",
-      "textarea:not([disabled])",
-      "[tabindex]:not([tabindex='-1'])",
-    ].join(",");
+    const focusableSelector = "button:not([disabled]),a[href],input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex='-1'])";
     const frame = window.requestAnimationFrame(() => {
       const dialog = modalDialogRef.current;
-      const first = modal === "traits"
+      const first = (modal === "traits" || modal === "steering")
         ? dialog?.querySelector<HTMLElement>("[data-modal-autofocus='true']")
         : dialog?.querySelector<HTMLElement>(focusableSelector);
       (first ?? dialog)?.focus();
@@ -870,7 +872,7 @@ export default function Home() {
           <i aria-hidden="true"><b /><b /><b /><b /><b /><b /></i>
         </button>
         <nav aria-label="Game navigation">
-          <button onClick={() => openModal("options")} disabled={!careerReady}>OPTIONS</button>
+          <button onClick={() => openOptions("game")} disabled={!careerReady}>OPTIONS</button>
           <span aria-hidden="true" />
           <button onClick={() => openModal("how")} disabled={!careerReady}>HOW TO PLAY</button>
           <span aria-hidden="true" />
@@ -909,6 +911,7 @@ export default function Home() {
           <span className="speed-fx__slash speed-fx__slash--left" />
           <span className="speed-fx__slash speed-fx__slash--right" />
         </div>
+        <WebGpuStatusNotice rendererKind={rendererKind} />
         <GameStageHud
           mode={mode}
           hud={hud}
@@ -935,6 +938,7 @@ export default function Home() {
             careerBank={career.bank}
             best={best}
             onRequestStartRun={requestStartRun}
+            onOpenOptions={() => openOptions("game")}
           />
         )}
 
@@ -944,23 +948,12 @@ export default function Home() {
           cameraMode={cameraMode}
           cameraDistanceScale={cameraDistance}
           careerBank={career.bank}
-          fareCards={fareCards}
-          diagnosticsActive={diagnosticsActive}
-          diagnosticsNotice={diagnosticsNotice}
-          muted={muted}
-          onToggleMute={toggleMute}
-          onOpenMap={() => openModal("map")}
-          onSetCameraMode={setCameraMode}
-          onSetCameraDistanceScale={setCameraDistanceScale}
-          onSetMode={setMode}
-          onOpenHow={() => openModal("how")}
-          onOpenOptions={() => openModal("options")}
-          onFinishRun={finishRun}
-          onToggleFareDispatch={toggleFareDispatch}
-          onRequestStartRun={requestStartRun}
-          onOpenScores={() => openModal("scores")}
-          onCopyDiagnostics={copyDiagnostics}
-          onRecover={getUnstuck}
+          fareCards={fareCards} diagnosticsActive={diagnosticsActive} diagnosticsNotice={diagnosticsNotice}
+          muted={muted} onToggleMute={toggleMute} onOpenMap={() => openModal("map")}
+          onSetCameraMode={setCameraMode} onSetCameraDistanceScale={setCameraDistanceScale} onSetMode={setMode}
+          onOpenHow={() => openModal("how")} onOpenOptions={openOptions} onFinishRun={finishRun}
+          onToggleFareDispatch={toggleFareDispatch} onRequestStartRun={requestStartRun}
+          onOpenScores={() => openModal("scores")} onCopyDiagnostics={copyDiagnostics} onRecover={getUnstuck}
         />
       </section>
 
@@ -979,16 +972,16 @@ export default function Home() {
         gasNotice={gasNotice}
         development={{ settings: development, activeRun: mode === "paused", notice: developmentNotice, onChange: changeDevelopment, onAction: runDevelopmentAction }}
         dialogRef={modalDialogRef}
-        onClose={closeModal}
-        onBeginRun={beginRun}
-        onSelectDestination={selectCustomDestination}
-        onRemoveDestination={removeCustomDestination}
-        onToggleFareDispatch={toggleFareDispatch}
-        onPurchaseHomeItem={purchaseHomeItem}
-        onRechargeAtHome={rechargeAtHome}
-        onOpenHomeSubview={openHomeSubview}
-        onPurchaseGasOffer={purchaseGasOffer}
-        onTakeCourierContract={takeCourierContract}
+        optionsTab={optionsTab} onSelectOptionsTab={setOptionsTab} muted={muted} onToggleMute={toggleMute}
+        cameraMode={cameraMode} onSetCameraMode={setCameraMode} cameraDistanceScale={cameraDistance} onSetCameraDistanceScale={setCameraDistanceScale}
+        steeringMode={steeringMode} onSetSteeringMode={setSteeringMode}
+        onSelectDriverTrait={selectDriverTrait} onSelectSteering={selectSteeringAndBegin}
+        onBackToTraits={() => { setModal("traits"); tone(300, 0.08, "square", 240); }}
+        rendererKind={rendererKind} onClose={closeModal} onBeginRun={beginRun}
+        onSelectDestination={selectCustomDestination} onRemoveDestination={removeCustomDestination}
+        onToggleFareDispatch={toggleFareDispatch} onPurchaseHomeItem={purchaseHomeItem}
+        onRechargeAtHome={rechargeAtHome} onOpenHomeSubview={openHomeSubview}
+        onPurchaseGasOffer={purchaseGasOffer} onTakeCourierContract={takeCourierContract}
         onRequestStartRun={requestStartRun}
       />
 

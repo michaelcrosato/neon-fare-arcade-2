@@ -43,7 +43,12 @@ export class TerrainRaster {
       let pixel = y * this.width + left;
       for (let x = left; x <= right; x += 1) {
         if (ab >= -1e-5 && bc >= -1e-5 && ca >= -1e-5) {
-          if (!ghost && depth > this.depths[pixel]) {
+          if (!ghost && color[3] < 0.99 && depth > this.depths[pixel]) {
+            const offset = pixel * 4, alpha = color[3];
+            this.pixels[offset] += (r - this.pixels[offset]) * alpha;
+            this.pixels[offset + 1] += (g - this.pixels[offset + 1]) * alpha;
+            this.pixels[offset + 2] += (blue - this.pixels[offset + 2]) * alpha;
+          } else if (!ghost && depth > this.depths[pixel]) {
             this.depths[pixel] = depth; this.colors[pixel] = packed;
           } else if (ghost && depth < this.depths[pixel]) {
             const offset = pixel * 4, alpha = color[3];

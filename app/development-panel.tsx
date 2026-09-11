@@ -13,9 +13,10 @@ export type DevelopmentPanelProps = {
   onChange: (settings: DevelopmentSettings) => void;
   onAction: (action: DevelopmentAction) => void;
   onClose: () => void;
+  hideHeader?: boolean;
 };
 
-export function DevelopmentPanel({ settings, hud, activeRun, notice, onChange, onAction, onClose }: DevelopmentPanelProps) {
+export function DevelopmentPanel({ settings, hud, activeRun, notice, onChange, onAction, onClose, hideHeader }: DevelopmentPanelProps) {
   const [placeId, setPlaceId] = useState(DESTINATION_PLACES[0].id);
   const [occasion, setOccasion] = useState(0);
   const [seed, setSeed] = useState(String(hud.runSeed ?? 1));
@@ -24,8 +25,10 @@ export function DevelopmentPanel({ settings, hud, activeRun, notice, onChange, o
   const frame = fareArtFrame(card.artCell);
   const update = (patch: Partial<DevelopmentSettings>) => onChange({ ...settings, ...patch });
   return <div className="development-panel">
-    <p className="modal-kicker">YOUR GAME · YOUR PLAYTEST</p>
-    <h2 id="modal-title">OPTIONS</h2>
+    {!hideHeader && <>
+      <p className="modal-kicker">YOUR GAME · YOUR PLAYTEST</p>
+      <h2 id="modal-title">OPTIONS</h2>
+    </>}
     <label className="development-enable"><input type="checkbox" checked={settings.enabled}
       onChange={event => update({ enabled: event.target.checked })} /><span><strong>DEV MODE</strong><small>GPS tuning, destination previews and playtest tools</small></span></label>
     {!settings.enabled && <p>Enable Dev Mode to open the tools. Regular GPS uses 1,000 m for rerouting and U-turn savings.</p>}

@@ -6,6 +6,7 @@ import {
   PERSPECTIVE_DRAW_DISTANCE,
 } from "@/game/config";
 import type {
+  Box,
   Camera,
   Game,
   NavigationPlan,
@@ -55,6 +56,7 @@ export class WebGPURenderer implements Renderer {
   private pipeline: any;
   private surfacePipeline: any;
   private ghostPipeline: any;
+  private transparentPipeline: any;
   private postPipeline: any;
   private vertexBuffer: any;
   private cityBuffer: any;
@@ -67,6 +69,7 @@ export class WebGPURenderer implements Renderer {
   private bindGroup: any;
   private surfaceBindGroup: any;
   private ghostBindGroup: any;
+  private transparentBindGroup: any;
   private postBindGroup: any = null;
   private postSampler: any;
   private sceneTexture: any = null;
@@ -491,7 +494,7 @@ struct SurfaceVertexIn {
   let coast = camera.params.y < -792.0 && abs(camera.params.z) <= 792.0;
   let fogColor = select(select(vec3<f32>(0.72, 0.88, 0.93), vec3<f32>(0.87, 0.77, 0.64), desert), vec3<f32>(0.78, 0.88, 0.86), coast);
   color = mix(color, fogColor, fog * 0.84);
-  return vec4<f32>(color, 1.0);
+  return vec4<f32>(color, v.color.a);
 }
 @fragment fn fsGhost(v: VertexOut) -> @location(0) vec4<f32> {
   let hatch = step(0.43, fract((v.position.x + v.position.y) * 0.075));
@@ -647,6 +650,23 @@ fn bloomColor(color: vec3<f32>) -> vec3<f32> {
       primitive: { topology: "triangle-list", cullMode: "none" },
       depthStencil: { format: "depth24plus", depthWriteEnabled: false, depthCompare: "greater" },
     });
+    this.transparentPipeline = device.createRenderPipeline({
+      layout: "auto",
+      vertex: { module: shader, entryPoint: "vsMain", buffers: vertexBuffers },
+      fragment: {
+        module: shader,
+        entryPoint: "fsMain",
+        targets: [{
+          format: this.sceneFormat,
+          blend: {
+            color: { srcFactor: "src-alpha", dstFactor: "one-minus-src-alpha", operation: "add" },
+            alpha: { srcFactor: "one", dstFactor: "one-minus-src-alpha", operation: "add" },
+          },
+        }],
+      },
+      primitive: { topology: "triangle-list", cullMode: "none" },
+      depthStencil: { format: "depth24plus", depthWriteEnabled: false, depthCompare: "less" },
+    });
     this.postPipeline = device.createRenderPipeline({
       layout: "auto",
       vertex: { module: postShader, entryPoint: "vsPost" },
@@ -677,6 +697,10 @@ fn bloomColor(color: vec3<f32>) -> vec3<f32> {
     });
     this.ghostBindGroup = device.createBindGroup({
       layout: this.ghostPipeline.getBindGroupLayout(0),
+      entries: [{ binding: 0, resource: { buffer: this.cameraBuffer } }],
+    });
+    this.transparentBindGroup = device.createBindGroup({
+      layout: this.transparentPipeline.getBindGroupLayout(0),
       entries: [{ binding: 0, resource: { buffer: this.cameraBuffer } }],
     });
     this.postSampler = device.createSampler({
@@ -766,11 +790,21 @@ fn bloomColor(color: vec3<f32>) -> vec3<f32> {
     const cockpit = playerMode === "driving" && camera.mode === "cab"
       ? cabInteriorBoxes(game)
       : [];
-    const actors = [...dynamicBoxes(game, seconds, route, world, {
+    const allActors = [...dynamicBoxes(game, seconds, route, world, {
       // Draw the player with the taxi after their occlusion silhouettes. An
       // earlier avatar depth write makes its own rear faces appear occluded.
       showPlayerAvatar: false,
     }), ...cockpit, ...(taxiShadow ? [taxiShadow] : [])];
+    const opaqueActors: Box[] = [];
+    const transparentActors: Box[] = [];
+    for (const actor of allActors) {
+      if ((actor.color[3] ?? 1) < 0.99) {
+        transparentActors.push(actor);
+      } else {
+        opaqueActors.push(actor);
+      }
+    }
+    const actors = [...opaqueActors, ...transparentActors];
     const navigation = navigationArrowBoxes(game, seconds, navigationPlan, camera.mode);
     if (actors.length > ACTOR_INSTANCE_CAPACITY) throw new Error("Actor instance budget exceeded");
     if (navigation.length > NAVIGATION_INSTANCE_CAPACITY) throw new Error("Navigation instance budget exceeded");
@@ -821,7 +855,7 @@ fn bloomColor(color: vec3<f32>) -> vec3<f32> {
       scenePass.setVertexBuffer(0, this.vertexBuffer);
     }
     scenePass.setVertexBuffer(1, this.actorBuffer);
-    scenePass.draw(36, actors.length);
+    if (opaqueActors.length) scenePass.draw(36, opaqueActors.length);
     if (navigation.length) {
       scenePass.setPipeline(this.ghostPipeline);
       scenePass.setBindGroup(0, this.ghostBindGroup);
@@ -839,6 +873,13 @@ fn bloomColor(color: vec3<f32>) -> vec3<f32> {
       scenePass.setPipeline(this.pipeline);
       scenePass.setBindGroup(0, this.bindGroup);
       scenePass.draw(36, ghostActors.length);
+    }
+    if (transparentActors.length) {
+      scenePass.setPipeline(this.transparentPipeline);
+      scenePass.setBindGroup(0, this.transparentBindGroup);
+      scenePass.setVertexBuffer(0, this.vertexBuffer);
+      scenePass.setVertexBuffer(1, this.actorBuffer);
+      scenePass.draw(36, transparentActors.length, 0, opaqueActors.length);
     }
     scenePass.end();
 
@@ -882,6 +923,7 @@ export async function createWebGPURenderer(
   canvas: HTMLCanvasElement,
   onFailure: () => void,
   shouldAbort: () => boolean,
+  onProgress?: (stage: string) => void,
 ): Promise<WebGPURenderer | null> {
   const gpu = (navigator as Navigator & { gpu?: any }).gpu;
   if (!gpu) return null;
@@ -889,8 +931,10 @@ export async function createWebGPURenderer(
   let device: any = null;
   let context: any = null;
   try {
+    onProgress?.("REQUESTING GPU ADAPTER...");
     const adapter = await gpu.requestAdapter({ powerPreference: "high-performance" });
     if (!adapter || shouldAbort()) return null;
+    onProgress?.("CONFIGURING GPU DEVICE...");
     device = await adapter.requestDevice();
     if (!device || shouldAbort()) {
       device?.destroy?.();
@@ -902,6 +946,7 @@ export async function createWebGPURenderer(
       device.destroy?.();
       return null;
     }
+    onProgress?.("COMPILING WEBGPU SHADERS...");
     return new WebGPURenderer(canvas, context, device, gpu, onFailure);
   } catch (error) {
     reportRuntimeError("webgpu-init", error);

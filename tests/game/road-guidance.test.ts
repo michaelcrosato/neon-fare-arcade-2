@@ -52,11 +52,11 @@ test("floating arrow badges show the total remaining route distance", () => {
     requiresUTurn: false, departureYaw: -Math.PI / 2, travelHeading: -Math.PI / 2,
     turnCue: { point: { x: 0, y: -36, z: 20 }, incomingYaw: -Math.PI / 2, yaw: 0, kind: "right", distance: 36 } };
   const first = navigationDistanceBadge(game, 0, plan)!;
-  assert.equal(first.distance, "1.3km");
+  assert.equal(first.distance, "72m");
   assert.equal(first.remaining, "TO DESTINATION");
   assert.ok(first.point.z > 28, "badge clears the elevated arrow");
   plan.turnCue!.distance = 12;
-  assert.equal(navigationDistanceBadge(game, 0, plan)!.distance, "1.3km", "moving the turn cue does not change the route total");
+  assert.equal(navigationDistanceBadge(game, 0, plan)!.distance, "72m", "moving the turn cue does not change the route total");
   plan.route[0] = { x: 0, y: -24 };
   const remaining = `${Math.round(48 * DISPLAY_METERS_PER_WORLD_UNIT)}m`;
   assert.equal(navigationDistanceBadge(game, 0, plan)!.distance, remaining, "route progress reduces the remaining distance");

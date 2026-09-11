@@ -38,7 +38,7 @@ function draw(kind: "turn" | "uturn" | "tow", mode: CameraMode, age = .2) {
     Object.assign(game, roadLanePose({ x: 0, y: -24, z: 0 }, -Math.PI / 2), { elapsed: 40, onboard: true });
   } else game.elapsed = (game.towRecovery?.startedAt ?? 40) + age;
   const camera: Camera = { x: game.x, y: game.y, heightOffset: game.z, heading: game.heading,
-    mode, zoom: 1, boom: defaultCameraBoom(mode), onFoot: false };
+    mode, zoom: 1, boom: defaultCameraBoom(mode, 1), onFoot: false, distanceScale: 1 };
   const route = [{ x: game.x, y: game.y, z: game.z }, { x: 0, y: -36, z: 0 }, { x: 36, y: -36, z: 0 }];
   const plan: NavigationPlan = kind === "tow" ? buildNavigationPlan(game, { x: 0, y: -1404, z: 44 }, game.heading)
     : { route, departureYaw: -Math.PI / 2, travelHeading: -Math.PI / 2, requiresUTurn: kind === "uturn",

@@ -89,6 +89,7 @@ export class WebGLScene {
   private cube: WebGLBuffer;
   private city: Mesh;
   private actors: Mesh;
+  private transparentActors: Mesh;
   private focus: Mesh;
   private navigation: Mesh;
   private surfaces: Mesh;
@@ -103,6 +104,7 @@ export class WebGLScene {
       this.cube = this.buffer(); gl.bindBuffer(gl.ARRAY_BUFFER, this.cube);
       gl.bufferData(gl.ARRAY_BUFFER, cubeVertices(), gl.STATIC_DRAW);
       this.city = this.boxMesh(); this.actors = this.boxMesh();
+      this.transparentActors = this.boxMesh();
       this.focus = this.boxMesh(); this.navigation = this.boxMesh();
       this.surfaces = this.mesh(); gl.bindVertexArray(this.surfaces.vao);
       gl.bindBuffer(gl.ARRAY_BUFFER, this.surfaces.buffer);
@@ -168,7 +170,11 @@ export class WebGLScene {
     // Keep the full world streamed, but submit only boxes intersecting the view.
     this.upload(this.city, world.boxes.filter(box =>
       sphereInView(matrix, box.x, box.y, box.z, Math.hypot(box.sx, box.sy, box.sz) / 2)));
-    this.upload(this.actors, scene.actors); this.upload(this.focus, scene.focus); this.upload(this.navigation, scene.navigation);
+    const opaqueActors = scene.actors.filter(box => (box.color[3] ?? 1) >= 0.99);
+    const transparentActors = scene.actors.filter(box => (box.color[3] ?? 1) < 0.99);
+    this.upload(this.actors, opaqueActors);
+    this.upload(this.transparentActors, transparentActors);
+    this.upload(this.focus, scene.focus); this.upload(this.navigation, scene.navigation);
     gl.viewport(0, 0, width, height); gl.clearColor(0.35, 0.7, 0.88, 1); gl.clearDepth(1);
     gl.depthMask(true); gl.enable(gl.DEPTH_TEST); gl.depthFunc(gl.LEQUAL);
     gl.disable(gl.CULL_FACE); gl.disable(gl.BLEND); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -184,6 +190,11 @@ export class WebGLScene {
     gl.uniform1i(gl.getUniformLocation(this.boxProgram, "ghost"), 1); boxes(this.focus); boxes(this.navigation);
     gl.depthMask(true); gl.depthFunc(gl.LEQUAL); gl.disable(gl.BLEND);
     gl.uniform1i(gl.getUniformLocation(this.boxProgram, "ghost"), 0); boxes(this.focus); boxes(this.navigation);
+    if (this.transparentActors.count > 0) {
+      gl.depthMask(false); gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+      boxes(this.transparentActors);
+      gl.depthMask(true); gl.disable(gl.BLEND);
+    }
     gl.bindVertexArray(null); return !gl.isContextLost();
   }
   destroy() {

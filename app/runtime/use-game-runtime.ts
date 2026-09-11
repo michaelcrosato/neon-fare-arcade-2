@@ -70,6 +70,7 @@ export type GameRuntimeOptions = Readonly<{
   modeRef: RefBox<Mode>;
   mutedRef: RefBox<boolean>;
   audioRef: RefBox<AudioContext | null>;
+  ensureAudio?: () => void;
   engineRef: RefBox<{ osc: OscillatorNode; gain: GainNode } | null>;
   boostAudioActiveRef: RefBox<boolean>;
   diagnostics: DiagnosticsRecorder;
@@ -103,6 +104,7 @@ export function useGameRuntime(options: GameRuntimeOptions) {
     modeRef,
     mutedRef,
     audioRef,
+    ensureAudio,
     engineRef,
     boostAudioActiveRef,
     diagnostics,
@@ -140,8 +142,14 @@ export function useGameRuntime(options: GameRuntimeOptions) {
     let previousEffectiveCameraMode = cameraRef.current.mode;
     const music = new BackgroundMusic(undefined, Math.random, () => audioRef.current);
     music.update(gameRef.current, modeRef.current, mutedRef.current, document.hidden, selectingDriverRef.current);
-    window.addEventListener("pointerdown", music.unlock);
-    window.addEventListener("keydown", music.unlock);
+    const unlockAudio = () => {
+      ensureAudio?.();
+      music.unlock();
+    };
+    const audioUnlockEvents = ["pointerdown", "touchstart", "mousedown", "keydown", "click"] as const;
+    for (const evt of audioUnlockEvents) {
+      window.addEventListener(evt, unlockAudio, { passive: true });
+    }
 
     try {
       fallbackRenderer = new Canvas2DRenderer(canvas2d);
@@ -233,6 +241,7 @@ export function useGameRuntime(options: GameRuntimeOptions) {
 
         if (currentMode === "playing") {
           while (accumulator >= FIXED_DT && modeRef.current === "playing") {
+            touchDriving.tick(FIXED_DT, game.speed);
             const input = isDriving(game)
               ? mergeDrivingInput(inputRef.current, touchDriving.input(game.drivingModel === "simulation"))
               : inputRef.current;
@@ -443,8 +452,20 @@ export function useGameRuntime(options: GameRuntimeOptions) {
     };
 
     raf = requestAnimationFrame(frame);
-    void createWebGPURenderer(webGpuCanvas, activateFallback, () => cancelled || gpuUnavailable).then((candidate) => {
-      if (!candidate) return;
+    void createWebGPURenderer(
+      webGpuCanvas,
+      activateFallback,
+      () => cancelled || gpuUnavailable,
+      (status) => {
+        if (!cancelled && !gpuUnavailable) {
+          setRendererKind(status);
+        }
+      },
+    ).then((candidate) => {
+      if (!candidate) {
+        activateFallback();
+        return;
+      }
       if (cancelled || gpuUnavailable) {
         candidate.destroy();
         return;
@@ -495,8 +516,9 @@ export function useGameRuntime(options: GameRuntimeOptions) {
       gpuRenderer?.destroy();
       fallbackRenderer?.destroy();
       music.destroy();
-      window.removeEventListener("pointerdown", music.unlock);
-      window.removeEventListener("keydown", music.unlock);
+      for (const evt of audioUnlockEvents) {
+        window.removeEventListener(evt, unlockAudio);
+      }
       gpuRenderer = null;
       fallbackRenderer = null;
     };
@@ -514,6 +536,7 @@ export function useGameRuntime(options: GameRuntimeOptions) {
     diagnostics,
     diagnosticsActive,
     engineRef,
+    ensureAudio,
     finishRun,
     gameRef,
     inputRef,

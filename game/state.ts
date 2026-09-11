@@ -208,6 +208,18 @@ export function getObjective(game: Game): import("./model").WorldPoint {
 }
 
 /**
+ * Center point of the active pickup or dropoff ring, or null when roaming off-duty
+ * or navigating a custom destination waypoint.
+ */
+export function activeObjectiveRing(game: Game): import("./model").WorldPoint | null {
+  if (game.customDestination) return null;
+  if (game.activeCourier) return getObjective(game);
+  if (!game.fareDispatchEnabled && !game.onboard) return null;
+  if (!game.fareJobs || game.fareJobs.length === 0) return null;
+  return getObjective(game);
+}
+
+/**
  * The visible/dwell objective lives at the curb. GPS ends at a verified road
  * pose so guidance never asks the taxi to mount the sidewalk.
  */

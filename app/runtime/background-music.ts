@@ -35,11 +35,24 @@ export class BackgroundMusic {
   private gain: GainNode | null = null;
   private source: MediaElementAudioSourceNode | null = null;
 
-  constructor(audio = new Audio(), private random = Math.random, private getContext: () => AudioContext | null = () => null) {
-    this.audio = audio;
+  constructor(
+    audio?: HTMLAudioElement,
+    private random = Math.random,
+    private getContext: () => AudioContext | null = () => null,
+  ) {
+    const existing = audio ?? (typeof document !== "undefined" ? (document.getElementById("neon-fare-bgm") as HTMLAudioElement | null) : null);
+    this.audio = existing ?? new Audio();
     this.setVolume(MUSIC_VOLUME);
-    audio.preload = "metadata";
-    audio.addEventListener("ended", this.ended);
+    this.audio.preload = "auto";
+    this.audio.addEventListener("ended", this.ended);
+    if (typeof window !== "undefined") {
+      this.desired = 2;
+      if (this.audio.src.includes("bgm_02.mp3") && !this.audio.paused) {
+        this.current = 2;
+      } else {
+        this.sync();
+      }
+    }
   }
 
   private ended = () => {
@@ -102,9 +115,19 @@ export class BackgroundMusic {
     if (!this.gain && context && context.state !== "closed") {
       // iOS ignores HTMLMediaElement.volume; share the game's unlocked audio context.
       this.gain = context.createGain();
-      this.source = context.createMediaElementSource(this.audio);
-      this.source.connect(this.gain);
-      this.gain.connect(context.destination);
+      const media = this.audio as HTMLAudioElement & { __sourceNode?: MediaElementAudioSourceNode };
+      if (!media.__sourceNode) {
+        try {
+          media.__sourceNode = context.createMediaElementSource(this.audio);
+        } catch {
+          // If already connected or unsupported, continue with native volume
+        }
+      }
+      this.source = media.__sourceNode ?? null;
+      if (this.source) {
+        this.source.connect(this.gain);
+        this.gain.connect(context.destination);
+      }
     }
     if (this.gain) {
       this.audio.volume = 1;

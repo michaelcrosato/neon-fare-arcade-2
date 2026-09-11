@@ -12,12 +12,16 @@ import {
   preferReverseRoute,
   closestPointOnRoute,
   pointToSegmentDistance,
+  navLineTargetAngle,
+  navLineTargetPoint,
 } from "../../game/navigation";
-import { makeGame } from "../../game/state";
+import { normalizeAngle } from "../../game/math";
+import type { WorldPoint } from "../../game/model";
+import { makeGame, activePassengerJob } from "../../game/state";
 import { SPECIAL_ROADS } from "../../game/road-layout";
 import { routeCrossesRoundaboutIsland } from "../../game/road-network";
 import { makeTestJob } from "./support/fixtures";
-import { DISPLAY_METERS_PER_WORLD_UNIT } from "../../game/config";
+import { NAVIGATION_METERS_PER_WORLD_UNIT } from "../../game/config";
 import { normalizeNavigationSettings } from "../../game/navigation-policy";
 
 test("route deviation measures the closest physical deck, including elevation", () => {
@@ -81,7 +85,7 @@ test("the first fare route keeps its physical distance through the shared graph"
 });
 
 test("U-turn policy requires 1000 displayed meters of real distance savings", () => {
-  const km = 1000 / DISPLAY_METERS_PER_WORLD_UNIT;
+  const km = 1000 / NAVIGATION_METERS_PER_WORLD_UNIT;
   assert.equal(preferReverseRoute(km - .001, 0), false);
   assert.equal(preferReverseRoute(km, 0), true);
   assert.equal(preferReverseRoute(1000, 940), true, "a long journey does not need a 1.4 route ratio");
@@ -269,12 +273,12 @@ test("rerouting waits until more than 1000 meters from the closest route point",
     x: 0, y: -20, z: 0, heading: Math.PI / 2, elapsed: 0 });
   const initial = controller.update(game);
   for (const meters of [100, 500, 999, 1000]) {
-    Object.assign(game, { x: meters / DISPLAY_METERS_PER_WORLD_UNIT, y: -10, elapsed: game.elapsed + 1 });
+    Object.assign(game, { x: meters / NAVIGATION_METERS_PER_WORLD_UNIT, y: -10, elapsed: game.elapsed + 1 });
     const plan = controller.update(game);
     assert.equal(plan.diagnostics?.revision, initial.diagnostics?.revision);
     assert.deepEqual(plan.route.slice(1), initial.route.slice(1), `${meters}m keeps the road path`);
   }
-  game.x = 1001 / DISPLAY_METERS_PER_WORLD_UNIT;
+  game.x = 1001 / NAVIGATION_METERS_PER_WORLD_UNIT;
   game.elapsed += 1;
   const rerouted = controller.update(game);
   assert.equal(rerouted.diagnostics?.revision, 2);
@@ -315,7 +319,7 @@ test("the reroute threshold can be changed for playtesting", () => {
     x: 0, y: -20, z: 0, heading: Math.PI / 2, elapsed: 0 });
   const settings = { rerouteDistanceMeters: 200, uTurnSavingsMeters: 1000 };
   controller.update(game, settings);
-  Object.assign(game, { x: 201 / DISPLAY_METERS_PER_WORLD_UNIT, y: -10, elapsed: 1 });
+  Object.assign(game, { x: 201 / NAVIGATION_METERS_PER_WORLD_UNIT, y: -10, elapsed: 1 });
   assert.equal(controller.update(game, settings).diagnostics?.revision, 2);
 });
 
@@ -407,4 +411,106 @@ test("starting along a diagonal keeps the current direction before plotting ahea
   const plan = buildNavigationPlan(start, target, heading);
   assert.equal(plan.requiresUTurn, false);
   assert.ok(Math.abs(plan.departureYaw - heading) < 0.08);
+});
+
+test("navLineTargetAngle calculates direction from player to the nav line", () => {
+  const route: WorldPoint[] = [
+    { x: 0, y: 0 },
+    { x: 0, y: 50 },
+  ];
+  const target = navLineTargetPoint({ x: 0, y: 0 }, route, 10);
+  assert.equal(target.y, 10);
+
+  const angle = navLineTargetAngle({ x: 0, y: 0 }, route, 10);
+  assert.ok(Math.abs(normalizeAngle(angle - Math.PI / 2)) < 0.2);
+
+  const offsetAngle = navLineTargetAngle({ x: 5, y: 0 }, route, 10);
+  assert.ok(offsetAngle > Math.PI / 2);
+});
+
+test("departure arrow points to the nav line and rotates smoothly as the vehicle turns", () => {
+  const controller = new NavigationController();
+  const game = makeGame();
+  game.x = 0;
+  game.y = 0;
+  game.heading = 0;
+  game.customDestination = { x: 0, y: 100 };
+  game.elapsed = 0;
+
+  const plan0 = controller.update(game);
+  assert.ok(plan0.departureArrowYaw !== undefined);
+  assert.ok(Math.abs(normalizeAngle(plan0.departureArrowYaw! - Math.PI / 2)) < 0.2);
+
+  game.customDestination = { x: 100, y: 0 };
+  game.elapsed = 0.05;
+  const plan1 = controller.update(game);
+  assert.ok(plan1.departureArrowYaw !== undefined);
+  assert.ok(plan1.departureArrowYaw! < plan0.departureArrowYaw!);
+
+  for (let t = 0.1; t <= 0.6; t += 0.05) {
+    game.elapsed = t;
+    controller.update(game);
+  }
+  const planConverged = controller.update(game);
+  assert.ok(Math.abs(normalizeAngle(planConverged.departureArrowYaw! - 0)) < 0.1);
+
+  game.elapsed = 4.0;
+  const planExpired = controller.update(game);
+  assert.equal(planExpired.departureArrowYaw, undefined);
+});
+
+test("arrival arrow appears within 100M of pickup or dropoff ring and points to the ring center", () => {
+  const controller = new NavigationController();
+  const game = makeGame();
+  game.fareDispatchEnabled = true;
+  game.onboard = false;
+  game.customDestination = null;
+
+  const job = activePassengerJob(game);
+  game.x = job.pickup.x + 150;
+  game.y = job.pickup.y;
+  game.elapsed = 10.0;
+  controller.update(game); // initializes controller and sets departurePromptUntil = 13.0
+
+  // 1. Far away from pickup (> 100m) and departure expired -> arrow is hidden
+  game.elapsed = 14.0;
+  const planFar = controller.update(game);
+  assert.equal(planFar.arrivalPromptActive, false);
+  assert.equal(planFar.departureArrowYaw, undefined);
+
+  // 2. Approach within 80m of pickup ring -> arrow appears and points to pickup ring center
+  game.x = job.pickup.x + 80;
+  game.y = job.pickup.y;
+  game.elapsed = 14.1;
+
+  const planArrival = controller.update(game);
+  assert.equal(planArrival.arrivalPromptActive, true);
+  assert.ok(planArrival.departureArrowYaw !== undefined);
+  // From player (pickup.x + 80, pickup.y) to pickup (pickup.x, pickup.y), heading is west (-x): angle PI (or -PI)
+  assert.ok(Math.abs(Math.abs(normalizeAngle(planArrival.departureArrowYaw!)) - Math.PI) < 0.1);
+
+  // 3. Smoothly tracks ring center as player drives around
+  // Move to north of pickup ring (pickup.x, pickup.y - 50) -> vector to ring is south (+y): angle PI/2
+  game.x = job.pickup.x;
+  game.y = job.pickup.y - 50;
+  for (let t = 14.15; t <= 14.8; t += 0.05) {
+    game.elapsed = t;
+    controller.update(game);
+  }
+  const planSmooth = controller.update(game);
+  assert.equal(planSmooth.arrivalPromptActive, true);
+  assert.ok(Math.abs(normalizeAngle(planSmooth.departureArrowYaw! - Math.PI / 2)) < 0.1);
+
+  // 4. Test dropoff ring when onboard
+  game.onboard = true;
+  game.x = job.dropoff.x;
+  game.y = job.dropoff.y + 60; // 60m south of dropoff -> vector to dropoff is north (-y): angle -PI/2
+  game.elapsed = 20.0;
+  controller.update(game); // adopts onboard dropoff plan (departurePromptUntil = 23.0)
+  game.elapsed = 25.0; // departure timer expired (3s)
+
+  const planDropoff = controller.update(game);
+  assert.equal(planDropoff.arrivalPromptActive, true);
+  assert.ok(planDropoff.departureArrowYaw !== undefined);
+  assert.ok(Math.abs(normalizeAngle(planDropoff.departureArrowYaw! - (-Math.PI / 2))) < 0.1);
 });

@@ -9,7 +9,7 @@ import type { Camera } from "../../game/model";
 test("perspective cameras shrink distant objects and lift heads above feet", () => {
   const game = makeGame("street-ace", 1);
   for (const mode of ["chase-high", "chase-low", "cab"] as const) {
-    const camera: Camera = { x: 0, y: 0, heading: -Math.PI / 2, heightOffset: 0, zoom: 1, mode, boom: defaultCameraBoom(mode) };
+    const camera: Camera = { x: 0, y: 0, heading: -Math.PI / 2, heightOffset: 0, zoom: 1, mode, boom: defaultCameraBoom(mode, 1), distanceScale: 1 };
     const matrix = viewProjection(game, camera, 4 / 3, 400);
     const nearLeft = projectWorldPoint(matrix, -1, -10, 1, 800, 600)!;
     const nearRight = projectWorldPoint(matrix, 1, -10, 1, 800, 600)!;
