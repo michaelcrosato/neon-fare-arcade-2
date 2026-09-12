@@ -42,6 +42,17 @@ and both deployment toolchains.
   avoiding an unnecessary full game initialization before constructing their
   own scene. This removes a source of startup timeouts without relaxing any
   geometry, shader, pixel, layout or real-session checks.
+- **Hosted browser stability.** Software WebGPU could keep rendering behind
+  paused dialogs and starve automated control actions and screenshots. The
+  affected tests install the browser clock before loading the app, then present
+  bounded real frames for controls, cameras and fare completion. Driving still
+  uses real keyboard/touch input, finite boost and the normal handoff delays.
+  The native audio test keeps real clocks and uses the Canvas fallback;
+  dedicated mobile driving and camera cases retain both renderer paths.
+  Its range fixture serves the real MP3 response bytes with HTTP 206 when the
+  Worker preview ignores a byte-range request; Vercel's own 206 response passes
+  through unchanged. This lets Chromium seek to the actual end of a track and
+  exercise native playlist advancement. [Playwright clock guidance](https://playwright.dev/docs/clock).
 
 ## Measured rendering optimization
 
@@ -102,3 +113,8 @@ The final fast gate and both sequential production builds passed after the
 documentation and menu changes. The production Worker preview also passed
 nine focused browser scenarios: four boost checks, both real Ironwake fare
 sessions, software rendering, repeated action keys and countdown dialogs.
+GitHub also passed the complete 512-case repository gate and both builds.
+The first Vercel release passed all six live boost and Ironwake session checks;
+both new art atlases matched the committed bytes, and GitHub's dependency
+alerts cleared to zero. The hosted-test corrections passed a combined 17-case
+Worker-preview run, plus lint and TypeScript, before the follow-up push.

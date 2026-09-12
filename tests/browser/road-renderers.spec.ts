@@ -14,6 +14,7 @@ for (const renderer of ["WebGPU", "Canvas 2D"] as const) {
       page.on("pageerror", (error) => errors.push(error.message));
       page.on("console", (message) => { if (message.type() === "error") errors.push(message.text()); });
       page.on("response", (response) => { if (response.status() >= 400) errors.push(`${response.status()} ${response.url()}`); });
+      await page.clock.install({ time: new Date("2026-09-12T00:00:00Z") });
       await page.addInitScript((fallback) => {
         localStorage.setItem("neon-fare-camera-v1", "fixed");
         if (fallback) Object.defineProperty(navigator, "gpu", { configurable: true, value: undefined });
@@ -26,7 +27,6 @@ for (const renderer of ["WebGPU", "Canvas 2D"] as const) {
       await expect(page.getByRole("button", { name: "Pause game" })).toBeVisible({ timeout: SCENE_START_TIMEOUT });
       // Present controlled frames so screenshots do not compete with an
       // unbounded software-GPU render loop on the CI runner.
-      await page.clock.install({ time: new Date("2026-09-12T00:00:00Z") });
       await page.clock.pauseAt(new Date("2026-09-12T01:00:00Z"));
       const canvas = page.locator(".game-canvas").nth(renderer === "WebGPU" ? 1 : 0);
       for (const mode of ["FIXED ISO", "CHASE HIGH", "CHASE LOW", "CAB VIEW"]) {

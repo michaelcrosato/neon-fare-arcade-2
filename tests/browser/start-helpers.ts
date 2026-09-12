@@ -1,4 +1,12 @@
-import { expect, type Page } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
+
+/** Present real fixed-step frames until a timed UI event appears. */
+export async function presentUntilVisible(page: Page, target: Locator, maxMilliseconds = 5000) {
+  for (let elapsed = 0; elapsed < maxMilliseconds && !(await target.isVisible()); elapsed += 100) {
+    await page.clock.runFor(100);
+  }
+  await expect(target).toBeVisible();
+}
 
 /**
  * Mobile start goes PICK YOUR EDGE → STEERING SYSTEM. Desktop skips the second

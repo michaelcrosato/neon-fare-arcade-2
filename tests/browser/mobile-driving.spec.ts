@@ -54,13 +54,14 @@ for (const renderer of ["WebGPU", "Canvas 2D"] as const) {
   });
 
   test(`${renderer}: steering fades its guide and the door action follows the cab`, async ({ page, context }, info) => {
-    test.setTimeout(Math.max(60000, SCENE_TEST_TIMEOUT));
+    test.setTimeout(Math.max(60000, SCENE_TEST_TIMEOUT * 2));
     const errors: string[] = [];
     page.on("pageerror", error => errors.push(error.message));
     page.on("console", message => { if (message.type() === "error") errors.push(message.text()); });
     page.on("response", response => { if (response.status() >= 400) errors.push(`${response.status()} ${response.url()}`); });
-    // Keep live driving and WebGPU captures on native animation frames;
-    // countdown clock control belongs to the isolated test above.
+    // Real touch input drives controlled frames. Captures and UI actions must
+    // not compete with an unbounded software-GPU render loop on CI.
+    await page.clock.install({ time: new Date("2026-09-12T00:00:00Z") });
     if (renderer === "Canvas 2D") await page.addInitScript(() => Object.defineProperty(navigator, "gpu", { configurable: true, value: undefined }));
     await page.goto("/?diagnostics=1");
     await expect(page.locator(".game-canvas").nth(renderer === "WebGPU" ? 1 : 0)).toHaveClass(/is-active/, { timeout: SCENE_START_TIMEOUT });
@@ -71,8 +72,10 @@ for (const renderer of ["WebGPU", "Canvas 2D"] as const) {
     const gas = page.getByRole("button", { name: "Accelerate", exact: true });
     const brake = page.getByRole("button", { name: "Brake or reverse", exact: true });
     const exit = page.getByRole("button", { name: /EXIT TAXI/ });
+    await expect(page.locator(".arcade-shell")).toHaveClass(/mode-playing/, { timeout: SCENE_START_TIMEOUT });
     await expect(gas).toBeEnabled({ timeout: SCENE_START_TIMEOUT });
-    await expect(exit).toBeVisible();
+    await page.clock.pauseAt(new Date("2026-09-12T01:00:00Z"));
+    await expect(exit).toBeVisible({ timeout: SCENE_START_TIMEOUT });
     await page.screenshot({ path: info.outputPath("ready.png") });
 
     const cdp = await context.newCDPSession(page);
@@ -85,6 +88,7 @@ for (const renderer of ["WebGPU", "Canvas 2D"] as const) {
     thumb.x += 31;
     await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [thumb] });
     await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [thumb, pedal] });
+    await page.clock.runFor(300);
     await expect(guide).toHaveCSS("opacity", "0.24");
     await expect(guide).toBeVisible();
     await expect.poll(async () => Number(await page.locator(".mobile-speed > strong").textContent())).toBeGreaterThan(12);
@@ -94,9 +98,10 @@ for (const renderer of ["WebGPU", "Canvas 2D"] as const) {
     await expect(gas).toHaveAttribute("data-held", "");
     await expect(page.locator(".mobile-thumbstick")).toHaveCount(0);
     await expect(guide).toHaveCSS("opacity", "1");
-    await page.waitForTimeout(120);
+    await page.clock.runFor(120);
     await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
     await page.keyboard.down("s");
+    await page.clock.runFor(400);
     await expect(exit).toBeVisible();
     await page.keyboard.up("s");
     await expect.poll(async () => Number(await page.locator(".mobile-speed > strong").textContent())).toBeLessThan(10);
@@ -118,7 +123,7 @@ for (const renderer of ["WebGPU", "Canvas 2D"] as const) {
       await page.getByRole("button", { name: "Pause game" }).click();
       await page.getByRole("group", { name: "Camera view" }).getByRole("button", { name: camera, exact: true }).click();
       await page.getByRole("button", { name: "RESUME FREE RUN" }).click();
-      await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+      await page.clock.runFor(50);
       await expect(exit).toBeInViewport({ ratio: 1 });
       await exit.click({ trial: true });
       const box = (await exit.boundingBox())!;
@@ -127,15 +132,18 @@ for (const renderer of ["WebGPU", "Canvas 2D"] as const) {
     }
     expect(new Set(positions.map(position => JSON.stringify(position))).size).toBeGreaterThan(2);
     await page.setViewportSize({ width: 844, height: 390 });
+    await page.clock.runFor(50);
     for (const button of [gas, brake, exit, page.getByRole("button", { name: "Pause game" })]) await expect(button).toBeInViewport({ ratio: 1 });
     for (const button of [gas, brake]) expect((await button.boundingBox())!.x).toBeGreaterThan(422);
     await expect(guide).toBeVisible();
-    await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+    await page.clock.runFor(50);
     await page.screenshot({ path: info.outputPath("landscape.png") });
     await exit.click();
+    await page.clock.runFor(100);
     await expect(page.getByLabel("Touch walking controls")).toBeVisible();
     await expect(guide).toHaveCount(0);
     await page.getByRole("button", { name: /ENTER TAXI/ }).click();
+    await page.clock.runFor(100);
     await expect(guide).toHaveCSS("opacity", "1");
     await page.getByRole("button", { name: "Pause game" }).click();
     await page.getByRole("button", { name: "COPY DIAGNOSTICS" }).click();

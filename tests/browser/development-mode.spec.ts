@@ -1,17 +1,21 @@
 import { expect, test, type Page } from "@playwright/test";
 import type { Game } from "../../game/model";
 import { SCENE_START_TIMEOUT, SCENE_TEST_TIMEOUT, WEBGPU_TEST_OPTIONS } from "./browser-options";
-import { lockSteeringIfPrompted } from "./start-helpers";
+import { lockSteeringIfPrompted, presentUntilVisible } from "./start-helpers";
 
 test.use(WEBGPU_TEST_OPTIONS);
 test.setTimeout(Math.max(120_000, SCENE_TEST_TIMEOUT * 3));
 const gameplayTimeout = Math.max(15_000, SCENE_START_TIMEOUT);
 
-async function startRun(page: Page) {
+async function startRun(page: Page, pauseAt = "2026-09-12T01:00:00Z") {
+  await page.clock.resume();
   await page.getByRole("button", { name: /Start Free Run with arcade/ }).click();
   await page.getByRole("button", { name: /Choose STREET ACE/ }).click();
   await lockSteeringIfPrompted(page);
   await expect(page.getByRole("button", { name: "Pause game" })).toBeEnabled({ timeout: gameplayTimeout });
+  // Hold rendering while exercising options; software WebGPU otherwise
+  // competes with every control action and screenshot on the CI runner.
+  await page.clock.pauseAt(new Date(pauseAt));
 }
 
 async function openOptions(page: Page) {
@@ -23,6 +27,7 @@ async function openOptions(page: Page) {
 async function resume(page: Page) {
   await page.getByRole("button", { name: "CLOSE OPTIONS", exact: true }).click();
   await page.getByRole("button", { name: "RESUME FREE RUN", exact: true }).click();
+  await page.clock.runFor(100);
 }
 
 for (const renderer of ["WebGPU", "Canvas"] as const) for (const mobile of [false, true]) {
@@ -31,6 +36,7 @@ for (const renderer of ["WebGPU", "Canvas"] as const) for (const mobile of [fals
     const errors: string[] = [];
     page.on("pageerror", error => errors.push(error.message));
     page.on("console", message => { if (message.type() === "error") errors.push(message.text()); });
+    await page.clock.install({ time: new Date("2026-09-12T00:00:00Z") });
     if (renderer === "Canvas") await page.addInitScript(() => Object.defineProperty(navigator, "gpu", { configurable: true, value: undefined }));
     await page.goto("/?diagnostics=1");
     await expect(page.locator(".game-canvas").nth(renderer === "WebGPU" ? 1 : 0)).toHaveClass(/is-active/, { timeout: gameplayTimeout });
@@ -70,9 +76,8 @@ for (const renderer of ["WebGPU", "Canvas"] as const) for (const mobile of [fals
     await options.getByRole("button", { name: "JUMP TO DROPOFF" }).click();
     await resume(page);
     const arrival = page.locator(".fare-impact--dropoff");
-    // Software WebGPU needs enough presented frames for the normal arrival dwell.
-    // Check content and visibility together before a mobile notice expires.
-    await expect(arrival.locator(".fare-card-occasion").filter({ hasText: /^STADIUM CONCERT$/ })).toBeVisible({ timeout: gameplayTimeout });
+    // Include teleport protection, the normal arrival dwell and queued cards.
+    await presentUntilVisible(page, arrival.locator(".fare-card-occasion").filter({ hasText: /^STADIUM CONCERT$/ }));
     await page.screenshot({ path: info.outputPath("stadium-arrival.png") });
     await page.getByRole("button", { name: "Pause game" }).click();
     await page.getByRole("button", { name: "COPY DIAGNOSTICS", exact: true }).click();
@@ -99,7 +104,7 @@ for (const renderer of ["WebGPU", "Canvas"] as const) for (const mobile of [fals
     expect(stored.scores).toBeNull();
     expect(stored.career.bank).toBe(0);
     await page.reload();
-    await startRun(page);
+    await startRun(page, "2026-09-12T02:00:00Z");
     await openOptions(page);
     await expect(options.getByRole("checkbox", { name: /DEV MODE/ })).toBeChecked();
     await expect(options.getByLabel("Reroute distance (m)")).toHaveValue("600");
