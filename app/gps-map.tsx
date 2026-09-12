@@ -46,7 +46,8 @@ import {
 import { REGIONAL_CONTENT } from "@/game/regional-content";
 import { gridStreetSegmentEnabled } from "@/game/road-topology";
 import { SPECIAL_ROADS } from "@/game/road-layout";
-import { NorthstarTopography, CopperTopography, CoastTopography, ReachTopography, CityTopography } from "./gps-terrain";
+import { NorthstarTopography, CopperTopography, CoastTopography, ReachTopography, CityTopography, IndustrialTopography } from "./gps-terrain";
+import { inIronwake } from "@/game/industrial-layout";
 import { inCoastTerrain } from "@/game/terrain/coast-forms";
 import { inNorthstarTerrain } from "@/game/terrain/northstar-forms";
 import { inCopperTerrain } from "@/game/terrain/copper-forms";
@@ -458,6 +459,7 @@ export function GpsMap({
         {(full || mountainPlayer) && <g transform={terrainTransform}><NorthstarTopography /></g>}
         {(full || copperPlayer) && <g transform={terrainTransform}><CopperTopography /></g>}
         {(full || coastPlayer) && <g transform={terrainTransform}><CoastTopography /></g>}
+        {(full || inIronwake(hud.player.x, hud.player.y)) && <g transform={terrainTransform}><IndustrialTopography /></g>}
         {(full || (hud.player.x >= 792 && hud.player.y >= 792)) && <g transform={terrainTransform}><ReachTopography /></g>}
         {(!full || mapDetail !== "overview") && <g className="gps-roads">
           {roadLines.map((line) => {

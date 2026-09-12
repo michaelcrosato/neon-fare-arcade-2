@@ -38,12 +38,13 @@ test("traffic and initial game state are deterministic", () => {
   const first = makeTraffic();
   const second = makeTraffic();
   assert.deepEqual(first, second);
-  assert.equal(first.length, 36);
+  assert.equal(first.length, 40);
   assert.deepEqual(first[0].motion, { kind: "grid", axis: "x" });
   assert.equal(first[0].dir, 1);
   assert.equal(first[0].y, rightHandTrafficLane("x", nearestRoad(first[0].y), 1));
   const pathTraffic = first.filter((car) => car.motion.kind === "path");
-  assert.equal(pathTraffic.length, 21);
+  assert.equal(pathTraffic.length, 25);
+  assert.equal(first.slice(0, 36).filter(car => car.motion.kind === "path").length, 21);
   assert.ok(pathTraffic.every((car) => isRoadSurface(car)));
 
   const game = makeGame();

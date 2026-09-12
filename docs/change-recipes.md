@@ -81,11 +81,11 @@
 
 1. Edit rider profiles in `game/passengers.ts`. The current cast is 48 shared
    riders plus five 24-rider pickup casts exclusive to Cedar Vale, Northstar
-   Range, Copper Mesa, Palm Reach, and Solana Coast; keep
+   Range, Copper Mesa, Palm Reach, and Solana Coast, plus six Ironwake workers; keep
    `FARES_PER_CYCLE` at six so roster growth never expands the six-bit
    availability mask or actor budget.
-2. Passenger art cells are global indices `0..167` across twenty-eight sheets;
-   destination art is `0..95` across sixteen sheets. Keep those counters
+2. Passenger art cells are global indices `0..173` across twenty-nine sheets;
+   destination art is `0..101` across seventeen sheets. Keep those counters
    independent. Every destination frame is categorized in `game/destination-cards.ts`.
 3. Keep all atlases at 1536×1024 with equal 512×512 cells, no panel bleed, and
    matching `300% 200%` CSS background sizing.

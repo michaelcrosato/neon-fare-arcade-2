@@ -1,14 +1,17 @@
 # Neon Fare — Comic Overdrive
 
-An arcade taxi game with a deterministic, streamed six-region low-poly world,
+An arcade taxi game with a deterministic, streamed seven-region low-poly world,
 WebGPU rendering, Canvas fallback, multiple cameras, and shared turn-by-turn GPS
 guidance. It runs on [vinext](https://github.com/cloudflare/vinext).
 
 The rebuilt road engine uses shared 3D curves for pavement, routing, traffic,
-and tire contact. The Neon Beltway is elevated, with eight driveable ramps,
-guardrails, supports, and streets underneath. Arcade taxis have a stronger
+and tire contact. Curved city boulevards and regional highways follow physical
+grades, bridges, and junctions. Arcade taxis have a stronger
 launch, responsive steering, recoverable slides, suspension weight transfer,
-and crest/landing motion. All three modes and six regions remain available.
+and crest/landing motion. All three modes and seven regions remain available.
+Arcade boost doubles each package's normal top speed: **160 → 320 km/h** for
+Street Ace and Drift Demon, **165 → 330 km/h** for Redline Rush. Boost Overdrive
+adds another 60 km/h while boosting. Simulation Free Run uses its own powertrain.
 
 Northstar Range is now a physical mountain landscape: forested valleys,
 terraced villages, a gorge viaduct, covered road gallery, high lake and waterfall,
@@ -29,6 +32,14 @@ past the yacht club to Sundial Lighthouse. A continuous beach promenade, neon
 signs, marina boats, a folded-roof marine stadium, and a compact bay skyline
 give the region its own identity. The extension adds 77 chunks; shoreline,
 collision, roads, traffic, walking, fares, and both GPS views share the same plan.
+
+Ironwake Works fills the southwest with a working industrial harbor: giant
+steelworks, an oil refinery, container docks, a heavy shipyard and a sprawling
+salvage yard. Five freight routes link ten destinations, including worker diners,
+fuel services and a harbor watchtower. Animated smoke, flares, cargo hoists,
+a magnet crane and tugboat bring the district to life. Find **SW · WORKS** on
+the Regional GPS, or drive south from Solana Coast and west from Copper Mesa.
+See [the region and artwork record](docs/ironwake-works.md).
 
 Drivers can leave a stopped cab and explore the city on foot. In Arcade Shift,
 the meter pauses only while the taxi is empty; Free Run is always untimed. Neon
@@ -55,6 +66,8 @@ fares fund persistent upgrades.
 - `docs/copper-mesa-reimagining.md`: desert expansion and verification evidence
 - `docs/solana-coast-reimagining.md`: coastal expansion and verification evidence
 - `docs/palm-reach-reimagining.md`: peninsula design and verification evidence
+- `docs/ironwake-works.md`: industrial harbor, artwork and verification evidence
+- `docs/repository-audit-2026-09-12.md`: boost, input, performance and dependency audit
 - `docs/assets.md`: fare-art atlas manifest and provenance requirements
 - `docs/change-recipes.md`: safe paths for common modifications
 - `AGENTS.md`, `app/AGENTS.md`, `game/AGENTS.md`, `tests/AGENTS.md`: scoped
@@ -85,18 +98,18 @@ Open **http://127.0.0.1:4173**. Keep that terminal open; press Ctrl+C to stop.
 For the Vite/Sites development environment, use
 `npm run dev -- --host 127.0.0.1 --port 4173` instead. No credentials are needed.
 If that port is occupied, `npm run play -- --port 4175` selects another one.
-W/A/S/D drive, Space drifts, Shift boosts, C changes cameras, E exits/enters
+W/A/S/D drive, Space boosts, brake during a turn to drift, C changes cameras, E exits/enters
 the taxi, and G opens GPS. Chase High, Chase Low, and Cab View remain 3D even
 when WebGPU is unavailable; the game falls back to WebGL or software rendering.
 
-On a phone, steer with your left thumb and use gas, brake/reverse, and boost
-on the right. Tap the route strip for the full map, or **MENU** for camera,
+On a phone, steer with your left thumb and use gas and brake/reverse on the
+right. Double-tap gas and hold the second tap to boost. Tap the route strip for the full map, or **MENU** for camera,
 audio, and fare history. There is no mini-map over the mobile driving view.
 Portrait and landscape both work; the controls adapt when you leave the taxi.
 
 To inspect the new roads,
-start Arcade Free Run and use GPS to set a waypoint on the outer Neon Beltway.
-Follow the route onto an interchange; C cycles through the four cameras.
+start Arcade Free Run and use GPS to set a waypoint on Aurora Boulevard.
+Follow the route through the city; C cycles through the four cameras.
 For the mountain region, select **N · RANGE** in the full GPS and set a waypoint
 near Mirror Lake or Aurora Lookout. Follow Northstar Highway out of the city's
 north edge, then climb the Silver Run Switchbacks to the summit.
@@ -126,6 +139,8 @@ Worker in `dist/`; Vercel's Next.js preset cannot deploy that artifact.
 To check Vercel's production build locally, run `npm run build:vercel`, then
 `npm exec -- next start --hostname 127.0.0.1 --port 4184` and open
 `http://127.0.0.1:4184`. CI builds both deployment targets.
+Run the two builds sequentially because their route-type generators share
+`.next/types`. `npm run typecheck` regenerates matching Next route types first.
 
 ## Quality commands
 
@@ -133,11 +148,11 @@ To check Vercel's production build locally, run `npm run build:vercel`, then
 - `npm run test:core`: run the quick gameplay suite
 - `npm run test:world`: run exhaustive geography and budget coverage
 - `npm run test:unit`: run all deterministic game tests
-- `npm run typecheck`: enforce the strict TypeScript contract
+- `npm run typecheck`: generate route types and enforce the strict TypeScript contract
 - `npm run check:fast`: lint, typecheck, architecture checks, and core tests
 - `npm run check`: the complete test, production-build, and rendered-output gate
 - `npm run test:browser -- --workers=1`: desktop/mobile play, both renderers,
-  and elevated-road, mountain, desert, coastal, and peninsula camera captures (requires Playwright Chromium)
+  and city, mountain, desert, coastal, peninsula and industrial camera captures (requires Playwright Chromium)
 - `npm run build`: build and validate the deployable Sites artifact
 - `npm run validate:artifact`: validate an existing production artifact
 

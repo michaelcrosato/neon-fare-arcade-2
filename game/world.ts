@@ -1,4 +1,7 @@
 import { coastCanalBlock, COAST_PIER, onCoastPier } from "./coastal-layout";
+import { buildIndustrialLot, buildIndustrialVerge, industrialLotForBlock, industrialPortalSpecs, ironwakeAnchorForBlock } from "./industrial";
+import { addIndustrialWater, industrialLandscape } from "./industrial-landscape";
+import { WORKS } from "./industrial-assets";
 import { addReachGround, reachLandscape } from "./reach-landscape";
 import { REACH_ROAD_IDS } from "./reach-roads";
 import { reachIsLandAt, reachIsPromenadeAt } from "./reach-layout";
@@ -164,6 +167,7 @@ import {
 } from "./coastal";
 
 export function districtForBlock(blockX: number, blockY: number): DistrictKind {
+  if (regionForBlock(blockX, blockY)?.id === "ironwake-works") return "ironworks";
   if (regionForBlock(blockX, blockY)?.id === "cedar-vale") return "residential";
   if (regionForBlock(blockX, blockY)?.id === "northstar-range") return "mountain";
   if (regionForBlock(blockX, blockY)?.id === "copper-mesa") return "desert";
@@ -184,6 +188,7 @@ export function districtForPosition(x: number, y: number) {
 }
 
 export function lotForBlock(blockX: number, blockY: number, district: DistrictKind): LotKind {
+  if (district === "ironworks") return industrialLotForBlock(blockX, blockY);
   if (district === "residential") return residentialLotForBlock(blockX, blockY);
   if (district === "mountain") return mountainLotForBlock(blockX, blockY);
   if (district === "desert") return desertLotForBlock(blockX, blockY);
@@ -258,6 +263,7 @@ function portalSpecsForLot(
   blockX: number,
   blockY: number,
 ): PortalSpec[] {
+  if (lot.startsWith("works-")) return industrialPortalSpecs(lot, centerX, centerY, blockX, blockY);
   if (lot.startsWith("coast-")) {
     return coastalPortalSpecs(lot, centerX, centerY, blockX, blockY);
   }
@@ -328,11 +334,12 @@ function addLotInteractions(
   const desertAnchor = desertAnchorForBlock(blockX, blockY);
   const wetlandAnchor = wetlandAnchorForBlock(blockX, blockY);
   const coastal = regionForBlock(blockX, blockY)?.theme === "coastal";
+  const industrial = regionForBlock(blockX, blockY)?.theme === "industrial";
   const cedar = regionForBlock(blockX, blockY)?.theme === "residential";
   const wetland = regionForBlock(blockX, blockY)?.theme === "wetland";
   const fixedCoastal = coastal && (blockX < -56 || coastalAnchorForBlock(blockX, blockY) || coastCanalBlock(blockX, blockY));
-  const orientation = landmark?.definition.orientation ?? (residentialAnchor || mountainAnchor || desertAnchor || wetlandAnchor || fixedCoastal || cedar ? 0 : wetland ? wetlandLotOrientation(blockX, blockY) : lotOrientationForBlock(blockX, blockY));
-  const contentScale = landmark || residentialAnchor || mountainAnchor || desertAnchor || wetlandAnchor || coastal || cedar || wetland ? 1 : GENERIC_LOT_CONTENT_SCALE;
+  const orientation = landmark?.definition.orientation ?? (residentialAnchor || mountainAnchor || desertAnchor || wetlandAnchor || fixedCoastal || cedar || industrial ? 0 : wetland ? wetlandLotOrientation(blockX, blockY) : lotOrientationForBlock(blockX, blockY));
+  const contentScale = landmark || residentialAnchor || mountainAnchor || desertAnchor || wetlandAnchor || coastal || cedar || wetland || industrial ? 1 : GENERIC_LOT_CONTENT_SCALE;
   for (const spec of portalSpecsForLot(lot, centerX, centerY, blockX, blockY)) {
     const pose = transformLotPose(
       centerX,
@@ -516,6 +523,7 @@ type StreetCommercePlacement = {
 };
 
 const STREET_COMMERCE_DENSITY: Readonly<Record<DistrictKind, number>> = {
+  ironworks: 0,
   downtown: 0.32,
   commercial: 0.24,
   townhomes: 0.1,
@@ -531,6 +539,7 @@ const STREET_COMMERCE_DENSITY: Readonly<Record<DistrictKind, number>> = {
 };
 
 const STREET_COMMERCE_DECKS: Readonly<Record<DistrictKind, readonly StreetCommerceKind[]>> = {
+  ironworks: ["food-truck", "coffee-cart"],
   downtown: ["newsstand", "newsstand", "coffee-cart", "coffee-cart", "hot-dog-cart", "busker", "food-truck"],
   commercial: ["food-truck", "food-truck", "hot-dog-cart", "hot-dog-cart", "coffee-cart", "newsstand", "ice-cream-cart"],
   market: ["produce-stand", "produce-stand", "produce-stand", "flower-stand", "flower-stand", "hot-dog-cart", "food-truck", "busker"],
@@ -546,6 +555,7 @@ const STREET_COMMERCE_DECKS: Readonly<Record<DistrictKind, readonly StreetCommer
 };
 
 const STREET_COMMERCE_PALETTES: Readonly<Record<DistrictKind, readonly (readonly [Color, Color])[]>> = {
+  ironworks: [[WORKS.amber, WORKS.teal]],
   downtown: [[RED, CYAN], [YELLOW, PINK], [BLUE, ORANGE]],
   commercial: [[ORANGE, CYAN], [RED, YELLOW], [PINK, BLUE]],
   market: [[PINK, LIME], [ORANGE, BLUE], [RED, YELLOW]],
@@ -1834,6 +1844,7 @@ function addLandmarkLot(ctx: LotContext, landmark: LandmarkTile) {
 }
 
 function buildLot(ctx: LotContext, district: DistrictKind, lot: LotKind) {
+  if (district === "ironworks") { buildIndustrialLot(ctx, lot); return; }
   const lotBoxes: Box[] = [];
   const lotColliders: Collider[] = [];
   const lotSurfaces: MeshFace[] = [];
@@ -2337,7 +2348,8 @@ export function generateCityChunk(cx: number, cy: number): CityChunk {
   const streetCommerceBlocks: StreetCommerceBlock[] = [];
   const originX = cx * CHUNK_SIZE - CHUNK_SIZE / 2;
   const originY = cy * CHUNK_SIZE - CHUNK_SIZE / 2;
-  if (region.id === "city-center" || region.id === "northstar-range" || region.id === "copper-mesa" || region.id === "solana-coast") surfaces.push(...regionalTerrainMesh(originX, originY, CHUNK_SIZE));
+  if (region.id === "city-center" || region.id === "northstar-range" || region.id === "copper-mesa" || region.id === "solana-coast" || region.id === "ironwake-works") surfaces.push(...regionalTerrainMesh(originX, originY, CHUNK_SIZE));
+  if (region.id === "ironwake-works") addIndustrialWater(surfaces, colliders, surfaceRegions, originX, originY);
   if (region.id === "cypress-reach") addReachGround(surfaces, colliders, surfaceRegions, originX, originY);
   else boxes.push({
     x: originX + CHUNK_SIZE / 2,
@@ -2347,7 +2359,7 @@ export function generateCityChunk(cx: number, cy: number): CityChunk {
     sy: CHUNK_SIZE + 0.2,
     sz: 1.4,
     yaw: 0,
-    color: region.theme === "residential"
+    color: region.theme === "industrial" ? WORKS.concrete : region.theme === "residential"
       ? VALE_GROUND
       : region.theme === "mountain"
         ? RANGE_GROUND
@@ -2443,6 +2455,7 @@ export function generateCityChunk(cx: number, cy: number): CityChunk {
         && !desertAnchorForBlock(blockX, blockY)
         && !wetlandAnchorForBlock(blockX, blockY)
         && !coastalAnchorForBlock(blockX, blockY)
+        && !ironwakeAnchorForBlock(blockX, blockY)
         && !(district === "coastal" && blockX < -56)
         && specialRoadIntersectsSquare(
         { x: centerX, y: centerY },
@@ -2456,10 +2469,11 @@ export function generateCityChunk(cx: number, cy: number): CityChunk {
       const terrainInteractionStart = interactions.length;
       if (corridorBlock) {
         if (region.id === "city-center") buildCityVerge(blockCtx);
+        else if (district === "ironworks") buildIndustrialVerge(blockCtx, (x, y) => !isRoadSurface({ x, y }, 5));
         else if (district === "wetland") buildReachVerge({ boxes, surfaces, colliders, surfaceRegions, centerX, centerY, blockX, blockY, random },
           (x, y) => !isRoadSurface({ x, y }, 5));
         else addCorridorVerge({ boxes, surfaces, colliders, surfaceRegions, centerX, centerY, blockX, blockY, random }, district);
-      } else if (district === "mountain" || district === "desert" || district === "wetland" || district === "coastal" || district === "residential") {
+      } else if (district === "mountain" || district === "desert" || district === "wetland" || district === "coastal" || district === "residential" || district === "ironworks") {
         buildLot({ boxes, surfaces, colliders, surfaceRegions, centerX, centerY, blockX, blockY, random }, district, lot);
         addLotInteractions(interactions, blockX, blockY, centerX, centerY, lot);
       } else {
@@ -2469,10 +2483,10 @@ export function generateCityChunk(cx: number, cy: number): CityChunk {
           streetCommerceBlocks.push({ blockX, blockY, centerX, centerY, district, lot });
         }
       }
-      if (region.id === "city-center" || district === "mountain" || district === "desert" || (district === "coastal" && blockX >= -56)) {
+      if (region.id === "city-center" || district === "mountain" || district === "desert" || district === "ironworks" || (district === "coastal" && blockX >= -56)) {
         const floor = region.id === "city-center"
           ? regionalSettlementPlan(blockX, blockY)?.floor ?? terrainHeightAt(centerX, centerY)
-          : mountainAnchorForBlock(blockX, blockY) || desertAnchorForBlock(blockX, blockY) || coastalAnchorForBlock(blockX, blockY)
+          : mountainAnchorForBlock(blockX, blockY) || desertAnchorForBlock(blockX, blockY) || coastalAnchorForBlock(blockX, blockY) || ironwakeAnchorForBlock(blockX, blockY)
             ? atRoadElevation({ x: centerX, y: centerY, z: 0 }).z : terrainHeightAt(centerX, centerY);
         for (let i = terrainBoxStart; i < boxes.length; i += 1) {
           const box = boxes[i];
@@ -2488,11 +2502,11 @@ export function generateCityChunk(cx: number, cy: number): CityChunk {
         }
         for (let i = terrainColliderStart; i < colliders.length; i += 1) {
           const collider = colliders[i];
-          collider.baseZ = (region.id === "city-center" || district === "desert" || district === "coastal" ? collider.baseZ ?? 0 : 0)
+          collider.baseZ = (region.id === "city-center" || district === "desert" || district === "coastal" || district === "ironworks" ? collider.baseZ ?? 0 : 0)
             + (collider.groundAnchor ? terrainHeightAt(collider.groundAnchor.x, collider.groundAnchor.y) : floor);
           if (collider.id.startsWith("mirror-water")) { collider.baseZ = (collider.baseZ ?? 0) - 4; collider.height += 5; }
         }
-        for (let i = terrainInteractionStart; i < interactions.length; i += 1) interactions[i].z = region.id === "city-center"
+        for (let i = terrainInteractionStart; i < interactions.length; i += 1) interactions[i].z = region.id === "city-center" || district === "ironworks"
           ? terrainHeightAt(interactions[i].x, interactions[i].y) : floor;
         if (region.id === "city-center") groundCityFoundations(boxes.slice(terrainBoxStart), colliders.slice(terrainColliderStart), floor);
       } else if (district === "coastal") {
@@ -2593,6 +2607,7 @@ export class CityStream {
     const landscapeSurfaces = Math.abs(centerX) <= 5 && Math.abs(centerY) <= 5 ? cityLandscape(chunks, generateCityChunk)
       : centerX >= 6 && centerY >= 6 ? reachLandscape(chunks)
       : centerX <= -6 && centerY >= -5 && centerY <= 5 ? coastLandscape(chunks)
+      : centerX <= -6 && centerY >= 6 ? industrialLandscape(chunks)
       : centerX >= -5 && centerX <= 5
         ? centerY <= -5 ? northstarLandscape(chunks) : centerY >= 5 ? copperLandscape(chunks) : [] : [];
     if (surfaces.length + landscapeSurfaces.length > MAX_STREAM_SURFACE_QUADS) throw new Error(`Streamed surface budget exceeded at ${centerX},${centerY}: ${surfaces.length} near + ${landscapeSurfaces.length} distant`);

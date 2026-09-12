@@ -3,6 +3,7 @@ import type { DestinationCard, LotKind } from "./model";
 
 /** Only actual built lot families are admitted. Parks, empty rural lots and water are absent. */
 const NEIGHBORHOOD_ART: Partial<Record<LotKind, readonly [number, string]>> = {
+  "works-warehouse": [2, "FREIGHT SHIFT"], "works-machine-shop": [10, "WORKSHOP CALL"],
   tower: [21, "OFFICE ARRIVAL"], office: [21, "OFFICE VISIT"], apartment: [92, "HOME VISIT"],
   shops: [17, "SHOPPING TRIP"], diner: [13, "DINER MEETUP"], townhouses: [16, "HOME VISIT"],
   homes: [86, "NEIGHBORHOOD VISIT"], carwash: [10, "SERVICE APPOINTMENT"],

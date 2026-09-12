@@ -1,8 +1,11 @@
-import { chaseCameraPreset } from "../config";
+import { cameraDistanceScale, chaseCameraPreset } from "../config";
 import type { Camera, CameraMode, Hud, WorldView } from "../model";
 import { terrainHeightAt } from "../terrain/surface";
 
 type PlayerMode = Hud["playerMode"];
+
+export const MOBILE_CAB_SCREEN_Y = 0.75;
+export const MOBILE_CAB_ANCHOR_Z = 1;
 
 /** Interiors use their authored cutaway, while every exterior activity keeps
  * the player's selected perspective. */
@@ -105,6 +108,22 @@ export type PerspectiveSkyView = {
   pitch: number;
 };
 
+/** Raise the mobile eye enough to keep the usual road horizon as the cab moves down.
+ * The height stays linear along the boom so collision shortening remains valid. */
+export function chaseCameraEyeHeight(camera: Camera, boom = camera.boom) {
+  if (camera.mode !== "chase-high" && camera.mode !== "chase-low") return 0;
+  const preset = chaseCameraPreset(camera.mode, camera.onFoot);
+  if (!camera.mobile || camera.onFoot) return 1.65 + (preset.height - 1.65) * boom / preset.distance;
+  const requested = preset.distance * cameraDistanceScale(camera.distanceScale);
+  const originalHeight = 1.65 + (preset.height - 1.65) * requested / preset.distance;
+  const originalPitch = Math.atan2(originalHeight - preset.targetZ, requested + preset.lookAhead);
+  const boostMix = Math.max(0, Math.min(1, (1 - camera.zoom) / 0.12));
+  const fovY = (preset.fov + boostMix * 9) * Math.PI / 180;
+  const cabAngle = originalPitch + Math.atan((2 * MOBILE_CAB_SCREEN_Y - 1) * Math.tan(fovY / 2));
+  const requestedHeight = MOBILE_CAB_ANCHOR_Z + requested * Math.tan(cabAngle);
+  return 1.65 + (requestedHeight - 1.65) * boom / requested;
+}
+
 export function perspectiveSkyView(
   camera: Camera,
   nominalBoom = false,
@@ -119,11 +138,16 @@ export function perspectiveSkyView(
   }
   const preset = chaseCameraPreset(camera.mode, camera.onFoot);
   const boom = nominalBoom ? preset.distance : camera.boom;
-  const boomRatio = boom / preset.distance;
-  const eyeHeight = 1.65 + (preset.height - 1.65) * boomRatio;
+  const eyeHeight = chaseCameraEyeHeight(camera, boom);
+  const fovY = (preset.fov + boostMix * 9) * Math.PI / 180;
   return {
-    fovY: (preset.fov + boostMix * 9) * Math.PI / 180,
-    pitch: Math.atan2(eyeHeight - preset.targetZ, boom + preset.lookAhead),
+    fovY,
+    // Solve the cab's screen position from the actual shortened boom and FOV.
+    // A fixed world-space look-ahead drifts back to center as the player zooms out.
+    pitch: camera.mobile && !camera.onFoot
+      ? Math.atan2(eyeHeight - MOBILE_CAB_ANCHOR_Z, boom)
+        - Math.atan((2 * MOBILE_CAB_SCREEN_Y - 1) * Math.tan(fovY / 2))
+      : Math.atan2(eyeHeight - preset.targetZ, boom + preset.lookAhead),
   };
 }
 

@@ -4,6 +4,7 @@ import { coastGridStreetEnabled } from "./terrain/coast-forms";
 import { cedarGridStreetEnabled } from "./residential";
 import { reachGridStreetEnabled } from "./reach-layout";
 import { cityGridStreetEnabled } from "./city-layout";
+import { ironwakeGridStreetEnabled } from "./industrial-layout";
 import { ROAD_SPACING } from "./config";
 import {
   campusBlocksGridStreetPoint,
@@ -49,7 +50,7 @@ function nearestGridLine(value: number) {
 }
 
 export function regionUsesSparseRoadTopology(regionId: WorldRegionId | null | undefined) {
-  return regionId === "city-center" || regionId === "northstar-range" || regionId === "copper-mesa" || regionId === "cypress-reach" || regionId === "solana-coast" || regionId === "cedar-vale";
+  return regionId === "city-center" || regionId === "northstar-range" || regionId === "copper-mesa" || regionId === "cypress-reach" || regionId === "solana-coast" || regionId === "cedar-vale" || regionId === "ironwake-works";
 }
 
 /** One authority for pavement, physics, routing, traffic, fares, and GPS. */
@@ -63,6 +64,7 @@ export function gridStreetPointEnabled(point: Vec2, axis: GridStreetAxis) {
   if (region?.id === "copper-mesa") return copperGridStreetEnabled(point, axis);
   if (region?.id === "cypress-reach") return reachGridStreetEnabled(point, axis);
   if (region?.id === "solana-coast") return coastGridStreetEnabled(point, axis);
+  if (region?.id === "ironwake-works") return ironwakeGridStreetEnabled(point, axis);
   return true;
 }
 

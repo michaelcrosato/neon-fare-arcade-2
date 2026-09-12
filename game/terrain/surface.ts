@@ -10,6 +10,8 @@ import { inElevatedTerrain, naturalWorldHeight, roadDesignHeight } from "./regio
 import { watercourseAt } from "./watercourses";
 import { CITY_TERRAIN_STEP, cityTerrainColor, inCityTerrain } from "./city-forms";
 import { CITY_LIMIT } from "../city-layout";
+import { inIronwake } from "../industrial-layout";
+import { ironwakeTerrainColor } from "./industrial-forms";
 
 const vertices = new Map<string, number>();
 const smooth = (value: number) => { const t = Math.max(0, Math.min(1, value)); return t * t * (3 - 2 * t); };
@@ -97,6 +99,7 @@ export function terrainBarrier(from: WorldPoint, to: WorldPoint, maxSlope = 0.65
 }
 
 function terrainColor(x: number, y: number, z: number, slope: number): Color {
+  if (inIronwake(x, y)) return ironwakeTerrainColor(x, y);
   if (inCityTerrain(x, y)) return cityTerrainColor(x, y, z, slope);
   if (inCoastTerrain(x, y)) return coastTerrainColor(x, y, z, slope);
   if (inCopperTerrain(x, y)) return copperTerrainColor(x, y, z, slope);

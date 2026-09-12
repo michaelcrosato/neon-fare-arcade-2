@@ -31,6 +31,9 @@ Hard budgets:
 `SurfaceQuad` remains the four-corner road-authoring type.
 `game/render/surfaces.ts` packs one or two triangles per face, with 12 floats /
 48 bytes per vertex: position xyz/material, normal xyz/face light, and RGBA.
+Packing writes the triangle fan directly and normalizes each triangle once,
+without temporary index arrays or vector objects. Vertex order and float32
+bytes remain unchanged for triangles, nonplanar quads, and reversed winding.
 Surface budgets are independent: 2,048 faces per chunk and 65,536 per visual
 stream, including distant landscape. The worst-case vertex allocation is
 393,216 vertices. Timber, stone, and snow use material IDs 16, 17, and 18;
@@ -70,7 +73,7 @@ remains one chunk. The 121 rebuilt City chunks total 22,386 static boxes and
 5,964 colliders. Their maximum radius-three view is 11,354 boxes and 63,056
 surface faces including the distant landscape; their maximum collision window
 is 510. The exhaustive tests also check every
-window across all 803 active regional chunks.
+window across all 924 active regional chunks.
 
 Pocket interiors replace the streamed city buffer instead of appending to it.
 Absolute buffer capacity is 512 static boxes, 96 colliders, and 32 interactions;
@@ -128,6 +131,15 @@ Inspect campuses that cross chunk seams from fixed, chase, cab, and Canvas
 views, and keep the full-map footprint labels legible beneath active routes.
 
 ## Camera and sky
+
+Mobile driving uses the same composition in every renderer. Chase High and
+Chase Low place the cab body at 75% of the screen height by solving camera pitch
+from the actual collision-shortened boom and field of view, including all four
+distance settings and boost zoom. The raised mobile eye preserves the usual
+road horizon and stays on the collision ray. The sky consumes that same pitch. Fixed ISO
+shifts its eye and target toward the projected cab heading, scaled to the zoom
+and viewport aspect ratio, leaving a quarter-screen trailing margin. Desktop,
+Cab View, and walking retain their existing composition.
 
 Camera matrices, collision-shortened boom, and perspective sky pitch are in
 `game/render/camera.ts`. The sky is a compass/world-relative panorama:

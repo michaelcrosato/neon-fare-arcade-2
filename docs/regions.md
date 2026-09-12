@@ -21,11 +21,11 @@ therefore 44 × 44 blocks and 1,584 world units wide. Palm Reach is 44 × 72 blo
 | W | -16…-6 | -5…5 | active: Solana Coast |
 | C | -5…5 | -5…5 | active: Neon City |
 | E | 6…16 | -5…5 | active: Cedar Vale |
-| SW | -16…-6 | 6…16 | reserved |
+| SW | -16…-6 | 6…16 | active: Ironwake Works |
 | S | -5…5 | 6…16 | active: Copper Mesa |
 | SE | 6…16 | 6…23 | active: Palm Reach |
 
-The active footprint is 803 chunks: 121 in each of five base cells and 198 in
+The active footprint is 924 chunks: 121 in each of six base cells and 198 in
 Palm Reach. Registered ocean chunks stream water and remain physically impassable.
 
 The center/E seam is the road at `x = 792`, and the N/center seam is the road at
@@ -36,8 +36,9 @@ a perimeter street. Palm Reach shares `y = 792` with Cedar Vale and part of `x =
 Mesa. Its registered bounds extend to `x = 2376` and `y = 3384`, but those
 outer edges are open water with no perimeter roads. Dry land tapers to a cape
 near `(1683, 3285)`. Solana Coast shares `x = -792` with Neon City; its outer west
-edge at `x = -2376` is ocean, with no perimeter road. Northeast, southwest,
-and northwest remain inactive even when
+edge at `x = -2376` is ocean, with no perimeter road. Ironwake Works joins the
+Coast at `y = 792` and Copper Mesa at `x = -792`; its west edge is working harbor
+water and its south edge has no perimeter road. Northeast and northwest remain inactive even when
 they lie inside the world's rectangular hull. Region
 ownership is stored in `game/regions.ts`; systems must use the active-region
 registry rather than infer playable space from one symmetric radius or hull.
@@ -57,7 +58,7 @@ registry rather than infer playable space from one symmetric radius or hull.
   its homes, campuses, trees and architectural meshes.
 - `game/mountain.ts` owns Northstar Range's area deck, rural building families,
   terrain dressing, portals, and authored anchor registry.
-- `game/terrain/` owns City, Northstar, Copper and Coast landforms, settlement benches, shared
+- `game/terrain/` owns City, Northstar, Copper, Coast and Ironwake landforms, settlement benches, shared
   terrain mesh/contact, watercourse beds, distant terrain, and GPS contours.
   Pure `region-forms.ts` dispatches road-design and natural height fields before
   the road network and final cut terrain are built.
@@ -78,8 +79,13 @@ registry rather than infer playable space from one symmetric radius or hull.
   `coast-scenery.ts` owns canal structures and deterministic coastal animation.
   `coastal-layout.ts` holds shoreline, pier, and canal coordinates for world and
   GPS; `terrain/coast-forms.ts` owns physical landforms and the street plan.
+- `game/industrial-layout.ts` owns Ironwake's harbor bands, campuses and local
+  streets; `industrial-roads.ts` owns five connected freight routes.
+  `industrial.ts` and `industrial-assets.ts` own lots, machinery, ships and
+  public gates; `industrial-landscape.ts` owns shared water and distant shapes;
+  `industrial-scenery.ts` owns smoke, flares, cargo hoists, the magnet and tug.
 - `game/road-topology.ts` owns enabled local-grid segments. Cedar, Northstar, Copper
-  Mesa, Palm Reach, and Solana Coast use compact town lattices and sparse rural spines
+  Mesa, Palm Reach, Solana Coast and Ironwake use compact town lattices and sparse spines
   instead of citywide grids.
 - `game/world.ts` dispatches from region to district/theme and generates chunks.
 - Roads, navigation, movement, fare placement, pedestrians, traffic, streaming,
@@ -331,7 +337,7 @@ heights, and Mariposa Drive crosses the south. Palisades Overlook Drive climbs
 the bluff, Laurel Canyon Run winds inland, and Canal Cruise circles the canal
 district. A compact town grid and short service streets share topology with
 traffic, fares, physics, and GPS. Four existing traffic slots retain their
-original road IDs; the total traffic population remains 36.
+original road IDs; Ironwake adds four slots for a world total of 40.
 
 Ten authored destinations anchor the area: Sunset Gate, Solana Pier, Mission
 del Sol, Tidal Aquarium, Pacific Palms Club, Mariposa Pictures, Citrus House,
@@ -343,8 +349,8 @@ The coast has 24 exclusive pickup customers. Their roles include surf coaches,
 film crew, artists, marine scientists, mechanics, a nurse, and local shop owners.
 Their portraits occupy cells 144–167 on four new sheets. Six destination scenes
 occupy cells 24–29 on a separate coastal sheet. Existing destination indices stay
-stable in cells 0–23. The shared 48 riders can also appear here. Fare six returns
-to Neon City, the coast's only active cardinal neighbor.
+stable in cells 0–23. The shared 48 riders can also appear here. Fare six can
+cross to Neon City or south to Ironwake Works.
 
 Shore geometry stays world-aligned and unscaled. Water tiles meet the shared
 shore curve and split around the pier's dry walking deck. Canal bridges have
@@ -353,6 +359,39 @@ and promenade have no road lattice or generic curb walkers. Both GPS sizes show
 coastal terrain, contours, shore, canals, and pier; the full map reports taxi altitude. Distant
 landforms and an ocean horizon keep the loaded region grounded without adding
 active chunks. See `solana-coast-reimagining.md` for validation evidence.
+
+## Ironwake Works: Southwest region
+
+Ironwake occupies 121 chunks west of Copper Mesa and south of Solana Coast.
+Rust-red sawtooth halls, striped furnace stacks, silver process columns, teal
+container cranes and orange shipyard gantries distinguish its skyline. The
+reclaimed ground is level inside the district, with graded approaches matching
+the two existing neighbors. Five freight routes and sparse service streets
+share topology, pavement, navigation, traffic, collision and GPS.
+
+Ten destinations organize the region: Ironwake Gate, Vulcan Steelworks,
+Blackline Refinery, Ironwake Container Port, Leviathan Dry Dock, Magnet King
+Salvage, Freight Exchange, Shift Change Diner, Ironwake Truck Stop and
+Breakwater Watch. Large campuses cross chunk boundaries without internal public
+roads; each has one clear public entrance. The foundry includes blast furnaces
+and continuous halls. Refinery pipe racks connect tanks and process columns.
+The harbor has two finger docks, a 216-unit container ship and a 252-unit vessel
+under repair in a flooded basin. Two 180-unit gantries span the shipyard.
+Salvage includes wreck towers, faceted scrap heaps, a crusher and magnet crane.
+
+Smoke, flare tips, cargo hoists, the magnet lift and a harbor tug animate from
+simulation time within a bounded local range. Quiet storage lots, rail sidings,
+warehouses and machine shops fill the approaches. Waterfront water bands drive
+both GPS sizes, visible surfaces and physical barriers; overhead machinery
+preserves clear quays below. Distant silhouettes reuse the authored geometry
+and disappear as their owning chunks load.
+
+Six exclusive workers join the shared passenger deck, with portrait cells
+168–173 on sheet 29. Six landmark scenes use destination cells 96–101 on sheet
+17. All ten destinations have three occasion cards and safe arrival curbs.
+Fare six can cross north to the Coast or east to Copper Mesa. Four added traffic
+slots keep the existing 36 identities and bring the world total to 40.
+See [the design and verification record](ironwake-works.md).
 
 ## Content and budget contract
 

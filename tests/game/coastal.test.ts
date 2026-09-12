@@ -36,9 +36,9 @@ const world: WorldView = {
 
 test("Solana Coast activates only W and connects its seven roads to the City", () => {
   assert.equal(chunks.length, 121);
-  assert.deepEqual(activeCardinalNeighborRegions(coast.id).map((region) => region.id), ["city-center"]);
+  assert.deepEqual(activeCardinalNeighborRegions(coast.id).map((region) => region.id), ["city-center", "ironwake-works"]);
   assert.equal(isPlayablePoint(-1000, -1000), false);
-  assert.equal(isPlayablePoint(-1000, 1000), false);
+  assert.equal(isPlayablePoint(-1000, 1000), true);
   assert.deepEqual(coastRoads.map((road) => road.id), roadIds);
   for (const target of [{ x: COAST_DRIVE_X, y: 0 }, { x: -1980, y: -684 }, { x: -1944, y: 648 }]) {
     const route = buildGpsRoute({ x: 0, y: 0 }, target);
@@ -119,7 +119,7 @@ test("all coast venues, walkers, landmark footprints, and taxi lanes remain coll
   }
 });
 
-test("coastal fares use their local cast and destination art, with City-only transfers", () => {
+test("coastal fares use their local cast and destination art, with City or Ironwake transfers", () => {
   assert.deepEqual(eligibleFareRiders(coast), [...SHARED_FARE_RIDERS, ...SOLANA_COAST_FARE_RIDERS]);
   const seenLocal = new Set<string>();
   for (const seed of [12, 47, 501]) {
@@ -131,7 +131,7 @@ test("coastal fares use their local cast and destination art, with City-only tra
       assert.equal(containingRegionForPosition(job.dropoff.x, job.dropoff.y)?.id, coast.id);
       assert.ok(job.destinationCard, "coastal destination has an environment-backed card");
       assert.equal(job.destinationArtCell, job.destinationCard.artCell);
-      assert.ok(job.passengerArtCell < 48 || job.passengerArtCell >= 144);
+      assert.ok(job.passengerArtCell < 48 || (job.passengerArtCell >= 144 && job.passengerArtCell < 168));
       if (job.passengerArtCell >= 144) seenLocal.add(job.rider);
     }
     game.fareJobs = market.jobs;
@@ -141,7 +141,8 @@ test("coastal fares use their local cast and destination art, with City-only tra
     game.x = market.jobs[0].dropoff.x;
     game.y = market.jobs[0].dropoff.y;
     const offer = scheduleSixthFareTransfer(game, market.jobs[0]);
-    assert.equal(offer?.destinationRegionId, "city-center");
+    assert.ok(offer && ["city-center", "ironwake-works"].includes(offer.destinationRegionId));
+    assert.equal(containingRegionForPosition(game.fareJobs[5].dropoff.x, game.fareJobs[5].dropoff.y)?.id, offer.destinationRegionId);
   }
   assert.ok(seenLocal.size >= 3);
 });

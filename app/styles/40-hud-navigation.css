@@ -290,6 +290,12 @@
 .gps-region--mountain .gps-region-boundary { stroke: rgb(112 196 178 / 90%); }
 .gps-region--desert .gps-region-boundary { stroke: rgb(245 155 71 / 92%); }
 .gps-region--wetland .gps-region-boundary { stroke: rgb(244 140 170 / 92%); }
+.gps-region--industrial .gps-region-boundary { stroke: #e9a633; }
+.gps-region--industrial .gps-region-label rect { stroke: #e9a633; }
+.gps-region--industrial .gps-region-label text { fill: #ffdf99; }
+.gps-landmark--industrial .gps-landmark-footprint { fill: rgb(235 163 49 / 22%); stroke: #dca04b; }
+.gps-landmark--industrial .gps-landmark-marker { stroke: #6fc9c2; }
+.gps-landmarks .gps-landmark--industrial text { fill: #ffdf99; }
 .gps-region--coastal .gps-region-boundary { stroke: #58d7ed; }
 
 .gps-region-label rect {

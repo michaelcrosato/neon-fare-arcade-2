@@ -6,6 +6,7 @@ import { MIRROR_SPILLWAY, COPPER_RIVER } from "@/game/terrain/watercourses";
 import { NORTHSTAR_GONDOLA } from "@/game/mountain-scenery";
 import { COAST_CANALS, COAST_PIER, COAST_WHEEL, COAST_PROMENADE_EAST_X, coastShoreXAt } from "@/game/coastal-layout";
 import { REACH_BOUNDS, REACH_SHORE_STEP, reachLandIntervalsAt, reachShoreAt } from "@/game/reach-layout";
+import { IRONWAKE_BOUNDS, IRONWAKE_SHORE_STEP, ironwakeWaterIntervalsAt } from "@/game/industrial-layout";
 
 /** Static world coordinates let heading-up GPS move one group, not rebuild contours. */
 export const NorthstarTopography = memo(function NorthstarTopography() {
@@ -92,5 +93,27 @@ export const CityTopography = memo(function CityTopography() {
     <g fill="none" stroke="#675f43" strokeWidth="1.8" opacity="0.42">
       {map.contours.map(contour => <path key={contour.height} d={contour.path} />)}
     </g>
+  </g>;
+});
+
+const ironwakeWater = (() => {
+  let path = "";
+  for (let y = IRONWAKE_BOUNDS.minY; y < IRONWAKE_BOUNDS.maxY; y += IRONWAKE_SHORE_STEP) {
+    for (const span of ironwakeWaterIntervalsAt(y + IRONWAKE_SHORE_STEP / 2)) {
+      path += `M${span.min},${y}h${span.max - span.min}v${IRONWAKE_SHORE_STEP}h${span.min - span.max}z`;
+    }
+  }
+  return path;
+})();
+
+export const IndustrialTopography = memo(function IndustrialTopography() {
+  return <g aria-hidden="true" data-map-layer="ironwake-harbor">
+    <rect x={IRONWAKE_BOUNDS.minX} y={IRONWAKE_BOUNDS.minY} width="1584" height="1584" fill="#55584b" />
+    <path d={ironwakeWater} fill="#164c60" />
+    <g fill="none" stroke="#d29b48" strokeWidth="3" opacity=".7">
+      <path d="M-1648 1452v80M-1634 1452v80M-1612 1452v80M-1598 1452v80" />
+      <rect x="-2112" y="1728" width="84" height="252" />
+    </g>
+    <text x="-2300" y="1680" transform="rotate(-90 -2300 1680)" fill="#81bec6" fontSize="22" fontWeight="700" letterSpacing="5" textAnchor="middle">IRONWAKE HARBOR</text>
   </g>;
 });

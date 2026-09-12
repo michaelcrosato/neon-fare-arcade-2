@@ -504,10 +504,22 @@
 
 .mobile-help { display: none; }
 
+@keyframes mobile-fare-banner {
+  0% { opacity: 0; transform: translateY(-12px); }
+  10%, 86% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-12px); }
+}
+
 /* Mobile is a driving surface, with planning and settings opened on demand.
    Keep the media query aligned with use-mobile-layout.ts. */
 @media (max-width: 820px), (pointer: coarse) {
   html, body { overflow: hidden; overscroll-behavior: none; }
+  body { position: fixed; inset: 0; width: 100%; height: 100dvh; }
+  .mode-playing .game-stage,
+  .mode-countdown .game-stage {
+    touch-action: none; overscroll-behavior: none;
+    user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+  }
   .arcade-shell { height: 100dvh; min-height: 0; }
   .arcade-shell:not(.mode-menu) .topbar { display: none; }
   .game-stage { height: 100dvh; min-height: 0; }
@@ -525,6 +537,51 @@
     font-family: "Barlow Condensed", sans-serif;
   }
   .mobile-hud button { pointer-events: auto; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  /* Event cards stay above the road. No screen wipe or flight across the cab. */
+  .mobile-hud .fare-impact {
+    inset: max(4px, env(safe-area-inset-top)) var(--mobile-right) auto var(--mobile-left);
+    display: block; overflow: visible;
+  }
+  .mobile-hud .fare-impact::before,
+  .mobile-hud .fare-impact::after,
+  .mobile-hud .fare-impact__speed-lines,
+  .mobile-hud .fare-impact__stamp,
+  .mobile-hud .fare-impact__fare-number { display: none; }
+  .mobile-hud .fare-impact__sequence {
+    display: grid; grid-template-columns: clamp(64px, 10dvh, 88px) minmax(0, 1fr);
+    width: min(100%, 500px); min-height: 0; margin: 0 auto; gap: 0;
+    filter: drop-shadow(0 3px 2px rgb(0 0 0 / 45%)); transform: none;
+    animation: mobile-fare-banner var(--fare-duration) ease-out both;
+  }
+  .mobile-hud .fare-impact__art {
+    align-self: stretch; width: 100%; min-height: 0; aspect-ratio: 1;
+    border: 2px solid var(--ink); clip-path: none; transform: none; animation: none;
+  }
+  .mobile-hud .fare-impact__sprite { transform: none; animation: none; }
+  .mobile-hud .fare-impact__verb {
+    inset: auto 0 0; padding: 3px 1px; border: 0; border-top: 2px solid var(--ink);
+    font-size: 13px; text-align: center; transform: none;
+  }
+  .mobile-hud .fare-impact__copy {
+    align-self: stretch; display: flex; flex-direction: column; justify-content: center;
+    min-height: 0; min-width: 0; margin: 0; padding: 5px 8px;
+    border: 2px solid var(--ink); border-left: 0; clip-path: none;
+    transform: none; animation: none;
+  }
+  .mobile-hud .fare-impact__copy small { font-size: 9px; letter-spacing: .06em; }
+  .mobile-hud .fare-impact__route {
+    display: block; margin: 2px 0 0; font: 900 16px/1.05 "Barlow Condensed", sans-serif; letter-spacing: 0;
+  }
+  .mobile-hud .fare-impact__route b,
+  .mobile-hud .fare-impact__route span { padding: 0; border: 0; color: inherit; background: none; }
+  .mobile-hud .fare-impact__route b { margin-right: 5px; }
+  .mobile-hud .fare-impact__route i { margin-right: 5px; font-size: 13px; }
+  .mobile-hud .fare-impact__copy > strong { display: none; }
+  .mobile-hud .fare-impact__copy > .fare-card-occasion { margin: 2px 0 0; font-size: 10px; line-height: 1.1; }
+  .mobile-hud .fare-impact__copy > em {
+    margin: 3px 0 0; padding: 0; color: inherit; background: none;
+    font: 700 11px/1.1 "Barlow Condensed", sans-serif; letter-spacing: .02em;
+  }
   .mobile-statusbar {
     position: absolute; z-index: 2; inset: 0 0 auto; height: calc(52px + env(safe-area-inset-top));
     display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 12px;
@@ -750,6 +807,18 @@
 }
 
 @media (orientation: landscape) and (max-height: 540px) and (max-width: 820px), (orientation: landscape) and (max-height: 540px) and (pointer: coarse) {
+  .mobile-hud .fare-impact__sequence {
+    grid-template-columns: 48px minmax(0, 1fr); width: min(420px, 50vw); margin: 0 0 0 auto;
+  }
+  .mobile-hud .fare-impact__copy { padding: 4px 6px; }
+  .mobile-hud .fare-impact__copy small,
+  .mobile-hud .fare-impact__copy > .fare-card-occasion,
+  .mobile-hud .fare-impact__copy > em { display: none; }
+  .mobile-hud .fare-impact__route {
+    display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
+    overflow: hidden; margin: 0; font-size: 15px; line-height: 1.1;
+  }
+  .mobile-hud .fare-impact__verb { font-size: 11px; }
   .mobile-notice { left: var(--mobile-left); right: auto; top: calc(64px + env(safe-area-inset-top)); width: min(250px, 34%); transform: none; }
   .mobile-controls { height: 142px; }
   .mobile-interaction { top: auto; bottom: 2px; left: 50%; max-width: 36%; transform: translateX(-50%); }

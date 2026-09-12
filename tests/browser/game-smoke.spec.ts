@@ -64,6 +64,42 @@ async function holdKeyUntil(page: Page, key: string, assertion: () => Promise<vo
   }));
 }
 
+test("holding pause and mute keys performs one toggle per press", async ({ page }) => {
+  await startFreeRun(page);
+  await page.keyboard.down("p");
+  await expect(page.getByRole("region", { name: "Game paused" })).toBeVisible();
+  await page.keyboard.down("p");
+  await expect(page.getByRole("region", { name: "Game paused" })).toBeVisible();
+  await page.keyboard.up("p");
+  await page.keyboard.press("p");
+  await expect(page.getByRole("region", { name: "Game paused" })).toBeHidden();
+
+  await page.keyboard.down("m");
+  await expect(page.getByRole("button", { name: "AUDIO OFF", exact: true })).toBeVisible();
+  await page.keyboard.down("m");
+  await expect(page.getByRole("button", { name: "AUDIO OFF", exact: true })).toBeVisible();
+  await page.keyboard.up("m");
+});
+
+test("help pauses the countdown and closing it resumes the remaining countdown", async ({ page }) => {
+  await page.clock.install({ time: new Date("2026-09-12T00:00:00Z") });
+  await page.goto("/");
+  await page.getByRole("button", { name: /Start Free Run with arcade/ }).click();
+  await page.clock.pauseAt(new Date("2026-09-12T01:00:00Z"));
+  await page.getByRole("button", { name: /Choose STREET ACE/ }).click();
+  await lockSteeringIfPrompted(page);
+  await page.clock.runFor(100);
+  await expect(page.locator(".countdown")).toBeVisible();
+  await page.getByRole("button", { name: "HOW TO PLAY", exact: true }).click();
+  await page.clock.fastForward(5000);
+  await expect(page.locator("main")).not.toHaveClass(/mode-playing/);
+  await page.getByRole("button", { name: "Close dialog" }).click();
+  await expect(page.locator(".countdown")).toBeVisible();
+  await page.clock.fastForward(3500);
+  await expect(page.getByRole("button", { name: "Pause game" })).toBeEnabled();
+  await page.clock.resume();
+});
+
 test("free run supports exploration, GPS, driving, pause, and copyable replay diagnostics", async ({ page }) => {
   test.setTimeout(SCENE_TEST_TIMEOUT);
   await startFreeRun(page);

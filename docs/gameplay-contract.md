@@ -17,16 +17,20 @@ updates the arcade launch, steering, road elevation and contact rules below.
   driving model and run kind; Free Run's score still has no quick-time bonus.
   The departing passenger and their unique review remain at the destination for
   eight simulation seconds (or until the next pickup), with a head-anchored bubble.
-- Browser music loops track 02 through the mode and driver selection menus,
-  stops at the countdown, and loops 01 while inside a venue on foot. Each run
-  shuffles 04–08 once. Driving starts the first song; each pickup starts the next
-  song, and natural endings advance through that order. Music continues between
-  fares. After 30 seconds without a passenger it fades over three seconds to
-  silence; pickup immediately restores music. Occupied fares never time out the
-  music, and paused time does not count toward the 30 seconds. Interiors temporarily replace
-  fare music and resume its position on exit. Pause/hidden tabs stop playback;
-  the audio toggle mutes music and sound effects together. Browser autoplay may
-  defer menu music until the first click or keypress.
+- Music starts with a run's countdown. Each run shuffles all seven bundled
+  tracks (01, 02, 04–08) once, then repeats that order on natural song endings.
+  Pickups, dropoffs, idle time, walking, venues, pause, results, and menus never
+  change the track, rewind it, fade it, or stop playback. A new run starts a new
+  shuffled playlist. The audio toggle still mutes music and sound effects
+  together. Blocked autoplay retries on a user gesture; the browser/OS may
+  independently suspend background audio.
+- Starting a mobile run requests fullscreen from the start gesture when the
+  browser supports it. The full dynamic viewport, safe-area padding, and active
+  playfield gesture protection prevent document scrolling, pull-to-refresh,
+  pinch zoom, and long-press menus during driving. Paused menus remain scrollable.
+- Mobile pickup and dropoff cards appear in a compact banner at the top safe
+  edge, then dismiss upward. They never wipe or fly across the cab or navigation
+  arrow. Fare history remains available in Pause.
 
 - `+x` points east, `+y` points south, and `+z` points up.
 - Local street coordinates use a 36-unit lattice with a 6-unit half width.
@@ -116,7 +120,9 @@ updates the arcade launch, steering, road elevation and contact rules below.
   takes two bounded 1/120-second chassis substeps for stable tire saturation,
   spins, and trip impulses at negligible world/render cost.
 - The frame loop caps accumulated render-frame time, but countdown uses real
-  wall time.
+  wall time. Opening Help, Options, or GPS pauses either countdown or play;
+  closing the dialog restores that exact phase. Pause and mute keys toggle
+  once per press and ignore key-repeat events.
 - `Game` is mutated in place inside `stepGame`; do not clone it per tick.
 - Speed is calculated before collision/off-road damping and refreshes on the
   following tick. That timing is part of the current feel.
@@ -153,11 +159,15 @@ updates the arcade launch, steering, road elevation and contact rules below.
   Holding brake continues normal deceleration but never retriggers the pulse;
   release and tap again after the cooldown to rotate again. Countersteering and
   collision-clipped turns suppress the effect.
-- Standard packages cap at 160 displayed km/h and 170 km/h under boost;
-  Redline Rush reaches 165 km/h without boost. Road class never increases
+- Standard packages cap at 160 displayed km/h and 320 km/h under boost;
+  Redline Rush reaches 165 km/h normally and 330 km/h under boost. Boost doubles
+  the selected package's normal cap, and the normal starting reserve can reach
+  that speed from cruise on level pavement. Road class never increases
   those caps: highways and four-lane boulevards use the same handling package
   as local streets. Boost Overdrive raises the boosted cap exactly 60 km/h
-  above the selected package's normal cap, reaching 225 km/h for Redline Rush.
+  above the selected package's stock boosted cap, reaching 380 km/h for standard
+  packages and 390 km/h for Redline Rush. Releasing boost or exhausting its
+  reserve restores the normal cap on the next fixed step.
   Reverse speed, trait modifiers, and payout
   formulas remain unchanged; a
   faster trip may still earn a larger existing quick-time bonus. High-speed
@@ -252,9 +262,9 @@ updates the arcade launch, steering, road elevation and contact rules below.
   sold only by GO-GO GAS. Successful installation affects the active run
   immediately and is copied into every fresh run by `applyCareerRunBonuses`.
   Boost Overdrive raises the active boosted cap exactly 60 km/h above the
-  selected cab package's normal cap on that same road. It leaves acceleration,
+  selected cab package's stock boosted cap on that same road. It leaves acceleration,
   boost drain, reverse, and non-boosted speed unchanged; Redline Rush's upgraded
-  boosted cap is 225 km/h on every road class.
+  boosted cap is 390 km/h on every road class.
 - Permanent upgrades remain purchasable during Simulation Free Run because
   ownership applies across modes. Rally Tires improve the simulation cab's
   off-road friction and rolling resistance while retaining the arcade taxi's
@@ -264,9 +274,9 @@ updates the arcade launch, steering, road elevation and contact rules below.
 ## Navigation
 
 - Route generation begins in the taxi's current travel direction.
-- Six active regions occupy the center, north, east, south, southeast
-  and west slots: Neon City, Northstar Range, Cedar Vale, Copper Mesa, Palm
-  Reach and Solana Coast. A* graph routing must keep every segment in an active cell;
+- Seven active regions occupy the center, north, east, south, southeast,
+  southwest and west slots: Neon City, Northstar Range, Cedar Vale, Copper Mesa,
+  Palm Reach, Ironwake Works and Solana Coast. A* graph routing must keep every segment in an active cell;
   Palm Reach connects through Cedar or Copper and routes never cut across an
   inactive diagonal cell.
 - A reverse departure or U-turn recommendation requires at least 1,000 displayed
@@ -394,6 +404,14 @@ updates the arcade launch, steering, road elevation and contact rules below.
   uninterrupted 288-unit walking deck beneath an animated wheel; canal water
   is solid below drivable bridge decks. All ten anchor services and the pier's
   established entrance remain. Fares, walking, traffic, and GPS share elevation.
+- Ironwake Works activates the southwest 121-chunk cell. Five connected freight
+  roads reach Solana Coast and Copper Mesa, with matching elevation at both
+  seams. Ten public destinations cover steelworks, refinery, container port,
+  dry dock, salvage, freight and worker services. Harbor and basin water are
+  physically solid; public gates, quays and freight lanes stay clear. Shared
+  geometry supports both renderers and GPS views. Bounded smoke, flares, hoists,
+  a magnet crane and tug use simulation time. Four new traffic slots bring the
+  total to 40 without changing existing traffic identities.
 
 ## Fares
 
@@ -402,9 +420,9 @@ updates the arcade launch, steering, road elevation and contact rules below.
   them with seeded procedural curb slots derived from the active region. The
   cast contains 48 shared identities plus 24 pickup identities exclusive to
   each of Cedar Vale, Northstar Range, Copper Mesa, Palm Reach, and Solana
-  Coast. Passenger cards have 168 stable art cells across twenty-eight physical
-  3x2 portrait sheets; destination artwork has 96 categorized cells across
-  sixteen sheets. The 63 named destinations use their actual model footprints,
+  Coast, plus six exclusive Ironwake workers. Passenger cards have 174 stable art
+  cells across twenty-nine physical 3x2 portrait sheets; destination artwork has
+  102 categorized cells across seventeen sheets. The 73 named destinations use their actual model footprints,
   each with three distinct occasion cards. Ordinary neighborhood cards use the
   generated lot's building family. Art is selected by place semantics before
   snapshotting; a stop-ID hash may select an occasion, never an unrelated image.
@@ -469,7 +487,7 @@ updates the arcade launch, steering, road elevation and contact rules below.
   units ahead and 6–8 units left of the starting taxi. Its road approach is
   also ahead, its canonical route is no longer than one block, initial guidance
   needs no U-turn, and nearest-fare synchronization must not retarget it. This
-  keeps the first passenger, ring, and beacon in the opening camera view.
+  keeps the first passenger and ring in the opening camera view.
 - Stops within one cycle are unique and at least one 36-unit block apart. A new
   cycle stays at least half a block from every prior pickup/dropoff and its
   first pickup is at least 72 canonical route units from the just-completed
@@ -498,6 +516,10 @@ updates the arcade launch, steering, road elevation and contact rules below.
   delivered. The destination is always selected from the active cardinal
   neighbors of the current service region; Palm Reach therefore connects
   only to Cedar Vale or Copper Mesa and never diagonally to Neon City.
+- While a passenger is onboard, all waiting pickup bodies, rings, and map
+  highlights are hidden. Only the active dropoff ring remains; waiting pickups
+  return after dropoff without changing their availability. Pickup, dropoff,
+  and courier zones keep their perimeter rings but have no center beacon.
 - Every visible blue pickup remains actionable. GPS chooses the nearest
   available runtime assignment and must never fall back to landmark geometry or
   the authored campus registry. Its normal half-block anti-flicker margin is
@@ -566,7 +588,7 @@ High-value fixtures are in `tests/game/`:
 - pickup/dropoff state and semantic event payloads;
 - route and U-turn thresholds;
 - right-hand lane signs and deterministic traffic;
-- all 803 active chunks, plus byte-stable center-city characterization and
+- all 924 active chunks, plus byte-stable center-city characterization and
   streaming/collision budgets;
 - GPU packing and arrow instance counts.
 

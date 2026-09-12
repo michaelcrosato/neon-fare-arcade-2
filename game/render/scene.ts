@@ -3,6 +3,8 @@ import { mountainAnimatedBoxes } from "../mountain-scenery";
 import { copperAnimatedBoxes } from "../copper-scenery";
 import { coastAnimatedBoxes } from "../coast-scenery";
 import { reachAnimatedBoxes } from "../reach-scenery";
+import { industrialAnimatedBoxes } from "../industrial-scenery";
+import { industrialPedestrianPoint } from "../industrial";
 import { coastCanalBlock } from "../coastal-layout";
 import { residentialPedestrianPoint } from "../residential";
 import {
@@ -614,6 +616,10 @@ export function ambientPedestrianPointForBlock(
 ) {
   const signature = (Math.imul(blockX + 79, 73856093) ^ Math.imul(blockY - 43, 19349663)) >>> 0;
   const regionId = regionForBlock(blockX, blockY)?.id;
+  if (regionId === "ironwake-works") {
+    const point = isPedestrianBlockWalkable(blockX, blockY) ? industrialPedestrianPoint(blockX, blockY, seconds, pedestrianIndex) : null;
+    return point ? atTerrainElevation(point) : null;
+  }
   if (regionId === "cedar-vale") return residentialPedestrianPoint(blockX, blockY, seconds, pedestrianIndex);
   if (regionId === "cypress-reach") return isPedestrianBlockWalkable(blockX, blockY)
     ? reachPedestrianPoint(blockX, blockY, seconds, pedestrianIndex) : null;
@@ -847,16 +853,10 @@ export function farePresentationBoxes(game: Game, seconds: number) {
   for (const { index, job } of waitingFares(game)) {
     addObjectiveRing(boxes, job.pickup, seconds, CYAN, 1.05, 12);
     boxes.push(...farePassengerBoxes(job, index, seconds));
-    if (!game.onboard && index === game.jobIndex) {
-      boxes.push({ x: job.pickup.x, y: job.pickup.y, z: (job.pickup.z ?? 0) + 3.15, screenLift: job.pickup.z ?? 0, sx: 0.42, sy: 0.42, sz: 5.8, yaw: 0, color: CYAN, material: MAT_MARKER });
-      boxes.push({ x: job.pickup.x, y: job.pickup.y, z: (job.pickup.z ?? 0) + 6.25, screenLift: job.pickup.z ?? 0, sx: 2.6, sy: 2.6, sz: 0.35, yaw: seconds, color: WHITE, material: MAT_MARKER });
-    }
   }
   if (game.onboard) {
     const target = getObjective(game);
     addObjectiveRing(boxes, target, seconds, RED, -1.2);
-    boxes.push({ x: target.x, y: target.y, z: (target.z ?? 0) + 3.15, screenLift: target.z ?? 0, sx: 0.42, sy: 0.42, sz: 5.8, yaw: 0, color: RED, material: MAT_MARKER });
-    boxes.push({ x: target.x, y: target.y, z: (target.z ?? 0) + 6.25, screenLift: target.z ?? 0, sx: 2.6, sy: 2.6, sz: 0.35, yaw: seconds, color: YELLOW, material: MAT_MARKER });
   }
   return boxes;
 }
@@ -867,9 +867,6 @@ export function courierPresentationBoxes(game: Game, seconds: number) {
   const color = game.activeCourier.stage === "pickup" ? ORANGE : PINK;
   const boxes: Box[] = [];
   addObjectiveRing(boxes, target, seconds, color, game.activeCourier.stage === "pickup" ? 1.15 : -1.25, 16);
-  boxes.push({ x: target.x, y: target.y, z: (target.z ?? 0) + 3.45, screenLift: target.z ?? 0, sx: 0.48, sy: 0.48, sz: 6.4, yaw: 0, color, material: MAT_MARKER });
-  boxes.push({ x: target.x, y: target.y, z: (target.z ?? 0) + 6.8, screenLift: target.z ?? 0, sx: 2.8, sy: 2.8, sz: 0.4, yaw: seconds, color: INK, material: MAT_MARKER });
-  boxes.push({ x: target.x, y: target.y, z: (target.z ?? 0) + 7.08, screenLift: target.z ?? 0, sx: 2.15, sy: 2.15, sz: 0.34, yaw: seconds, color, material: MAT_MARKER });
   return boxes;
 }
 
@@ -908,6 +905,7 @@ export function dynamicBoxes(
   boxes.push(...copperAnimatedBoxes(seconds, controlledPose(game)));
   boxes.push(...coastAnimatedBoxes(seconds, controlledPose(game)));
   boxes.push(...reachAnimatedBoxes(seconds, controlledPose(game)));
+  boxes.push(...industrialAnimatedBoxes(seconds, controlledPose(game)));
 
   boxes.push(...ambientPeopleBoxes(game, seconds, controlledPose(game)));
 

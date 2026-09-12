@@ -103,9 +103,9 @@ export const TRAFFIC_LANE_OFFSET = 2.25;
 export const BLOCKS_PER_CHUNK = 4;
 export const CHUNK_SIZE = ROAD_SPACING * BLOCKS_PER_CHUNK;
 /**
- * Five regions occupy 11 x 11 cells. Palm Reach extends the southeast cell
- * seven rows south into an 11 x 18 peninsula. The center, north, east, south,
- * and west regions retain their original bounds.
+ * Six regions occupy 11 x 11 cells, including Ironwake Works in the southwest.
+ * Palm Reach extends the southeast cell seven rows south into an 11 x 18
+ * peninsula. Existing regions retain their original bounds.
  */
 export const REGION_CHUNK_SPAN = 11;
 export const CENTER_REGION_CHUNK_MIN = -5;
@@ -122,6 +122,10 @@ export const SOUTHEAST_REGION_CHUNK_MIN_Y = SOUTH_REGION_CHUNK_MIN_Y;
 export const SOUTHEAST_REGION_CHUNK_MAX_Y = SOUTH_REGION_CHUNK_MAX_Y + 7;
 export const WEST_REGION_CHUNK_MAX_X = CENTER_REGION_CHUNK_MIN - 1;
 export const WEST_REGION_CHUNK_MIN_X = WEST_REGION_CHUNK_MAX_X - REGION_CHUNK_SPAN + 1;
+export const SOUTHWEST_REGION_CHUNK_MIN_X = WEST_REGION_CHUNK_MIN_X;
+export const SOUTHWEST_REGION_CHUNK_MAX_X = WEST_REGION_CHUNK_MAX_X;
+export const SOUTHWEST_REGION_CHUNK_MIN_Y = SOUTH_REGION_CHUNK_MIN_Y;
+export const SOUTHWEST_REGION_CHUNK_MAX_Y = SOUTH_REGION_CHUNK_MAX_Y;
 export const WORLD_CHUNK_MIN_X = WEST_REGION_CHUNK_MIN_X;
 export const WORLD_CHUNK_MAX_X = EAST_REGION_CHUNK_MAX_X;
 export const WORLD_CHUNK_MIN_Y = NORTH_REGION_CHUNK_MIN_Y;
@@ -155,9 +159,10 @@ export const WORLD_HEIGHT = WORLD_MAX_Y - WORLD_MIN_Y;
 export const RUN_TIME = 75;
 export const FIXED_DT = 1 / 60;
 export const SPEED_KMH_PER_WORLD_UNIT = 3.1;
-export const TAXI_TOP_SPEED_KMH = 180;
+export const TAXI_BOOST_SPEED_MULTIPLIER = 2;
+export const TAXI_TOP_SPEED_KMH = 165 * TAXI_BOOST_SPEED_MULTIPLIER;
 export const BOOST_OVERDRIVE_BONUS_KMH = 60;
-export const BOOST_OVERDRIVE_TOP_SPEED_KMH = 235;
+export const BOOST_OVERDRIVE_TOP_SPEED_KMH = TAXI_TOP_SPEED_KMH + BOOST_OVERDRIVE_BONUS_KMH;
 export const BOOST_OVERDRIVE_BONUS_WORLD_UNITS =
   BOOST_OVERDRIVE_BONUS_KMH / SPEED_KMH_PER_WORLD_UNIT;
 export const BOOST_OVERDRIVE_TOP_SPEED_WORLD_UNITS =
@@ -166,8 +171,6 @@ export const STANDARD_TAXI_FORWARD_SPEED_WORLD_UNITS =
   160 / SPEED_KMH_PER_WORLD_UNIT;
 export const REDLINE_TAXI_FORWARD_SPEED_WORLD_UNITS =
   165 / SPEED_KMH_PER_WORLD_UNIT;
-export const TAXI_BOOST_SPEED_WORLD_UNITS =
-  170 / SPEED_KMH_PER_WORLD_UNIT;
 export const TAXI_TOP_SPEED_WORLD_UNITS =
   TAXI_TOP_SPEED_KMH / SPEED_KMH_PER_WORLD_UNIT;
 /** Normal lots pull their authored contents inward to leave a broad, readable
@@ -254,8 +257,8 @@ export const MAT_CACTUS = MATERIAL.CACTUS;
 export const MAT_SANDSTONE = MATERIAL.SANDSTONE;
 
 /** Passenger and destination atlases scale independently. */
-export const PASSENGER_ART_CELL_COUNT = 168;
-export const DESTINATION_ART_CELL_COUNT = 96;
+export const PASSENGER_ART_CELL_COUNT = 174;
+export const DESTINATION_ART_CELL_COUNT = 102;
 
 /** A challenger must save half a block before the live GPS changes fares. */
 export const FARE_TARGET_SWITCH_MARGIN = ROAD_SPACING / 2;
@@ -327,6 +330,7 @@ export const DISTRICT_LABELS: Record<DistrictKind, string> = {
   desert: "COPPER MESA",
   wetland: "PALM REACH",
   coastal: "SOLANA COAST",
+  ironworks: "IRONWAKE WORKS",
   market: "INK MARKET",
   industrial: "SOUTH TERMINAL",
   harbor: "REDLINE HARBOR",

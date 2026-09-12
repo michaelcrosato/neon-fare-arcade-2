@@ -71,6 +71,7 @@ import type { CourierImpact } from "./courier-impact-overlay";
 import { useCareer } from "./use-career";
 import { normalizeRunRecords } from "./runtime/run-records";
 import { useFareCardDeck } from "./use-fare-card-deck";
+import { requestGameFullscreen } from "./runtime/game-display";
 import { GameModalHost } from "./game-modal-host";
 import { GameModeMenu } from "./game-mode-menu";
 import { GameSessionOverlays } from "./game-session-overlays";
@@ -112,7 +113,6 @@ export default function Home() {
   const passengerReviewRef = useRef<HTMLDivElement>(null);
   const navigationDistanceRef = useRef<HTMLDivElement>(null);
   const taxiExitRef = useRef<HTMLButtonElement>(null);
-  const selectingDriverRef = useRef(false);
   const [initialGame] = useState(() => makeGame());
   const gameRef = useRef<Game>(initialGame);
   const cameraRef = useRef<Camera>({ x: 0, y: 0, zoom: 1, heading: -Math.PI / 2, mode: DEFAULT_CAMERA_MODE, boom: defaultCameraBoom(DEFAULT_CAMERA_MODE, DEFAULT_CAMERA_DISTANCE_SCALE), heightOffset: 0, onFoot: false, distanceScale: DEFAULT_CAMERA_DISTANCE_SCALE });
@@ -132,7 +132,7 @@ export default function Home() {
   const modalDialogRef = useRef<HTMLElement | null>(null);
   const modalTriggerRef = useRef<HTMLElement | null>(null);
   const previousModalRef = useRef<Modal>(null);
-  const resumeAfterModalRef = useRef(false);
+  const resumeAfterModalRef = useRef<"playing" | "countdown" | null>(null);
   const courierImpactTimerRef = useRef<number | null>(null);
   const runResultBankedRef = useRef(false);
   const [mode, setModeState] = useState<Mode>("menu");
@@ -154,7 +154,6 @@ export default function Home() {
   }, [persistSteeringMode, touchDriving]);
   const [modal, setModal] = useState<Modal>(null);
   const [optionsTab, setOptionsTab] = useState<"game" | "dev">("game");
-  useEffect(() => { selectingDriverRef.current = modal === "traits" || modal === "steering"; }, [modal]);
   const [modalParent, setModalParent] = useState<"home" | null>(null);
   const [muted, setMuted] = useState(false);
   const [cameraMode, setCameraModeState] = useState<CameraMode>(DEFAULT_CAMERA_MODE);
@@ -313,7 +312,8 @@ export default function Home() {
   }, []);
 
   const openModal = useCallback((next: Exclude<Modal, null>) => {
-    const shouldResume = modeRef.current === "playing";
+    const shouldResume = modeRef.current === "playing" || modeRef.current === "countdown"
+      ? modeRef.current : null;
     resumeAfterModalRef.current = shouldResume;
     setModalParent(null);
     if (next === "map") {
@@ -352,10 +352,10 @@ export default function Home() {
       return;
     }
     const shouldResume = resumeAfterModalRef.current;
-    resumeAfterModalRef.current = false;
+    resumeAfterModalRef.current = null;
     setModalParent(null);
     setModal(null);
-    if (shouldResume && modeRef.current === "paused") setMode("playing");
+    if (shouldResume && modeRef.current === "paused") setMode(shouldResume);
   }, [modal, modalParent, setMode]);
 
   const openHomeSubview = useCallback((next: "map" | "scores" | "courier") => {
@@ -459,23 +459,23 @@ export default function Home() {
   }, [checkpointExternalGameChange, tone]);
 
   const requestStartRun = useCallback((runKind: RunKind = "timed", requestedModel: DrivingModel = "arcade") => {
-    selectingDriverRef.current = true;
+    if (isMobile) void requestGameFullscreen();
     clearInput();
     ensureAudio();
     const drivingModel: DrivingModel = runKind === "free-run" ? requestedModel : "arcade";
     setPendingRunKind(runKind);
     setPendingDrivingModel(drivingModel);
-    resumeAfterModalRef.current = false;
+    resumeAfterModalRef.current = null;
     setModalParent(null);
     setModal("traits");
     setAudioAnnouncement(drivingModel === "simulation"
       ? "Simulation Free Run with no timer. Review the Crown Cab specification, then start the simulation."
       : `${runKind === "free-run" ? "Arcade Free Run with no timer" : "Timed arcade shift"}. Choose Street Ace, Drift Demon, or Redline Rush.`);
     tone(300, 0.08, "square", 520);
-  }, [clearInput, ensureAudio, tone]);
+  }, [clearInput, ensureAudio, isMobile, tone]);
 
   const beginRun = useCallback((drivingTraitId: DrivingTraitId, lockedSteering?: SteeringMode) => {
-    selectingDriverRef.current = false;
+    if (isMobile) void requestGameFullscreen();
     clearInput();
     ensureAudio();
     applySteeringForRun(touchDriving, lockedSteering ?? steeringMode, persistSteeringMode);
@@ -499,7 +499,7 @@ export default function Home() {
       heightOffset: 0, onFoot: false, distanceScale: cameraDistanceScaleRef.current,
     };
     setHud(makeHud(game));
-    resumeAfterModalRef.current = false;
+    resumeAfterModalRef.current = null;
     setModalParent(null);
     setModal(null);
     setMode("countdown");
@@ -507,7 +507,7 @@ export default function Home() {
       ? "Crown Cab simulation ready. Automatic transmission in drive. Three, two, one."
       : `${drivingTraitPackage(drivingTraitId).name} locked in. ${runKind === "free-run" ? "Free Run" : "Arcade shift"} starting. Three, two, one.`);
     tone(420, 0.08, "square", 350);
-  }, [careerRef, clearInput, developmentRef, diagnostics, ensureAudio, pendingDrivingModel, pendingRunKind, persistSteeringMode, resetFareCards, setMode, steeringMode, tone, touchDriving]);
+  }, [careerRef, clearInput, developmentRef, diagnostics, ensureAudio, isMobile, pendingDrivingModel, pendingRunKind, persistSteeringMode, resetFareCards, setMode, steeringMode, tone, touchDriving]);
 
   const selectDriverTrait = useCallback((drivingTraitId: DrivingTraitId) => {
     setPendingDrivingTrait(drivingTraitId);
@@ -705,7 +705,7 @@ export default function Home() {
   }, [careerRef, checkpointExternalGameChange, clearInput, diagnostics, onSimulationEvents, resetFareCards, triggerFareImpact]);
 
   useGameRuntime({
-    selectingDriverRef, passengerReviewRef, navigationDistanceRef, taxiExitRef, canvas2dRef, webGpuCanvasRef,
+    passengerReviewRef, navigationDistanceRef, taxiExitRef, canvas2dRef, webGpuCanvasRef,
     gameRef, cameraRef, cameraModeRef, inputRef, touchDriving, interactionPulseRef, jumpPulseRef, modeRef,
     mutedRef, audioRef, ensureAudio, engineRef, boostAudioActiveRef, diagnostics, diagnosticsActive,
     clearInput, finishRun, setMode, setHud, setRendererKind, setAudioAnnouncement, tone, onSimulationEvents,
@@ -760,7 +760,7 @@ export default function Home() {
       (first ?? dialog)?.focus();
     });
     const onModalKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
+      if (event.key === "Escape" && !event.repeat) {
         event.preventDefault();
         closeModal();
         return;
@@ -819,7 +819,7 @@ export default function Home() {
         inputRef.current.crouch = walkingNow ? pressed : false;
       }
       if (key === "e" && !event.repeat) inputRef.current.interact = pressed && modeRef.current === "playing" && modal === null;
-      if (!pressed) return;
+      if (!pressed || event.repeat) return;
       if ((key === "p" || key === "escape") && modal === null) {
         if (modeRef.current === "playing") {
           setMode("paused");

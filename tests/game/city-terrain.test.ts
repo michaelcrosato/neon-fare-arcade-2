@@ -34,7 +34,7 @@ test("Neon City has physical hill districts around a level starting block and ex
     }
   }
   assert.equal(inElevatedTerrain(-1000, -1000), false);
-  assert.equal(inElevatedTerrain(-1000, 1000), false);
+  assert.equal(inElevatedTerrain(-1000, 1000), true, "Ironwake now owns southwest terrain");
 });
 
 test("the city remains mostly a grid while making substantial room for parks and authored streets", () => {

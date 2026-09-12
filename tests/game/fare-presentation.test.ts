@@ -38,7 +38,7 @@ test("every stable fare ID maps to one unique art cell", () => {
   assert.equal(new Set(cells).size, FARE_RIDERS.length);
 });
 
-test("168 passenger cells resolve across twenty-eight physical 3-by-2 sprite sheets", () => {
+test("174 passenger cells resolve across twenty-nine physical 3-by-2 sprite sheets", () => {
   assert.deepEqual(fareArtFrame(0), { sheet: 0, backgroundPosition: "0% 0%" });
   assert.deepEqual(fareArtFrame(5), { sheet: 0, backgroundPosition: "100% 100%" });
   assert.deepEqual(fareArtFrame(6), { sheet: 1, backgroundPosition: "0% 0%" });
@@ -57,7 +57,7 @@ test("168 passenger cells resolve across twenty-eight physical 3-by-2 sprite she
   assert.deepEqual(fareArtFrame(119), { sheet: 19, backgroundPosition: "100% 100%" });
   assert.deepEqual(fareArtFrame(120), { sheet: 20, backgroundPosition: "0% 0%" });
   assert.deepEqual(fareArtFrame(143), { sheet: 23, backgroundPosition: "100% 100%" });
-  for (let sheet = 24; sheet < 28; sheet += 1) {
+  for (let sheet = 24; sheet < 29; sheet += 1) {
     assert.deepEqual(fareArtFrame(sheet * 6), { sheet, backgroundPosition: "0% 0%" });
     assert.deepEqual(fareArtFrame(sheet * 6 + 5), { sheet, backgroundPosition: "100% 100%" });
   }

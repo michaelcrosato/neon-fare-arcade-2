@@ -30,6 +30,7 @@ import {
   waitingFares,
 } from "../../game/fare-selection";
 import { distance } from "../../game/math";
+import { makeHud } from "../../game/hud";
 import type { InputState, Job, WorldView } from "../../game/model";
 import { eligibleFareRiders } from "../../game/passengers";
 import { analyzeFareStopPlacement } from "../../game/fare-placement";
@@ -337,27 +338,34 @@ test("the fare pool serves every rider before it refills", () => {
   assert.ok(game.fareJobs.every((job) => !firstMarketRiders.has(job.id)));
 });
 
-test("HUD markers and world presentation expose all waiting passengers", () => {
-  const game = makeGame();
+test("pickup highlights disappear while occupied and return after dropoff without changing availability", () => {
+  const game = makeGame("street-ace", 527);
   const seekingMarkers = farePickupMarkers(game);
   assert.equal(seekingMarkers.length, FARES_PER_CYCLE);
   assert.equal(seekingMarkers.filter((marker) => marker.selected).length, 1);
 
   const seekingBoxes = farePresentationBoxes(game, 0);
   assert.equal(seekingBoxes.filter((box) => box.material === MAT_PERSON).length, FARES_PER_CYCLE * 11);
-  assert.equal(seekingBoxes.filter((box) => box.material === MAT_MARKER).length, FARES_PER_CYCLE * 24 + 2);
+  assert.equal(seekingBoxes.filter((box) => box.material === MAT_MARKER).length, FARES_PER_CYCLE * 24);
   assert.equal(seekingBoxes.filter((box) => (box.color[3] ?? 1) < 0.99).length, FARES_PER_CYCLE * 12);
 
   markFarePickedUp(game, game.jobIndex);
+  const remainingMask = game.availableFareMask;
   game.onboard = true;
   const onboardMarkers = farePickupMarkers(game);
-  assert.equal(onboardMarkers.length, FARES_PER_CYCLE - 1);
-  assert.equal(onboardMarkers.some((marker) => marker.id === game.fareJobs[game.jobIndex].id), false);
-  assert.equal(onboardMarkers.some((marker) => marker.selected), false);
+  assert.deepEqual(onboardMarkers, []);
+  const occupiedHud = makeHud(game);
+  assert.deepEqual(occupiedHud.availablePickups, []);
+  assert.deepEqual(occupiedHud.fareDestinations.map(marker => marker.id), [game.fareJobs[game.jobIndex].id]);
   const onboardBoxes = farePresentationBoxes(game, 0);
-  assert.equal(onboardBoxes.filter((box) => box.material === MAT_PERSON).length, (FARES_PER_CYCLE - 1) * 11);
-  assert.equal(onboardBoxes.filter((box) => box.material === MAT_MARKER).length, (FARES_PER_CYCLE - 1) * 24 + 30);
-  assert.equal(onboardBoxes.filter((box) => (box.color[3] ?? 1) < 0.99).length, (FARES_PER_CYCLE - 1) * 12 + 14);
+  assert.equal(onboardBoxes.filter((box) => box.material === MAT_PERSON).length, 0);
+  assert.equal(onboardBoxes.filter((box) => box.material === MAT_MARKER).length, 28);
+  assert.equal(onboardBoxes.filter((box) => (box.color[3] ?? 1) < 0.99).length, 14);
+  const target = game.fareJobs[game.jobIndex].dropoff;
+  assert.ok(onboardBoxes.every(box => Math.hypot(box.x - target.x, box.y - target.y) > 4), "only the ring remains, with no center beacon");
+  game.onboard = false;
+  assert.equal(farePickupMarkers(game).length, FARES_PER_CYCLE - 1);
+  assert.equal(game.availableFareMask, remainingMask);
 });
 
 test("all fares, traffic, particles, a full route, and the densest crowd stay inside actor budget", () => {

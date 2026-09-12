@@ -8,6 +8,8 @@ if (!new Set(["fast", "exhaustive", "all"]).has(mode)) {
 }
 
 const exhaustive = new Set([
+  "industrial-world.test.ts",
+  "industrial-gameplay.test.ts",
   "city-terrain.test.ts",
   "city-driving.test.ts",
   "city-gameplay.test.ts",

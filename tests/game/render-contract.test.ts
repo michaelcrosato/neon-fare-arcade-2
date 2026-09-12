@@ -554,6 +554,6 @@ test("objective rings include a transparent cylinder along their edge", () => {
   game.onboard = true;
   const onboardBoxes = farePresentationBoxes(game, 0);
   const onboardCylinders = onboardBoxes.filter((box) => box.material === MAT_MARKER && (box.color[3] ?? 1) < 0.99);
-  // 5 remaining waiting fares * 12 + 1 dropoff * 14 segments
-  assert.equal(onboardCylinders.length, 5 * 12 + 14);
+  // Only the occupied fare's dropoff is highlighted.
+  assert.equal(onboardCylinders.length, 14);
 });

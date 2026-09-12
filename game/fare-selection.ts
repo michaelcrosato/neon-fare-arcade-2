@@ -302,9 +302,9 @@ export function fareAtPickupRange(game: Game, radius = FARE_PICKUP_RADIUS) {
 }
 
 export function waitingFares(game: Game): WaitingFare[] {
-  if (!game.fareDispatchEnabled || game.activeCourier) return [];
+  if (!game.fareDispatchEnabled || game.onboard || game.activeCourier) return [];
   return game.fareJobs.flatMap((job, index) => (
-    isFareAvailable(game, index) && !(game.onboard && index === game.jobIndex)
+    isFareAvailable(game, index)
       ? [{ index, job }]
       : []
   ));
@@ -315,6 +315,6 @@ export function farePickupMarkers(game: Game): FarePickupMarker[] {
     id: job.id,
     rider: job.rider,
     point: job.pickup,
-    selected: !game.onboard && index === game.jobIndex,
+    selected: index === game.jobIndex,
   }));
 }

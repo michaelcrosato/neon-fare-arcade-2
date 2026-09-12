@@ -384,6 +384,7 @@ function candidateAdjacentGridRoadEnabled(candidate: CurbCandidate) {
 }
 
 const REGIONAL_ROADSIDE_IDS = new Set([
+  "ironwake-freightway", "copper-freight-link", "ironwake-quay-road", "magnet-king-loop", "breakwater-road",
   ...CEDAR_ROADS.filter(road => !road.id.endsWith("-turnaround")).map(road => road.id),
   "northstar-highway",
   "spruce-gorge-viaduct",
@@ -872,6 +873,7 @@ export function createProceduralFareStopPairs(
     // City street changes must not spread a new mountain market across valleys.
     x: 0, y: -1404, z: 44,
   } : region?.id === "solana-coast" ? { x: -1764, y: 0, z: 12 }
+    : region?.id === "ironwake-works" ? { x: -1728, y: 1296, z: 0 }
     : region?.id === "cypress-reach" ? { x: 1800, y: 1476, z: 0 }
       : region?.id === "cedar-vale" ? { x: 1476, y: -72, z: 0 } : {
     x: TAXI_START.x,

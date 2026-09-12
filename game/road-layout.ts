@@ -4,6 +4,7 @@ import { atRoadElevation, drapeRegionalRoad, inElevatedTerrain } from "./terrain
 import { CEDAR_ROADS } from "./cedar-layout";
 import { REACH_ROADS } from "./reach-roads";
 import { CITY_ROADS } from "./city-roads";
+import { IRONWAKE_ROADS } from "./industrial-roads";
 
 import type { RoadPathDefinition } from "./roads/types";
 export type { RoadKind, GridConnectionMode, RoadPathDefinition } from "./roads/types";
@@ -155,6 +156,7 @@ export const ROUNDABOUTS: readonly RoundaboutDefinition[] = [
 export const SPECIAL_ROADS: readonly RoadPathDefinition[] = [
   ...CEDAR_ROADS,
   ...CITY_ROADS,
+  ...IRONWAKE_ROADS,
   {
     id: "aurora-boulevard",
     name: "AURORA BOULEVARD",

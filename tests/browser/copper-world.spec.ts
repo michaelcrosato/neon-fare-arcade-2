@@ -47,7 +47,7 @@ for (const mobile of [false, true]) test(`desert GPS shows terrain and altitude 
     window.copperScene.map(true);
   });
   const map = page.locator("#copper-map-fixture");
-  await expect(map.getByLabel("Altitude")).toContainText("ELEV 1,344 m");
+  await expect(map.getByLabel("Altitude")).toContainText("ELEV 75 m");
   await expect(map.locator('[data-map-layer="copper-terrain"]')).toBeVisible();
   await map.getByRole("button", { name: "S · MESA", exact: true }).click();
   await map.screenshot({ path: testInfo.outputPath("copper-full-map.png") });

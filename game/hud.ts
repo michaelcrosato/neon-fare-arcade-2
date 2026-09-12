@@ -214,14 +214,13 @@ export function makeHud(game: Game, navigation?: NavigationPlan, world?: WorldVi
     navigationTarget,
     customDestination: game.customDestination,
     availablePickups: farePickupMarkers(game),
-    fareDestinations: game.fareDispatchEnabled || game.onboard
-      ? game.fareJobs.map((job) => ({
+    fareDestinations: (game.onboard ? [game.fareJobs[game.jobIndex]] : game.fareDispatchEnabled ? game.fareJobs : [])
+      .map((job) => ({
         id: job.id,
         rider: job.rider,
         label: job.destination,
         point: job.dropoff,
-      }))
-      : [],
+      })),
     courierMarkers: courierMapMarkers(game),
     heading: plan.travelHeading,
     route,

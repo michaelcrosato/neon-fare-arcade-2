@@ -22,7 +22,7 @@ test("Solana Coast has a low beach, real bluffs and hills, and an exact flat Cit
     assert.equal(roadDesignHeight(-792, y), 0);
   }
   assert.equal(inElevatedTerrain(-1000, -1000), false);
-  assert.equal(inElevatedTerrain(-1000, 1000), false);
+  assert.equal(inElevatedTerrain(-1000, 1000), true, "Ironwake continues the terrain south of the Coast");
 });
 
 test("Coast ribbons share exact design planes across road and grid intersections", () => {

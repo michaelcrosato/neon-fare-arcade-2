@@ -63,6 +63,8 @@ const RIDER_PLANS = [
   "my paddleboard race", "my shell collection", "my sea glass mosaic", "my harbor brunch",
   "my lifeguard training", "my marine rescue", "my boardwalk busking", "my coastal cycling",
   "my saltwater taffy", "my tidepool tour", "my beachfront cinema", "my oceanfront dinner",
+  "my steelworks shift", "my refinery inspection", "my container dispatch",
+  "my shipyard weld", "my salvage auction", "my tugboat watch",
 ] as const;
 
 export function passengerComment(job: Pick<Job, "passengerArtCell" | "destinationCard">, stars: PassengerStars) {

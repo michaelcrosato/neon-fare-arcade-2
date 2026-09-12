@@ -26,7 +26,7 @@ test("swept road vertices and normals match physical bank/grade samples", () => 
   }
 });
 
-test("all six regions emit finite road surfaces within independent chunk and stream budgets", () => {
+test("all active regions emit finite road surfaces within independent chunk and stream budgets", () => {
   const stream = new CityStream();
   let totalSurfaces = 0;
   for (const region of ACTIVE_WORLD_REGIONS) {

@@ -5,7 +5,6 @@ import { applyCareerRunBonuses } from "../../game/career";
 import {
   FIXED_DT,
   SPEED_KMH_PER_WORLD_UNIT,
-  TAXI_TOP_SPEED_KMH,
 } from "../../game/config";
 import {
   DRIVING_TRAIT_PACKAGES,
@@ -63,7 +62,7 @@ test("the driver draft exposes exactly three complete and finite packages", () =
     assert.equal(trait.highlights.length, 3);
     assert.ok(Object.values(trait.stats).every((value) => value >= 1 && value <= 5));
     assert.ok(Object.values(trait.modifiers).every((value) => Number.isFinite(value) && value > 0));
-    assert.ok(trait.modifiers.maxBoostSpeed >= trait.modifiers.maxForwardSpeed);
+    assert.equal(trait.modifiers.maxBoostSpeed, trait.modifiers.maxForwardSpeed * 2);
     assert.ok(trait.modifiers.initialBoost <= 100);
   }
 });
@@ -150,7 +149,7 @@ test("brake-tap rotation follows each package's drift character", () => {
   assert.ok(streetGain > redlineGain * 1.1);
 });
 
-test("Redline Rush starts hotter and shares the realistic boost ceiling without changing reverse", () => {
+test("Redline Rush starts hotter without changing reverse", () => {
   const street = runTrait("street-ace", { ...IDLE_INPUT, up: true });
   const redline = runTrait("redline-rush", { ...IDLE_INPUT, up: true });
   assert.equal(redline.boost, 60);
@@ -167,24 +166,31 @@ test("Redline Rush starts hotter and shares the realistic boost ceiling without 
   approximate(reverse.speed, 7);
 });
 
-test("every driver package tops out at the same realistic boosted cab speed", () => {
+test("a normal starting tank can double every package's cruising speed", () => {
   for (const trait of DRIVING_TRAIT_PACKAGES) {
-    const game = makeGame(trait.id);
+    const game = makeGame(trait.id, 20260912);
     game.traffic = [];
-    game.x = 0;
-    game.y = 0;
     game.heading = 0;
-    game.vx = 100;
+    game.vx = trait.modifiers.maxForwardSpeed;
     game.vy = 0;
-    game.boost = 100;
-    stepGame(
-      game,
-      { ...IDLE_INPUT, boost: true },
-      FIXED_DT,
-      EMPTY_WORLD,
-      () => 1,
-    );
-    approximate(game.speed * SPEED_KMH_PER_WORLD_UNIT, TAXI_TOP_SPEED_KMH - 10);
+    let peakSpeed = 0;
+    for (let tick = 0; tick < 120 && game.boost > 0; tick += 1) {
+      // Hold the road sample fixed to isolate acceleration and the finite tank.
+      game.x = 0;
+      game.y = 0;
+      stepGame(game, { ...IDLE_INPUT, up: true, boost: true }, FIXED_DT, EMPTY_WORLD, () => 1);
+      peakSpeed = Math.max(peakSpeed, game.speed);
+    }
+    approximate(peakSpeed * SPEED_KMH_PER_WORLD_UNIT, trait.id === "redline-rush" ? 330 : 320);
+    assert.ok(game.boost < trait.modifiers.initialBoost);
+
+    stepGame(game, { ...IDLE_INPUT, up: true }, FIXED_DT, EMPTY_WORLD, () => 1);
+    approximate(game.speed, trait.modifiers.maxForwardSpeed);
+
+    game.boost = 0;
+    stepGame(game, { ...IDLE_INPUT, up: true, boost: true }, FIXED_DT, EMPTY_WORLD, () => 1);
+    assert.equal(game.boosting, false);
+    approximate(game.speed, trait.modifiers.maxForwardSpeed);
   }
 });
 

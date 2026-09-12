@@ -6,6 +6,7 @@ import test from "node:test";
 import { DESTINATION_ART_CELL_COUNT, PASSENGER_ART_CELL_COUNT } from "../../game/config";
 import { FARE_RIDERS } from "../../game/passengers";
 import { fareArtAsset } from "../../game/fare-presentation";
+import type { WorldRegionId } from "../../game/region-types";
 
 type Sheet = {
   file: string;
@@ -15,7 +16,7 @@ type Sheet = {
 
 type PassengerSheet = Sheet & {
   riderIds: string[];
-  region: "shared" | "cedar-vale" | "northstar-range" | "copper-mesa" | "cypress-reach" | "solana-coast";
+  region: "shared" | WorldRegionId;
 };
 
 type FareArtManifest = {

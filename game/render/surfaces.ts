@@ -53,22 +53,26 @@ export function packSurfaceQuads(quads: readonly MeshFace[]) {
   const output = new Float32Array(vertexCount * SURFACE_VERTEX_FLOATS);
   let offset = 0;
   for (const quad of quads) {
-    for (const triangle of quad.corners.length === 3 ? [[0, 1, 2]] : [[0, 1, 2], [0, 2, 3]]) {
-      const [a, b, c] = triangle.map((index) => quad.corners[index]!);
-      const ab = { x: b.x - a.x, y: b.y - a.y, z: b.z - a.z };
-      const ac = { x: c.x - a.x, y: c.y - a.y, z: c.z - a.z };
-      const normal = { x: ab.y * ac.z - ab.z * ac.y, y: ab.z * ac.x - ab.x * ac.z, z: ab.x * ac.y - ab.y * ac.x };
-      const length = Math.hypot(normal.x, normal.y, normal.z);
+    // Preserve the 0,1,2 / 0,2,3 fan without per-triangle arrays or vectors.
+    for (let triangle = 1; triangle < quad.corners.length - 1; triangle++) {
+      const a = quad.corners[0], b = quad.corners[triangle]!, c = quad.corners[triangle + 1]!;
+      const abX = b.x - a.x, abY = b.y - a.y, abZ = b.z - a.z;
+      const acX = c.x - a.x, acY = c.y - a.y, acZ = c.z - a.z;
+      const normalX = abY * acZ - abZ * acY;
+      const normalY = abZ * acX - abX * acZ;
+      const normalZ = abX * acY - abY * acX;
+      const length = Math.hypot(normalX, normalY, normalZ);
       if (!Number.isFinite(length) || length < 1e-8) throw new Error("Degenerate road surface triangle");
-      for (const index of triangle) {
-        const point = quad.corners[index]!;
+      const nx = normalX / length, ny = normalY / length, nz = normalZ / length;
+      for (let vertex = 0; vertex < 3; vertex++) {
+        const point = vertex === 0 ? a : vertex === 1 ? b : c;
         output[offset++] = point.x;
         output[offset++] = point.y;
         output[offset++] = point.z;
         output[offset++] = quad.material;
-        output[offset++] = normal.x / length;
-        output[offset++] = normal.y / length;
-        output[offset++] = normal.z / length;
+        output[offset++] = nx;
+        output[offset++] = ny;
+        output[offset++] = nz;
         output[offset++] = 1;
         output[offset++] = quad.color[0];
         output[offset++] = quad.color[1];

@@ -4,6 +4,7 @@ import type { RegionalWorldRegionId, RegionalWorldTheme } from "./region-types";
 import { CEDAR_VALE_ANCHORS } from "./residential";
 import { CYPRESS_REACH_ANCHORS } from "./wetland";
 import { SOLANA_COAST_ANCHORS } from "./coastal";
+import { IRONWAKE_ANCHORS } from "./industrial-layout";
 
 export type RegionalAnchorSummary = {
   id: string;
@@ -58,6 +59,10 @@ export const REGIONAL_CONTENT_BY_ID = {
     anchors: SOLANA_COAST_ANCHORS,
     mapLabelPolicy: "always-west",
     campusPolicy: "multi-tile",
+  },
+  "ironwake-works": {
+    id: "ironwake-works", theme: "industrial", anchors: IRONWAKE_ANCHORS,
+    mapLabelPolicy: "always-west", campusPolicy: "multi-tile",
   },
 } as const satisfies Record<RegionalWorldRegionId, RegionalContentEntry>;
 

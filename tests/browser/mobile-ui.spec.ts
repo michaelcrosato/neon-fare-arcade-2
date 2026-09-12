@@ -171,7 +171,15 @@ test.describe("mobile session tools", () => {
     points[0].x += 31;
     await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: points });
     await expect(gas).toHaveAttribute("data-held", "");
-    await page.setViewportSize({ width: 844, height: 390 });
+    // Rotate the emulated display without resizing Chromium's fullscreen window.
+    await cdp.send("Emulation.setDeviceMetricsOverride", {
+      width: 844, height: 390, screenWidth: 844, screenHeight: 390,
+      deviceScaleFactor: 1, mobile: true,
+      screenOrientation: { type: "landscapePrimary", angle: 90 },
+    });
+    await expect.poll(() => page.evaluate(() => ({
+      width: innerWidth, height: innerHeight, fullscreen: document.fullscreenElement === document.documentElement,
+    }))).toEqual({ width: 844, height: 390, fullscreen: true });
     await expect(page.locator("[data-held], .mobile-thumbstick")).toHaveCount(0);
     points[0].x += 20;
     await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: points });

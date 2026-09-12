@@ -8,8 +8,9 @@ export type WorldRegionId =
   | "northstar-range"
   | "copper-mesa"
   | "cypress-reach"
-  | "solana-coast";
+  | "solana-coast"
+  | "ironwake-works";
 
-export type WorldTheme = "city" | "residential" | "mountain" | "desert" | "wetland" | "coastal";
+export type WorldTheme = "city" | "residential" | "mountain" | "desert" | "wetland" | "coastal" | "industrial";
 export type RegionalWorldRegionId = Exclude<WorldRegionId, "city-center">;
 export type RegionalWorldTheme = Exclude<WorldTheme, "city">;

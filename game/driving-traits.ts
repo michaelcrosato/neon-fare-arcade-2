@@ -2,7 +2,7 @@ import type { DrivingTraitId } from "./model";
 import {
   REDLINE_TAXI_FORWARD_SPEED_WORLD_UNITS,
   STANDARD_TAXI_FORWARD_SPEED_WORLD_UNITS,
-  TAXI_BOOST_SPEED_WORLD_UNITS,
+  TAXI_BOOST_SPEED_MULTIPLIER,
 } from "./config";
 
 export type DrivingTraitModifiers = {
@@ -65,7 +65,7 @@ export const DRIVING_TRAIT_PACKAGES: readonly DrivingTraitPackage[] = [
       driftGripMultiplier: 1,
       steeringReferenceSpeed: 24,
       maxForwardSpeed: STANDARD_TAXI_FORWARD_SPEED_WORLD_UNITS,
-      maxBoostSpeed: TAXI_BOOST_SPEED_WORLD_UNITS,
+      maxBoostSpeed: STANDARD_TAXI_FORWARD_SPEED_WORLD_UNITS * TAXI_BOOST_SPEED_MULTIPLIER,
       driftBoostGainMultiplier: 1,
       driftScoreMultiplier: 1,
       initialBoost: 45,
@@ -91,7 +91,7 @@ export const DRIVING_TRAIT_PACKAGES: readonly DrivingTraitPackage[] = [
       driftGripMultiplier: 0.7,
       steeringReferenceSpeed: 24,
       maxForwardSpeed: STANDARD_TAXI_FORWARD_SPEED_WORLD_UNITS,
-      maxBoostSpeed: TAXI_BOOST_SPEED_WORLD_UNITS,
+      maxBoostSpeed: STANDARD_TAXI_FORWARD_SPEED_WORLD_UNITS * TAXI_BOOST_SPEED_MULTIPLIER,
       driftBoostGainMultiplier: 1.55,
       driftScoreMultiplier: 1.3,
       initialBoost: 45,
@@ -117,7 +117,7 @@ export const DRIVING_TRAIT_PACKAGES: readonly DrivingTraitPackage[] = [
       driftGripMultiplier: 1,
       steeringReferenceSpeed: 26.5,
       maxForwardSpeed: REDLINE_TAXI_FORWARD_SPEED_WORLD_UNITS,
-      maxBoostSpeed: TAXI_BOOST_SPEED_WORLD_UNITS,
+      maxBoostSpeed: REDLINE_TAXI_FORWARD_SPEED_WORLD_UNITS * TAXI_BOOST_SPEED_MULTIPLIER,
       driftBoostGainMultiplier: 0.85,
       driftScoreMultiplier: 1,
       initialBoost: 60,

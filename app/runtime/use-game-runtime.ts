@@ -25,6 +25,7 @@ import { NavigationController } from "@/game/navigation";
 import { developmentTimeScale, navigationSettingsForGame } from "@/game/development-settings";
 import {
   cameraBoomLimit,
+  chaseCameraEyeHeight,
   effectiveCameraMode,
 } from "@/game/render/camera";
 import { runHasExpired } from "@/game/run-rules";
@@ -50,11 +51,12 @@ import { mergeDrivingInput, type TouchDriving } from "./touch-driving";
 import { presentPassengerReview } from "./passenger-review";
 import { presentTaxiExitAction } from "./taxi-exit-action";
 import { presentNavigationDistance } from "./navigation-distance";
+import { MOBILE_QUERY } from "../use-mobile-layout";
+import { protectGameGestures } from "./game-display";
 
 type RefBox<T> = { current: T };
 
 export type GameRuntimeOptions = Readonly<{
-  selectingDriverRef: RefBox<boolean>;
   passengerReviewRef: RefBox<HTMLDivElement | null>;
   navigationDistanceRef: RefBox<HTMLDivElement | null>;
   taxiExitRef: RefBox<HTMLButtonElement | null>;
@@ -88,7 +90,6 @@ export type GameRuntimeOptions = Readonly<{
 /** Owns the browser clock, world streaming, renderer fallback, and fixed-step loop. */
 export function useGameRuntime(options: GameRuntimeOptions) {
   const {
-    selectingDriverRef,
     passengerReviewRef,
     navigationDistanceRef,
     taxiExitRef,
@@ -135,15 +136,20 @@ export function useGameRuntime(options: GameRuntimeOptions) {
     const cityStream = new CityStream();
     const navigationController = new NavigationController();
     const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+    const mobileLayout = window.matchMedia(MOBILE_QUERY);
+    const stage = canvas2d.closest<HTMLElement>(".game-stage");
+    const releaseGestures = stage ? protectGameGestures(stage, () => mobileLayout.matches
+      && (modeRef.current === "playing" || modeRef.current === "countdown")) : undefined;
     let currentCityWorld = cityStream.update(0, 0);
     let currentWorld = sceneWorld(gameRef.current, currentCityWorld);
     let currentNavigation = navigationController.update(gameRef.current, navigationSettingsForGame(gameRef.current));
     let wasInterior = isInterior(gameRef.current);
     let previousEffectiveCameraMode = cameraRef.current.mode;
     const music = new BackgroundMusic(undefined, Math.random, () => audioRef.current);
-    music.update(gameRef.current, modeRef.current, mutedRef.current, document.hidden, selectingDriverRef.current);
+    music.update(gameRef.current, modeRef.current, mutedRef.current);
     const unlockAudio = () => {
       ensureAudio?.();
+      music.update(gameRef.current, modeRef.current, mutedRef.current);
       music.unlock();
     };
     const audioUnlockEvents = ["pointerdown", "touchstart", "mousedown", "keydown", "click"] as const;
@@ -321,6 +327,7 @@ export function useGameRuntime(options: GameRuntimeOptions) {
         const playerMode = interiorNow ? "interior" : isDriving(game) ? "driving" : "walking";
         camera.mode = effectiveCameraMode(playerMode, cameraModeRef.current);
         camera.onFoot = playerMode !== "driving";
+        camera.mobile = mobileLayout.matches;
         const cameraModeChanged = camera.mode !== previousEffectiveCameraMode;
         previousEffectiveCameraMode = camera.mode;
         const positionRate = camera.mode === "chase-high" ? 7 : camera.mode === "chase-low" ? 10 : 6;
@@ -371,7 +378,7 @@ export function useGameRuntime(options: GameRuntimeOptions) {
         if (camera.mode === "chase-high" || camera.mode === "chase-low") {
           const preset = chaseCameraPreset(camera.mode, camera.onFoot);
           const requested = preset.distance * cameraDistanceScale(camera.distanceScale);
-          const requestedHeight = 1.65 + (preset.height - 1.65) * cameraDistanceScale(camera.distanceScale);
+          const requestedHeight = chaseCameraEyeHeight(camera, requested);
           if (cameraModeChanged) camera.boom = requested;
           const limit = cameraBoomLimit(camera, currentWorld, requested, requestedHeight);
           camera.boom = limit < camera.boom
@@ -381,7 +388,7 @@ export function useGameRuntime(options: GameRuntimeOptions) {
           camera.boom = 0;
         }
         currentNavigation = navigationController.update(game, navigationSettingsForGame(game));
-        music.update(game, modeRef.current, mutedRef.current, document.hidden, selectingDriverRef.current);
+        music.update(game, modeRef.current, mutedRef.current);
         renderFrame(game, now, currentWorld, currentNavigation);
         if (navigationDistanceRef.current) {
           if (currentMode !== "playing") navigationDistanceRef.current.hidden = true;
@@ -489,12 +496,13 @@ export function useGameRuntime(options: GameRuntimeOptions) {
     });
 
     window.addEventListener("resize", resize);
+    window.visualViewport?.addEventListener("resize", resize);
+    document.addEventListener("fullscreenchange", resize);
     const onVisibility = () => {
       if (document.hidden && modeRef.current === "playing") {
         setMode("paused");
         setAudioAnnouncement("Game paused.");
       }
-      music.update(gameRef.current, modeRef.current, mutedRef.current, document.hidden, selectingDriverRef.current);
     };
     const onBlur = () => {
       clearInput();
@@ -502,7 +510,6 @@ export function useGameRuntime(options: GameRuntimeOptions) {
         setMode("paused");
         setAudioAnnouncement("Game paused.");
       }
-      music.update(gameRef.current, modeRef.current, mutedRef.current, document.hidden, selectingDriverRef.current);
     };
     document.addEventListener("visibilitychange", onVisibility);
     window.addEventListener("blur", onBlur);
@@ -510,6 +517,9 @@ export function useGameRuntime(options: GameRuntimeOptions) {
       cancelled = true;
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", resize);
+      window.visualViewport?.removeEventListener("resize", resize);
+      document.removeEventListener("fullscreenchange", resize);
+      releaseGestures?.();
       document.removeEventListener("visibilitychange", onVisibility);
       window.removeEventListener("blur", onBlur);
       activeRenderer = null;
@@ -525,7 +535,6 @@ export function useGameRuntime(options: GameRuntimeOptions) {
   }, [
     audioRef,
     boostAudioActiveRef,
-    selectingDriverRef,
     passengerReviewRef,
     navigationDistanceRef,
     taxiExitRef,

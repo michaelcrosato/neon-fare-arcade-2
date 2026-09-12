@@ -167,6 +167,7 @@ export type DistrictKind =
   | "desert"
   | "wetland"
   | "coastal"
+  | "ironworks"
   | "market"
   | "industrial"
   | "harbor";
@@ -330,7 +331,26 @@ export type LotKind =
   | "coast-citrus-house"
   | "coast-surf-pavilion"
   | "coast-sunset-bowl"
-  | "coast-coastwatch";
+  | "coast-coastwatch"
+  | "works-ocean"
+  | "works-foundry"
+  | "works-refinery"
+  | "works-port"
+  | "works-shipyard"
+  | "works-junkyard"
+  | "works-freight"
+  | "works-gate"
+  | "works-diner"
+  | "works-truck-stop"
+  | "works-watch"
+  | "works-warehouse"
+  | "works-tank-farm"
+  | "works-machine-shop"
+  | "works-container-yard"
+  | "works-scrap-lot"
+  | "works-rail-yard"
+  | "works-utility"
+  | "works-verge";
 
 export type TurnCue = {
   point: WorldPoint;
@@ -827,6 +847,8 @@ export type Camera = {
   onFoot?: boolean;
   /** Player-selected chase/fixed distance multiplier. Cab ignores it. */
   distanceScale?: 1 | 2 | 4 | 8;
+  /** Mobile driving reserves three quarters of the view in the travel direction. */
+  mobile?: boolean;
 };
 
 export type InputState = {

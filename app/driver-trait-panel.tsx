@@ -79,7 +79,7 @@ export function DriverTraitPanel({ onSelect, runKind, drivingModel }: DriverTrai
       <h2 id="modal-title">PICK YOUR EDGE</h2>
       <p className="driver-traits__intro" id="trait-modal-description">
         {mobile ? "Choose your handling. Open the details to compare; you can pick again before your next run." : freeRun
-          ? "Choose one package, then explore all six regions—from Neon City to Solana Coast—at your pace. Fares, courier jobs, interiors, and earnings stay active with no time pressure."
+          ? "Choose one package, then explore all seven regions at your pace, including the new Ironwake Works industrial harbor. Fares, courier jobs, interiors, and earnings stay active with no time pressure."
           : "Choose one package for this run. Passenger and courier payouts stay the same; handling, boost rhythm, and drift scoring can change."}
       </p>
       <div className="driver-traits__grid" role="list" aria-label="Driving trait packages">

@@ -1,12 +1,10 @@
 import type { Game, Mode } from "@/game/model";
 
-export const FARE_TRACKS = [4, 5, 6, 7, 8] as const;
-export const MUSIC_IDLE_SECONDS = 30;
-export const MUSIC_FADE_SECONDS = 3;
+export const MUSIC_TRACKS = [1, 2, 4, 5, 6, 7, 8] as const;
 const MUSIC_VOLUME = 0.38;
 
-export function shuffledFareTracks(random = Math.random): number[] {
-  const tracks: number[] = [...FARE_TRACKS];
+export function shuffledMusicTracks(random = Math.random): number[] {
+  const tracks: number[] = [...MUSIC_TRACKS];
   for (let i = tracks.length - 1; i > 0; i--) {
     const j = Math.floor(random() * (i + 1));
     [tracks[i], tracks[j]] = [tracks[j], tracks[i]];
@@ -14,24 +12,16 @@ export function shuffledFareTracks(random = Math.random): number[] {
   return tracks;
 }
 
-/** One player, one shuffled deck per run; no overlap with venue/menu music. */
+/** Start with the run, then repeat its shuffled playlist regardless of gameplay. */
 export class BackgroundMusic {
   private audio: HTMLAudioElement;
   private game: Game | null = null;
   private order: number[] = [];
   private cursor = 0;
-  private fareTrack: number | null = null;
-  private onboard = false;
   private current: number | null = null;
-  private desired: number | null = null;
-  private paused = false;
   private pending = false;
   private disposed = false;
   private blocked = false;
-  private farePosition = 0;
-  private idleSince = 0;
-  private streetStarted = false;
-  private volume = MUSIC_VOLUME;
   private gain: GainNode | null = null;
   private source: MediaElementAudioSourceNode | null = null;
 
@@ -44,58 +34,34 @@ export class BackgroundMusic {
     this.audio = existing ?? new Audio();
     this.setVolume(MUSIC_VOLUME);
     this.audio.preload = "auto";
+    this.audio.loop = false;
     this.audio.addEventListener("ended", this.ended);
-    if (typeof window !== "undefined") {
-      this.desired = 2;
-      if (this.audio.src.includes("bgm_02.mp3") && !this.audio.paused) {
-        this.current = 2;
-      } else {
-        this.sync();
-      }
-    }
   }
 
   private ended = () => {
-    if (this.current !== null && this.current >= 4 && this.desired !== null) {
-      this.fareTrack = this.nextFare();
-      this.desired = this.fareTrack;
+    if (!this.disposed && this.current !== null) {
+      this.cursor = (this.cursor + 1) % this.order.length;
+      this.selectTrack();
       this.sync();
     }
   };
 
-  private nextFare() {
-    this.farePosition = 0;
-    return this.order[this.cursor++ % this.order.length];
+  private selectTrack() {
+    this.current = this.order[this.cursor];
+    this.audio.src = `/music/bgm_${String(this.current).padStart(2, "0")}.mp3`;
+    this.audio.currentTime = 0;
   }
 
-  update(game: Game, mode: Mode, muted: boolean, hidden: boolean, selectingDriver = false) {
-    if (game !== this.game) {
+  update(game: Game, mode: Mode, muted: boolean) {
+    if (this.disposed) return;
+    // A fresh run is the only gameplay transition that changes the playlist.
+    if (game !== this.game && (mode === "countdown" || mode === "playing")) {
       this.game = game;
-      this.order = shuffledFareTracks(this.random);
+      this.order = shuffledMusicTracks(this.random);
       this.cursor = 0;
-      this.onboard = false;
-      this.fareTrack = null;
-      this.farePosition = 0;
-      this.idleSince = game.elapsed;
-      this.streetStarted = false;
+      this.selectTrack();
     }
-    if (mode === "playing" && !this.streetStarted) {
-      this.streetStarted = true;
-      this.idleSince = game.elapsed;
-      this.fareTrack = this.nextFare();
-    } else if (game.onboard && !this.onboard) this.fareTrack = this.nextFare();
-    if (game.onboard || this.onboard) this.idleSince = game.elapsed;
-    this.onboard = game.onboard;
-    const inside = game.player.kind === "walking" && game.player.location.kind === "interior";
-    // Game time freezes during pause/hidden tabs, so breaks don't consume the grace period.
-    const streetVolume = game.onboard ? 1
-      : Math.max(0, Math.min(1, 1 - (game.elapsed - this.idleSince - MUSIC_IDLE_SECONDS) / MUSIC_FADE_SECONDS));
-    this.desired = mode === "menu" || selectingDriver ? 2
-      : mode === "ended" || mode === "countdown" ? null
-      : inside ? 1 : streetVolume > 0 ? this.fareTrack : null;
-    this.paused = (mode === "paused" && !selectingDriver) || hidden;
     this.audio.muted = muted;
-    this.setVolume(MUSIC_VOLUME * (mode === "menu" || selectingDriver || inside ? 1 : streetVolume));
     this.sync();
   }
 
@@ -105,12 +71,11 @@ export class BackgroundMusic {
     this.blocked = false;
     const context = this.getContext();
     if (context && context.state !== "running" && context.state !== "closed") void context.resume().catch(() => {});
-    this.setVolume(this.volume);
+    this.setVolume(MUSIC_VOLUME);
     this.sync();
   };
 
   private setVolume(volume: number) {
-    this.volume = volume;
     const context = this.getContext();
     if (!this.gain && context && context.state !== "closed") {
       // iOS ignores HTMLMediaElement.volume; share the game's unlocked audio context.
@@ -136,18 +101,7 @@ export class BackgroundMusic {
   }
 
   private sync() {
-    if (this.disposed) return;
-    if (this.current !== this.desired) {
-      if (this.current !== null && this.current >= 4 && this.desired === 1) this.farePosition = this.audio.currentTime;
-      this.audio.pause();
-      this.current = this.desired;
-      if (this.current !== null) {
-        this.audio.src = `/music/bgm_${String(this.current).padStart(2, "0")}.mp3`;
-        this.audio.loop = this.current < 4;
-        this.audio.currentTime = this.current >= 4 ? this.farePosition : 0;
-      }
-    }
-    if (this.current === null || this.paused) { this.audio.pause(); return; }
+    if (this.disposed || this.current === null) return;
     if (this.audio.paused && !this.pending && !this.blocked) {
       this.pending = true;
       void this.audio.play().catch((error: unknown) => {

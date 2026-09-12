@@ -1,0 +1,20 @@
+{
+  "generator": "OpenAI builtin image_gen.imagegen",
+  "atlasSize": [
+    1536,
+    1024
+  ],
+  "processing": "WebP quality 90, no crop or resize",
+  "assets": [
+    {
+      "file": "/fare-passengers-29.webp",
+      "prompt": "Use case: illustration-story. Asset type: final game passenger sprite atlas. Create one landscape 1536x1024 image containing EXACTLY 6 distinct square portraits in a perfectly regular 3-column by 2-row grid, each cell 512x512, no gutters, no borders. Arcade taxi game heavy industrial region Ironwake Works. Match a bold faceted low-poly comic illustration style: angular triangular color planes, ink-dark outlines, warm amber rim lighting, teal shadows, very dark nearly black backgrounds. Waist-up colorful adult characters, centered separately within their square cell, whole heads/hats visible, each visually distinct and friendly/confident. Row-major identities: 1 elderly white steelworker with grey moustache and orange hardhat, navy overalls; 2 Black woman refinery process engineer with clear safety glasses, yellow hardhat and teal coveralls; 3 East Asian male port dispatcher in a bright orange reflective vest, headset and short black hair; 4 Latina shipyard welder with lifted welding visor and burgundy leather work jacket; 5 South Asian woman salvage mechanic with tied-up dark hair, amber bandana, grease-marked cheeks, purple work shirt; 6 burly Black tugboat captain with grey beard, navy knit cap and ochre deck jacket. Strong readable faces at thumbnail size, expressive individual poses, detailed work clothing. No text, no labels, no lettering, no watermark. Six separate portraits only. Exact evenly divided grid required for CSS sprites.",
+      "variantCount": 1
+    },
+    {
+      "file": "/fare-destinations-17.webp",
+      "prompt": "Use case: illustration-story. Asset type: final game destination sprite atlas. Create one landscape 1536x1024 image containing EXACTLY 6 square scenes in a perfectly regular 3-column by 2-row grid, each cell 512x512, no gutters, no borders. Arcade taxi game heavy industrial region Ironwake Works. Bold low-poly faceted comic concept art with angular architecture, black ink shadows, vivid amber/orange/cyan accents, halftone sunburst sky graphics, dramatic perspective. Each cell is a separately composed landmark with its main silhouette centered and visible. Row-major cells: 1 enormous rusty red steelworks with continuous sawtooth roof, blast furnaces, striped smokestacks and glowing orange foundry windows; 2 complex oil refinery with silver distillation columns, domed round storage tanks, yellow pipe racks and two tall orange flares; 3 working deepwater container port with massive teal-and-yellow ship-to-shore gantry cranes, colorful cargo containers and a red-hulled container ship; 4 heavy shipyard with a huge unfinished grey-and-red ocean-going vessel in a flooded dry dock beneath towering orange gantry cranes, scaffolding; 5 sprawling junkyard with crushed car towers, a yellow car crusher, giant magnet crane and rusty scrap heaps; 6 cozy stainless steel shift-workers diner with orange neon roof trim, coffee and chrome accents, with distant industrial silhouettes. Distinct sophisticated compositions, strong architecture, eye-level or modest elevated view. No text, no logos, no labels, no watermark. Exact evenly divided grid required for CSS sprites.",
+      "variantCount": 1
+    }
+  ]
+}

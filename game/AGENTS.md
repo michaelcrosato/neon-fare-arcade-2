@@ -33,6 +33,10 @@ fixed-step cadence and returns semantic events.
   `reach-distant.ts`, and `reach-scenery.ts` own geometry and animation. Solana Coast owns its data,
   shore, and builders in `coastal.ts`; shared shore coordinates live in
   `coastal-layout.ts`.
+- Ironwake's harbor, campuses and grid: `industrial-layout.ts`; freight roads:
+  `industrial-roads.ts`; lots and meshes: `industrial.ts`, `industrial-assets.ts`;
+  shared water and skyline: `industrial-landscape.ts`; machinery animation:
+  `industrial-scenery.ts`; neighbor grades: `terrain/industrial-forms.ts`.
 - Neon City street/green policy: `city-layout.ts`; curves: `city-roads.ts`;
   landforms: `terrain/city-forms.ts`; architecture and public realm:
   `city-assets.ts`, `city-buildings.ts`, `city-ground.ts`, `city-landmarks.ts`.

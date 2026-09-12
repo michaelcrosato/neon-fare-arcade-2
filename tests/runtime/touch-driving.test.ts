@@ -213,10 +213,15 @@ test("wheel return mode tracks rotation across 360° boundary, clamps to 630°, 
   touch.tick(1.0, 0);
   assert.ok(Math.abs(touch.snapshot().wheel.angle - 370) < 0.1);
 
-  // Auto-center at top road speed: rate = 260 * 1.65 = 429°/s
-  // In 1 second: 370 - 429 <= 0 -> clamps to exactly 0
+  // The established 180 km/h centering reference is independent of boost caps.
+  touch.tick(0.5, 90 / 3.1);
+  assert.ok(Math.abs(touch.snapshot().wheel.angle - 197.75) < 0.1);
+  touch.tick(0.1, 180 / 3.1);
+  assert.ok(Math.abs(touch.snapshot().wheel.angle - 154.85) < 0.1);
+  touch.tick(0.1, 330 / 3.1);
+  assert.ok(Math.abs(touch.snapshot().wheel.angle - 111.95) < 0.1);
+  // Full return rate remains capped at 429°/s even under boost.
   touch.tick(1.0, TAXI_TOP_SPEED_WORLD_UNITS);
   assert.equal(touch.snapshot().wheel.angle, 0);
   assert.equal(touch.input().steer, 0);
 });
-

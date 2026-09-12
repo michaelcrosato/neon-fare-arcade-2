@@ -29,7 +29,7 @@ for (const renderer of ["WebGPU", "Canvas 2D"] as const) for (const mobile of [f
       const badge = page.locator(".navigation-distance");
       await expect(badge).toBeVisible();
       await expect(badge).toBeInViewport({ ratio: 1 });
-      await expect(badge.locator("strong")).toHaveText("868m");
+      await expect(badge.locator("strong")).toHaveText("48m");
       await expect(badge.locator("small")).toHaveText("TO DESTINATION");
       const meters = page.locator(mobile ? ".mobile-speed" : ".hud-top");
       const labelBounds = (await badge.boundingBox())!, meterBounds = (await meters.boundingBox())!;

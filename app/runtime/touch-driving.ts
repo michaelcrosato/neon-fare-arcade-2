@@ -1,5 +1,5 @@
 import type { InputState } from "@/game/model";
-import { TAXI_TOP_SPEED_WORLD_UNITS } from "@/game/config";
+import { SPEED_KMH_PER_WORLD_UNIT } from "@/game/config";
 
 export type SteeringMode = "default" | "joystick" | "wheel";
 
@@ -19,6 +19,8 @@ export const JOYSTICK_BRAKE_DEADZONE = 0.12; // 12% neutral deadzone for brake
 export const WHEEL_MAX_ANGLE_DEG = 630;
 export const WHEEL_BASE_RETURN_RATE_DEG_S = 260;
 export const WHEEL_SPEED_RETURN_BOOST = 0.65;
+// Keep wheel centering stable when the arcade boost ceiling changes.
+const WHEEL_FULL_RETURN_SPEED = 180 / SPEED_KMH_PER_WORLD_UNIT;
 
 export type TouchDrivingSnapshot = {
   mode: SteeringMode;
@@ -183,7 +185,7 @@ export class TouchDriving {
   tick(dt: number, speed = 0) {
     // When released, wheel returns toward center (0°)
     if (this.mode === "wheel" && !this.wheelHolding && this.wheelAngle !== 0) {
-      const speedRatio = Math.min(1, Math.max(0, speed / TAXI_TOP_SPEED_WORLD_UNITS));
+      const speedRatio = Math.min(1, Math.max(0, speed / WHEEL_FULL_RETURN_SPEED));
       const returnRate = WHEEL_BASE_RETURN_RATE_DEG_S * (1 + WHEEL_SPEED_RETURN_BOOST * speedRatio);
       const step = returnRate * dt;
       if (Math.abs(this.wheelAngle) <= step) {

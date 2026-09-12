@@ -55,7 +55,7 @@ for (const mobile of [false, true]) test(`coastal GPS shows terrain and altitude
   });
   const map = page.locator("#coast-map-fixture");
   // GPS tracks the parked taxi: the 72-unit terrace plus its 0.64-unit road surface.
-  await expect(map.getByLabel("Altitude")).toContainText("ELEV 1,308 m");
+  await expect(map.getByLabel("Altitude")).toContainText("ELEV 73 m");
   await expect(map.locator('[data-map-layer="coast-terrain"]')).toBeVisible();
   await map.getByRole("button", { name: "W · COAST", exact: true }).click();
   await expect(map.locator('[data-map-layer="coast-canals"]')).toBeVisible();

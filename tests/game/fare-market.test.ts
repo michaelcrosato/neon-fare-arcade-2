@@ -63,7 +63,7 @@ test("fare markets are deterministic by seed while procedural geography varies",
 test("fare cycles retain six unique riders from the expanded citywide roster", () => {
   assert.equal(FARES_PER_CYCLE, 6);
   assert.equal(ALL_FARES_MASK, 0b111111);
-  assert.equal(FARE_RIDERS.length, 168);
+  assert.equal(FARE_RIDERS.length, 174);
   assert.equal(SHARED_FARE_RIDERS.length, 48);
   assert.equal(new Set(FARE_RIDERS.map((rider) => rider.id)).size, FARE_RIDERS.length);
   assert.equal(new Set(FARE_RIDERS.map((rider) => rider.rider)).size, FARE_RIDERS.length);

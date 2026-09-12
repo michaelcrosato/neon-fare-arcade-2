@@ -89,7 +89,7 @@ export function GameOptionsPanel({
                 <span>{muted ? "🔇" : "🔊"}</span>
                 <div>
                   <strong>{muted ? "AUDIO MUTED" : "AUDIO ON"}</strong>
-                  <small>{muted ? "Sound effects and background music disabled" : "Stereo dynamic BGM, engine sound and arcade SFX active"}</small>
+                  <small>{muted ? "Sound effects and background music disabled" : "Looping shuffled music, engine sound and arcade SFX active"}</small>
                 </div>
               </button>
             </div>

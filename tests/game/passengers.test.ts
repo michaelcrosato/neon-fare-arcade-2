@@ -16,6 +16,7 @@ import {
   NORTHSTAR_RANGE_FARE_RIDERS,
   SHARED_FARE_RIDERS,
   SOLANA_COAST_FARE_RIDERS,
+  IRONWAKE_FARE_RIDERS,
   eligibleFareRiders,
   selectFareRiders,
   type FareRiderHistoryByRegion,
@@ -30,6 +31,7 @@ const northstar = ACTIVE_WORLD_REGIONS.find((region) => region.id === "northstar
 const copperMesa = ACTIVE_WORLD_REGIONS.find((region) => region.id === "copper-mesa")!;
 const solanaCoast = ACTIVE_WORLD_REGIONS.find((region) => region.id === "solana-coast")!;
 const cypressReach = ACTIVE_WORLD_REGIONS.find((region) => region.id === "cypress-reach")!;
+const ironwake = ACTIVE_WORLD_REGIONS.find((region) => region.id === "ironwake-works")!;
 
 function selectedIds(
   region: WorldRegion,
@@ -56,16 +58,17 @@ function selectedIds(
   return { markets, resets, usedFareRiderIdsByRegion };
 }
 
-test("the expanded cast contains 48 shared riders and five 24-rider regional casts", () => {
+test("the expanded cast includes six Ironwake workers alongside all existing regional riders", () => {
   assert.equal(SHARED_FARE_RIDERS.length, 48);
   assert.equal(CEDAR_VALE_FARE_RIDERS.length, 24);
   assert.equal(NORTHSTAR_RANGE_FARE_RIDERS.length, 24);
   assert.equal(COPPER_MESA_FARE_RIDERS.length, 24);
   assert.equal(CYPRESS_REACH_FARE_RIDERS.length, 24);
   assert.equal(SOLANA_COAST_FARE_RIDERS.length, 24);
-  assert.equal(FARE_RIDERS.length, 168);
-  assert.equal(PASSENGER_ART_CELL_COUNT, 168);
-  assert.equal(DESTINATION_ART_CELL_COUNT, 96);
+  assert.equal(IRONWAKE_FARE_RIDERS.length, 6);
+  assert.equal(FARE_RIDERS.length, 174);
+  assert.equal(PASSENGER_ART_CELL_COUNT, 174);
+  assert.equal(DESTINATION_ART_CELL_COUNT, 102);
   assert.equal(new Set(FARE_RIDERS.map((rider) => rider.id)).size, FARE_RIDERS.length);
   assert.equal(new Set(FARE_RIDERS.map((rider) => rider.rider)).size, FARE_RIDERS.length);
   assert.deepEqual(
@@ -135,6 +138,7 @@ test("each regional deck exhausts at least half its eligible cast before reuse",
     [copperMesa, 6, 36],
     [cypressReach, 6, 36],
     [solanaCoast, 6, 36],
+    [ironwake, 5, 30],
   ] as const) {
     const result = selectedIds(region, freshCycles + 1);
     const protectedIds = result.markets.slice(0, freshCycles).flat();
@@ -154,6 +158,24 @@ test("each regional deck exhausts at least half its eligible cast before reuse",
       "adjacent markets should not repeat even when the 50% window resets",
     );
   }
+});
+
+test("Ironwake workers appear only in their pickup region and preserve independent return history", () => {
+  assert.deepEqual(eligibleFareRiders(ironwake), [...SHARED_FARE_RIDERS, ...IRONWAKE_FARE_RIDERS]);
+  const workerIds = new Set<string>(IRONWAKE_FARE_RIDERS.map(r => r.id));
+  for (const region of ACTIVE_WORLD_REGIONS.filter(r => r.id !== ironwake.id)) {
+    assert.equal(eligibleFareRiders(region).some(r => workerIds.has(r.id)), false);
+  }
+  const sweep = selectedIds(ironwake, 20).markets.flat();
+  for (const id of workerIds) assert.ok(sweep.includes(id), id);
+  const first = selectFareRiders({ runSeed: 1704, cycle: 0, region: ironwake, usedFareRiderIdsByRegion: {}, previousRiderIds: [] });
+  const away = selectFareRiders({ runSeed: 1704, cycle: 1, region: solanaCoast,
+    usedFareRiderIdsByRegion: first.usedFareRiderIdsByRegion, previousRiderIds: first.riders.map(r => r.id) });
+  const back = selectFareRiders({ runSeed: 1704, cycle: 2, region: ironwake,
+    usedFareRiderIdsByRegion: away.usedFareRiderIdsByRegion, previousRiderIds: away.riders.map(r => r.id) });
+  assert.equal(back.riders.some(r => first.riders.some(old => old.id === r.id)), false);
+  assert.equal(back.usedFareRiderIdsByRegion[ironwake.id]?.length, 12);
+  assert.deepEqual(back.usedFareRiderIdsByRegion[solanaCoast.id], away.usedFareRiderIdsByRegion[solanaCoast.id]);
 });
 
 test("regional histories persist independently through a City-Cedar-City round trip", () => {
@@ -188,7 +210,7 @@ test("regional histories persist independently through a City-Cedar-City round t
   assert.equal(secondCity.usedFareRiderIdsByRegion[cedar.id]?.length, 6);
 });
 
-test("passenger art scales to twenty-eight portrait sheets and six destination sheets", () => {
+test("passenger art scales to twenty-nine portrait sheets and seventeen destination sheets", () => {
   assert.deepEqual(fareArtFrame(143), { sheet: 23, backgroundPosition: "100% 100%" });
   assert.equal(fareArtAsset("pickup", 0), "/fare-passengers.webp");
   assert.equal(fareArtAsset("pickup", 15), "/fare-passengers-16.webp");
@@ -203,11 +225,11 @@ test("passenger art scales to twenty-eight portrait sheets and six destination s
     passengerAssets.push(asset);
     assert.equal(existsSync(new URL(`../../public${asset}`, import.meta.url)), true, asset);
   }
-  assert.equal(new Set(passengerAssets).size, 28);
+  assert.equal(new Set(passengerAssets).size, 29);
   const passengerHashes = passengerAssets.map((asset) => createHash("sha256")
     .update(readFileSync(new URL(`../../public${asset}`, import.meta.url)))
     .digest("hex"));
-  assert.equal(new Set(passengerHashes).size, 28, "every passenger sheet should contain distinct physical art");
+  assert.equal(new Set(passengerHashes).size, 29, "every passenger sheet should contain distinct physical art");
   for (let sheet = 0; sheet < DESTINATION_ART_CELL_COUNT / 6; sheet += 1) {
     const asset = fareArtAsset("dropoff", sheet);
     assert.equal(existsSync(new URL(`../../public${asset}`, import.meta.url)), true, asset);
@@ -223,5 +245,5 @@ test("in-world passenger appearance is stable by rider identity rather than fare
     farePassengerAppearance(37),
     "appearance lookup should be memoized and stable",
   );
-  assert.ok(new Set(appearances).size >= 90, "the 168 riders need substantial world variety");
+  assert.ok(new Set(appearances).size >= 90, "the 174 riders need substantial world variety");
 });

@@ -469,7 +469,7 @@ export function stepGame(
   forwardSpeed -= Math.sign(forwardSpeed) * Math.min(Math.abs(forwardSpeed), drag * dt);
   const overdriveActive = game.boosting && hasRunUpgrade(game, "boost-overdrive");
   const requestedMaxSpeed = overdriveActive
-    ? drivingTrait.maxForwardSpeed + BOOST_OVERDRIVE_BONUS_WORLD_UNITS
+    ? drivingTrait.maxBoostSpeed + BOOST_OVERDRIVE_BONUS_WORLD_UNITS
     : (game.boosting ? drivingTrait.maxBoostSpeed : drivingTrait.maxForwardSpeed);
   const maxSpeed = Math.min(
     overdriveActive ? BOOST_OVERDRIVE_TOP_SPEED_WORLD_UNITS : TAXI_TOP_SPEED_WORLD_UNITS,

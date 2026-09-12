@@ -3,20 +3,34 @@ import { localPoint } from "../math";
 import type { Camera, Game } from "../model";
 import { isDriving, isInterior } from "../player";
 import { CAB_EYE_HEIGHT, cabViewMatrix } from "./cab-camera";
-import { lookAt, mat4Multiply, orthoZO, perspectiveSkyView, perspectiveZO } from "./camera";
+import { chaseCameraEyeHeight, lookAt, mat4Multiply, MOBILE_CAB_ANCHOR_Z, orthoZO, perspectiveSkyView, perspectiveZO } from "./camera";
 
 export function requestedChaseBoom(camera: Camera) {
   if (camera.mode !== "chase-high" && camera.mode !== "chase-low") return 0;
   return chaseCameraPreset(camera.mode, camera.onFoot).distance * cameraDistanceScale(camera.distanceScale);
 }
 
-export function cameraFraming(game: Game, camera: Camera) {
+export function cameraFraming(game: Game, camera: Camera, aspect = 1) {
   const scale = isInterior(game) ? 1 : cameraDistanceScale(camera.distanceScale);
   if (camera.mode === "fixed") {
+    const halfHeight = 20 * scale / camera.zoom;
+    let x = camera.x, y = camera.y, z = camera.heightOffset;
+    if (camera.mobile && isDriving(game)) {
+      const forwardX = Math.cos(camera.heading), forwardY = Math.sin(camera.heading);
+      const basis = lookAt([25, 25, 29], [0, 0, 0]);
+      const screenX = -(basis[0] * forwardX + basis[4] * forwardY) / aspect;
+      const screenY = basis[1] * forwardX + basis[5] * forwardY;
+      // Shift toward the cab's projected heading, including left/right travel.
+      // The cab stays a quarter-screen from the trailing edge at every zoom.
+      const lead = halfHeight * 0.5 / Math.max(Math.abs(screenX), Math.abs(screenY));
+      x += forwardX * lead;
+      y += forwardY * lead;
+      z += MOBILE_CAB_ANCHOR_Z;
+    }
     return {
-      eye: [camera.x + 25 * scale, camera.y + 25 * scale, 29 * scale + camera.heightOffset] as [number, number, number],
-      target: [camera.x, camera.y, camera.heightOffset] as [number, number, number],
-      orthoHalfHeight: 20 * scale / camera.zoom,
+      eye: [x + 25 * scale, y + 25 * scale, z + 29 * scale] as [number, number, number],
+      target: [x, y, z] as [number, number, number],
+      orthoHalfHeight: halfHeight,
     };
   }
   if (camera.mode === "cab") {
@@ -33,20 +47,22 @@ export function cameraFraming(game: Game, camera: Camera) {
   const preset = chaseCameraPreset(camera.mode, camera.onFoot);
   const forwardX = Math.cos(camera.heading);
   const forwardY = Math.sin(camera.heading);
-  const height = 1.65 + (preset.height - 1.65) * camera.boom / preset.distance + camera.heightOffset;
+  const height = chaseCameraEyeHeight(camera) + camera.heightOffset;
   return {
     eye: [camera.x - forwardX * camera.boom, camera.y - forwardY * camera.boom, height] as [number, number, number],
     target: [
       camera.x + forwardX * preset.lookAhead,
       camera.y + forwardY * preset.lookAhead,
-      preset.targetZ + camera.heightOffset,
+      camera.mobile && isDriving(game)
+        ? height - (camera.boom + preset.lookAhead) * Math.tan(perspectiveSkyView(camera)!.pitch)
+        : preset.targetZ + camera.heightOffset,
     ] as [number, number, number],
     orthoHalfHeight: null as number | null,
   };
 }
 
 export function viewProjection(game: Game, camera: Camera, aspect: number, drawDistance: number) {
-  const framing = cameraFraming(game, camera);
+  const framing = cameraFraming(game, camera, aspect);
   let projection: Float32Array;
   let view: Float32Array;
   if (camera.mode === "fixed") {

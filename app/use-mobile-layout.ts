@@ -3,7 +3,7 @@
 import { useSyncExternalStore } from "react";
 
 // Keep this query in sync with the mobile section of 80-accessibility-motion-responsive.css.
-const MOBILE_QUERY = "(max-width: 820px), (pointer: coarse)";
+export const MOBILE_QUERY = "(max-width: 820px), (pointer: coarse)";
 function subscribe(callback: () => void) {
   const media = window.matchMedia(MOBILE_QUERY);
   media.addEventListener("change", callback);

@@ -55,9 +55,8 @@ test("a service pause stops catch-up ticks and discards paused frame time", (con
     queueMicrotask,
   });
   output.useGameRuntime({
-    canvas2dRef: ref({}), webGpuCanvasRef: ref({}), gameRef: ref(game),
+    canvas2dRef: ref({ closest: () => null }), webGpuCanvasRef: ref({}), gameRef: ref(game),
     passengerReviewRef: ref(null), taxiExitRef: ref(null), navigationDistanceRef: ref(null),
-    selectingDriverRef: ref(false),
     cameraRef: ref({ x: 0, y: 0, heading: 0, mode: "fixed", zoom: 1, heightOffset: 0 }),
     cameraModeRef: ref("fixed"), inputRef: ref({}), touchDriving: new TouchDriving(),
     interactionPulseRef: ref(false), jumpPulseRef: ref(false), modeRef: mode,

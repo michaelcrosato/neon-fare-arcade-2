@@ -18,7 +18,7 @@ import { ACTIVE_WORLD_REGIONS } from "../../game/regions";
 
 test("regional GPS reserves one stable 3x3 footprint before all nine regions exist", () => {
   assert.equal(REGIONAL_MAP_SLOTS.length, 9);
-  assert.equal(REGIONAL_MAP_SLOTS.filter((slot) => slot.activeRegion).length, 6);
+  assert.equal(REGIONAL_MAP_SLOTS.filter((slot) => slot.activeRegion).length, 7);
   assert.deepEqual(REGIONAL_MAP_PLANNED_BOUNDS, {
     minX: -2376,
     maxX: 2376,

@@ -1,4 +1,5 @@
 import type { DrivingModel, RunKind } from "@/game/model";
+import { ACTIVE_WORLD_REGIONS } from "@/game/regions";
 
 type GameModeMenuProps = Readonly<{
   ready: boolean;
@@ -26,7 +27,7 @@ export function GameModeMenu({
           <p className="eyebrow">YOUR CITY. YOUR SHIFT.</p>
           <h1>NEON<br />FARE</h1>
         </div>
-        <p className="tagline">PASSENGERS. PARCELS. SIX REGIONS. NO BRAKES.</p>
+        <p className="tagline">PASSENGERS. PARCELS. {ACTIVE_WORLD_REGIONS.length} REGIONS. NO BRAKES.</p>
         <div className="start-mode-picker" role="group" aria-label="Choose game mode">
           <small>CHOOSE YOUR SHIFT</small>
           <div>
@@ -81,7 +82,7 @@ export function GameModeMenu({
         <div className="menu-meta">
           <span>{rendererKind}</span>
           <span>ARCADE + SIMULATION FREE RUN</span>
-          <span>6 REGIONS · CITY STREETS TO PACIFIC SURF</span>
+          <span>{ACTIVE_WORLD_REGIONS.length} REGIONS · CITY STREETS TO PACIFIC SURF</span>
           <span>BANK ${careerBank}</span>
           <span>BEST {best.toLocaleString().padStart(4, "0")}</span>
         </div>

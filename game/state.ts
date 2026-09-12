@@ -59,8 +59,12 @@ export function makeTraffic(): TrafficCar[] {
     [34, "arroyo-road"],
     [25, "blackwater-trace"],
     [35, "stormwall-levee-road"],
+    [36, "ironwake-freightway"],
+    [37, "copper-freight-link"],
+    [38, "ironwake-quay-road"],
+    [39, "magnet-king-loop"],
   ]);
-  return Array.from({ length: 36 }, (_, index) => {
+  return Array.from({ length: 40 }, (_, index) => {
     const horizontal = index % 2 === 0;
     let dir = (index % 4 < 2 ? 1 : -1) as 1 | -1;
     const road = (((index * 3) % 9) - 4) * ROAD_SPACING;

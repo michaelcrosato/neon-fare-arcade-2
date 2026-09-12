@@ -117,7 +117,7 @@ test("Palm Reach recycles the existing traffic roster onto its local streets and
     game.roadMotion.roadId = null;
     for (let tick = 0; tick < 300; tick++) {
       stepGame(game, idle, 1 / 60, stream.update(game.x, game.y, 1), () => 1);
-      assert.equal(game.traffic.length, 36);
+      assert.equal(game.traffic.length, 40);
       if (tick < 30 || tick % 15) continue;
       for (const car of game.traffic) {
         if (game.elapsed < car.activeAt || containingRegionForPosition(car.x, car.y)?.id !== "cypress-reach") continue;

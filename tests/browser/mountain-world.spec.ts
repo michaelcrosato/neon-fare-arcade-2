@@ -47,7 +47,7 @@ for (const mobile of [false, true]) test(`mountain GPS shows terrain and altitud
     window.mountainScene.map(true);
   });
   const map = page.locator("#mountain-map-fixture");
-  await expect(map.getByLabel("Altitude")).toContainText("ELEV 2,316 m");
+  await expect(map.getByLabel("Altitude")).toContainText("ELEV 129 m");
   await expect(map.locator('[data-map-layer="northstar-terrain"]')).toBeVisible();
   await map.getByRole("button", { name: "N · RANGE", exact: true }).click();
   await map.screenshot({ path: testInfo.outputPath("northstar-full-map.png") });

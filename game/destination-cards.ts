@@ -104,6 +104,12 @@ const ART_SUBJECTS = [
   ["Solana Spanish Revival courtyard homes", "residential"],
   ["Northstar roadside mountain motel", "hospitality"],
   ["Copper Mesa adobe main street shops", "retail"],
+  ["Vulcan sawtooth steelworks and blast furnaces", "industry"],
+  ["Blackline oil refinery and tank farms", "industry"],
+  ["Ironwake cargo ship and container gantry cranes", "waterfront", true],
+  ["Leviathan ship under construction in a flooded dry dock", "waterfront", true],
+  ["Magnet King salvage yard and car crusher", "industry"],
+  ["Shift Change chrome workers diner", "retail"],
 ] as const satisfies readonly ArtSubject[];
 
 export const DESTINATION_ART = ART_SUBJECTS.map((entry: ArtSubject, artCell) => ({
@@ -112,6 +118,16 @@ export const DESTINATION_ART = ART_SUBJECTS.map((entry: ArtSubject, artCell) => 
 
 type PlaceDetails = readonly [artCell: number, occasions: readonly [string, string, string]];
 const PLACE_DETAILS: Readonly<Record<string, PlaceDetails>> = {
+  "ironwake-gate": [7, ["SHIFT CHANGE", "PORT ARRIVAL", "CREW TRANSFER"]],
+  "vulcan-foundry": [96, ["STEELWORKER SHIFT", "FOUNDRY TOUR", "MILL CREW CHANGE"]],
+  "blackline-refinery": [97, ["REFINERY SHIFT", "PROCESS INSPECTION", "ENGINEERING CALL"]],
+  "ironwake-container-port": [98, ["CARGO DISPATCH", "DOCK CREW CHANGE", "FREIGHT ARRIVAL"]],
+  "leviathan-drydock": [99, ["SHIPYARD SHIFT", "VESSEL INSPECTION", "WELDING CREW CALL"]],
+  "magnet-salvage": [100, ["SALVAGE AUCTION", "PARTS COLLECTION", "CRUSHER CREW CHANGE"]],
+  "freight-exchange": [2, ["FREIGHT DISPATCH", "RAIL CREW CHANGE", "WAREHOUSE SHIFT"]],
+  "shift-change-diner": [101, ["COFFEE BREAK", "AFTER-SHIFT SUPPER", "EARLY BIRD BREAKFAST"]],
+  "ironwake-truck-stop": [26, ["FUEL STOP", "TRUCKER BREAK", "SERVICE CALL"]],
+  "breakwater-watch": [34, ["HARBOR WATCH", "SHIP-SPOTTING WALK", "BREAKWATER SUNSET"]],
   "marina-arcade": [84, ["HIGH-SCORE NIGHT", "PINBALL TOURNAMENT", "ARCADE MEETUP"]],
   "apex-hotel": [1, ["HOTEL CHECK-IN", "ROOFTOP RECEPTION", "BREAKFAST MEETING"]],
   "south-terminal": [85, ["INTERCITY DEPARTURE", "LAST BUS HOME", "ARRIVALS MEETUP"]],

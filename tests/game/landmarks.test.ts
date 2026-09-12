@@ -148,6 +148,8 @@ test("flagship campuses replace only their internal grid streets", () => {
     "citrus-house",
     "surf-pavilion",
     "sunset-bowl",
+    "ironwake-gate", "vulcan-foundry", "ironwake-container-port", "blackline-refinery", "leviathan-drydock",
+    "magnet-salvage", "freight-exchange", "shift-change-diner", "ironwake-truck-stop", "breakwater-watch",
   ]);
   for (const campus of WORLD_CAMPUSES) {
     let closedSegments = 0;
@@ -191,7 +193,9 @@ test("flagship campuses replace only their internal grid streets", () => {
     if (campus.height > 1) {
       assert.equal(gridStreetPointEnabled({ x: (campus.originX + 0.5) * ROAD_SPACING, y: horizontalY }, "horizontal"), false);
     }
-    if (campus.source !== "mountain" && campus.source !== "desert" && campus.source !== "wetland" && campus.source !== "coastal") {
+    // Dense city and suburban parcels have a street on every side. Industrial
+    // docks, like the other sparse regions, can have water along a perimeter.
+    if (campus.source === "city" || campus.source === "residential") {
       assert.equal(isRoadSurface({ x: campus.originX * ROAD_SPACING, y: (campus.originY + 0.5) * ROAD_SPACING }), true);
       assert.equal(isRoadSurface({ x: (campus.originX + 0.5) * ROAD_SPACING, y: campus.originY * ROAD_SPACING }), true);
     }

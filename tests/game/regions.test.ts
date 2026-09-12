@@ -45,7 +45,7 @@ import {
   lotForBlock,
 } from "../../game/world";
 
-test("the active region registry reserves nine compass cells and activates five square regions and the extended southeast", () => {
+test("the active region registry reserves nine compass cells and activates six square regions and the extended southeast", () => {
   assert.equal(WORLD_REGION_SLOTS.length, 9);
   assert.equal(new Set(WORLD_REGION_SLOTS.map((slot) => slot.direction)).size, 9);
   assert.deepEqual(ACTIVE_WORLD_REGIONS.map((region) => ({
@@ -60,10 +60,11 @@ test("the active region registry reserves nine compass cells and activates five 
     { id: "copper-mesa", direction: "S", width: 11, height: 11 },
     { id: "cypress-reach", direction: "SE", width: 11, height: 18 },
     { id: "solana-coast", direction: "W", width: 11, height: 11 },
+    { id: "ironwake-works", direction: "SW", width: 11, height: 11 },
   ]);
   const active = activeChunkCoordinates();
-  assert.equal(active.length, 803);
-  assert.equal(new Set(active.map(([cx, cy]) => `${cx},${cy}`)).size, 803);
+  assert.equal(active.length, 924);
+  assert.equal(new Set(active.map(([cx, cy]) => `${cx},${cy}`)).size, 924);
   assert.equal(isActiveChunk(-5, -5), true);
   assert.equal(isActiveChunk(16, 5), true);
   assert.equal(isActiveChunk(0, -6), true);
@@ -92,7 +93,7 @@ test("the active region registry reserves nine compass cells and activates five 
   );
   assert.deepEqual(
     activeCardinalNeighborRegions("copper-mesa").map((region) => region.id),
-    ["city-center", "cypress-reach"],
+    ["city-center", "ironwake-works", "cypress-reach"],
   );
   assert.deepEqual(
     activeCardinalNeighborRegions("cypress-reach").map((region) => region.id),
@@ -100,7 +101,7 @@ test("the active region registry reserves nine compass cells and activates five 
   );
 });
 
-test("playable containment activates southeast and west without inventing northeast or southwest regions", () => {
+test("playable containment activates southern and western regions without inventing northeast or northwest land", () => {
   assert.equal(containingRegionForPosition(791, 0)?.id, "city-center");
   assert.equal(containingRegionForPosition(793, 0)?.id, "cedar-vale");
   assert.equal(isPlayablePoint(2300, 0), true);
@@ -109,6 +110,8 @@ test("playable containment activates southeast and west without inventing northe
   assert.equal(isPlayablePoint(0, 1000), true);
   assert.equal(containingRegionForPosition(1000, 1000)?.id, "cypress-reach");
   assert.equal(isPlayablePoint(-1000, 0), true);
+  assert.equal(containingRegionForPosition(-1000, 1000)?.id, "ironwake-works");
+  assert.equal(isPlayablePoint(-1000, -1000), false);
   assert.deepEqual(
     clampPointToActiveRegions({ x: WORLD_MAX_X + 100, y: 0 }, 2.4),
     { x: WORLD_MAX_X - 2.4, y: 0 },
@@ -232,7 +235,7 @@ test("Palm Reach owns a deterministic peninsula lot deck and ten regional anchor
   assert.equal(new Set(CYPRESS_REACH_ANCHORS.map((anchor) => anchor.id)).size, 10);
 });
 
-test("all 803 chunks and every live regional window stay inside hard budgets", () => {
+test("all 924 chunks and every live regional window stay inside hard budgets", () => {
   const stream = new CityStream();
   let maxBoxes = 0;
   let maxColliders = 0;

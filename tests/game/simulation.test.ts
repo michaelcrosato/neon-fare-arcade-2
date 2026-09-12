@@ -453,8 +453,8 @@ test("a boosted drift on a corridor respects the package speed cap", () => {
     game.y = sample.point.y;
     game.z = sample.point.z + 0.64;
     game.heading = sample.heading;
-    game.vx = Math.cos(sample.heading) * 100 + Math.sin(sample.heading) * 60;
-    game.vy = Math.sin(sample.heading) * 100 - Math.cos(sample.heading) * 60;
+    game.vx = Math.cos(sample.heading) * 200 + Math.sin(sample.heading) * 60;
+    game.vy = Math.sin(sample.heading) * 200 - Math.cos(sample.heading) * 60;
     game.steering = 1;
     game.drifting = true;
     game.driftIntensity = 0.6;
@@ -481,16 +481,17 @@ test("Boost Overdrive adds exactly 60 km/h of same-road boosted headroom", () =>
     y: number,
     heading: number,
     boosting: boolean,
+    overdrive = true,
   ) => {
-    const game = makeGame(drivingTraitId);
+    const game = makeGame(drivingTraitId, 20260912);
     game.traffic = [];
-    game.installedUpgrades = ["boost-overdrive"];
+    game.installedUpgrades = overdrive ? ["boost-overdrive"] : [];
     game.x = x;
     game.y = y;
     game.z = groundAt({ x, y, z: 100 }).height;
     game.heading = heading;
-    game.vx = Math.cos(heading) * 100;
-    game.vy = Math.sin(heading) * 100;
+    game.vx = Math.cos(heading) * 200;
+    game.vy = Math.sin(heading) * 200;
     game.boost = 100;
     stepGame(game, { ...IDLE_INPUT, boost: boosting }, FIXED_DT, EMPTY_WORLD, () => 1);
     return game.speed * SPEED_KMH_PER_WORLD_UNIT;
@@ -501,14 +502,18 @@ test("Boost Overdrive adds exactly 60 km/h of same-road boosted headroom", () =>
     const streetBoost = cappedSpeed(trait.id, 0, 0, 0, true);
     const highwayNormal = cappedSpeed(trait.id, highway.point.x, highway.point.y, highway.heading, false);
     const highwayBoost = cappedSpeed(trait.id, highway.point.x, highway.point.y, highway.heading, true);
-    approximate(streetBoost - streetNormal, BOOST_OVERDRIVE_BONUS_KMH);
-    approximate(highwayBoost - highwayNormal, BOOST_OVERDRIVE_BONUS_KMH);
+    const stockStreetBoost = cappedSpeed(trait.id, 0, 0, 0, true, false);
+    const stockHighwayBoost = cappedSpeed(trait.id, highway.point.x, highway.point.y, highway.heading, true, false);
+    approximate(streetBoost - stockStreetBoost, BOOST_OVERDRIVE_BONUS_KMH);
+    approximate(highwayBoost - stockHighwayBoost, BOOST_OVERDRIVE_BONUS_KMH);
+    approximate(stockStreetBoost, streetNormal * 2);
+    approximate(stockHighwayBoost, highwayNormal * 2);
     approximate(highwayNormal, streetNormal);
     approximate(highwayBoost, streetBoost);
   }
   approximate(
     cappedSpeed("redline-rush", highway.point.x, highway.point.y, highway.heading, true),
-    165 + BOOST_OVERDRIVE_BONUS_KMH,
+    330 + BOOST_OVERDRIVE_BONUS_KMH,
   );
 });
 
@@ -626,7 +631,8 @@ test("high-speed and glancing building impacts rebound once and preserve wall sl
   topSpeed.heading = 0;
   topSpeed.vx = TAXI_TOP_SPEED_WORLD_UNITS;
   topSpeed.vy = 0;
-  assert.deepEqual(stepGame(topSpeed, IDLE_INPUT, FIXED_DT, world, () => 1), [{ type: "building-collision" }]);
+  topSpeed.boost = 100;
+  assert.deepEqual(stepGame(topSpeed, { ...IDLE_INPUT, boost: true }, FIXED_DT, world, () => 1), [{ type: "building-collision" }]);
   assert.ok(topSpeed.vx < 0, "the top-speed rebound must point away from the facade");
   assert.equal(Boolean(taxiHitsBuilding(world, topSpeed.x, topSpeed.y, topSpeed.heading)), false);
 

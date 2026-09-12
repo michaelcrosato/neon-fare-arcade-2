@@ -196,6 +196,15 @@ export const SOLANA_COAST_FARE_RIDERS = [
   { id: "hollis", rider: "HOLLIS", passengerArtCell: 167, exclusiveRegionId: "solana-coast" },
 ] as const satisfies readonly FareRiderProfile[];
 
+export const IRONWAKE_FARE_RIDERS = [
+  { id: "walt", rider: "WALT", passengerArtCell: 168, exclusiveRegionId: "ironwake-works" },
+  { id: "winona", rider: "WINONA", passengerArtCell: 169, exclusiveRegionId: "ironwake-works" },
+  { id: "kenji", rider: "KENJI", passengerArtCell: 170, exclusiveRegionId: "ironwake-works" },
+  { id: "rocio", rider: "ROCIO", passengerArtCell: 171, exclusiveRegionId: "ironwake-works" },
+  { id: "meera", rider: "MEERA", passengerArtCell: 172, exclusiveRegionId: "ironwake-works" },
+  { id: "desmond", rider: "DESMOND", passengerArtCell: 173, exclusiveRegionId: "ironwake-works" },
+] as const satisfies readonly FareRiderProfile[];
+
 export const FARE_RIDERS: readonly FareRiderProfile[] = [
   ...SHARED_FARE_RIDERS,
   ...CEDAR_VALE_FARE_RIDERS,
@@ -203,6 +212,7 @@ export const FARE_RIDERS: readonly FareRiderProfile[] = [
   ...COPPER_MESA_FARE_RIDERS,
   ...CYPRESS_REACH_FARE_RIDERS,
   ...SOLANA_COAST_FARE_RIDERS,
+  ...IRONWAKE_FARE_RIDERS,
 ];
 
 export function eligibleFareRiders(region: Pick<WorldRegion, "id"> | null) {

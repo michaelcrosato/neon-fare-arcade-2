@@ -1,6 +1,7 @@
 import { cityAreaAt } from "./city-layout";
 import { cedarNeighborhoodForBlock } from "./residential";
 import { reachAreaAt } from "./reach-layout";
+import { ironwakeAreaAt } from "./industrial-layout";
 import {
   BLOCKS_PER_CHUNK,
   CENTER_REGION_CHUNK_MAX,
@@ -18,6 +19,10 @@ import {
   SOUTHEAST_REGION_CHUNK_MAX_Y,
   SOUTHEAST_REGION_CHUNK_MIN_X,
   SOUTHEAST_REGION_CHUNK_MIN_Y,
+  SOUTHWEST_REGION_CHUNK_MIN_X,
+  SOUTHWEST_REGION_CHUNK_MAX_X,
+  SOUTHWEST_REGION_CHUNK_MIN_Y,
+  SOUTHWEST_REGION_CHUNK_MAX_Y,
   ROAD_HALF,
   ROAD_SPACING,
 } from "./config";
@@ -119,6 +124,12 @@ export const ACTIVE_WORLD_REGIONS = [
     chunkMaxY: CENTER_REGION_CHUNK_MAX,
     mapColor: "rgba(22, 167, 196, 0.19)",
   },
+  {
+    id: "ironwake-works", direction: "SW", name: "IRONWAKE WORKS", shortName: "WORKS", theme: "industrial",
+    chunkMinX: SOUTHWEST_REGION_CHUNK_MIN_X, chunkMaxX: SOUTHWEST_REGION_CHUNK_MAX_X,
+    chunkMinY: SOUTHWEST_REGION_CHUNK_MIN_Y, chunkMaxY: SOUTHWEST_REGION_CHUNK_MAX_Y,
+    mapColor: "rgba(207, 130, 43, 0.19)",
+  },
 ] as const satisfies readonly WorldRegion[];
 
 /** Empty cells deliberately remain unnamed until their themes are designed. */
@@ -136,7 +147,7 @@ export const WORLD_REGION_SLOTS = [
   { direction: "W", gridX: -1, gridY: 0, activeRegionId: "solana-coast" },
   { direction: "C", gridX: 0, gridY: 0, activeRegionId: "city-center" },
   { direction: "E", gridX: 1, gridY: 0, activeRegionId: "cedar-vale" },
-  { direction: "SW", gridX: -1, gridY: 1, activeRegionId: null },
+  { direction: "SW", gridX: -1, gridY: 1, activeRegionId: "ironwake-works" },
   { direction: "S", gridX: 0, gridY: 1, activeRegionId: "copper-mesa" },
   { direction: "SE", gridX: 1, gridY: 1, activeRegionId: "cypress-reach" },
 ] as const satisfies readonly WorldRegionSlot[];
@@ -303,6 +314,7 @@ export function cypressReachAreaForBlock(blockX: number, blockY: number) {
 
 export function regionalPlaceName(x: number, y: number) {
   const region = regionForPosition(x, y);
+  if (region.id === "ironwake-works") return ironwakeAreaAt(x, y);
   if (region.id === "city-center") return cityAreaAt(x, y);
   if (region.id === "solana-coast") {
     return solanaCoastAreaForBlock(Math.floor(x / ROAD_SPACING), Math.floor(y / ROAD_SPACING));

@@ -24,18 +24,24 @@ for (const renderer of ["WebGPU", "Canvas 2D"] as const) {
       await page.getByRole("button", { name: /Choose STREET ACE/i }).click();
       await lockSteeringIfPrompted(page);
       await expect(page.getByRole("button", { name: "Pause game" })).toBeVisible({ timeout: SCENE_START_TIMEOUT });
+      // Present controlled frames so screenshots do not compete with an
+      // unbounded software-GPU render loop on the CI runner.
+      await page.clock.install({ time: new Date("2026-09-12T00:00:00Z") });
+      await page.clock.pauseAt(new Date("2026-09-12T01:00:00Z"));
       const canvas = page.locator(".game-canvas").nth(renderer === "WebGPU" ? 1 : 0);
       for (const mode of ["FIXED ISO", "CHASE HIGH", "CHASE LOW", "CAB VIEW"]) {
         await expect(page.getByRole("button", { name: `Camera: ${mode}. Activate to switch camera.` })).toBeVisible();
         await expect(canvas).toHaveAttribute("aria-hidden", "false");
-        await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+        await page.clock.runFor(50);
         await page.screenshot({ path: testInfo.outputPath(`${mode.toLowerCase().replaceAll(" ", "-")}.png`) });
         if (mode !== "CAB VIEW") await page.keyboard.press("c");
       }
       await page.getByRole("button", { name: /EXIT TAXI/i }).click();
+      await page.clock.runFor(100);
       await expect(page.getByLabel("On-foot controls")).toBeVisible();
       await expect(canvas).toHaveAttribute("aria-hidden", "false");
       expect(errors, "renderer activation, WGSL, resource and frame errors").toEqual([]);
+      await page.clock.resume();
     });
   });
 }
