@@ -1,4 +1,5 @@
 import { expect, type Locator, type Page } from "@playwright/test";
+import { SCENE_START_TIMEOUT } from "./browser-options";
 
 /** Present real fixed-step frames until a timed UI event appears. */
 export async function presentUntilVisible(page: Page, target: Locator, maxMilliseconds = 5000) {
@@ -16,12 +17,14 @@ export async function presentUntilVisible(page: Page, target: Locator, maxMillis
 export async function lockSteeringIfPrompted(page: Page, lockName = /Select DEFAULT/) {
   const steering = page.getByRole("dialog", { name: "STEERING SYSTEM" });
   const countdown = page.locator(".countdown");
+  const playing = page.locator(".arcade-shell.mode-playing");
   try {
     await page.clock.runFor(100);
   } catch {
     // Clock is only installed in countdown-controlled tests.
   }
-  await expect(steering.or(countdown)).toBeVisible();
+  // On a slow renderer the click can finish after the countdown has ended.
+  await expect(steering.or(countdown).or(playing)).toBeVisible({ timeout: SCENE_START_TIMEOUT });
   if (await steering.isVisible()) {
     await page.getByRole("button", { name: lockName }).click();
   }

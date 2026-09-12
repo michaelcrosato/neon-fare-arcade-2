@@ -49,6 +49,10 @@ and both deployment toolchains.
   uses real keyboard/touch input, finite boost and the normal handoff delays.
   The native audio test keeps real clocks and uses the Canvas fallback;
   dedicated mobile driving and camera cases retain both renderer paths.
+  Boost checks advance three rendered frames at a time through normal 60 Hz
+  physics, preserving the finite full-speed interval while the software GPU
+  presents each batch. Startup accepts both the countdown and an already
+  playing session, since a slow input action can finish after the countdown.
   Its range fixture serves the real MP3 response bytes with HTTP 206 when the
   Worker preview ignores a byte-range request; Vercel's own 206 response passes
   through unchanged. This lets Chromium seek to the actual end of a track and
@@ -118,3 +122,5 @@ The first Vercel release passed all six live boost and Ironwake session checks;
 both new art atlases matched the committed bytes, and GitHub's dependency
 alerts cleared to zero. The hosted-test corrections passed a combined 17-case
 Worker-preview run, plus lint and TypeScript, before the follow-up push.
+The final boost-observation and startup changes also passed nine combined
+boost, Dev Mode and native-music scenarios, with lint and TypeScript clean.
