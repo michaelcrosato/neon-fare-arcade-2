@@ -4,7 +4,8 @@ import { SCENE_START_TIMEOUT, SCENE_TEST_TIMEOUT, WEBGPU_TEST_OPTIONS } from "./
 import { lockSteeringIfPrompted, presentUntilVisible } from "./start-helpers";
 
 test.use(WEBGPU_TEST_OPTIONS);
-test.setTimeout(Math.max(120_000, SCENE_TEST_TIMEOUT * 3));
+// This journey includes several world uploads, captures and a persisted reload.
+test.setTimeout(Math.max(120_000, SCENE_TEST_TIMEOUT * 4));
 const gameplayTimeout = Math.max(15_000, SCENE_START_TIMEOUT);
 
 async function startRun(page: Page, pauseAt = "2026-09-12T01:00:00Z") {

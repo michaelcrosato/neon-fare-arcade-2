@@ -53,6 +53,12 @@ and both deployment toolchains.
   physics, preserving the finite full-speed interval while the software GPU
   presents each batch. Startup accepts both the countdown and an already
   playing session, since a slow input action can finish after the countdown.
+  The longest Dev Mode and Ironwake journeys allow eight minutes on Linux CI
+  for software-GPU world uploads and image readback, retaining their shorter
+  local deadlines and all gameplay assertions. A hosted Ironwake trace completed
+  its fare and diagnostics checks but exceeded the old three-minute deadline
+  during capture and cleanup; the Dev Mode desktop journey took 5m45s against
+  its former six-minute deadline.
   Its range fixture serves the real MP3 response bytes with HTTP 206 when the
   Worker preview ignores a byte-range request; Vercel's own 206 response passes
   through unchanged. This lets Chromium seek to the actual end of a track and
@@ -124,3 +130,8 @@ alerts cleared to zero. The hosted-test corrections passed a combined 17-case
 Worker-preview run, plus lint and TypeScript, before the follow-up push.
 The final boost-observation and startup changes also passed nine combined
 boost, Dev Mode and native-music scenarios, with lint and TypeScript clean.
+The next hosted run passed all 512 repository cases, both builds and 117 browser
+cases without retries, including all four finite-tank boost checks. Its remaining
+Ironwake WebGPU timeout led to the software-rendering time allowance above.
+Both Ironwake playthroughs passed again against production after that adjustment,
+with lint and TypeScript clean.

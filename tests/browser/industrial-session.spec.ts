@@ -1,10 +1,11 @@
 import { expect, test } from "@playwright/test";
 import type { Game } from "../../game/model";
-import { WEBGPU_TEST_OPTIONS } from "./browser-options";
+import { SCENE_TEST_TIMEOUT, WEBGPU_TEST_OPTIONS } from "./browser-options";
 import { lockSteeringIfPrompted, presentUntilVisible } from "./start-helpers";
 
 test.use(WEBGPU_TEST_OPTIONS);
-test.setTimeout(180_000);
+// Software WebGPU needs time for six world uploads and full-canvas readback.
+test.setTimeout(Math.max(180_000, SCENE_TEST_TIMEOUT * 4));
 
 for (const renderer of ["WebGPU", "Canvas"] as const) {
   test(`${renderer} real run reaches Ironwake, displays its new cards and completes a harbor fare`, async ({ page }, info) => {
