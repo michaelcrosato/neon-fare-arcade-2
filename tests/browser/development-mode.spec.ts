@@ -69,7 +69,7 @@ for (const renderer of ["WebGPU", "Canvas"] as const) for (const mobile of [fals
     await openOptions(page);
     await options.getByRole("button", { name: "JUMP TO DROPOFF" }).click();
     await resume(page);
-    const arrival = mobile ? page.locator(".mobile-notice.is-event").filter({ hasText: "Fare complete" }) : page.locator(".fare-impact--dropoff");
+    const arrival = page.locator(".fare-impact--dropoff");
     // Software WebGPU needs enough presented frames for the normal arrival dwell.
     // Check content and visibility together before a mobile notice expires.
     await expect(arrival.locator(".fare-card-occasion").filter({ hasText: /^STADIUM CONCERT$/ })).toBeVisible({ timeout: gameplayTimeout });

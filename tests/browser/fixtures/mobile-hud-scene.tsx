@@ -15,21 +15,37 @@ document.body.appendChild(host);
 const root = createRoot(host);
 const noop = () => {};
 const touchDriving = new TouchDriving();
-const fare: FareImpact = {
+const dropoff: FareImpact = {
   id: 1, kind: "dropoff", fareId: "test-fare", fareNumber: 1, artCell: 0, durationMs: 2000,
   rider: "ALEXANDER", destination: "NORTHSTAR MOUNTAIN OBSERVATORY", eyebrow: "FARE COMPLETE",
   headline: "CLEAN DROP", detail: "+$120 FARE · +$24 TIP · FIVE STARS",
+  destinationCard: {
+    id: "northstar-observatory",
+    placeId: "northstar-observatory",
+    label: "NORTHSTAR MOUNTAIN OBSERVATORY",
+    occasion: "SUMMIT LIGHTS",
+    artCell: 0,
+    category: "scenic",
+    kind: "landmark",
+    requiresWater: false,
+  },
+};
+const pickup: FareImpact = {
+  id: 2, kind: "pickup", fareId: "test-fare", fareNumber: 1, artCell: 3, durationMs: 2000,
+  rider: "ALEXANDER", destination: "NORTHSTAR MOUNTAIN OBSERVATORY", eyebrow: "NEW FARE",
+  headline: "ALEXANDER IN!", detail: "+8 BOOST",
 };
 
-type Scenario = "meter" | "fare" | "courier" | "simulation";
+type Scenario = "meter" | "fare" | "fare-pickup" | "courier" | "simulation";
 function render(scenario: Scenario) {
   const hud: Hud = { ...EMPTY_HUD, runKind: "timed", playerMode: "driving", time: 9, fare: 98765,
     message: "", gpsInstruction: "TURN LEFT", objective: "NORTHSTAR MOUNTAIN OBSERVATORY", distance: 450 };
   if (scenario === "meter") Object.assign(hud, { playerMode: "walking", clockPaused: true, interactionPrompt: "E · ENTER NEON LOFTS" });
   if (scenario === "courier") Object.assign(hud, { playerMode: "interior", courierActive: true, courierStage: "pickup", courierAtTargetVenue: true, courierTaxiAtTarget: true, interactionPrompt: "E · COLLECT COURIER PARCEL" });
   if (scenario === "simulation") hud.drivingModel = "simulation";
+  const fareImpact = scenario === "fare-pickup" ? pickup : scenario === "fare" ? dropoff : null;
   flushSync(() => root.render(<main className="arcade-shell mode-playing"><section className="game-stage">
-    <MobileGameHud mode="playing" hud={hud} fareImpact={scenario === "fare" ? fare : null}
+    <MobileGameHud mode="playing" hud={hud} fareImpact={fareImpact}
       courierImpact={scenario === "courier" ? { id: 1, kind: "pickup", cargo: "FRAGILE SOUND EQUIPMENT", destination: "NEON CITY", detail: "RETURN TO YOUR TAXI" } : null}
       touchDriving={touchDriving} onPulseInteraction={noop} onSetMode={noop} onTouch={noop} />
   </section></main>));

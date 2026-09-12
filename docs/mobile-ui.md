@@ -28,8 +28,11 @@ clears game input through the existing pause lifecycle.
 
 Camera selection, audio, score, dispatch, and fare history live in the pause
 screen. Fare history and driver handling details expand when requested.
-Passenger and courier milestones use small notices instead of full-screen
-impact cards. The passenger's rating bubble remains attached to their position.
+Pickup flashes the passenger fare card and dropoff flashes the destination
+card with the same impact overlay as desktop. The card then flies toward the
+bottom-left and disappears; it does not remain as a stacked run-card control.
+Courier milestones still use a small notice. Fare history lives in the pause
+menu. The passenger's rating bubble remains attached to their position.
 
 Maps and service dialogs use the full mobile viewport. The route planner keeps
 its map and confirmation visible together: vertically in portrait, side by side

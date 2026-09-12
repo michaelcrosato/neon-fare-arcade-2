@@ -2,6 +2,7 @@ import type { PointerEventHandler, RefObject } from "react";
 import type { FareImpact, Hud, InputState, Mode } from "@/game/model";
 import { simulationGearLabel } from "@/game/simulation-vehicle";
 import type { CourierImpact } from "./courier-impact-overlay";
+import { FareImpactOverlay } from "./fare-impact-overlay";
 import { MobileDriveControls } from "./mobile-drive-controls";
 import type { SteeringMode, TouchDriving } from "./runtime/touch-driving";
 
@@ -45,10 +46,7 @@ export function MobileGameHud({ mode, hud, fareImpact, courierImpact, touchDrivi
   const driving = hud.playerMode === "driving";
   const simulation = driving && hud.drivingModel === "simulation";
   const roaming = hud.objectiveType === "roam";
-  const event = fareImpact ? {
-    title: fareImpact.kind === "pickup" ? `${fareImpact.rider} is on board` : `Fare complete · ${fareImpact.rider}`,
-    detail: fareImpact.kind === "pickup" ? `To ${fareImpact.destination}` : fareImpact.detail,
-  } : courierImpact ? {
+  const event = courierImpact ? {
     title: courierImpact.kind === "pickup" ? "Parcel collected" : "Delivery complete",
     detail: courierImpact.kind === "pickup" ? `${courierImpact.cargo} · Load into taxi` : courierImpact.detail,
   } : null;
@@ -56,6 +54,7 @@ export function MobileGameHud({ mode, hud, fareImpact, courierImpact, touchDrivi
     <TouchButton input={input} label={label} onTouch={onTouch}>{content}</TouchButton>;
 
   return <div className={`mobile-hud ${driving ? "is-driving" : "is-on-foot"}`}>
+    {fareImpact && <FareImpactOverlay key={fareImpact.id} impact={fareImpact} />}
     {driving && <MobileDriveControls key={steeringMode ?? touchDriving.getMode()} controller={touchDriving} enabled={mode === "playing"}
       boost={hud.boost} boosting={hud.boosting} simulation={simulation} />}
     <div className="mobile-statusbar">
@@ -76,7 +75,6 @@ export function MobileGameHud({ mode, hud, fareImpact, courierImpact, touchDrivi
 
     {mode === "playing" && (event || hud.message) && <div className={`mobile-notice ${event ? "is-event" : ""}`} aria-hidden="true">
       <strong>{event?.title ?? hud.message}</strong>{event && <span>{event.detail}</span>}
-      {event && fareImpact?.destinationCard && <small className="fare-card-occasion">{fareImpact.destinationCard.occasion}</small>}
     </div>}
 
     {mode === "playing" && driving && hud.interactionPrompt && <button type="button" ref={taxiExitRef}

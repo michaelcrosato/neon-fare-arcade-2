@@ -304,7 +304,7 @@ test.describe("mobile notification and meter states", () => {
   test("timed, courier, fare and simulation states fit without covering controls", async ({ page }, info) => {
     const bundle = (await build({ entryPoints: ["tests/browser/fixtures/mobile-hud-scene.tsx"], bundle: true, write: false, format: "iife", platform: "browser", target: "es2022", tsconfig: "tsconfig.json" })).outputFiles[0].text;
     await openScenePage(page, bundle);
-    for (const scenario of ["meter", "fare", "courier", "simulation"] as const) {
+    for (const scenario of ["meter", "fare-pickup", "fare", "courier", "simulation"] as const) {
       await page.evaluate(scenario => window.mobileHudFixture.render(scenario), scenario);
       const meter = await page.locator(".mobile-meter").boundingBox();
       const earnings = await page.locator(".mobile-earnings").boundingBox();
@@ -313,11 +313,17 @@ test.describe("mobile notification and meter states", () => {
       expect(earnings!.x + earnings!.width).toBeLessThanOrEqual(menu!.x);
       expect(menu!.x + menu!.width).toBeLessThanOrEqual(320);
       await page.getByRole("button", { name: "Pause game" }).click({ trial: true });
-      if (scenario === "fare" || scenario === "courier") {
+      if (scenario === "fare-pickup" || scenario === "fare") {
+        await expect(page.locator(scenario === "fare-pickup" ? ".fare-impact--pickup" : ".fare-impact--dropoff")).toHaveCount(1);
+        await expect(page.locator(".fare-card-stack")).toHaveCount(0);
+        await expect(page.locator(".mobile-notice.is-event")).toHaveCount(0);
+      }
+      if (scenario === "courier") {
         const notice = await page.locator(".mobile-notice").boundingBox();
         const controls = await page.locator(".mobile-controls").boundingBox();
         expect(notice!.y + notice!.height).toBeLessThan(controls!.y);
-        await expect(page.locator(".fare-impact, .courier-impact")).toHaveCount(0);
+        await expect(page.locator(".courier-impact")).toHaveCount(0);
+        await expect(page.locator(".fare-card-stack")).toHaveCount(0);
       }
       if (scenario === "simulation") {
         await expect(page.getByRole("button", { name: /Double tap and hold for parking brake/ })).toBeVisible();
