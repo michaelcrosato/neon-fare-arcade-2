@@ -31,6 +31,7 @@ import {
   shouldRenderPlayerAvatar,
   shouldRenderTaxi,
 } from "@/game/render/camera";
+import { WebGPUHorizon } from "./webgpu-horizon";
 import { reportRuntimeError } from "./runtime/runtime-errors";
 import { isDriving, isInterior } from "@/game/player";
 import {
@@ -52,7 +53,7 @@ export class WebGPURenderer implements Renderer {
   private device: any;
   private format: any;
   private readonly sceneFormat = "rgba16float";
-  private skyPipeline: any;
+  private horizon: WebGPUHorizon;
   private pipeline: any;
   private surfacePipeline: any;
   private ghostPipeline: any;
@@ -65,7 +66,6 @@ export class WebGPURenderer implements Renderer {
   private navBuffer: any;
   private ghostBuffer: any;
   private cameraBuffer: any;
-  private skyBindGroup: any;
   private bindGroup: any;
   private surfaceBindGroup: any;
   private ghostBindGroup: any;
@@ -115,235 +115,6 @@ struct VertexOut {
   @location(4) @interpolate(flat) faceShade: f32,
   @location(5) @interpolate(flat) worldNormal: vec3<f32>,
 };
-struct SkyOut {
-  @builtin(position) position: vec4<f32>,
-  @location(0) uv: vec2<f32>,
-};
-@vertex fn vsSky(@builtin(vertex_index) vertexIndex: u32) -> SkyOut {
-  var positions = array<vec2<f32>, 3>(
-    vec2<f32>(-1.0, -1.0),
-    vec2<f32>(3.0, -1.0),
-    vec2<f32>(-1.0, 3.0)
-  );
-  let clip = positions[vertexIndex];
-  var out: SkyOut;
-  out.position = vec4<f32>(clip, 0.999, 1.0);
-  out.uv = clip * 0.5 + vec2<f32>(0.5);
-  return out;
-}
-fn ellipseMask(point: vec2<f32>, center: vec2<f32>, radius: vec2<f32>) -> f32 {
-  let p = (point - center) / radius;
-  return 1.0 - smoothstep(0.82, 1.0, dot(p, p));
-}
-fn rectangleMask(point: vec2<f32>, halfSize: vec2<f32>, feather: f32) -> f32 {
-  let edge = max(abs(point.x) - halfSize.x, abs(point.y) - halfSize.y);
-  return 1.0 - smoothstep(0.0, feather, edge);
-}
-fn wrapAngle(angle: f32) -> f32 {
-  return angle - 6.2831853 * floor((angle + 3.14159265) / 6.2831853);
-}
-fn angularWindow(delta: f32, inner: f32, outer: f32) -> f32 {
-  return 1.0 - smoothstep(inner, outer, abs(delta));
-}
-fn heightBand(elevation: f32, base: f32, top: f32, feather: f32) -> f32 {
-  return smoothstep(base - feather, base, elevation) * (1.0 - smoothstep(top, top + feather, elevation));
-}
-fn peak(x: f32, center: f32, halfWidth: f32, height: f32) -> f32 {
-  return max(0.0, 1.0 - abs(x - center) / halfWidth) * height;
-}
-fn hash1(value: f32) -> f32 {
-  var p = fract(value * 0.1031);
-  p *= p + 33.33;
-  p *= p + p;
-  return fract(p);
-}
-fn angularRect(azimuth: f32, elevation: f32, bearing: f32, centerElevation: f32, halfSize: vec2<f32>, feather: f32) -> f32 {
-  return rectangleMask(vec2<f32>(wrapAngle(azimuth - bearing), elevation - centerElevation), halfSize, feather);
-}
-fn cloudMask(point: vec2<f32>, scale: f32) -> f32 {
-  let p = point / scale;
-  let left = ellipseMask(p, vec2<f32>(-0.055, 0.0), vec2<f32>(0.064, 0.031));
-  let crown = ellipseMask(p, vec2<f32>(0.0, 0.018), vec2<f32>(0.07, 0.052));
-  let right = ellipseMask(p, vec2<f32>(0.066, -0.002), vec2<f32>(0.069, 0.035));
-  let base = rectangleMask(p - vec2<f32>(0.008, -0.013), vec2<f32>(0.12, 0.026), 0.008);
-  return max(max(left, crown), max(right, base));
-}
-fn paintWorldCloud(baseColor: vec3<f32>, azimuth: f32, elevation: f32, bearing: f32, cloudElevation: f32, scale: f32) -> vec3<f32> {
-  let point = vec2<f32>(wrapAngle(azimuth - bearing), elevation - cloudElevation);
-  let shadowPoint = point - vec2<f32>(0.008, -0.01);
-  let shadow = cloudMask(shadowPoint, scale * 1.08);
-  let outline = cloudMask(point, scale * 1.08);
-  let body = cloudMask(point, scale);
-  let localY = point.y / scale;
-  let underside = body * (1.0 - smoothstep(-0.006, 0.018, localY));
-  var color = mix(baseColor, vec3<f32>(0.035, 0.035, 0.03), max(shadow * 0.72, outline * 0.92));
-  color = mix(color, vec3<f32>(0.96, 0.94, 0.84), body);
-  color = mix(color, vec3<f32>(0.55, 0.82, 0.91), underside * 0.52);
-  return color;
-}
-fn sunRayMask(point: vec2<f32>, thickness: f32, inner: f32, outer: f32) -> f32 {
-  let p = abs(point);
-  let vertical = (1.0 - smoothstep(thickness, thickness + 0.004, p.x))
-    * smoothstep(inner, inner + 0.004, p.y)
-    * (1.0 - smoothstep(outer, outer + 0.004, p.y));
-  let horizontal = (1.0 - smoothstep(thickness, thickness + 0.004, p.y))
-    * smoothstep(inner, inner + 0.004, p.x)
-    * (1.0 - smoothstep(outer, outer + 0.004, p.x));
-  return max(vertical, horizontal);
-}
-@fragment fn fsSky(v: SkyOut) -> @location(0) vec4<f32> {
-  let uv = v.uv;
-  let aspect = max(camera.sky.x, 0.5);
-  let horizon = vec3<f32>(0.74, 0.90, 0.94);
-  let middle = vec3<f32>(0.33, 0.72, 0.93);
-  let zenith = vec3<f32>(0.14, 0.52, 0.83);
-  var color = mix(horizon, middle, smoothstep(0.04, 0.56, uv.y));
-  color = mix(color, zenith, smoothstep(0.56, 1.0, uv.y));
-  let screenHaze = 1.0 - smoothstep(0.12, 0.34, abs(uv.y - 0.34));
-  color = mix(color, vec3<f32>(0.82, 0.93, 0.94), screenHaze * 0.22);
-
-  if (camera.params.w > 0.01) {
-    let tanHalfFov = tan(camera.params.w * 0.5);
-    let rayOffset = atan((uv.x * 2.0 - 1.0) * aspect * tanHalfFov);
-    let azimuth = wrapAngle(camera.sky.y + rayOffset);
-    let elevation = atan((uv.y * 2.0 - 1.0) * tanHalfFov) - camera.sky.z;
-    color = mix(horizon, middle, smoothstep(-0.03, 0.24, elevation));
-    color = mix(color, zenith, smoothstep(0.24, 0.66, elevation));
-    let worldHaze = 1.0 - smoothstep(0.018, 0.12, abs(elevation));
-    color = mix(color, vec3<f32>(0.82, 0.93, 0.94), worldHaze * 0.3);
-
-    // Celestial dome: fixed compass bearings, never fixed screen coordinates.
-    let sunPoint = vec2<f32>(wrapAngle(azimuth - 0.32), elevation - 0.19);
-    let shadowPoint = sunPoint - vec2<f32>(0.008, -0.011);
-    let rotatedPoint = vec2<f32>((sunPoint.x - sunPoint.y) * 0.7071, (sunPoint.x + sunPoint.y) * 0.7071);
-    let rotatedShadow = vec2<f32>((shadowPoint.x - shadowPoint.y) * 0.7071, (shadowPoint.x + shadowPoint.y) * 0.7071);
-    let rayShadow = max(sunRayMask(shadowPoint, 0.012, 0.08, 0.126), sunRayMask(rotatedShadow, 0.012, 0.08, 0.126));
-    let ray = max(sunRayMask(sunPoint, 0.007, 0.084, 0.12), sunRayMask(rotatedPoint, 0.007, 0.084, 0.12));
-    color = mix(color, vec3<f32>(0.035, 0.035, 0.03), rayShadow * 0.94);
-    color = mix(color, vec3<f32>(1.0, 0.73, 0.02), ray);
-    let shadowMetric = max(max(abs(shadowPoint.x), abs(shadowPoint.y)), (abs(shadowPoint.x) + abs(shadowPoint.y)) * 0.71);
-    let sunMetric = max(max(abs(sunPoint.x), abs(sunPoint.y)), (abs(sunPoint.x) + abs(sunPoint.y)) * 0.71);
-    let sunShadow = 1.0 - smoothstep(0.073, 0.08, shadowMetric);
-    let sunRim = 1.0 - smoothstep(0.069, 0.075, sunMetric);
-    let sunCore = 1.0 - smoothstep(0.055, 0.062, sunMetric);
-    color = mix(color, vec3<f32>(0.035, 0.035, 0.03), sunShadow);
-    color = mix(color, vec3<f32>(1.0, 0.25, 0.08), sunRim);
-    color = mix(color, vec3<f32>(1.0, 0.84, 0.03), sunCore);
-    color = paintWorldCloud(color, azimuth, elevation, -1.12, 0.23, 1.15);
-    color = paintWorldCloud(color, azimuth, elevation, 1.08, 0.17, 0.95);
-    color = paintWorldCloud(color, azimuth, elevation, -2.55, 0.25, 0.82);
-
-    // City horizons now come from the same physical hills and architecture as Canvas.
-    if (!(abs(camera.params.y) <= 792.0 && abs(camera.params.z) <= 792.0)
-      && (abs(camera.params.z) < 792.0 || abs(camera.params.y) > 792.0)
-      && !(camera.params.y >= 792.0 && camera.params.z >= 792.0)
-      && !(camera.params.y < -792.0 && abs(camera.params.z) <= 792.0)) {
-    // NORTH: separated mountain ranges, snow, pines and a radio mast.
-    let northFar = wrapAngle(azimuth - (-1.5707963 - camera.params.y / 6000.0));
-    let northGate = max(max(angularWindow(northFar + 0.48, 0.1, 0.18), angularWindow(northFar, 0.17, 0.25)), angularWindow(northFar - 0.48, 0.1, 0.18));
-    let northTop = 0.025 + max(max(peak(northFar, -0.48, 0.18, 0.16), peak(northFar, -0.03, 0.27, 0.25)), peak(northFar, 0.48, 0.18, 0.18));
-    let mountainOutline = northGate * heightBand(elevation, -0.065, northTop + 0.012, 0.003);
-    let mountain = northGate * heightBand(elevation, -0.055, northTop, 0.005);
-    color = mix(color, vec3<f32>(0.035, 0.035, 0.03), mountainOutline * 0.76);
-    color = mix(color, vec3<f32>(0.40, 0.61, 0.70), mountain);
-    let snow = northGate * step(0.12, northTop) * heightBand(elevation, northTop - 0.045, northTop + 0.002, 0.004);
-    color = mix(color, vec3<f32>(0.95, 0.92, 0.82), snow * 0.94);
-    let northNear = wrapAngle(azimuth - (-1.5707963 - camera.params.y / 2500.0));
-    let pineCell = floor((northNear + 0.58) / 0.052);
-    let pineCenter = (pineCell + 0.5) * 0.052 - 0.58;
-    let pineTop = 0.035 + hash1(pineCell + 8.0) * 0.07;
-    let pine = angularWindow(northNear, 0.49, 0.59) * step(0.2, hash1(pineCell + 14.0))
-      * (1.0 - smoothstep(0.018, 0.024, abs(northNear - pineCenter))) * heightBand(elevation, -0.05, pineTop, 0.004);
-    color = mix(color, vec3<f32>(0.05, 0.22, 0.17), pine);
-    let mastBearing = -1.3707963 - camera.params.y / 2500.0;
-    let mast = max(angularRect(azimuth, elevation, mastBearing, 0.11, vec2<f32>(0.007, 0.15), 0.003), angularRect(azimuth, elevation, mastBearing, 0.19, vec2<f32>(0.04, 0.006), 0.003));
-    color = mix(color, vec3<f32>(0.28, 0.10, 0.08), mast);
-
-
-    // WEST: broken downtown groups and one Art-Deco crown.
-    let westFar = wrapAngle(azimuth - (3.14159265 + camera.params.z / 5200.0));
-    let westGate = max(max(angularWindow(westFar + 0.48, 0.1, 0.18), angularWindow(westFar, 0.14, 0.2)), angularWindow(westFar - 0.48, 0.1, 0.18));
-    let cityCell = floor((westFar + 0.6) / 0.064);
-    let cityCenter = (cityCell + 0.5) * 0.064 - 0.6;
-    let cityWidth = 0.022 + hash1(cityCell + 22.0) * 0.009;
-    let cityTop = 0.07 + hash1(cityCell + 30.0) * 0.16;
-    let cityOutline = westGate * (1.0 - smoothstep(cityWidth + 0.004, cityWidth + 0.01, abs(westFar - cityCenter))) * heightBand(elevation, -0.06, cityTop + 0.012, 0.003);
-    let city = westGate * (1.0 - smoothstep(cityWidth, cityWidth + 0.004, abs(westFar - cityCenter))) * heightBand(elevation, -0.052, cityTop, 0.004);
-    color = mix(color, vec3<f32>(0.035, 0.035, 0.03), cityOutline * 0.86);
-    color = mix(color, vec3<f32>(0.09, 0.28, 0.37), city);
-    let westNearBearing = 3.14159265 + camera.params.z / 2300.0;
-    let deco = max(angularRect(azimuth, elevation, westNearBearing, 0.09, vec2<f32>(0.04, 0.14), 0.004), max(angularRect(azimuth, elevation, westNearBearing, 0.225, vec2<f32>(0.028, 0.028), 0.003), angularRect(azimuth, elevation, westNearBearing, 0.278, vec2<f32>(0.006, 0.028), 0.002)));
-    color = mix(color, vec3<f32>(0.035, 0.035, 0.03), deco);
-
-    // SOUTH: the terminal foreground yields to Copper Mesa's red-rock horizon
-    // once the taxi crosses into the desert cell.
-    let southFar = wrapAngle(azimuth - (1.5707963 + camera.params.y / 4700.0));
-    let southGate = max(max(angularWindow(southFar + 0.48, 0.1, 0.18), angularWindow(southFar, 0.12, 0.19)), angularWindow(southFar - 0.48, 0.1, 0.18));
-    let mesaTop = 0.015 + max(max(peak(southFar, -0.48, 0.2, 0.12), peak(southFar, 0.0, 0.28, 0.16)), peak(southFar, 0.48, 0.19, 0.11));
-    let mesaOutline = southGate * heightBand(elevation, -0.07, mesaTop + 0.012, 0.003);
-    let mesaBody = southGate * heightBand(elevation, -0.062, mesaTop, 0.004);
-    color = mix(color, vec3<f32>(0.035, 0.035, 0.03), mesaOutline * 0.82);
-    color = mix(color, vec3<f32>(0.52, 0.18, 0.10), mesaBody * 0.9);
-    let southIndustry = 1.0 - smoothstep(860.0, 1280.0, camera.params.y);
-    let warehouseCell = floor((southFar + 0.57) / 0.095);
-    let warehouseCenter = (warehouseCell + 0.5) * 0.095 - 0.57;
-    let warehouseTop = 0.045 + hash1(warehouseCell + 44.0) * 0.065;
-    let warehouse = southIndustry * southGate * (1.0 - smoothstep(0.035, 0.043, abs(southFar - warehouseCenter))) * heightBand(elevation, -0.052, warehouseTop, 0.004);
-    color = mix(color, vec3<f32>(0.29, 0.31, 0.31), warehouse);
-    let southNear = 1.5707963 + camera.params.y / 2300.0;
-    let stacks = southIndustry * max(angularRect(azimuth, elevation, southNear - 0.24, 0.10, vec2<f32>(0.013, 0.16), 0.003), angularRect(azimuth, elevation, southNear + 0.05, 0.08, vec2<f32>(0.015, 0.13), 0.003));
-    color = mix(color, vec3<f32>(0.43, 0.14, 0.08), stacks);
-    let crane = southIndustry * max(angularRect(azimuth, elevation, southNear + 0.31, 0.075, vec2<f32>(0.009, 0.13), 0.003), angularRect(azimuth, elevation, southNear + 0.255, 0.19, vec2<f32>(0.075, 0.007), 0.003));
-    color = mix(color, vec3<f32>(0.94, 0.34, 0.08), crane);
-    let tank = southIndustry * ellipseMask(vec2<f32>(wrapAngle(azimuth - (southNear - 0.39)), elevation), vec2<f32>(0.0, 0.16), vec2<f32>(0.065, 0.04));
-    color = mix(color, vec3<f32>(0.16, 0.28, 0.31), tank);
-    let desertDepth = smoothstep(900.0, 1420.0, camera.params.y);
-    let cactusBearing = southNear + 0.27;
-    let cactus = max(
-      angularRect(azimuth, elevation, cactusBearing, 0.035, vec2<f32>(0.008, 0.085), 0.003),
-      max(
-        angularRect(azimuth, elevation, cactusBearing - 0.015, 0.055, vec2<f32>(0.022, 0.006), 0.003),
-        angularRect(azimuth, elevation, cactusBearing + 0.017, 0.072, vec2<f32>(0.019, 0.006), 0.003)
-      )
-    );
-    color = mix(color, vec3<f32>(0.05, 0.22, 0.12), cactus * desertDepth);
-
-    // Cedar's low tree line replaces the old eastern harbor after arrival.
-    let eastFar = wrapAngle(azimuth - (-camera.params.z / 5200.0));
-    if (camera.params.y > 792.0 && abs(camera.params.z) < 792.0) {
-      let treeCell = floor((eastFar + 0.7) / 0.065);
-      let treeCenter = (treeCell + 0.5) * 0.065 - 0.7;
-      let treeTop = 0.03 + hash1(treeCell + 18.0) * 0.024;
-      let grove = angularWindow(eastFar, 0.58, 0.72)
-        * (1.0 - smoothstep(0.034, 0.046, abs(eastFar - treeCenter)))
-        * heightBand(elevation, -0.065, treeTop, 0.004);
-      color = mix(color, vec3<f32>(0.25, 0.42, 0.29), grove);
-    } else {
-    // From the other regions the distant harbor retains its compass bearing.
-    let eastGate = max(max(angularWindow(eastFar + 0.5, 0.1, 0.17), angularWindow(eastFar, 0.13, 0.21)), angularWindow(eastFar - 0.5, 0.1, 0.17));
-    let eastWater = eastGate * heightBand(elevation, -0.052, -0.014, 0.004);
-    color = mix(color, vec3<f32>(0.08, 0.43, 0.66), eastWater * 0.88);
-    let eastTop = 0.025 + max(max(peak(eastFar, -0.5, 0.18, 0.07), peak(eastFar, 0.0, 0.24, 0.095)), peak(eastFar, 0.5, 0.18, 0.065));
-    let eastHills = eastGate * heightBand(elevation, -0.065, eastTop, 0.005);
-    color = mix(color, vec3<f32>(0.12, 0.35, 0.28), eastHills);
-
-    }
-
-
-    }
-    // Palm Reach uses its physical shoreline and skyline meshes. A warm
-    // marine haze keeps the open horizon legible without a false land silhouette.
-    let reachDepth = smoothstep(792.0, 1120.0, min(camera.params.y, camera.params.z));
-    let marineHaze = reachDepth * heightBand(elevation, -0.055, 0.07, 0.045);
-    color = mix(color, vec3<f32>(0.83, 0.66, 0.71), marineHaze * 0.38);
-  }
-
-  let dotCell = floor(v.position.xy / vec2<f32>(9.0));
-  let dotNoise = fract(sin(dot(dotCell, vec2<f32>(12.9898, 78.233))) * 43758.5453);
-  let dot = step(0.91, dotNoise) * (1.0 - smoothstep(0.42, 0.74, uv.y));
-  color *= 1.0 - dot * 0.035;
-  return vec4<f32>(color, 1.0);
-}
 @vertex fn vsMain(v: VertexIn) -> VertexOut {
   var p = v.localPos * v.scale;
   // cubeVertices assigns one stable faceShade value per cuboid face. Rebuild
@@ -598,13 +369,7 @@ fn bloomColor(color: vec3<f32>) -> vec3<f32> {
       },
     ];
 
-    this.skyPipeline = device.createRenderPipeline({
-      layout: "auto",
-      vertex: { module: shader, entryPoint: "vsSky" },
-      fragment: { module: shader, entryPoint: "fsSky", targets: [{ format: this.sceneFormat }] },
-      primitive: { topology: "triangle-list", cullMode: "none" },
-      depthStencil: { format: "depth24plus", depthWriteEnabled: false, depthCompare: "always" },
-    });
+    this.horizon = new WebGPUHorizon(device, this.sceneFormat);
     this.pipeline = device.createRenderPipeline({
       layout: "auto",
       vertex: {
@@ -683,10 +448,6 @@ fn bloomColor(color: vec3<f32>) -> vec3<f32> {
     this.navBuffer = device.createBuffer({ size: INSTANCE_BYTES * NAVIGATION_INSTANCE_CAPACITY, usage: 0x20 | 0x08 });
     this.ghostBuffer = device.createBuffer({ size: INSTANCE_BYTES * GHOST_INSTANCE_CAPACITY, usage: 0x20 | 0x08 });
     this.cameraBuffer = device.createBuffer({ size: CAMERA_UNIFORM_BYTES, usage: 0x40 | 0x08 });
-    this.skyBindGroup = device.createBindGroup({
-      layout: this.skyPipeline.getBindGroupLayout(0),
-      entries: [{ binding: 0, resource: { buffer: this.cameraBuffer } }],
-    });
     this.bindGroup = device.createBindGroup({
       layout: this.pipeline.getBindGroupLayout(0),
       entries: [{ binding: 0, resource: { buffer: this.cameraBuffer } }],
@@ -837,9 +598,7 @@ fn bloomColor(color: vec3<f32>) -> vec3<f32> {
         depthStoreOp: "discard",
       },
     });
-    scenePass.setPipeline(this.skyPipeline);
-    scenePass.setBindGroup(0, this.skyBindGroup);
-    scenePass.draw(3);
+    this.canvas.dataset.horizonRegion = this.horizon.render(scenePass, game, camera, seconds, aspect);
     scenePass.setPipeline(this.pipeline);
     scenePass.setBindGroup(0, this.bindGroup);
     scenePass.setVertexBuffer(0, this.vertexBuffer);
@@ -914,6 +673,7 @@ fn bloomColor(color: vec3<f32>) -> vec3<f32> {
     this.navBuffer?.destroy?.();
     this.ghostBuffer?.destroy?.();
     this.cameraBuffer?.destroy?.();
+    this.horizon?.destroy();
     this.context.unconfigure?.();
     this.device.destroy?.();
   }

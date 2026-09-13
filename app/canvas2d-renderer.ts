@@ -7,6 +7,10 @@ import { viewProjection } from "@/game/render/view-projection";
 import { compatibilityScene } from "./compatibility-scene";
 import { WebGLScene } from "./webgl-scene";
 import { SoftwareScene } from "./software-scene";
+import { HorizonPanorama } from "./horizon-panorama";
+import { SoftwareHorizon } from "./software-horizon";
+import { horizonView } from "@/game/render/horizon-view";
+import { controlledPose } from "@/game/player";
 
 /** Canvas-first lifecycle, with real 3D in both accelerated and software paths. */
 export class Canvas2DRenderer implements Renderer {
@@ -15,6 +19,8 @@ export class Canvas2DRenderer implements Renderer {
   private graphics: WebGLScene | null = null;
   private software = new SoftwareScene();
   private softwareCanvas = document.createElement("canvas");
+  private horizon = new HorizonPanorama();
+  private softwareHorizon = new SoftwareHorizon();
 
   constructor(private canvas: HTMLCanvasElement) {
     const context = canvas.getContext("2d");
@@ -35,8 +41,11 @@ export class Canvas2DRenderer implements Renderer {
     const distance = world.landscapeSurfaces?.length ? 1200 : PERSPECTIVE_DRAW_DISTANCE;
     const matrix = viewProjection(game, camera, width / Math.max(1, height), distance);
     const scene = compatibilityScene(game, camera, seconds, world, navigation);
+    const sky = this.horizon.update(controlledPose(game), seconds);
+    this.canvas.dataset.horizonRegion = sky.regionId;
+    const skyBasis = horizonView(game, camera, width / Math.max(1, height), sky.blend);
     if (this.graphics) {
-      if (this.graphics.render(matrix, width, height, camera, distance, world, scene)) {
+      if (this.graphics.render(matrix, width, height, camera, distance, world, scene, sky, skyBasis)) {
         this.context.drawImage(this.graphics.canvas, 0, 0);
         this.canvas.dataset.renderer = "webgl2";
         return;
@@ -49,9 +58,7 @@ export class Canvas2DRenderer implements Renderer {
       this.softwareCanvas.width = size.width; this.softwareCanvas.height = size.height;
     }
     this.softwareCanvas.getContext("2d")!.putImageData(raster, 0, 0);
-    const sky = this.context.createLinearGradient(0, 0, 0, this.canvas.height);
-    sky.addColorStop(0, "#429edd"); sky.addColorStop(1, "#bddce4");
-    this.context.fillStyle = sky; this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    this.softwareHorizon.render(this.context, sky, skyBasis, this.canvas.width, this.canvas.height);
     this.context.drawImage(this.softwareCanvas, 0, 0, this.canvas.width, this.canvas.height);
     this.canvas.dataset.renderer = "software3d";
   }

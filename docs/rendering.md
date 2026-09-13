@@ -141,21 +141,36 @@ shifts its eye and target toward the projected cab heading, scaled to the zoom
 and viewport aspect ratio, leaving a quarter-screen trailing margin. Desktop,
 Cab View, and walking retain their existing composition.
 
-Camera matrices, collision-shortened boom, and perspective sky pitch are in
-`game/render/camera.ts`. The sky is a compass/world-relative panorama:
+Camera matrices and collision-shortened boom are in `game/render/camera.ts`.
+`game/render/horizon.ts` selects distant scenery by casting world bearings from
+the current region into the actual registered regional rectangles. The nearest
+visible neighboring region supplies its theme; taller distant ridges and the
+City skyline can rise behind a lower intervening region. Palm Reach's extended bounds
+are respected: Copper Mesa lies west of its northern half, while its southern
+cape looks across open water. Reserved cells remain inactive; their backdrops
+are alpine wilderness, wooded headlands/foothills, countryside, canyon badlands
+or ocean according to their position in the world.
 
-- north: mountains, pines, radio landmark;
-- east: water and the sun sector;
-- southeast: warm marine haze behind the physical Palm Reach shore and skyline;
-- south: industrial terminal;
-- west: downtown skyline.
+`app/horizon-panorama.ts` paints a continuous 360-degree illustration: layered
+ridges, snow caps, tree lines, modest regional silhouettes and open sea. Filled
+land/water extends below the horizon with no disconnected angular masks. Its
+periodic color/profile joins and repeated horizontal texture sampling close the
+west-facing seam. Each renderer keeps 16 MiB of canvas artwork and 16 MiB of GPU
+textures; the software path uses pixel copies in place of GPU textures.
+Art updates at 64-unit vantage intervals and on every
+region change, with a 0.4-second crossfade; reduced motion switches directly.
 
-Sun, clouds, and horizon motifs are fixed to bearings rather than screen UVs.
-Turning away must move them off screen. Real 3D buildings render after the sky
-and naturally occlude it.
-Inside Neon City, physical distant hills and simplified actual buildings replace
-painted skyline and landmark silhouettes. The old painted suspension bridge and
-lighthouse have been removed.
+WebGPU, Canvas/WebGL and software Canvas use this same illustration and
+`game/render/horizon-view.ts` ray basis. The basis comes from the actual view
+matrix, so it tracks road pitch, cabin roll, walking and mobile framing. Sun and
+clouds retain their compass bearings between regions. Fixed ISO keeps its
+overhead gradient, where no distant horizon is visible. Software sky projection
+is limited to 160,000 pixels and reused while its view and artwork are unchanged.
+Real 3D terrain, distant proxies and buildings draw afterward and occlude the
+background. Painted silhouettes express regional identity without duplicating
+named landmarks or adding physical geometry, roads or active chunks.
+
+See [the horizon review and evidence record](regional-horizons.md).
 
 Saved camera mode remains unchanged when entering or leaving the taxi. On foot,
 Chase High and Chase Low select their closer pedestrian presets and Fixed uses

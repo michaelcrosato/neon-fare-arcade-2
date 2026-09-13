@@ -4,6 +4,7 @@ import { packSurfaceQuads, SURFACE_VERTEX_BYTES } from "@/game/render/surfaces";
 import { sphereInView } from "@/game/render/clip";
 import { MAT_WINDOW, MAT_LAMP, MAT_MARKER, MAT_ROUTE, MAT_TURN } from "@/game/config";
 import type { CompatibilityScene } from "./compatibility-scene";
+import { WebGLHorizon, type HorizonFrame } from "./webgl-horizon";
 
 const FRAGMENT = `#version 300 es
 precision highp float;
@@ -94,12 +95,14 @@ export class WebGLScene {
   private navigation: Mesh;
   private surfaces: Mesh;
   private key: string | null = null;
+  private horizon: WebGLHorizon | null = null;
 
   constructor() {
     const gl = this.canvas.getContext("webgl2", { alpha: false, antialias: false });
     if (!gl) throw new Error("WebGL2 unavailable");
     this.gl = gl;
     try {
+      this.horizon = new WebGLHorizon(gl);
       this.boxProgram = this.program(BOX_VERTEX); this.surfaceProgram = this.program(SURFACE_VERTEX);
       this.cube = this.buffer(); gl.bindBuffer(gl.ARRAY_BUFFER, this.cube);
       gl.bufferData(gl.ARRAY_BUFFER, cubeVertices(), gl.STATIC_DRAW);
@@ -157,7 +160,7 @@ export class WebGLScene {
     gl.bufferData(gl.ARRAY_BUFFER, packBoxes(boxes), dynamic ? gl.DYNAMIC_DRAW : gl.STATIC_DRAW);
     mesh.count = boxes.length;
   }
-  render(matrix: Float32Array, width: number, height: number, camera: Camera, distance: number, world: WorldView, scene: CompatibilityScene) {
+  render(matrix: Float32Array, width: number, height: number, camera: Camera, distance: number, world: WorldView, scene: CompatibilityScene, sky: HorizonFrame, skyBasis: Float32Array) {
     const gl = this.gl;
     if (gl.isContextLost()) return false;
     if (this.canvas.width !== width || this.canvas.height !== height) { this.canvas.width = width; this.canvas.height = height; }
@@ -178,6 +181,7 @@ export class WebGLScene {
     gl.viewport(0, 0, width, height); gl.clearColor(0.35, 0.7, 0.88, 1); gl.clearDepth(1);
     gl.depthMask(true); gl.enable(gl.DEPTH_TEST); gl.depthFunc(gl.LEQUAL);
     gl.disable(gl.CULL_FACE); gl.disable(gl.BLEND); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    this.horizon!.render(sky, skyBasis);
     const bindProgram = (program: WebGLProgram) => {
       gl.useProgram(program); gl.uniformMatrix4fv(gl.getUniformLocation(program, "matrix"), false, matrix);
       gl.uniform2f(gl.getUniformLocation(program, "cameraXY"), camera.x, camera.y);
@@ -198,6 +202,7 @@ export class WebGLScene {
     gl.bindVertexArray(null); return !gl.isContextLost();
   }
   destroy() {
+    this.horizon?.destroy(); this.horizon = null;
     for (const buffer of this.buffers) this.gl.deleteBuffer(buffer);
     for (const array of this.arrays) this.gl.deleteVertexArray(array);
     for (const program of this.programs) this.gl.deleteProgram(program);
