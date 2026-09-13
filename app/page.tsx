@@ -76,6 +76,7 @@ import { normalizeRunRecords } from "./runtime/run-records";
 import { useFareCardDeck } from "./use-fare-card-deck";
 import { requestGameFullscreen } from "./runtime/game-display";
 import { GameModalHost } from "./game-modal-host";
+import { usePauseNavigation } from "./use-pause-navigation";
 import { GameModeMenu } from "./game-mode-menu";
 import { GameSessionOverlays } from "./game-session-overlays";
 import { GameStageHud } from "./game-stage-hud";
@@ -211,7 +212,9 @@ export default function Home() {
     if (courierImpactTimerRef.current !== null) window.clearTimeout(courierImpactTimerRef.current);
   }, []);
 
+  const { menuOptionsOpen, pauseView, setPauseView, preparePauseMode, resumePauseMenu, togglePauseMenu } = usePauseNavigation(modeRef, setAudioAnnouncement);
   const setMode = useCallback((next: Mode) => {
+    preparePauseMode(next);
     const leavingPlay = modeRef.current === "playing" && next !== "playing";
     if (next !== "playing") {
       clearInput();
@@ -226,7 +229,10 @@ export default function Home() {
       resetFareCards();
       setCourierImpact(null);
     }
-  }, [checkpointExternalGameChange, clearInput, resetFareCards]);
+  }, [checkpointExternalGameChange, clearInput, resetFareCards, preparePauseMode]);
+
+  const resumeFromPause = useCallback(() => resumePauseMenu(setMode), [resumePauseMenu, setMode]);
+  const togglePause = useCallback(() => togglePauseMenu(setMode), [togglePauseMenu, setMode]);
 
   const setCameraMode = useCallback((next: CameraMode) => {
     cameraModeRef.current = next;
@@ -642,8 +648,9 @@ export default function Home() {
 
   const openFareDeck = useCallback(() => {
     setMode("paused");
+    setPauseView("fares");
     setAudioAnnouncement(`Game paused. Fare deck contains ${fareCards.length} ${fareCards.length === 1 ? "card" : "cards"}.`);
-  }, [fareCards.length, setMode]);
+  }, [fareCards.length, setMode, setPauseView]);
 
   useEffect(() => {
     let saved: unknown;
@@ -763,6 +770,7 @@ export default function Home() {
     const onModalKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape" && !event.repeat) {
         event.preventDefault();
+        event.stopPropagation();
         closeModal();
         return;
       }
@@ -804,13 +812,7 @@ export default function Home() {
       applyKeyboardInput(inputRef.current, key, pressed, walkingNow, event.repeat, modeRef.current === "playing");
       if (!pressed || event.repeat) return;
       if ((key === "p" || key === "escape") && modal === null) {
-        if (modeRef.current === "playing") {
-          setMode("paused");
-          setAudioAnnouncement("Game paused.");
-        } else if (modeRef.current === "paused") {
-          setMode("playing");
-          setAudioAnnouncement("Game resumed.");
-        }
+        togglePause();
       }
       if (key === "m") toggleMute();
       if (key === "g" && modal === null && modeRef.current !== "menu" && !isInterior(gameRef.current)) openModal("map");
@@ -824,7 +826,7 @@ export default function Home() {
       window.removeEventListener("keydown", down);
       window.removeEventListener("keyup", up);
     };
-  }, [cycleCamera, modal, openModal, setMode, toggleMute]);
+  }, [cycleCamera, modal, openModal, toggleMute, togglePause]);
 
   const handleTouch = useCallback((event: React.PointerEvent<HTMLButtonElement>) => {
     event.preventDefault();
@@ -864,7 +866,8 @@ export default function Home() {
           <i aria-hidden="true"><b /><b /><b /><b /><b /><b /></i>
         </button>
         <nav aria-label="Game navigation">
-          <button onClick={() => openOptions("game")} disabled={!careerReady}>OPTIONS</button>
+          <button onClick={togglePause} disabled={!careerReady} aria-expanded={mode === "paused" || menuOptionsOpen}
+            aria-label={mode === "playing" || mode === "countdown" ? "Pause game" : mode === "paused" ? "Resume game" : "OPTIONS"}>OPTIONS</button>
         </nav>
       </header>
 
@@ -898,6 +901,7 @@ export default function Home() {
           <span className="speed-fx__slash speed-fx__slash--right" />
         </div>
         <WebGpuStatusNotice rendererKind={rendererKind} />
+        <div className="stage-interface" inert={mode === "paused" || menuOptionsOpen ? true : undefined}>
         <GameStageHud
           mode={mode}
           hud={hud}
@@ -928,12 +932,13 @@ export default function Home() {
             careerBank={career.bank}
             best={best}
             onRequestStartRun={requestStartRun}
-            onOpenOptions={() => openOptions("game")}
           />
         )}
+        </div>
 
         <GameSessionOverlays
           mode={mode}
+          menuOptionsOpen={menuOptionsOpen} pauseView={pauseView} onChangePauseView={setPauseView} onResume={resumeFromPause}
           hud={hud}
           cameraMode={cameraMode}
           cameraDistanceScale={cameraDistance}

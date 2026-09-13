@@ -1,14 +1,3 @@
-.pause-paper .pause-recovery {
-  display: grid;
-  gap: 6px;
-  width: 100%;
-  margin: 12px 0 6px;
-  padding: 14px;
-  color: var(--paper);
-  background: var(--ink);
-  border: 3px solid var(--red);
-  text-align: left;
-}
 .pause-recovery strong { font: italic 900 21px/1.1 Impact, sans-serif; }
 .pause-recovery small { color: var(--yellow); font: 800 10px/1.4 var(--font-geist-mono), monospace; }
 .pause-recovery:disabled { opacity: .55; cursor: default; }
@@ -61,22 +50,6 @@
   transform: translateX(-50%) rotate(-2deg);
   animation: callout-pop 360ms cubic-bezier(0.18, 1.3, 0.3, 1) both;
   pointer-events: none;
-}
-
-.pause-button {
-  position: absolute;
-  z-index: 25;
-  left: 22px;
-  bottom: 22px;
-  display: grid;
-  width: 50px;
-  height: 50px;
-  place-items: center;
-  color: var(--paper);
-  background: var(--ink);
-  border: 3px solid var(--paper);
-  box-shadow: 4px 4px 0 var(--red);
-  cursor: pointer;
 }
 
 .countdown {
@@ -153,7 +126,6 @@
   overflow: auto;
 }
 
-.pause-paper,
 .end-paper {
   position: relative;
   width: min(590px, calc(100vw - 36px));
@@ -166,7 +138,6 @@
   transform: rotate(-1deg);
 }
 
-.pause-paper p,
 .end-paper > p {
   margin: 0 0 2px;
   font-family: var(--font-geist-mono), monospace;
@@ -175,7 +146,6 @@
   letter-spacing: 0.18em;
 }
 
-.pause-paper h2,
 .end-paper h2,
 .comic-modal h2 {
   margin: 0 0 24px;
@@ -186,7 +156,6 @@
   letter-spacing: -0.045em;
 }
 
-.pause-paper button,
 .end-paper > button {
   display: block;
   width: min(340px, 100%);
@@ -227,69 +196,10 @@
   gap: 5px;
 }
 
-.pause-paper .pause-camera-options button {
-  display: grid;
-  width: auto;
-  min-height: 40px;
-  margin: 0;
-  padding: 7px 4px;
-  place-items: center;
-  color: var(--paper);
-  background: #24221e;
-  border: 2px solid #625d51;
-  font-size: 0.78rem;
-  line-height: 1;
-}
-
-.pause-paper .pause-camera-options button[aria-pressed="true"] {
-  color: var(--ink);
-  background: var(--yellow);
-  border-color: var(--paper);
-  box-shadow: 3px 3px 0 var(--red);
-}
-
-.pause-paper .duty-toggle {
-  display: grid;
-  width: min(430px, 100%);
-  margin: 2px auto 18px;
-  padding: 11px 15px;
-  gap: 3px;
-  color: var(--paper);
-  background: var(--ink);
-  border: 3px solid var(--cyan);
-  box-shadow: 5px 5px 0 #006c70;
-  line-height: 1.05;
-}
-
-.pause-paper .duty-toggle small {
-  font-family: var(--font-geist-mono), monospace;
-  font-size: 0.58rem;
-  font-style: normal;
-  letter-spacing: 0.1em;
-}
-
-.pause-paper .duty-toggle strong { font-size: 1rem; }
-
-.pause-paper .duty-toggle.is-off-duty {
-  color: var(--ink);
-  background: var(--cyan);
-  border-color: var(--ink);
-  box-shadow: 5px 5px 0 var(--yellow);
-}
-
 .duty-toggle[aria-disabled="true"] {
   cursor: not-allowed;
   filter: grayscale(0.7);
   opacity: 0.58;
-}
-
-.pause-paper .duty-lock-note {
-  display: block;
-  margin: -10px auto 15px;
-  font-family: var(--font-geist-mono), monospace;
-  font-size: 0.58rem;
-  font-weight: 900;
-  letter-spacing: 0.08em;
 }
 
 .primary-small {
@@ -833,3 +743,63 @@
 .stunt-statistics dt, .stunt-statistics small { display: block; font: 800 9px/1.4 var(--font-geist-mono), monospace; }
 .stunt-statistics dd { font: italic 900 26px/1.1 Impact, sans-serif; margin: 3px 0 0; }
 .transmission-controls__recovery { display: block; max-width: 205px; margin: 4px 0 7px; color: var(--yellow); font-size: 10px; font-weight: 800; line-height: 1.3; }
+.transmission-controls__lights { display: flex; gap: 6px; margin-bottom: 7px; }
+.transmission-controls__lights span { padding: 4px 7px; border: 1px solid #81877b; border-radius: 3px; color: #c1c6b9; background: #292d27; font: 900 10px/1 var(--font-geist-mono), monospace; }
+.transmission-controls__lights .shift-light.is-lit { color: var(--ink); background: var(--yellow); border-color: var(--yellow); box-shadow: 0 0 9px #ffe40066; }
+.transmission-controls__lights .vtec-light.is-lit { color: var(--ink); background: var(--cyan); border-color: var(--cyan); box-shadow: 0 0 9px #0bcbd966; }
+
+/* One pause hub: a persistent resume action, driving tools, then the run archive. */
+.pause-overlay:has(.pause-menu) { place-items: center; padding: clamp(12px, 3vh, 30px); }
+.pause-menu { width: min(1020px, 100%); max-height: 100%; display: flex; flex-direction: column; min-height: 0; overflow: hidden; color: var(--ink); background: var(--paper); border: 4px solid var(--ink); box-shadow: 9px 9px 0 var(--red); text-align: left; }
+.pause-menu button { min-height: 44px; cursor: pointer; font: 900 19px/1.1 "Barlow Condensed", Impact, sans-serif; }
+.pause-menu button:disabled { cursor: default; opacity: .55; }
+.pause-menu button:focus-visible { outline: 3px solid #00858c; outline-offset: 2px; }
+.pause-menu__header { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 22px 26px; color: var(--paper); background: var(--ink); border-bottom: 5px solid var(--yellow); }
+.pause-menu__header p { margin: 0 0 7px; color: var(--cyan); font: 800 10px/1.3 var(--font-geist-mono), monospace; letter-spacing: .12em; }
+.pause-menu__header h2 { margin: 0; font: italic 900 clamp(30px, 3.5vw, 48px)/.95 "Barlow Condensed", Impact, sans-serif; letter-spacing: -.02em; }
+.pause-menu .pause-menu__resume { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 15px 20px; color: var(--ink); background: var(--yellow); border: 2px solid var(--yellow); box-shadow: 4px 4px 0 var(--red); white-space: nowrap; }
+.pause-menu__resume span { font-size: 26px; }
+.pause-menu__stats { flex: none; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; padding: 16px 26px; border-bottom: 1px solid #bbb4a5; }
+.pause-menu__stats small { display: block; font: 800 9px/1.3 var(--font-geist-mono), monospace; letter-spacing: .12em; }
+.pause-menu__stats b { display: block; margin-top: 3px; font: italic 900 30px/1 "Barlow Condensed", Impact, sans-serif; }
+.pause-menu__tabs { flex: none; display: flex; gap: 22px; padding: 0 26px; background: #e7e0d1; border-bottom: 1px solid #bbb4a5; }
+.pause-menu__tabs button { padding: 12px 0 9px; border-bottom: 4px solid transparent; font-size: 16px; }
+.pause-menu__tabs button[aria-selected="true"] { border-color: var(--red); }
+.pause-menu__body { overflow-y: auto; min-height: 0; display: grid; grid-template-columns: 1.15fr 1fr; gap: 28px; padding: 22px 26px; overscroll-behavior: contain; }
+.pause-menu__body[hidden], .pause-menu__fares[hidden] { display: none; }
+.pause-menu h3 { margin: 0 0 14px; font: 900 12px/1.2 var(--font-geist-mono), monospace; letter-spacing: .1em; }
+.pause-menu .pause-camera-options { width: 100%; margin: 0 0 12px; padding: 0; color: var(--ink); background: none; border: 0; box-shadow: none; transform: none; }
+.pause-menu .pause-camera-options > small { color: #514d43; font-size: 9px; margin-bottom: 5px; }
+.pause-menu .pause-camera-options > div { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; }
+.pause-menu .pause-camera-options button { margin: 0; padding: 6px; min-width: 0; color: var(--ink); background: #ddd6c7; border: 2px solid #bbb4a5; }
+.pause-menu .pause-camera-options button[aria-pressed="true"] { color: var(--paper); background: var(--ink); border-color: var(--ink); box-shadow: inset 0 -3px 0 var(--yellow); }
+.pause-menu .duty-toggle { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 18px; padding: 10px 12px; background: #ded9ca; text-align: left; border: 1px solid #b6b0a1; }
+.pause-menu .duty-toggle small { display: block; font: 800 9px/1.2 var(--font-geist-mono), monospace; }
+.pause-menu .duty-toggle strong { display: block; margin-top: 3px; font-size: 20px; }
+.pause-menu__switch { position: relative; width: 42px; height: 24px; border-radius: 20px; background: #77786d; }
+.pause-menu__switch::before { content: ""; position: absolute; top: 4px; left: 4px; width: 16px; height: 16px; border-radius: 50%; background: white; }
+.is-on-duty .pause-menu__switch { background: #007980; }
+.is-on-duty .pause-menu__switch::before { left: 22px; }
+.pause-menu__hint { margin: 7px 0; font: 600 12px/1.4 Arial, sans-serif; color: #565146; }
+.pause-menu .stunt-statistics { margin: 16px 0; gap: 8px; }
+.pause-menu .stunt-statistics > div { border: 0; border-left: 3px solid #aca694; padding: 2px 9px; }
+.pause-menu .pause-recovery { width: 100%; display: grid; gap: 5px; padding: 12px; text-align: left; border: 2px solid #9b4a32; background: #f6e2ca; }
+.pause-menu .pause-recovery strong { font: 900 18px/1.1 "Barlow Condensed", sans-serif; }
+.pause-menu .pause-recovery small { color: #6b3e2e; font-size: 9px; }
+.pause-menu__shortcuts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.pause-menu__shortcuts button { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px; text-align: left; background: #e5dfd1; border: 1px solid #b6b0a1; }
+.pause-menu__shortcuts button:hover, .pause-menu__settings:hover { background: var(--yellow); }
+.pause-menu .pause-menu__settings { position: relative; display: grid; width: 100%; gap: 5px; margin: 14px 0 24px; padding: 16px 40px 16px 14px; text-align: left; border: 2px solid var(--ink); background: var(--yellow); }
+.pause-menu__settings small { font: 600 12px/1.3 Arial, sans-serif; }
+.pause-menu__settings > span { position: absolute; right: 14px; top: 19px; }
+.pause-menu__advanced { border-top: 1px solid #bbb4a5; padding-top: 12px; }
+.pause-menu__advanced > small { display: block; color: #625c51; font: 800 9px/1.2 var(--font-geist-mono), monospace; letter-spacing: .1em; }
+.pause-menu__advanced button { display: block; font-size: 15px; text-decoration: underline; text-underline-offset: 4px; }
+.pause-menu__advanced p { font: 700 11px/1.4 Arial, sans-serif; }
+.pause-menu__footer { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 26px; border-top: 1px solid #bbb4a5; background: #e7e0d1; }
+.pause-menu__footer small { font: 600 12px/1.4 Arial, sans-serif; }
+.pause-menu__footer button { flex-shrink: 0; font-size: 16px; color: #8b2c1e; text-decoration: underline; text-underline-offset: 4px; }
+.pause-menu__fares { min-height: 0; overflow-y: auto; padding: 20px 26px; }
+.pause-menu__fares .fare-deck-browser { width: 100%; border: 0; box-shadow: none; clip-path: none; transform: none; }
+.pause-menu.is-lobby { max-width: 640px; }
+.pause-menu.is-lobby .pause-menu__body { grid-template-columns: 1fr; }

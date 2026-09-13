@@ -203,8 +203,8 @@ test.describe("mobile session tools", () => {
     await expect(cab).toHaveAttribute("aria-pressed", "true");
     await paused.getByRole("button", { name: "AUDIO ON", exact: true }).click();
     await expect(paused.getByRole("button", { name: "AUDIO OFF", exact: true })).toBeVisible();
-    await paused.locator(".pause-fares > summary").click();
-    await expect(paused.locator(".pause-fares")).toHaveAttribute("open", "");
+    await paused.getByRole("tab", { name: /FARE DECK/ }).click();
+    await expect(paused.getByRole("region", { name: "Run fare card deck", exact: true })).toBeVisible();
     await paused.getByRole("button", { name: "RESUME FREE RUN" }).click();
     await expect(page.locator(".game-stage")).toHaveClass(/camera-cab/);
     await page.getByRole("button", { name: /EXIT TAXI/ }).click();

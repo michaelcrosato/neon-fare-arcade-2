@@ -39,8 +39,16 @@ updates the arcade launch, steering, road elevation and contact rules below.
   the fitter. Each card lasts three seconds total:
   180 ms entrance, 2400 ms hold and 420 ms exit. They never wipe or fly across
   the cab or navigation arrow. Fare history remains available in Pause.
-- Desktop header navigation contains Options, including audio settings. Help
-  and Run Log remain available in Pause. The compact GPS shows the route,
+- The splash screen contains mode selection without duplicate Options or a
+  controls strip. Header Options and Escape open the same pause hub. During
+  countdown, Resume returns to the remaining countdown; from the lobby,
+  Back to Menu returns without starting a run. Resume stays visible while the
+  grouped driving controls and tools scroll. Fare Deck is a separate pause tab;
+  selecting the desktop stack opens that tab directly. Help, Run Log, audio,
+  game settings, workshop tools, and recovery remain available in the hub.
+  Desktop has no separate bottom-left pause button. Its multiplier sits below
+  Score, the fare stack below the mini-map, and Exit Taxi follows the projected
+  driver door using the same presenter as mobile. The compact GPS shows the route,
   fare/destination markers and cab without repeated objective, turn or distance
   captions or floating text badges. U-turn plans use the temporary vehicle
   direction arrow; the legacy floating hairpin, U-turn distance badge, warning
@@ -124,6 +132,12 @@ updates the arcade launch, steering, road elevation and contact rules below.
   driver draft; Simulation never exposes arcade traits. The Accord defaults to
   automatic shifting in every mode, with Manual selectable on its card. See
   `docs/vehicles.md` for six-speed, winter-tire and sticky-clutch contracts.
+  Manual Accord acceleration in both driving models depends on engine torque,
+  selected ratio, final drive, loaded mass and winter-tire traction. Arcade
+  retains its steering and slides; its manual coupe uses physical longitudinal
+  force and the coupe's 223 km/h governor. Each gear's 6800 RPM limiter also
+  limits boost, so first/second reach approximately 61/97 km/h. Automatic
+  Arcade handling and the Crown's existing speed ceilings are unchanged.
   Setup uses separate Vehicle → Edge → Steering screens on desktop and mobile.
   Simulation retains its physics and uses Vehicle → Steering. Only locking
   steering starts the countdown; Back and Escape preserve the draft vehicle

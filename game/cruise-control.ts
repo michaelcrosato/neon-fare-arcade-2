@@ -6,8 +6,8 @@ import { simulationVehicleSpecs } from "./simulation-vehicle";
 
 export const MIN_CRUISE_KMH = 10;
 
-export function cruiseSpeedLimit(game: Pick<Game, "drivingModel" | "drivingTraitId" | "vehicleId">) {
-  return Math.floor(game.drivingModel === "simulation"
+export function cruiseSpeedLimit(game: Pick<Game, "drivingModel" | "drivingTraitId" | "vehicleId" | "transmissionMode">) {
+  return Math.floor(game.drivingModel === "simulation" || game.vehicleId === "accord-v6" && game.transmissionMode === "manual"
     ? simulationVehicleSpecs(game.vehicleId).governedTopSpeedMps * 3.6
     : drivingTraitPackage(game.drivingTraitId).modifiers.maxForwardSpeed * SPEED_KMH_PER_WORLD_UNIT);
 }

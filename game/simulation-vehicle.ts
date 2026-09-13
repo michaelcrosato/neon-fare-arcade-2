@@ -1,4 +1,4 @@
-import { clutchConnected, stepManualTransmission } from "./manual-transmission";
+import { accordCoupledRpm, clutchConnected, stepManualTransmission } from "./manual-transmission";
 import { stepOffroadSpeedLimit } from "./offroad-speed";
 import { ACCORD_GEARS, ACCORD_FINAL_DRIVE, ACCORD_WHEEL_RADIUS_M, ACCORD_REDLINE_RPM } from "./vehicles";
 import { SPEED_KMH_PER_WORLD_UNIT } from "./config";
@@ -208,6 +208,25 @@ function engineTorqueNm(rpm: number, accord: boolean) {
     }
   }
   return points.at(-1)![1];
+}
+
+/** SI longitudinal force for the manual coupe in Arcade; steering stays arcade. */
+export function accordManualAcceleration(speedMps: number, gear: SimulationGear, throttle: number, connected: boolean, onRoad: boolean) {
+  const specs = ACCORD_V6_SPECS;
+  const ratio = gear === -1 ? specs.reverseGearRatio : specs.forwardGearRatios[gear];
+  const coupledRpm = accordCoupledRpm(speedMps, gear);
+  const rpm = Math.max(specs.idleRpm, coupledRpm, Math.abs(speedMps) < 1.2 ? specs.idleRpm + throttle * 1_450 : 0);
+  const limiter = clamp((specs.redlineRpm - coupledRpm) / 120, 0, 1);
+  const drive = connected ? engineTorqueNm(rpm, true) * ratio * specs.finalDriveRatio
+    * specs.drivelineEfficiency / specs.wheelRadiusM * throttle * limiter : 0;
+  const friction = onRoad ? specs.roadFriction : specs.offroadFriction;
+  // Solve front-axle grip with longitudinal load transfer (FWD, winter tires).
+  const traction = friction * specs.massKg * GRAVITY * specs.cgToRearAxleM
+    / (specs.wheelbaseM + friction * specs.cgHeightM);
+  const rolling = Math.abs(speedMps) > 0.08 ? specs.rollingResistance * specs.massKg * GRAVITY : 0;
+  const aero = 0.5 * AIR_DENSITY * specs.dragCoefficient * specs.frontalAreaM2 * speedMps ** 2;
+  const engineBrake = connected && throttle === 0 && Math.abs(speedMps) > 0.35 ? 180 * ratio : 0;
+  return (Math.sign(gear) * Math.min(drive, traction) - Math.sign(speedMps) * (rolling + aero + engineBrake)) / specs.massKg;
 }
 
 function automaticGear(state: SimulationVehicleState, speedMps: number) {
@@ -566,7 +585,9 @@ function stepSimulationSubstep(
     * driveDirection
     * governor
     * converterMultiplication
-    * (accord ? clamp((specs.redlineRpm + 100 - coupledRpm) / 250, 0, 1) : 1);
+    * (accord ? game.transmissionMode === "manual"
+      ? clamp((specs.redlineRpm - coupledRpm) / 120, 0, 1)
+      : clamp((specs.redlineRpm + 100 - coupledRpm) / 250, 0, 1) : 1);
   const speedSign = Math.abs(longitudinal) > 0.08 ? Math.sign(longitudinal) : driveDirection;
   const serviceBrakeDemand = specs.serviceBrakeForceN * state.brake;
   const frontLongitudinalForce = state.overturned ? 0 : signedClamp(

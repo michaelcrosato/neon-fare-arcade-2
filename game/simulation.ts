@@ -38,7 +38,8 @@ import { passengerDistanceQuote } from "./fare-market";
 import { scheduleSixthFareTransfer } from "./regional-fares";
 import { SPEED_KMH_PER_WORLD_UNIT } from "./config";
 import { vehicleDefinition } from "./vehicles";
-import { accordCoupledRpm, clutchConnected, stepManualTransmission } from "./manual-transmission";
+import { accordCoupledRpm, accordGearSpeedLimitMps, clutchConnected, stepManualTransmission } from "./manual-transmission";
+import { ACCORD_V6_SPECS, accordManualAcceleration } from "./simulation-vehicle";
 import { stepOffroadSpeedLimit } from "./offroad-speed";
 import { stepDrivingStunts } from "./driving-stunts";
 import { drivingTraitPackage } from "./driving-traits";
@@ -318,9 +319,10 @@ export function stepGame(
   const launchAcceleration = 20 + 3.5 * (1 - clamp(Math.abs(forwardSpeed) / 24, 0, 1));
   const gear = game.transmission.gear;
   const rpm = accordCoupledRpm(forwardSpeed * SPEED_KMH_PER_WORLD_UNIT / 3.6, gear);
-  const gearPull = manual ? [0, 1.12, 1, 0.88, 0.76, 0.66, 0.58][Math.max(1, gear)] * clamp((6900 - rpm) / 300, 0, 1) : 1;
-  if (throttle && connected && !(accord && !manual && gear < 0)) forwardSpeed += launchAcceleration * drivingTrait.throttleMultiplier
-    * vehicle.acceleration * gearPull * (manual && gear === -1 ? -0.5 : 1) * groundTraction * throttle * dt;
+  if (manual) forwardSpeed += accordManualAcceleration(forwardSpeed * SPEED_KMH_PER_WORLD_UNIT / 3.6,
+    gear, throttle, connected, isRoadSurface(game)) * 3.6 / SPEED_KMH_PER_WORLD_UNIT * groundTraction * dt;
+  else if (throttle && connected && !(accord && gear < 0)) forwardSpeed += launchAcceleration * drivingTrait.throttleMultiplier
+    * vehicle.acceleration * groundTraction * throttle * dt;
   if (accord && !manual && gear < 0 && throttle) forwardSpeed = Math.min(0, forwardSpeed + 34 * groundTraction * throttle * dt);
   if (brake) {
     if (manual || (accord && !connected)) forwardSpeed -= Math.sign(forwardSpeed) * Math.min(Math.abs(forwardSpeed), 34 * drivingTrait.brakingMultiplier * groundTraction * brake * dt);
@@ -331,7 +333,7 @@ export function stepGame(
 
   game.boosting = controlInput.boost && connected && (!manual || gear > 0) && game.boost > 0 && forwardSpeed > 3;
   if (game.boosting) {
-    forwardSpeed += 24 * drivingTrait.boostAccelerationMultiplier * (manual ? clamp((6900 - rpm) / 300, 0, 1) : 1) * (game.roadMotion.grounded ? 1 : 0.35) * dt;
+    forwardSpeed += 24 * drivingTrait.boostAccelerationMultiplier * (manual ? clamp((ACCORD_V6_SPECS.redlineRpm - rpm) / 120, 0, 1) : 1) * (game.roadMotion.grounded ? 1 : 0.35) * dt;
     const coolerDrain = hasRunUpgrade(game, "boost-cooler") ? BOOST_COOLER_DRAIN_MULTIPLIER : 1;
     game.boost = Math.max(0, game.boost - 30 * drivingTrait.boostDrainMultiplier * coolerDrain * dt);
   }
@@ -493,16 +495,19 @@ export function stepGame(
     lateralSpeed,
     Math.max(1, Math.abs(forwardSpeed)),
   );
-  const drag = 1.55 + Math.abs(forwardSpeed) * 0.022 + Math.abs(game.brakeDriftKick) * 3.5;
+  const drag = (manual ? 0 : 1.55 + Math.abs(forwardSpeed) * 0.022) + Math.abs(game.brakeDriftKick) * 3.5;
   forwardSpeed -= Math.sign(forwardSpeed) * Math.min(Math.abs(forwardSpeed), drag * dt);
   const overdriveActive = game.boosting && hasRunUpgrade(game, "boost-overdrive");
   const requestedMaxSpeed = overdriveActive
     ? drivingTrait.maxBoostSpeed + BOOST_OVERDRIVE_BONUS_WORLD_UNITS
     : (game.boosting ? drivingTrait.maxBoostSpeed : drivingTrait.maxForwardSpeed);
-  const maxSpeed = Math.min(
+  const vehicleSpeedLimit = (manual ? ACCORD_V6_SPECS.governedTopSpeedMps * 3.6 / SPEED_KMH_PER_WORLD_UNIT : Math.min(
     overdriveActive ? BOOST_OVERDRIVE_TOP_SPEED_WORLD_UNITS : TAXI_TOP_SPEED_WORLD_UNITS,
     requestedMaxSpeed,
-  ) - (game.roadMotion.grounded ? game.offroadSpeedPenaltyKmh / SPEED_KMH_PER_WORLD_UNIT : 0);
+  )) - (game.roadMotion.grounded ? game.offroadSpeedPenaltyKmh / SPEED_KMH_PER_WORLD_UNIT : 0);
+  const maxSpeed = manual && connected && gear > 0
+    ? Math.min(vehicleSpeedLimit, accordGearSpeedLimitMps(gear) * 3.6 / SPEED_KMH_PER_WORLD_UNIT)
+    : vehicleSpeedLimit;
   forwardSpeed = clamp(forwardSpeed, -7, maxSpeed);
   game.vx = Math.cos(game.heading) * forwardSpeed - Math.sin(game.heading) * lateralSpeed;
   game.vy = Math.sin(game.heading) * forwardSpeed + Math.cos(game.heading) * lateralSpeed;

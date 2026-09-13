@@ -77,8 +77,8 @@ test("holding pause and mute keys performs one toggle per press", async ({ page 
 
   await page.keyboard.down("m");
   await page.keyboard.down("m");
-  await page.getByRole("button", { name: "OPTIONS", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Audio muted. Click to unmute." })).toBeVisible();
+  await page.getByRole("button", { name: "Pause game", exact: true }).click();
+  await expect(page.getByRole("button", { name: "AUDIO OFF", exact: true })).toBeVisible();
   await page.keyboard.up("m");
 });
 
@@ -92,10 +92,10 @@ test("options pauses the countdown and closing it resumes the remaining countdow
   await lockSteeringIfPrompted(page);
   await page.clock.runFor(100);
   await expect(page.locator(".countdown")).toBeVisible();
-  await page.getByRole("button", { name: "OPTIONS", exact: true }).click();
+  await page.getByRole("button", { name: "Pause game", exact: true }).click();
   await page.clock.fastForward(5000);
   await expect(page.locator("main")).not.toHaveClass(/mode-playing/);
-  await page.getByRole("button", { name: "Close dialog" }).click();
+  await page.getByRole("button", { name: "RESUME FREE RUN", exact: true }).click();
   await expect(page.locator(".countdown")).toBeVisible();
   await page.clock.fastForward(3500);
   await expect(page.getByRole("button", { name: "Pause game" })).toBeEnabled();
@@ -181,6 +181,8 @@ test("modal focus is trapped, Escape closes, and focus returns to its trigger", 
   await page.goto("/");
   const trigger = page.getByRole("button", { name: "OPTIONS", exact: true });
   await trigger.click();
+  const settings = page.getByRole("button", { name: "GAME OPTIONS", exact: false });
+  await settings.click();
   const dialog = page.getByRole("dialog", { name: "OPTIONS", exact: true });
   await expect(dialog).toBeVisible();
   const close = page.getByRole("button", { name: "Close dialog" });
@@ -192,6 +194,9 @@ test("modal focus is trapped, Escape closes, and focus returns to its trigger", 
   await expect(close).toBeFocused();
   await page.keyboard.press("Escape");
   await expect(dialog).toBeHidden();
+  await expect(settings).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("region", { name: "Game paused" })).toBeHidden();
   await expect(trigger).toBeFocused();
 });
 

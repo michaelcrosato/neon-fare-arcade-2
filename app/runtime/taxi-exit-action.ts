@@ -24,8 +24,10 @@ export function presentTaxiExitAction(element: HTMLButtonElement, game: Game, ca
     return;
   }
   const left = Math.max(12, Math.min(width - element.offsetWidth - 12, screen.x - element.offsetWidth - 14));
-  const top = Math.max(136, Math.min(height - element.offsetHeight - 116, screen.y - element.offsetHeight / 2));
-  element.style.left = `clamp(var(--mobile-left), ${left}px, calc(100% - var(--mobile-right) - ${element.offsetWidth}px))`;
+  const top = Math.max(camera.mobile ? 136 : 12, Math.min(height - element.offsetHeight - (camera.mobile ? 116 : 12), screen.y - element.offsetHeight / 2));
+  element.style.left = camera.mobile
+    ? `clamp(var(--mobile-left), ${left}px, calc(100% - var(--mobile-right) - ${element.offsetWidth}px))`
+    : `${left}px`;
   element.style.top = `${top}px`;
   element.style.visibility = "visible";
 }

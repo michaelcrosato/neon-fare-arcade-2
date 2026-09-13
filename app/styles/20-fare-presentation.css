@@ -512,21 +512,6 @@
   --fare-stack-bottom: calc(21% + 12px);
 }
 
-.pause-layout {
-  display: grid;
-  grid-template-columns: minmax(330px, 0.72fr) minmax(480px, 1.28fr);
-  gap: clamp(20px, 3vw, 42px);
-  width: min(1120px, calc(100vw - 48px));
-  max-height: calc(100% - 42px);
-  align-items: center;
-}
-
-.pause-layout > .pause-paper {
-  width: 100%;
-  max-height: calc(100dvh - 118px);
-  overflow-y: auto;
-}
-
 .fare-deck-browser {
   min-width: 0;
   padding: 18px 20px 20px;

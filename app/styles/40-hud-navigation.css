@@ -9,7 +9,8 @@
   pointer-events: none;
 }
 
-.hud-top > div {
+.hud-top > div,
+.hud-top .score-card {
   position: relative;
   min-width: 150px;
   padding: 8px 17px 10px;
@@ -21,7 +22,10 @@
 }
 
 .hud-top > div:nth-child(2) { transform: rotate(-1deg); }
-.hud-top > div:nth-child(3) { transform: rotate(0.7deg); }
+.hud-top .score-card { transform: rotate(0.7deg); }
+.score-group { display: grid; gap: 12px; justify-items: end; }
+.score-group .combo-sticker { position: relative; inset: auto; display: flex; align-items: center; gap: 12px; padding: 8px 12px; transform: rotate(2deg); }
+.score-group .combo-sticker strong { font-size: 1.8rem; }
 
 .hud-top small,
 .speedometer small,
@@ -638,6 +642,10 @@
 .interaction-prompt:hover,
 .interaction-prompt:focus-visible { transform: translateX(-50%) rotate(0deg) scale(1.025); }
 .interaction-prompt:active { transform: translate(calc(-50% + 4px), 4px); box-shadow: 3px 3px 0 var(--red); }
+.interaction-prompt.is-taxi-exit { visibility: hidden; bottom: auto; min-width: 0; padding: 8px 12px; transform: none; animation: none; }
+.interaction-prompt.is-taxi-exit:hover, .interaction-prompt.is-taxi-exit:focus-visible { transform: none; }
+.interaction-prompt.is-taxi-exit:active { transform: translateY(2px); }
+.interaction-prompt.is-taxi-exit::after { content: ""; position: absolute; right: -11px; top: calc(50% - 7px); width: 14px; height: 14px; background: var(--ink); border-right: 4px solid var(--yellow); border-top: 4px solid var(--yellow); transform: rotate(45deg); }
 .interaction-prompt kbd {
   display: grid;
   place-items: center;

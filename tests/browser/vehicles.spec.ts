@@ -92,6 +92,8 @@ for (const renderer of ["WebGPU", "Canvas"]) for (const model of ["arcade", "sim
     page.on("pageerror", error => errors.push(error.message));
     await start(page, renderer, model, true);
     const status = page.locator(".transmission-controls__status");
+    await expect(page.getByLabel("Shift light standby", { exact: true })).toBeVisible();
+    await expect(page.getByLabel("VTEC standby", { exact: true })).toBeVisible();
     const transmissionBox = (await page.locator(".transmission-controls").boundingBox())!;
     const exitBox = (await page.getByRole("button", { name: /EXIT TAXI.*Explore on foot/i }).boundingBox())!;
     expect(transmissionBox.x + transmissionBox.width).toBeLessThan(exitBox.x);

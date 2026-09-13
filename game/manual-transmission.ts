@@ -16,6 +16,19 @@ export function accordCoupledRpm(speedMps: number, gear: SimulationGear) {
   return Math.abs(speedMps) / ACCORD_WHEEL_RADIUS_M * 60 / (2 * Math.PI) * ratio * ACCORD_FINAL_DRIVE;
 }
 
+/** Road speed at the limiter, in SI units. Neutral has no coupled limit. */
+export function accordGearSpeedLimitMps(gear: SimulationGear) {
+  return gear === 0 ? Infinity : ACCORD_REDLINE_RPM / accordCoupledRpm(1, gear);
+}
+
+export function accordEngineIndicators(rpm: number, throttle: boolean, gear: SimulationGear, connected: boolean) {
+  return {
+    shift: connected && gear > 0 && gear < 6 && rpm >= 6_200,
+    // Authored crossover for this tuned engine; high-lift operation needs load.
+    vtec: connected && gear > 0 && throttle && rpm >= 4_900,
+  };
+}
+
 function engage(game: Game) {
   const state = game.transmission;
   // A dedicated seed/counter keeps the fault independent of particles, traffic

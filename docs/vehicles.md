@@ -44,6 +44,18 @@ the modeled body uses the 2015 pre-facelift coupe shape.
 
 - Automatic assists the same six-speed gearbox. Gas selects forward drive;
   hold brake through a stop to reverse. It shifts up and down on its own.
+- Manual acceleration uses the tuned engine's torque curve, real gear/final-drive
+  ratios, loaded mass and FWD winter-tire traction in both models. Arcade keeps
+  its steering/slides but replaces the generic arcade acceleration and drag
+  with SI drive force and road/aero resistance. First/second reach roughly
+  61/97 km/h at 6800 RPM; third/fourth have ratio ceilings near 142/193 km/h.
+  Fifth/sixth are also subject to the authored 223 km/h vehicle governor and
+  drag, not a promise of reaching their theoretical redline speeds. Boost
+  cannot bypass a gear's limiter. Automatic Arcade and Crown tuning is retained.
+- The shift lamp lights at 6200 RPM when a forward upshift is available.
+  VTEC lights under throttle from 4900 RPM with the clutch connected. This
+  crossover is an authored approximation for the custom tune, not a factory
+  ECU calibration claim. Both lamps go out with the clutch down or stuck.
 - Manual: hold Shift (or the CLUTCH touch pedal), tap Z / − to downshift or
   X / + to upshift, then release the clutch. Gear order is R, N, 1–6. Use gas
   to reverse in R; brake always brakes. Launch assistance prevents stalling.

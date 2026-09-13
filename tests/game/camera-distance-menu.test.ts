@@ -7,7 +7,7 @@ import { CAMERA_DISTANCE_SCALES } from "../../game/config";
 import type { Camera } from "../../game/model";
 import { requestedChaseBoom } from "../../game/render/view-projection";
 
-const OVERLAY_PATH = resolve(import.meta.dirname, "../../app/game-session-overlays.tsx");
+const OVERLAY_PATH = resolve(import.meta.dirname, "../../app/pause-menu.tsx");
 
 test("pause camera menu exposes 1x 2x 4x 8x and those values drive chase boom", () => {
   assert.deepEqual([...CAMERA_DISTANCE_SCALES], [1, 2, 4, 8]);

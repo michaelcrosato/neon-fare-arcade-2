@@ -94,7 +94,7 @@ for (const viewport of [{ width: 320, height: 568 }, { width: 1280, height: 800 
     await page.screenshot({ path: info.outputPath("free-rescue.png") });
     await page.getByRole("button", { name: "Pause game" }).click();
     await page.getByRole("button", { name: "COPY DIAGNOSTICS" }).click();
-    await expect(page.getByRole("status")).toContainText("DIAGNOSTICS COPIED");
+    await expect(page.getByRole("region", { name: "Game paused" }).getByRole("status")).toContainText("DIAGNOSTICS COPIED");
     const report = JSON.parse(await page.evaluate(() => navigator.clipboard.readText()));
     expect(report.currentGame.towRecovery.cost).toBe(0);
     expect(report.currentGame.player.kind).toBe("driving");

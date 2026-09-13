@@ -1,16 +1,66 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { FIXED_DT, SPEED_KMH_PER_WORLD_UNIT } from "../../game/config";
-import type { Game, InputState, VehicleId } from "../../game/model";
+import type { Game, InputState, VehicleId, SimulationGear } from "../../game/model";
 import { makeGame } from "../../game/state";
 import { stepGame } from "../../game/simulation";
-import { accordCoupledRpm, clutchConnected, stepManualTransmission } from "../../game/manual-transmission";
+import { accordCoupledRpm, accordEngineIndicators, clutchConnected, stepManualTransmission } from "../../game/manual-transmission";
 import { ACCORD_V6_SPECS, CROWN_TAXI_SPECS, stepSimulationVehicle } from "../../game/simulation-vehicle";
 import { taxiBoxes, cabInteriorBoxes } from "../../game/render/scene";
 import { makeTestWorld } from "./support/fixtures";
 
 const IDLE: InputState = { up: false, down: false, left: false, right: false, boost: false };
 const WORLD = makeTestWorld();
+
+test("Accord shift and VTEC lights follow revs, load and clutch engagement", () => {
+  assert.deepEqual(accordEngineIndicators(4_800, true, 2, true), { shift: false, vtec: false });
+  assert.deepEqual(accordEngineIndicators(5_300, true, 2, true), { shift: false, vtec: true });
+  assert.deepEqual(accordEngineIndicators(6_300, true, 2, true), { shift: true, vtec: true });
+  assert.deepEqual(accordEngineIndicators(6_300, false, 2, true), { shift: true, vtec: false });
+  for (const gear of [-1, 0, 2] as const) assert.deepEqual(accordEngineIndicators(6_300, true, gear, false), { shift: false, vtec: false });
+  assert.equal(accordEngineIndicators(6_300, true, 6, true).shift, false, "sixth has no upshift available");
+});
+
+test("manual Accord gearing limits first and second, rewards downshifts, and cannot be bypassed by boost", () => {
+  for (const model of ["arcade", "simulation"] as const) {
+    const run = (gear: SimulationGear, kmh: number, seconds: number, boost = false) => {
+      const game = makeGame("street-ace", 91, "free-run", model, "accord-v6", "manual");
+      game.traffic = []; game.heading = 0; game.vx = kmh / SPEED_KMH_PER_WORLD_UNIT; game.speed = game.vx;
+      game.transmission.gear = gear;
+      for (let tick = 0; tick < seconds / FIXED_DT; tick++) {
+        if (model === "simulation") stepSimulationVehicle(game, { ...IDLE, up: true, boost: false }, FIXED_DT, true);
+        else arcadeStep(game, { up: true, boost });
+      }
+      return game.speed * SPEED_KMH_PER_WORLD_UNIT;
+    };
+    const first = run(1, 0, 12), second = run(2, 50, 12);
+    assert.ok(first > 58 && first < 61.5, `${model}: first redline ${first}`);
+    assert.ok(second > 96 && second < 98, `${model}: second redline ${second}`);
+    assert.ok(run(2, 50, 2) - 50 > (run(5, 50, 2) - 50) * 2, `${model}: passing needs a downshift`);
+    assert.ok(run(1, 0, 2) < 36, `${model}: realistic launch instead of arcade catapult`);
+    assert.ok(run(6, 0, 2) < 10, `${model}: sixth cannot launch like first`);
+    assert.equal(run(0, 0, 2), 0, `${model}: neutral cannot propel`);
+    if (model === "arcade") assert.ok(run(1, 0, 12, true) < 61.5, "boost respects first-gear redline");
+  }
+});
+
+test("shifting the manual Accord through its power band gives a plausible 0–60 mph launch", () => {
+  for (const model of ["arcade", "simulation"] as const) {
+    const game = makeGame("street-ace", 91, "free-run", model, "accord-v6", "manual");
+    game.traffic = []; game.heading = 0;
+    let elapsed = 0, shifting = 0;
+    while (elapsed < 12 && game.speed * SPEED_KMH_PER_WORLD_UNIT < 96.56064) {
+      if (!shifting && accordCoupledRpm(game.speed * SPEED_KMH_PER_WORLD_UNIT / 3.6, game.transmission.gear) > 6_300) shifting = 15;
+      const input = { ...IDLE, up: shifting === 0, clutch: shifting > 1 || game.transmission.stuck && Math.round(elapsed / FIXED_DT) % 2 === 0, shiftUp: shifting === 10 };
+      if (model === "simulation") stepSimulationVehicle(game, input, FIXED_DT, true);
+      else arcadeStep(game, input);
+      shifting = Math.max(0, shifting - 1);
+      elapsed += FIXED_DT;
+    }
+    assert.ok(elapsed > 6 && elapsed < 9, `${model}: 0–60 mph in ${elapsed.toFixed(2)} s`);
+    assert.ok(game.transmission.gear >= 2, "launch requires shifting out of first");
+  }
+});
 function clutch(game: Game, pressed: boolean, input: Partial<InputState> = {}) {
   stepManualTransmission(game, { ...IDLE, clutch: pressed, ...input }, FIXED_DT);
 }

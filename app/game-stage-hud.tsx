@@ -80,13 +80,6 @@ export function GameStageHud({
       {mode === "playing" && hud.runKind === "free-run" && hud.playerMode === "driving" && onSetCruise
         && <CruiseControl hud={hud} onSetSpeed={onSetCruise} />}
       {courierImpact && <CourierImpactOverlay key={courierImpact.id} impact={courierImpact} />}
-      {mode === "playing" && (
-        <FareCardStack
-          key={dockedFareCards[dockedFareCards.length - 1]?.id}
-          cards={dockedFareCards}
-          onOpen={onOpenFareDeck}
-        />
-      )}
       {mode !== "menu" && cameraMode === "cab" && hud.playerMode === "driving" && (
         <div
           className={`cab-frame ${simulationDriving ? "is-simulation" : ""}`}
@@ -129,7 +122,10 @@ export function GameStageHud({
               )}
             </div>
             <div className="fare-card"><small>FARE</small><strong>${hud.fare}</strong></div>
-            <div className="score-card"><small>SCORE</small><strong>{hud.score.toLocaleString().padStart(5, "0")}</strong></div>
+            <section className="score-group" aria-label="Score and multiplier">
+              <div className="score-card"><small>SCORE</small><strong>{hud.score.toLocaleString().padStart(5, "0")}</strong></div>
+              <div className="combo-sticker"><small>MULTI</small><strong>{hud.combo.toFixed(1)}×</strong></div>
+            </section>
           </div>
 
           {hud.playerMode !== "driving" && hud.courierActive && (
@@ -155,6 +151,7 @@ export function GameStageHud({
             </button>
           )}
 
+          <div className="navigation-rail">
           {hud.playerMode === "driving" && <button
             className={`gps-panel ${hud.objectiveType === "roam" ? "is-off-duty" : ""}`}
             onClick={onOpenMap}
@@ -167,6 +164,8 @@ export function GameStageHud({
             <span className="gps-header"><b>{hud.customDestination ? "CUSTOM ROUTE" : hud.objectiveType === "roam" ? "FREE ROAM" : hud.courierActive ? "COURIER GPS" : "FARE-FINDER"}</b><em>GPS // G</em></span>
             <GpsMap hud={hud} />
           </button>}
+
+          {mode === "playing" && <FareCardStack key={dockedFareCards[dockedFareCards.length - 1]?.id} cards={dockedFareCards} onOpen={onOpenFareDeck} />}
 
           <button
             className="camera-panel"
@@ -181,6 +180,7 @@ export function GameStageHud({
           >
             <small>{hud.playerMode === "walking" ? "CAM // ON FOOT" : "CAM // C"}</small><strong>{hud.playerMode === "interior" ? "STORE VIEW" : cameraLabel(cameraMode)}</strong><i aria-hidden="true">{hud.playerMode === "driving" ? "↻" : "•"}</i>
           </button>
+          </div>
 
           <div className="speedometer">
             <small>{hud.playerMode === "driving" ? "KM/H" : "PACE · KM/H"}</small>
@@ -214,7 +214,9 @@ export function GameStageHud({
 
           {mode === "playing" && hud.interactionPrompt && (
             <button
-              className="interaction-prompt"
+              key={hud.playerMode === "driving" ? "taxi-exit" : "interaction"}
+              ref={hud.playerMode === "driving" ? taxiExitRef : undefined}
+              className={`interaction-prompt ${hud.playerMode === "driving" ? "is-taxi-exit" : ""}`}
               aria-label={`${hud.interactionPrompt}. ${hud.interactionDetail}`}
               aria-keyshortcuts="E"
               onClick={onPulseInteraction}
@@ -223,11 +225,7 @@ export function GameStageHud({
             </button>
           )}
 
-          <div className="combo-sticker"><small>MULTI</small><strong>{hud.combo.toFixed(1)}×</strong></div>
           {hud.message && <div className="comic-callout" key={hud.message}>{hud.message}</div>}
-          {(mode === "playing" || mode === "paused") && (
-            <button className="pause-button" onClick={() => onSetMode(mode === "paused" ? "playing" : "paused")} aria-label={mode === "paused" ? "Resume game" : "Pause game"}>{mode === "paused" ? "▶" : "Ⅱ"}</button>
-          )}
 
           {mode === "playing" && <div className={`touch-controls ${hud.playerMode === "driving" ? "is-driving" : "is-on-foot"}`} aria-label={hud.playerMode === "driving" ? "Touch driving controls" : "Touch walking controls"}>
             <div className="touch-steer">

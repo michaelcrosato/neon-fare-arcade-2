@@ -1,3 +1,4 @@
+.stage-interface { display: contents; }
 .game-stage {
   --fare-stack-left: 92px;
   --fare-stack-bottom: 22px;
