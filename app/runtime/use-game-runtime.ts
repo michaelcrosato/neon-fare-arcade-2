@@ -51,6 +51,7 @@ import { mergeDrivingInput, type TouchDriving } from "./touch-driving";
 import { presentPassengerReview } from "./passenger-review";
 import { presentTaxiExitAction } from "./taxi-exit-action";
 import { presentNavigationDistance } from "./navigation-distance";
+import { presentFareImpact, type FareRect } from "./fare-impact-layout";
 import { MOBILE_QUERY } from "../use-mobile-layout";
 import { protectGameGestures } from "./game-display";
 
@@ -59,6 +60,7 @@ type RefBox<T> = { current: T };
 export type GameRuntimeOptions = Readonly<{
   passengerReviewRef: RefBox<HTMLDivElement | null>;
   navigationDistanceRef: RefBox<HTMLDivElement | null>;
+  fareImpactRef: RefBox<HTMLDivElement | null>;
   taxiExitRef: RefBox<HTMLButtonElement | null>;
   canvas2dRef: RefBox<HTMLCanvasElement | null>;
   webGpuCanvasRef: RefBox<HTMLCanvasElement | null>;
@@ -92,6 +94,7 @@ export function useGameRuntime(options: GameRuntimeOptions) {
   const {
     passengerReviewRef,
     navigationDistanceRef,
+    fareImpactRef,
     taxiExitRef,
     canvas2dRef,
     webGpuCanvasRef,
@@ -390,13 +393,18 @@ export function useGameRuntime(options: GameRuntimeOptions) {
         currentNavigation = navigationController.update(game, navigationSettingsForGame(game));
         music.update(game, modeRef.current, mutedRef.current);
         renderFrame(game, now, currentWorld, currentNavigation);
+        let navigationBadge: FareRect | undefined;
         if (navigationDistanceRef.current) {
           if (currentMode !== "playing") navigationDistanceRef.current.hidden = true;
           else {
             const bounds = canvas2d.getBoundingClientRect();
-            presentNavigationDistance(navigationDistanceRef.current, game, camera, reducedMotion ? 0 : now / 1000,
+            navigationBadge = presentNavigationDistance(navigationDistanceRef.current, game, camera, reducedMotion ? 0 : now / 1000,
               currentNavigation, bounds.width, bounds.height);
           }
+        }
+        if (fareImpactRef.current) {
+          presentFareImpact(fareImpactRef.current, canvas2d, game, camera, reducedMotion ? 0 : now / 1000,
+            currentNavigation, navigationBadge);
         }
         if (taxiExitRef.current) {
           const bounds = canvas2d.getBoundingClientRect();
@@ -537,6 +545,7 @@ export function useGameRuntime(options: GameRuntimeOptions) {
     boostAudioActiveRef,
     passengerReviewRef,
     navigationDistanceRef,
+    fareImpactRef,
     taxiExitRef,
     cameraModeRef,
     cameraRef,

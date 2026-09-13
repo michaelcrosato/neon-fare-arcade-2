@@ -11,6 +11,7 @@ type Props = {
   mode: Mode;
   hud: Hud;
   fareImpact: FareImpact | null;
+  fareImpactRef?: RefObject<HTMLDivElement | null>;
   courierImpact: CourierImpact | null;
   touchDriving: TouchDriving;
   steeringMode?: SteeringMode;
@@ -43,7 +44,7 @@ function walkingDestination(hud: Hud) {
 }
 
 /** Mobile has its own information hierarchy; no mini-map or desktop card stack. */
-export function MobileGameHud({ mode, hud, fareImpact, courierImpact, touchDriving, steeringMode, onSetCruise, taxiExitRef, onPulseInteraction, onSetMode, onTouch }: Props) {
+export function MobileGameHud({ mode, hud, fareImpact, fareImpactRef, courierImpact, touchDriving, steeringMode, onSetCruise, taxiExitRef, onPulseInteraction, onSetMode, onTouch }: Props) {
   if (mode !== "playing" && mode !== "countdown") return null;
   const driving = hud.playerMode === "driving";
   const simulation = driving && hud.drivingModel === "simulation";
@@ -58,7 +59,7 @@ export function MobileGameHud({ mode, hud, fareImpact, courierImpact, touchDrivi
   return <div className={`mobile-hud ${driving ? "is-driving" : "is-on-foot"}`}>
     {mode === "playing" && hud.runKind === "free-run" && driving && onSetCruise
       && <CruiseControl hud={hud} onSetSpeed={onSetCruise} joystick={(steeringMode ?? touchDriving.getMode()) === "joystick"} />}
-    {fareImpact && <FareImpactOverlay key={fareImpact.id} impact={fareImpact} />}
+    {fareImpact && <FareImpactOverlay key={fareImpact.id} impact={fareImpact} overlayRef={fareImpactRef} />}
     {driving && <MobileDriveControls key={steeringMode ?? touchDriving.getMode()} controller={touchDriving} enabled={mode === "playing"}
       boost={hud.boost} boosting={hud.boosting} simulation={simulation} />}
     <div className="mobile-statusbar">

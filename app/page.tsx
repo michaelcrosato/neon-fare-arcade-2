@@ -110,6 +110,7 @@ export default function Home() {
   const webGpuCanvasRef = useRef<HTMLCanvasElement>(null);
   const passengerReviewRef = useRef<HTMLDivElement>(null);
   const navigationDistanceRef = useRef<HTMLDivElement>(null);
+  const fareImpactRef = useRef<HTMLDivElement>(null);
   const taxiExitRef = useRef<HTMLButtonElement>(null);
   const [initialGame] = useState(() => makeGame());
   const gameRef = useRef<Game>(initialGame);
@@ -697,7 +698,7 @@ export default function Home() {
   }, [careerRef, checkpointExternalGameChange, clearInput, diagnostics, onSimulationEvents, resetFareCards, triggerFareImpact]);
 
   useGameRuntime({
-    passengerReviewRef, navigationDistanceRef, taxiExitRef, canvas2dRef, webGpuCanvasRef,
+    passengerReviewRef, navigationDistanceRef, fareImpactRef, taxiExitRef, canvas2dRef, webGpuCanvasRef,
     gameRef, cameraRef, cameraModeRef, inputRef, touchDriving, interactionPulseRef, jumpPulseRef, modeRef,
     mutedRef, audioRef, ensureAudio, engineRef, boostAudioActiveRef, diagnostics, diagnosticsActive,
     clearInput, finishRun, setMode, setHud, setRendererKind, setAudioAnnouncement, tone, onSimulationEvents,
@@ -918,6 +919,7 @@ export default function Home() {
           cameraMode={cameraMode}
           rendererKind={rendererKind}
           fareImpact={fareImpact}
+          fareImpactRef={fareImpactRef}
           courierImpact={courierImpact}
           dockedFareCards={dockedFareCards}
           onOpenFareDeck={openFareDeck}

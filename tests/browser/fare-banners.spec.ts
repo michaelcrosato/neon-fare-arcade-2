@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
-import { SCENE_TEST_TIMEOUT, WEBGPU_TEST_OPTIONS } from "./browser-options";
+import { SCENE_START_TIMEOUT, SCENE_TEST_TIMEOUT, WEBGPU_TEST_OPTIONS } from "./browser-options";
 import { lockSteeringIfPrompted, presentUntilVisible } from "./start-helpers";
 
 test.use(WEBGPU_TEST_OPTIONS);
@@ -19,6 +19,7 @@ async function checkBanner(page: Page, card: Locator) {
   await expect(card).toHaveCSS("--fare-duration", "3000ms");
   const stage = (await page.locator(".game-stage").boundingBox())!;
   const sequence = card.locator(".fare-impact__sequence");
+  await expect(card).toHaveCSS("visibility", "visible");
   const motion = await sequence.evaluate(element => {
     const animation = element.getAnimations()[0];
     if (!animation) throw new Error("Fare banner must have its entrance and upward exit animation");
@@ -31,11 +32,11 @@ async function checkBanner(page: Page, card: Locator) {
     return { duration: animation.effect!.getTiming().duration, frames };
   });
   expect(motion.duration).toBe(3000);
+  const fitted = motion.frames[2];
   for (const frame of motion.frames) {
-    expect(frame.x).toBeCloseTo(motion.frames[0].x, 1);
-    expect(frame.y).toBeLessThanOrEqual(stage.y + 8);
-    expect(frame.y + frame.height).toBeLessThan(stage.y + stage.height * .25);
-    expect(frame.width).toBeLessThanOrEqual(500);
+    expect(frame.x).toBeGreaterThanOrEqual(fitted.x - 1);
+    expect(frame.y + frame.height).toBeLessThanOrEqual(fitted.y + fitted.height + 1);
+    expect(frame.width).toBeLessThanOrEqual(fitted.width + 1);
   }
   expect(motion.frames.at(-1)!.y).toBeLessThan(motion.frames[2].y);
   const decoration = await card.evaluate(element => ["::before", "::after"].map(pseudo => getComputedStyle(element, pseudo).display));
@@ -45,19 +46,24 @@ async function checkBanner(page: Page, card: Locator) {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await expect(sequence).toHaveCSS("animation-name", "none");
   await expect(sequence).toBeInViewport({ ratio: 1 });
+  const box = (await sequence.boundingBox())!;
+  expect(box.width * box.height).toBeGreaterThan(stage.width * stage.height * .13);
+  await expect(card.locator(".fare-impact__copy > strong")).toBeVisible();
+  const art = (await card.locator(".fare-impact__art").boundingBox())!;
+  expect(art.width).toBeGreaterThan(120);
 }
 
 for (const renderer of ["WebGPU", "Canvas"]) for (const mobile of [false, true]) {
   test.describe(`${renderer} ${mobile ? "mobile" : "desktop"}`, () => {
     test.use({ viewport: mobile ? { width: 390, height: 844 } : { width: 1280, height: 800 },
       contextOptions: { hasTouch: mobile, isMobile: mobile, reducedMotion: "no-preference" } });
-    test("passenger and destination banners stay at the top and last three seconds", async ({ page }, info) => {
+    test("passenger and destination cards make a fitted impact for three seconds", async ({ page }, info) => {
       const errors: string[] = [];
       page.on("pageerror", error => errors.push(error.message));
       await page.clock.install({ time: new Date("2026-09-12T00:00:00Z") });
       if (renderer === "Canvas") await page.addInitScript(() => Object.defineProperty(navigator, "gpu", { configurable: true, value: undefined }));
       await page.goto("/?diagnostics=1");
-      await expect(page.locator(".game-canvas").nth(renderer === "WebGPU" ? 1 : 0)).toHaveClass(/is-active/);
+      await expect(page.locator(".game-canvas").nth(renderer === "WebGPU" ? 1 : 0)).toHaveClass(/is-active/, { timeout: SCENE_START_TIMEOUT });
       await page.getByRole("button", { name: /Start Free Run with arcade/ }).click();
       await page.clock.pauseAt(new Date("2026-09-12T01:00:00Z"));
       await page.getByRole("button", { name: /Choose STREET ACE/ }).click();
@@ -71,18 +77,27 @@ for (const renderer of ["WebGPU", "Canvas"]) for (const mobile of [false, true])
       await page.getByRole("combobox", { name: "Occasion", exact: true }).selectOption("1");
       await page.getByRole("button", { name: "LOAD TEST FARE", exact: true }).click();
       await resume(page);
+      await page.clock.runFor(32);
       const pickup = page.locator(".fare-impact--pickup");
       await expect(pickup.locator(".fare-impact__sprite")).toHaveCSS("background-image", /fare-passengers/);
       await checkBanner(page, pickup);
       await page.screenshot({ path: info.outputPath("passenger-banner.png") });
-      await page.clock.fastForward(2900);
+      if (mobile) {
+        await page.setViewportSize({ width: 844, height: 390 });
+        await page.clock.runFor(32);
+        await expect(pickup.locator(".fare-impact__sequence")).toBeInViewport({ ratio: 1 });
+        await page.screenshot({ path: info.outputPath("passenger-landscape.png") });
+        await page.setViewportSize({ width: 390, height: 844 });
+        await page.clock.runFor(32);
+      }
+      await page.clock.fastForward(2800);
       await expect(pickup).toBeVisible();
       await page.getByRole("button", { name: "Pause game" }).click();
       await page.clock.fastForward(5000);
       await page.getByRole("button", { name: "RESUME FREE RUN", exact: true }).click();
-      await page.clock.fastForward(99);
+      await page.clock.fastForward(100);
       await expect(pickup).toBeVisible();
-      await page.clock.fastForward(1);
+      await page.clock.fastForward(100);
       await expect(pickup).toHaveCount(0);
 
       await openOptions(page);

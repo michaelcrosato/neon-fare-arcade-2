@@ -16,7 +16,10 @@ export function presentNavigationDistance(element: HTMLDivElement, game: Game, c
   }
   element.setAttribute("aria-label", `${badge.label}, ${badge.distance}, ${badge.remaining}`);
   const halfWidth = element.offsetWidth / 2;
-  element.style.left = `${Math.max(halfWidth + 12, Math.min(width - halfWidth - 12, screen.x))}px`;
+  const left = Math.max(halfWidth + 12, Math.min(width - halfWidth - 12, screen.x));
+  element.style.left = `${left}px`;
   // Leave the top meters and the mobile speed readout clear as an arrow approaches.
-  element.style.top = `${Math.max(element.offsetHeight + 120, screen.y)}px`;
+  const top = Math.max(element.offsetHeight + 120, screen.y);
+  element.style.top = `${top}px`;
+  return { x: left - halfWidth, y: top - element.offsetHeight, width: halfWidth * 2, height: element.offsetHeight + 12 };
 }

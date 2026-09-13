@@ -290,51 +290,82 @@
   animation: fare-impact-stamp var(--fare-duration) cubic-bezier(0.12, 1.14, 0.18, 1) both;
 }
 
-/* Pickup and destination cards share the compact top banner on every device. */
+/* The runtime fits this bounded impact into the space clear of the cab and arrow. */
 .fare-impact--banner {
-  inset: max(4px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) auto max(12px, env(safe-area-inset-left));
-  display: block; overflow: visible;
+  inset: max(8px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+  display: block; overflow: hidden; visibility: hidden;
 }
 .fare-impact--banner::before,
 .fare-impact--banner::after,
 .fare-impact--banner .fare-impact__speed-lines,
-.fare-impact--banner .fare-impact__stamp,
-.fare-impact--banner .fare-impact__fare-number { display: none; }
+.fare-impact--banner .fare-impact__stamp { display: none; }
 .fare-impact--banner .fare-impact__sequence {
-  display: grid; grid-template-columns: clamp(64px, 10dvh, 88px) minmax(0, 1fr);
-  width: min(100%, 500px); min-height: 0; margin: 0 auto; gap: 0;
-  filter: drop-shadow(0 3px 2px rgb(0 0 0 / 45%)); transform: none;
+  position: absolute; top: var(--fare-fit-y, 0px); left: var(--fare-fit-x, 0px);
+  display: grid; grid-template-columns: var(--fare-fit-art) minmax(0, 1fr);
+  width: var(--fare-fit-width); height: var(--fare-fit-height); min-height: 0; margin: 0; gap: 0;
+  overflow: hidden; background: var(--cyan); border: 4px solid var(--ink);
+  box-shadow: inset 0 -7px 0 var(--yellow); filter: none; transform: none;
   animation: fare-banner var(--fare-duration) ease-out both;
 }
-.fare-impact--banner .fare-impact__art {
-  align-self: stretch; width: 100%; min-height: 0; aspect-ratio: 1;
-  border: 2px solid var(--ink); clip-path: none; transform: none; animation: none;
+.fare-impact--dropoff.fare-impact--banner .fare-impact__sequence { background: var(--yellow); box-shadow: inset 0 -7px 0 var(--red); }
+.fare-impact--banner[data-layout="portrait"] .fare-impact__sequence {
+  grid-template-columns: minmax(0, 1fr); grid-template-rows: var(--fare-fit-art) minmax(0, 1fr);
+  background-image: repeating-linear-gradient(118deg, transparent 0 42px, rgb(5 8 12 / 10%) 43px 51px, transparent 52px 80px);
 }
-.fare-impact--banner .fare-impact__sprite { transform: none; animation: none; }
+.fare-impact--banner .fare-impact__art {
+  align-self: center; justify-self: center; width: var(--fare-fit-art); height: var(--fare-fit-art);
+  min-height: 0; aspect-ratio: 1; border: 0; border-right: 4px solid var(--ink);
+  clip-path: none; transform: none; animation: none;
+}
+.fare-impact--banner[data-layout="portrait"] .fare-impact__art { border-inline: 4px solid var(--ink); }
+.fare-impact--banner[data-layout="wide"] .fare-impact__art { height: 100%; align-self: stretch; }
+.fare-impact--banner .fare-impact__sprite {
+  inset: 50% auto auto 50%; width: var(--fare-fit-image); height: var(--fare-fit-image);
+  transform: translate(-50%, -50%); animation: none;
+}
+.fare-impact--banner .fare-impact__fare-number {
+  top: 8px; left: 8px; padding: 4px 6px; border-width: 2px;
+  font-size: clamp(9px, calc(11px * var(--fare-fit-unit)), 16px); box-shadow: 3px 3px 0 var(--cyan);
+}
 .fare-impact--banner .fare-impact__verb {
-  inset: auto 0 0; padding: 3px 1px; border: 0; border-top: 2px solid var(--ink);
-  font-size: 13px; text-align: center; transform: none;
+  inset: auto 0 0; padding: 5px 1px; border: 0; border-top: 3px solid var(--ink);
+  font-size: clamp(15px, calc(29px * var(--fare-fit-unit)), 48px); text-align: center; transform: none;
 }
 .fare-impact--banner .fare-impact__copy {
   align-self: stretch; display: flex; flex-direction: column; justify-content: center;
-  min-height: 0; min-width: 0; margin: 0; padding: 5px 8px;
-  border: 2px solid var(--ink); border-left: 0; clip-path: none;
+  min-height: 0; min-width: 0; margin: 0; padding: clamp(8px, calc(18px * var(--fare-fit-unit)), 30px);
+  border: 0; clip-path: none; background: transparent;
   transform: none; animation: none;
 }
-.fare-impact--banner .fare-impact__copy small { font-size: 9px; letter-spacing: .06em; }
+.fare-impact--banner .fare-impact__copy small { font-size: clamp(9px, calc(12px * var(--fare-fit-unit)), 18px); letter-spacing: .08em; }
 .fare-impact--banner .fare-impact__route {
-  display: block; margin: 2px 0 0; font: 900 16px/1.05 "Barlow Condensed", sans-serif; letter-spacing: 0;
+  display: block; margin: 5px 0 0;
+  font: 900 clamp(14px, calc(24px * var(--fare-fit-unit)), 38px)/1.05 "Barlow Condensed", sans-serif; letter-spacing: 0;
 }
 .fare-impact--banner .fare-impact__route b,
 .fare-impact--banner .fare-impact__route span { padding: 0; border: 0; color: inherit; background: none; }
 .fare-impact--banner .fare-impact__route b { margin-right: 5px; }
-.fare-impact--banner .fare-impact__route i { margin-right: 5px; font-size: 13px; }
-.fare-impact--banner .fare-impact__copy > strong { display: none; }
-.fare-impact--banner .fare-impact__copy > .fare-card-occasion { margin: 2px 0 0; font-size: 10px; line-height: 1.1; }
-.fare-impact--banner .fare-impact__copy > em {
-  margin: 3px 0 0; padding: 0; color: inherit; background: none;
-  font: 700 11px/1.1 "Barlow Condensed", sans-serif; letter-spacing: .02em;
+.fare-impact--banner .fare-impact__route i { margin-right: 5px; font-size: 1em; }
+.fare-impact--banner .fare-impact__copy > strong {
+  display: block; margin: 10px 0 4px; font-size: clamp(22px, calc(64px * var(--fare-fit-unit)), 118px);
+  line-height: .88; overflow-wrap: anywhere; text-shadow: 3px 3px 0 var(--paper);
 }
+.fare-impact--banner .fare-impact__copy > .fare-card-occasion {
+  margin: 5px 0 0; font-size: clamp(11px, calc(17px * var(--fare-fit-unit)), 27px); line-height: 1.1;
+}
+.fare-impact--banner .fare-impact__copy > em {
+  margin: 8px 0 0; padding: 4px 7px; align-self: flex-start; color: var(--paper); background: var(--ink);
+  font: 800 clamp(11px, calc(17px * var(--fare-fit-unit)), 26px)/1.1 "Barlow Condensed", sans-serif; letter-spacing: .02em;
+}
+.fare-impact--banner[data-compact="true"] .fare-impact__copy { padding: 5px 8px; }
+.fare-impact--banner[data-compact="true"] .fare-impact__copy small,
+.fare-impact--banner[data-compact="true"] .fare-impact__fare-number,
+.fare-impact--banner[data-compact="true"] .fare-impact__copy > em { display: none; }
+.fare-impact--banner[data-compact="true"] .fare-impact__copy > strong {
+  margin: 5px 0 0; font-size: clamp(18px, calc(44px * var(--fare-fit-unit)), 60px);
+}
+.fare-impact--banner[data-compact="true"] .fare-impact__route { font-size: clamp(12px, calc(20px * var(--fare-fit-unit)), 28px); }
+.fare-impact--banner[data-tight="true"] .fare-impact__copy > .fare-card-occasion { display: none; }
 
 .fare-card-art {
   display: block;

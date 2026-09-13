@@ -25,6 +25,7 @@ type GameStageHudProps = Readonly<{
   cameraMode: CameraMode;
   rendererKind: string;
   fareImpact: FareImpact | null;
+  fareImpactRef?: RefObject<HTMLDivElement | null>;
   courierImpact: CourierImpact | null;
   dockedFareCards: readonly FareImpact[];
   onOpenFareDeck: () => void;
@@ -45,6 +46,7 @@ export function GameStageHud({
   cameraMode,
   rendererKind,
   fareImpact,
+  fareImpactRef,
   courierImpact,
   dockedFareCards,
   onOpenFareDeck,
@@ -59,7 +61,7 @@ export function GameStageHud({
   taxiExitRef,
 }: GameStageHudProps) {
   const mobile = useMobileLayout();
-  if (mobile) return <MobileGameHud mode={mode} hud={hud} fareImpact={fareImpact} courierImpact={courierImpact}
+  if (mobile) return <MobileGameHud mode={mode} hud={hud} fareImpact={fareImpact} fareImpactRef={fareImpactRef} courierImpact={courierImpact}
     touchDriving={touchDriving} steeringMode={steeringMode} onSetCruise={onSetCruise} taxiExitRef={taxiExitRef} onPulseInteraction={onPulseInteraction} onSetMode={onSetMode} onTouch={onTouch} />;
   const simulationDriving = hud.playerMode === "driving" && hud.drivingModel === "simulation";
   const simulationGear = simulationGearLabel(hud.simulationVehicle.gear);
@@ -67,7 +69,7 @@ export function GameStageHud({
   const canvasCabRoll = simulationDriving && rendererKind !== "WEBGPU ACTIVE";
   return (
     <>
-      {fareImpact && <FareImpactOverlay key={fareImpact.id} impact={fareImpact} />}
+      {fareImpact && <FareImpactOverlay key={fareImpact.id} impact={fareImpact} overlayRef={fareImpactRef} />}
       {mode === "playing" && hud.runKind === "free-run" && hud.playerMode === "driving" && onSetCruise
         && <CruiseControl hud={hud} onSetSpeed={onSetCruise} />}
       {courierImpact && <CourierImpactOverlay key={courierImpact.id} impact={courierImpact} />}

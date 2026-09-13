@@ -1,12 +1,13 @@
-import { memo, type CSSProperties } from "react";
+import { memo, type CSSProperties, type RefObject } from "react";
 import type { FareImpact } from "@/game/model";
 import { fareArtAsset, fareArtFrame } from "@/game/fare-presentation";
 
 type FareImpactOverlayProps = {
   impact: FareImpact;
+  overlayRef?: RefObject<HTMLDivElement | null>;
 };
 
-export const FareImpactOverlay = memo(function FareImpactOverlay({ impact }: FareImpactOverlayProps) {
+export const FareImpactOverlay = memo(function FareImpactOverlay({ impact, overlayRef }: FareImpactOverlayProps) {
   const artFrame = fareArtFrame(impact.artCell);
   const number = String(impact.fareNumber).padStart(2, "0");
   const isPickup = impact.kind === "pickup";
@@ -16,6 +17,7 @@ export const FareImpactOverlay = memo(function FareImpactOverlay({ impact }: Far
 
   return (
     <div
+      ref={overlayRef}
       className={`fare-impact fare-impact--banner fare-impact--${impact.kind}`}
       style={style}
       aria-hidden="true"
@@ -38,12 +40,12 @@ export const FareImpactOverlay = memo(function FareImpactOverlay({ impact }: Far
 
         <div className="fare-impact__copy">
           <small>{impact.eyebrow}</small>
+          <strong>{impact.headline}</strong>
           <div className="fare-impact__route">
-            <b>{impact.rider}</b>
+            {!isPickup && <b>{impact.rider}</b>}
             <i aria-hidden="true">➜</i>
             <span>{impact.destination}</span>
           </div>
-          <strong>{impact.headline}</strong>
           {impact.destinationCard && <p className="fare-card-occasion">{impact.destinationCard.occasion}</p>}
           <em>{impact.detail}</em>
         </div>
