@@ -44,7 +44,7 @@ test.describe("steering lock-in", () => {
     await page.getByRole("button", { name: /Choose STREET ACE/ }).click();
     await expect(page.getByRole("dialog", { name: "STEERING SYSTEM" })).toBeVisible();
     await page.getByRole("button", { name: /Select JOYSTICK/ }).click();
-    await expect(page.locator(".mobile-steer-guide")).toContainText("TOUCH TO DRIVE");
+    await expect(page.locator(".mobile-steer-guide, .mobile-thumbstick")).toHaveCount(0);
     await expect(page.getByLabel(/Virtual joystick/)).toHaveCount(0);
     await page.screenshot({ path: info.outputPath("steering-joystick.png") });
 
@@ -55,7 +55,7 @@ test.describe("steering lock-in", () => {
     await page.getByRole("button", { name: /Choose STREET ACE/ }).click();
     await expect(page.getByRole("dialog", { name: "STEERING SYSTEM" })).toBeVisible();
     await page.getByRole("button", { name: /Select WHEEL/ }).click();
-    await expect(page.locator(".mobile-steer-guide")).toContainText("TOUCH TO TURN");
+    await expect(page.locator(".mobile-steer-guide, .mobile-thumbstick")).toHaveCount(0);
     await expect(page.getByLabel(/Virtual steering wheel/)).toHaveCount(0);
     await expect(page.getByLabel(/Virtual joystick/)).toHaveCount(0);
     await page.screenshot({ path: info.outputPath("steering-wheel.png") });

@@ -863,6 +863,8 @@ export type InputState = {
   left: boolean;
   right: boolean;
   boost: boolean;
+  /** A joystick brake/reverse gesture temporarily overrides cruise without disengaging it. */
+  brakePreservesCruise?: boolean;
   /** Optional proportional taxi steering, normalized from -1 (left) to 1 (right). */
   steer?: number;
   /** Dedicated walking sprint input. Boost remains taxi-only. */

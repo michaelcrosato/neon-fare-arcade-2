@@ -109,11 +109,13 @@ export function MobileDriveControls({ controller, boost, boosting, simulation, e
         aria-disabled={!enabled}
         {...handlers("steer")}
       />
-      <div id={steeringHint} className="mobile-steer-guide" data-steering={state.steer !== 0 ? "" : undefined}>
+      {state.mode === "default" ? <div id={steeringHint} className="mobile-steer-guide" data-steering={state.steer !== 0 ? "" : undefined}>
         <span className="mobile-steer-guide__track" aria-hidden="true">‹<i />›</span>
-        <strong>{state.mode === "joystick" ? "TOUCH TO DRIVE" : state.mode === "wheel" ? "TOUCH TO TURN" : "DRAG TO STEER"}</strong>
+        <strong>DRAG TO STEER</strong>
         <small>LEFT THUMB · ANYWHERE</small>
-      </div>
+      </div> : <span id={steeringHint} hidden>{state.mode === "joystick"
+        ? "Touch anywhere to place the joystick. Move up for gas, down for brake or reverse, and sideways to steer."
+        : "Touch anywhere to place the wheel. Turn the rim to steer and release to center."}</span>}
       {state.mode === "default" && (
         <>
           {state.thumb && (

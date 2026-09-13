@@ -5,6 +5,7 @@ import type { Game, InputState } from "@/game/model";
 import { controlledPose } from "@/game/player";
 import { mulberry32 } from "@/game/random";
 import { stepGame } from "@/game/simulation";
+import { setCruiseControl } from "@/game/cruise-control";
 import { makeGame } from "@/game/state";
 import { CityStream } from "@/game/world";
 import {
@@ -56,8 +57,23 @@ function recordTick(
 }
 
 test("all diagnostic input masks round-trip", () => {
-  for (let mask = 0; mask < 512; mask += 1) {
+  for (let mask = 0; mask < 1024; mask += 1) {
     assert.equal(encodeDiagnosticInput(decodeDiagnosticInput(mask)), mask);
+  }
+});
+
+test("joystick cruise brake overrides survive deterministic diagnostic replay", () => {
+  for (const model of ["arcade", "simulation"] as const) {
+    const game = makeGame("street-ace", 734, "free-run", model);
+    setCruiseControl(game, 20);
+    const recorder = new DiagnosticsRecorder();
+    const city = new CityStream();
+    for (let tick = 0; tick < 90; tick++) {
+      const braking = tick >= 30 && tick < 60;
+      recordTick(recorder, game, city, { up: false, down: braking, left: false, right: false, boost: false, brakePreservesCruise: braking }, () => .4);
+    }
+    assert.ok(game.cruiseControl);
+    verifyDiagnosticsSnapshot(recorder.snapshot(game, null, "playing"));
   }
 });
 

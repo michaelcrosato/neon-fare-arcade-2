@@ -86,13 +86,18 @@ updates the arcade launch, steering, road elevation and contact rules below.
   ranges reach full normalized steering sooner. The validated range persists
   locally and can be changed in the steering draft or Options. Vehicle road-wheel
   limits, joystick deadzones and wheel return rates stay unchanged.
+  The bottom-left default steering guide is only rendered in Default mode;
+  Joystick and Wheel show their own floating graphic during a gesture.
 
 - Arcade and Simulation Free Run offer player-set cruise control. Its target is
   10 km/h through the selected cab's ordinary forward limit, never its boosted
   limit. Cruise uses the normal engine and service brake through fixed-step
   regulation; it does not assign velocity or add power. Manual gas and arcade
   boost override regulation without clearing the target; releasing them restores
-  the set speed. Manual brake, simulation parking brake, building/terrain/world
+  the set speed. Joystick brake/reverse gestures also temporarily override cruise:
+  braking and reversing still work, and release resumes the retained forward speed.
+  Touching the joystick at center is neutral. Separate brake pedals, keyboard braking,
+  simulation parking brake, building/terrain/world
   boundary contact, traffic contact, leaving the taxi and overturning cancel it.
   Collision cancellation does not depend on damage thresholds or score cooldown.
   Automatic cruise braking does not cancel itself or trigger arcade brake-kicks.

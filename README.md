@@ -115,8 +115,10 @@ Portrait and landscape both work; the controls adapt when you leave the taxi.
 Both Arcade and Simulation Free Run offer **CRUISE** beside the speed display.
 Enter a speed or use the current speed, then select **SET CRUISE**. Gas and arcade
 boost temporarily override the selected speed; releasing them returns to it.
-Braking, a collision, leaving the taxi, or the simulation parking brake disengages
-cruise. **CANCEL CRUISE** also turns it off. Arcade Shift has no cruise control.
+In Joystick mode, braking and reversing also temporarily override cruise; release
+the stick to resume the selected speed. Separate brake pedals, keyboard braking,
+a collision, leaving the taxi, or the simulation parking brake disengage cruise.
+**CANCEL CRUISE** also turns it off. Arcade Shift has no cruise control.
 
 To inspect the new roads,
 start Arcade Free Run and use GPS to set a waypoint on Aurora Boulevard.

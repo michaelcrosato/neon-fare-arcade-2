@@ -57,7 +57,7 @@ export function MobileGameHud({ mode, hud, fareImpact, courierImpact, touchDrivi
 
   return <div className={`mobile-hud ${driving ? "is-driving" : "is-on-foot"}`}>
     {mode === "playing" && hud.runKind === "free-run" && driving && onSetCruise
-      && <CruiseControl hud={hud} onSetSpeed={onSetCruise} />}
+      && <CruiseControl hud={hud} onSetSpeed={onSetCruise} joystick={(steeringMode ?? touchDriving.getMode()) === "joystick"} />}
     {fareImpact && <FareImpactOverlay key={fareImpact.id} impact={fareImpact} />}
     {driving && <MobileDriveControls key={steeringMode ?? touchDriving.getMode()} controller={touchDriving} enabled={mode === "playing"}
       boost={hud.boost} boosting={hud.boosting} simulation={simulation} />}

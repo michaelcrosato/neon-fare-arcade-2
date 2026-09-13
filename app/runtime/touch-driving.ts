@@ -309,6 +309,7 @@ export class TouchDriving {
     return {
       up: state.gas && !state.brake,
       down: state.brake,
+      ...(state.mode === "joystick" && state.brake ? { brakePreservesCruise: true } : {}),
       left: false,
       right: false,
       steer: state.steer,
@@ -322,6 +323,7 @@ export function mergeDrivingInput(keys: InputState, touch: InputState): InputSta
     ...keys,
     up: keys.up || touch.up,
     down: keys.down || touch.down,
+    brakePreservesCruise: Boolean(touch.brakePreservesCruise && !keys.down),
     boost: keys.boost || touch.boost,
     steer: touch.steer,
   };

@@ -43,6 +43,7 @@ test.describe("floating steering", () => {
       const errors: string[] = [];
       page.on("pageerror", error => errors.push(error.message));
       await begin(page, renderer, "arcade", mode);
+      await expect(page.locator(".mobile-steer-guide, .mobile-thumbstick")).toHaveCount(0);
       const control = page.getByLabel(mode === "JOYSTICK" ? /Virtual joystick/ : /Virtual steering wheel/);
       await expect(control).toHaveCount(0);
       const cdp = await context.newCDPSession(page);
@@ -67,19 +68,22 @@ test.describe("floating steering", () => {
           expect((await control.boundingBox())!.x + box.width / 2).toBeCloseTo(origin.x, 0);
         }
         await page.clock.runFor(400);
-        await expect(page.locator(".mobile-steer-guide")).toHaveAttribute("data-steering", "");
+        await expect(page.locator(".mobile-steer-guide, .mobile-thumbstick")).toHaveCount(0);
+        if (mode === "JOYSTICK") await expect(control.locator(".mobile-joy-label--right")).toHaveAttribute("data-lit", "");
+        else await expect(page.locator(".mobile-wheel-readout strong")).not.toHaveText("0°");
         expect(Number(await page.locator(".speedometer > strong").textContent())).toBeGreaterThan(1);
         await page.screenshot({ path: info.outputPath(`${mode.toLowerCase()}-${x}.png`) });
         await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
         await page.clock.runFor(600);
         await expect(control).toHaveCount(0);
+        await expect(page.locator(".mobile-steer-guide, .mobile-thumbstick")).toHaveCount(0);
       }
       if (mode === "WHEEL") {
         await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ id: 1, x: 26, y: 376 }] });
         await expect(control).toBeInViewport({ ratio: 1 });
         const edge = (await control.boundingBox())!;
         await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ id: 1, x: edge.x + edge.width - 10, y: edge.y + edge.height / 2 }] });
-        await expect(page.locator(".mobile-steer-guide")).toHaveAttribute("data-steering", "");
+        await expect(page.locator(".mobile-wheel-readout strong")).not.toHaveText("0°");
         await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
         await page.clock.runFor(600);
       }
@@ -188,3 +192,54 @@ for (const model of ["arcade", "simulation"]) {
     });
   });
 }
+
+test.describe("joystick cruise", () => {
+  test.use({ viewport: { width: 390, height: 844 }, contextOptions: { hasTouch: true, isMobile: true, reducedMotion: "reduce" } });
+  for (const model of ["arcade", "simulation"]) {
+    test(`${model}: touching, braking and reversing preserve cruise, then release resumes speed`, async ({ page, context }, info) => {
+      await begin(page, model === "arcade" ? "Canvas" : "WebGPU", model, "JOYSTICK");
+      await expect(page.locator(".mobile-steer-guide, .mobile-thumbstick")).toHaveCount(0);
+      await page.getByRole("button", { name: "Pause game" }).click();
+      await page.getByRole("button", { name: "OPTIONS · DEV MODE", exact: true }).click();
+      await page.getByRole("checkbox", { name: /DEV MODE/ }).check();
+      await page.getByRole("button", { name: "CLEAR ACTIVE TRAFFIC", exact: true }).click();
+      await page.getByRole("button", { name: "CLOSE OPTIONS", exact: true }).click();
+      await page.getByRole("button", { name: "RESUME FREE RUN", exact: true }).click();
+      const cruise = page.getByRole("button", { name: /^Cruise control/ });
+      const speed = page.locator(".speedometer > strong");
+      await cruise.click();
+      await expect(page.getByRole("form", { name: "Cruise control settings" })).toContainText("Joystick gas, brake and reverse temporarily override");
+      await page.getByLabel("Set speed (km/h)").fill("20");
+      await page.getByRole("button", { name: "SET CRUISE", exact: true }).click();
+      await advance(page, 8000);
+      expect(Math.abs(Number(await speed.textContent()) - 20)).toBeLessThanOrEqual(1);
+      const cdp = await context.newCDPSession(page);
+      const thumb = { id: 1, x: 150, y: 400 };
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [thumb] });
+      await advance(page, 1000);
+      await expect(cruise).toContainText("20");
+      expect(Math.abs(Number(await speed.textContent()) - 20)).toBeLessThanOrEqual(1);
+      thumb.y += 35;
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [thumb] });
+      await advance(page, 5000);
+      await expect(cruise).toContainText("20");
+      await expect(page.locator(".mobile-joy-label--down")).toHaveAttribute("data-lit", "");
+      await expect(page.locator(".mobile-steer-guide, .mobile-thumbstick")).toHaveCount(0);
+      await page.screenshot({ path: info.outputPath("joystick-reverse-cruise.png") });
+      const reversing = await diagnostics(page);
+      expect(reversing.vx * Math.cos(reversing.heading) + reversing.vy * Math.sin(reversing.heading)).toBeLessThan(-0.1);
+      expect(reversing.cruiseControl).not.toBeNull();
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+      await page.getByRole("button", { name: "RESUME FREE RUN", exact: true }).click();
+      await advance(page, 12000);
+      await expect(cruise).toContainText("20");
+      expect(Math.abs(Number(await speed.textContent()) - 20)).toBeLessThanOrEqual(1);
+      await expect(page.getByLabel(/Virtual joystick/)).toHaveCount(0);
+      await expect(page.locator(".mobile-steer-guide, .mobile-thumbstick")).toHaveCount(0);
+      await page.screenshot({ path: info.outputPath("joystick-cruise-resumed.png") });
+      await cruise.click();
+      await page.getByRole("button", { name: "CANCEL CRUISE", exact: true }).click();
+      await expect(cruise).toContainText("OFF");
+    });
+  }
+});

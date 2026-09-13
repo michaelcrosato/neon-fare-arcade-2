@@ -2,7 +2,7 @@ import { useId, useRef, useState } from "react";
 import { MIN_CRUISE_KMH } from "@/game/cruise-control";
 import type { Hud } from "@/game/model";
 
-export function CruiseControl({ hud, onSetSpeed }: { hud: Hud; onSetSpeed: (speed: number | null) => void }) {
+export function CruiseControl({ hud, onSetSpeed, joystick = false }: { hud: Hud; onSetSpeed: (speed: number | null) => void; joystick?: boolean }) {
   const panelId = useId();
   const toggle = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
@@ -31,7 +31,9 @@ export function CruiseControl({ hud, onSetSpeed }: { hud: Hud; onSetSpeed: (spee
       </div>
       {hud.cruiseSpeed !== null && <button type="button" className="cruise-control__cancel"
         onClick={() => { onSetSpeed(null); close(); }}>CANCEL CRUISE</button>}
-      <p>Gas temporarily overrides. Brake or a collision turns cruise off.</p>
+      <p>{joystick
+        ? "Joystick gas, brake and reverse temporarily override. Release to resume. Use CANCEL CRUISE to turn it off; collisions also cancel."
+        : "Gas temporarily overrides. Brake or a collision turns cruise off."}</p>
     </form>}
     <span className="sr-only" aria-live="polite">{hud.cruiseSpeed === null ? "Cruise control off" : `Cruise set to ${hud.cruiseSpeed} kilometers per hour`}</span>
   </div>;

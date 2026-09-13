@@ -32,13 +32,13 @@ export function setCruiseControl(game: Game, speedKmh: number | null): boolean {
 export function stepCruiseControl(game: Game, input: Readonly<InputState>, dt: number): CruisePedals | null {
   const cruise = game.cruiseControl;
   if (!cruise) return null;
-  if (game.runKind !== "free-run" || game.player.kind !== "driving" || input.down
+  if (game.runKind !== "free-run" || game.player.kind !== "driving" || (input.down && !input.brakePreservesCruise)
     || game.simulationVehicle.overturned || (game.drivingModel === "simulation" && input.boost)) {
     cancelCruiseControl(game);
     return null;
   }
-  // Accelerator and arcade boost temporarily override the regulator, preserving its set speed.
-  if (input.up || (game.drivingModel === "arcade" && input.boost)) {
+  // Joystick braking/reverse, accelerator and arcade boost preserve the selected speed.
+  if (input.up || input.down || (game.drivingModel === "arcade" && input.boost)) {
     cruise.integral = 0;
     return null;
   }

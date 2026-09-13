@@ -58,6 +58,17 @@ for (const model of ["arcade", "simulation"] as const) {
     assert.equal(game.cruiseControl, null);
     assert.equal(game.collisions, 0);
   });
+  test(`${model} joystick braking and reverse override cruise until release without cancelling it`, () => {
+    const game = cab(model);
+    setCruiseControl(game, 30);
+    drive(game, 15);
+    drive(game, 5, { ...TEST_IDLE_INPUT, down: true, brakePreservesCruise: true });
+    assert.ok(game.vx < -0.1, "holding the joystick down must still allow reverse");
+    assert.equal(Math.round(game.cruiseControl!.speed * SPEED_KMH_PER_WORLD_UNIT), 30);
+    assert.ok(Math.abs(drive(game, 25) - 30) < 1, "releasing the joystick resumes the retained cruise speed");
+    drive(game, 0.1, { ...TEST_IDLE_INPUT, down: true });
+    assert.equal(game.cruiseControl, null, "a separate brake still disengages cruise");
+  });
   test(`${model} traffic contact cancels cruise even during collision cooldown`, () => {
     const game = cab(model);
     const traffic = makeGame("street-ace", 42).traffic[0];

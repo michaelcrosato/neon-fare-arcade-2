@@ -133,6 +133,24 @@ test("smaller wheel ranges reach lock sooner, survive reset and reject invalid p
   assert.equal(touch.snapshot().wheel.range, 1260);
 });
 
+test("joystick brake preserves cruise while a neutral touch and separate brakes stay distinct", () => {
+  const touch = new TouchDriving();
+  touch.setMode("joystick");
+  touch.startSteering(1, 120, 300, 0);
+  assert.equal(touch.input().down, false, "the first touch is neutral");
+  touch.moveSteering(1, 140, 320);
+  assert.equal(touch.input().down, true);
+  assert.equal(mergeDrivingInput(TEST_IDLE_INPUT, touch.input()).brakePreservesCruise, true);
+  assert.equal(mergeDrivingInput({ ...TEST_IDLE_INPUT, down: true }, touch.input()).brakePreservesCruise, false);
+  touch.endSteering(1, 100);
+  assert.equal(Boolean(touch.input().brakePreservesCruise), false);
+  for (const mode of ["default", "wheel"] as const) {
+    touch.setMode(mode);
+    touch.start(2, "brake", 300, 700, 0);
+    assert.equal(Boolean(touch.input().brakePreservesCruise), false);
+  }
+});
+
 test("the floating wheel stays on screen for touches near every edge", () => {
   for (const viewport of [{ width: 390, height: 844 }, { width: 844, height: 390 }]) {
     for (const [x, y] of [[4, 100], [viewport.width - 4, 100], [100, viewport.height - 4]]) {

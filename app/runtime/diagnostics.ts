@@ -28,6 +28,7 @@ const INPUT_BITS = {
   jump: 1 << 6,
   crouch: 1 << 7,
   interact: 1 << 8,
+  brakePreservesCruise: 1 << 9,
 } as const;
 
 export type DiagnosticStreamContext = Readonly<{
@@ -127,7 +128,8 @@ export function encodeDiagnosticInput(input: Readonly<InputState>) {
     | (input.sprint ? INPUT_BITS.sprint : 0)
     | (input.jump ? INPUT_BITS.jump : 0)
     | (input.crouch ? INPUT_BITS.crouch : 0)
-    | (input.interact ? INPUT_BITS.interact : 0);
+    | (input.interact ? INPUT_BITS.interact : 0)
+    | (input.brakePreservesCruise ? INPUT_BITS.brakePreservesCruise : 0);
 }
 
 export function decodeDiagnosticInput(mask: number, steer?: number): InputState {
@@ -142,6 +144,7 @@ export function decodeDiagnosticInput(mask: number, steer?: number): InputState 
     jump: Boolean(mask & INPUT_BITS.jump),
     crouch: Boolean(mask & INPUT_BITS.crouch),
     interact: Boolean(mask & INPUT_BITS.interact),
+    brakePreservesCruise: Boolean(mask & INPUT_BITS.brakePreservesCruise),
   };
 }
 
