@@ -61,9 +61,7 @@ test("floating arrow badges show the total remaining route distance", () => {
   const remaining = `${Math.round(48 * DISPLAY_METERS_PER_WORLD_UNIT)}m`;
   assert.equal(navigationDistanceBadge(game, 0, plan)!.distance, remaining, "route progress reduces the remaining distance");
   plan.requiresUTurn = true;
-  assert.equal(navigationDistanceBadge(game, 0, plan)!.label, "U-TURN");
-  assert.equal(navigationDistanceBadge(game, 0, plan)!.distance, remaining);
-  assert.equal(navigationDistanceBadge(game, 0, plan)!.remaining, "TO DESTINATION");
+  assert.equal(navigationDistanceBadge(game, 0, plan), null, "legacy U-turn badge stays hidden even with a pending turn cue");
   plan.requiresUTurn = false; plan.turnCue = null;
   assert.equal(navigationDistanceBadge(game, 0, plan), null);
   game.player = { kind: "walking", actor: { ...game }, location: { kind: "city" } };

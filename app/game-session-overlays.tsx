@@ -135,6 +135,7 @@ export function GameSessionOverlays({
               <button onClick={() => onOpenOptions("game")}>GAME OPTIONS</button>
               <button onClick={() => onOpenOptions("dev")}>OPTIONS · DEV MODE</button>
               <button onClick={onOpenHow}>HOW TO PLAY</button>
+              {!mobile && <button onClick={onOpenScores}>RUN LOG</button>}
               {diagnosticsActive && <button onClick={onCopyDiagnostics}>COPY DIAGNOSTICS</button>}
               {diagnosticsNotice && <small className="duty-lock-note" role="status" aria-live="polite">{diagnosticsNotice}</small>}
               {hud.runKind === "free-run"

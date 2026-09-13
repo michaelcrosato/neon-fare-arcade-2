@@ -48,6 +48,11 @@ async function checkBanner(page: Page, card: Locator) {
   await expect(sequence).toBeInViewport({ ratio: 1 });
   const box = (await sequence.boundingBox())!;
   expect(box.width * box.height).toBeGreaterThan(stage.width * stage.height * .13);
+  if (!await page.evaluate(() => matchMedia("(max-width: 820px), (pointer: coarse)").matches)) {
+    expect(box.width).toBeCloseTo((stage.width - 24) / 2, 0);
+    expect(box.x + box.width / 2).toBeCloseTo(stage.x + stage.width / 2, 0);
+    expect(box.height).toBeLessThanOrEqual((stage.height - 16) * .38);
+  }
   await expect(card.locator(".fare-impact__copy > strong")).toBeVisible();
   const art = (await card.locator(".fare-impact__art").boundingBox())!;
   expect(art.width).toBeGreaterThan(120);
@@ -63,6 +68,7 @@ for (const renderer of ["WebGPU", "Canvas"]) for (const mobile of [false, true])
       await page.clock.install({ time: new Date("2026-09-12T00:00:00Z") });
       if (renderer === "Canvas") await page.addInitScript(() => Object.defineProperty(navigator, "gpu", { configurable: true, value: undefined }));
       await page.goto("/?diagnostics=1");
+      await expect(page.locator(".topbar nav button")).toHaveText(["OPTIONS"]);
       await expect(page.locator(".game-canvas").nth(renderer === "WebGPU" ? 1 : 0)).toHaveClass(/is-active/, { timeout: SCENE_START_TIMEOUT });
       await page.getByRole("button", { name: /Start Free Run with arcade/ }).click();
       await confirmVehicle(page);

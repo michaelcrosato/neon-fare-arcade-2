@@ -16,7 +16,7 @@ test.beforeAll(async () => {
 });
 
 for (const renderer of ["WebGPU", "Canvas 2D"] as const) for (const mobile of [false, true]) {
-  test(`${renderer} shows distance badges, right-lane guidance and a paid tow at ${mobile ? "mobile" : "desktop"} size`, async ({ page }, info) => {
+  test(`${renderer} shows turn guidance and a paid tow without legacy U-turn overlays at ${mobile ? "mobile" : "desktop"} size`, async ({ page }, info) => {
     await page.setViewportSize(mobile ? { width: 390, height: 844 } : { width: 1280, height: 800 });
     const errors: string[] = [];
     page.on("pageerror", error => errors.push(error.message));
@@ -25,8 +25,26 @@ for (const renderer of ["WebGPU", "Canvas 2D"] as const) for (const mobile of [f
     expect(await page.evaluate(renderer => window.guidanceScene.mount(renderer), renderer)).toBe(renderer);
     const modes: CameraMode[] = ["fixed", "chase-high", "chase-low", "cab"];
     for (const kind of ["turn", "uturn"] as const) for (const mode of modes) {
-      await page.evaluate(({ kind, mode }) => window.guidanceScene.draw(kind, mode), { kind, mode });
+      const guidance = await page.evaluate(({ kind, mode }) => window.guidanceScene.draw(kind, mode), { kind, mode });
       const badge = page.locator(".navigation-distance");
+      await expect(page.locator(".uturn-warning, .gps-uturn-cue, .gps-instruction, .objective-banner")).toHaveCount(0);
+      if (!mobile) {
+        await expect(page.locator(".gps-panel .gps-taxi")).toBeVisible();
+        await expect(page.locator(".gps-panel .gps-turn-cue")).toHaveCount(0);
+      }
+      if (kind === "uturn") {
+        await expect(badge).toBeHidden();
+        expect(guidance.arrows).toBe(guidance.vehicleArrows);
+        expect(guidance.vehicleArrows).toBeGreaterThan(0);
+        await page.locator("#guidance-fixture").screenshot({ path: info.outputPath(`${kind}-${mode}.png`) });
+        continue;
+      }
+      if (!mobile) {
+        await expect(badge).toBeHidden();
+        expect(guidance.arrows).toBeGreaterThan(0);
+        await page.locator("#guidance-fixture").screenshot({ path: info.outputPath(`${kind}-${mode}.png`) });
+        continue;
+      }
       await expect(badge).toBeVisible();
       await expect(badge).toBeInViewport({ ratio: 1 });
       await expect(badge.locator("strong")).toHaveText("48m");

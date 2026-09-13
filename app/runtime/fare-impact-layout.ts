@@ -7,12 +7,29 @@ import { projectWorldPoint, viewProjection } from "@/game/render/view-projection
 export type FareRect = Readonly<{ x: number; y: number; width: number; height: number }>;
 export const FARE_CLEARANCE = 18;
 
-/** Fit the biggest readable, top-anchored card around the protected playfield. */
-export function fitFareImpact(width: number, height: number, obstacles: readonly FareRect[]): FareRect {
+/** Center desktop banners; let mobile cards use the largest clear top space. */
+export function fitFareImpact(width: number, height: number, obstacles: readonly FareRect[],
+  layout: "desktop" | "mobile" = "desktop"): FareRect {
   const blocked = obstacles.map(rect => ({
     x: rect.x - FARE_CLEARANCE, y: rect.y - FARE_CLEARANCE,
     width: rect.width + FARE_CLEARANCE * 2, height: rect.height + FARE_CLEARANCE * 2,
   })).filter(rect => rect.x < width && rect.x + rect.width > 0 && rect.y + rect.height > 0);
+  if (layout === "desktop") {
+    const cardWidth = Math.floor(width / 2), x = (width - cardWidth) / 2;
+    const maxHeight = Math.min(height * .38, cardWidth / 1.5);
+    const centered = blocked.filter(rect => rect.x < x + cardWidth && rect.x + rect.width > x);
+    // Stay above the cab/arrow. Only a first-person arrow at the top can move
+    // the banner down; neither obstacle size nor card kind changes its center.
+    const tops = [0, ...centered.map(rect => Math.max(0, Math.ceil(rect.y + rect.height)))].sort((a, b) => a - b);
+    for (const y of tops) {
+      let cardHeight = Math.min(height - y, maxHeight);
+      for (const rect of centered) if (rect.y + rect.height > y) {
+        cardHeight = Math.min(cardHeight, Math.max(0, rect.y - y));
+      }
+      if (cardHeight >= 48) return { x, y, width: cardWidth, height: Math.floor(cardHeight) };
+    }
+    return { x, y: 0, width: cardWidth, height: 0 };
+  }
   const edges = [...new Set([0, width, ...blocked.flatMap(rect => [
     Math.max(0, Math.min(width, rect.x)), Math.max(0, Math.min(width, rect.x + rect.width)),
   ])])].sort((a, b) => a - b);
@@ -68,7 +85,7 @@ export function presentFareImpact(element: HTMLDivElement, canvas: HTMLCanvasEle
   const obstacles = fareImpactObstacles(game, camera, seconds, navigation, stage.width, stage.height)
     .map(rect => ({ ...rect, x: rect.x + stage.x - area.x, y: rect.y + stage.y - area.y }));
   if (badge) obstacles.push({ ...badge, x: badge.x + stage.x - area.x, y: badge.y + stage.y - area.y });
-  const rect = fitFareImpact(area.width, area.height, obstacles);
+  const rect = fitFareImpact(area.width, area.height, obstacles, camera.mobile ? "mobile" : "desktop");
   const wide = rect.width / Math.max(1, rect.height) >= 1.1;
   const art = Math.max(0, Math.floor(Math.min(wide ? rect.width * (rect.width < 240 ? .4 : .46) : rect.width - 16,
     wide ? rect.height - 8 : rect.height * .52)));

@@ -28,17 +28,24 @@ updates the arcade launch, steering, road elevation and contact rules below.
   browser supports it. The full dynamic viewport, safe-area padding, and active
   playfield gesture protection prevent document scrolling, pull-to-refresh,
   pinch zoom, and long-press menus during driving. Paused menus remain scrollable.
-- Desktop and mobile pickup and dropoff cards make a large portrait and headline
-  impact, fitted to the available space above or beside the projected cab and its
-  departure/arrival arrow. Placement follows the actual camera, zoom, road pose,
-  viewport and safe areas, preserving 18 pixels of clearance. The card uses the
-  largest readable top-anchored rectangle, capped at 64% of the playfield height
-  to retain the road view; it never uses a fixed small-banner width. If a close
+- Desktop pickup and dropoff cards share a horizontally centered banner at half
+  the safe playfield width, capped at 38% of its height. They shorten to clear
+  the projected cab and departure/arrival arrow instead of moving to the side.
+  Mobile cards keep the largest readable top-anchored rectangle, capped at 64%
+  of the playfield height. Placement follows the actual camera, zoom, road pose,
+  viewport and safe areas, preserving 18 pixels of clearance. If a close
   first-person arrow reaches the top edge, use the clear gap below it and above
-  the dashboard. Navigation distance labels share their projected placement with
+  the dashboard. Mobile distance labels share their projected placement with
   the fitter. Each card lasts three seconds total:
   180 ms entrance, 2400 ms hold and 420 ms exit. They never wipe or fly across
   the cab or navigation arrow. Fare history remains available in Pause.
+- Desktop header navigation contains Options, including audio settings. Help
+  and Run Log remain available in Pause. The compact GPS shows the route,
+  fare/destination markers and cab without repeated objective, turn or distance
+  captions or floating text badges. U-turn plans use the temporary vehicle
+  direction arrow; the legacy floating hairpin, U-turn distance badge, warning
+  sticker and GPS symbol are removed. Routing thresholds and accessible
+  navigation announcements are unchanged.
 
 - `+x` points east, `+y` points south, and `+z` points up.
 - Local street coordinates use a 36-unit lattice with a 6-unit half width.

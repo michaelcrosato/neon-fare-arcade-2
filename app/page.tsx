@@ -865,12 +865,6 @@ export default function Home() {
         </button>
         <nav aria-label="Game navigation">
           <button onClick={() => openOptions("game")} disabled={!careerReady}>OPTIONS</button>
-          <span aria-hidden="true" />
-          <button onClick={() => openModal("how")} disabled={!careerReady}>HOW TO PLAY</button>
-          <span aria-hidden="true" />
-          <button onClick={() => openModal("scores")} disabled={!careerReady}>RUN LOG</button>
-          <span aria-hidden="true" />
-          <button onClick={toggleMute} disabled={!careerReady}>{muted ? "AUDIO OFF" : "AUDIO ON"}</button>
         </nav>
       </header>
 

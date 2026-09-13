@@ -611,16 +611,10 @@ export function GpsMap({
             <circle className="gps-custom-pin-core" r="4" cy="-5" />
           </g>
         )}
-        {turnCue && turnPoint && (
-          <g className="gps-turn-cue" transform={`translate(${turnPoint.x} ${turnPoint.y})${full ? ` scale(${markerScale})` : ""} rotate(${turnRotation})`}>
-            <circle r={full ? 31 : 10.5} />
-            <polygon points={full ? "0,-31 24,7 9,5 9,28 -9,28 -9,5 -24,7" : "0,-11 8,3 3,2 3,9 -3,9 -3,2 -8,3"} />
-          </g>
-        )}
-        {hud.needsUTurn && (
-          <g className="gps-uturn-cue" transform={`translate(${player.x} ${player.y})${full ? ` scale(${markerScale})` : ""}`}>
-            <circle r={full ? 39 : 13} />
-            <text y={full ? 15 : 5} fontSize={full ? 49 : 17}>↶</text>
+        {full && turnCue && turnPoint && (
+          <g className="gps-turn-cue" transform={`translate(${turnPoint.x} ${turnPoint.y}) scale(${markerScale}) rotate(${turnRotation})`}>
+            <circle r="31" />
+            <polygon points="0,-31 24,7 9,5 9,28 -9,28 -9,5 -24,7" />
           </g>
         )}
         <g className="gps-taxi" transform={`translate(${player.x} ${player.y}) ${full ? `scale(${markerScale}) rotate(${hud.heading * 180 / Math.PI + 90})` : ""}`}>

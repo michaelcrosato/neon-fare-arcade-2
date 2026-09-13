@@ -19,6 +19,11 @@ async function checkImpact(page: Page, result: Awaited<ReturnType<Window["mobile
   else expect(card.y).toBeGreaterThanOrEqual(stage.y + 8);
   expect(card.x).toBeGreaterThanOrEqual(stage.x + 11);
   expect(card.x + card.width).toBeLessThanOrEqual(stage.x + stage.width - 11);
+  if (!await page.evaluate(() => matchMedia("(max-width: 820px), (pointer: coarse)").matches)) {
+    expect(card.x + card.width / 2).toBeCloseTo(stage.x + stage.width / 2, 0);
+    expect(card.width).toBeCloseTo((stage.width - 24) / 2, 0);
+    expect(card.height).toBeLessThanOrEqual((stage.height - 16) * .38);
+  }
   expect(card.height, JSON.stringify(result.layout)).toBeGreaterThan(48);
   for (const points of [result.cabPoints, result.arrowPoints]) {
     if (!points.length) continue;

@@ -157,18 +157,6 @@
   to { stroke-width: 5; opacity: 0.62; }
 }
 
-@keyframes gps-uturn-pulse {
-  to { stroke-width: 7; fill: rgb(239 40 28 / 92%); }
-}
-
-@keyframes uturn-icon-pulse {
-  to { transform: scale(1.15) rotate(-7deg); }
-}
-
-@keyframes uturn-warning-pulse {
-  to { transform: translateX(-50%) rotate(1deg) scale(1.035); }
-}
-
 @keyframes countdown-hit {
   from { transform: rotate(-8deg) scale(1.16); }
   to { transform: rotate(-3deg) scale(0.92); }
@@ -180,7 +168,6 @@
   .title-paper h1 { font-size: clamp(5.8rem, 13vw, 8.3rem); }
   .start-button { min-height: 94px; font-size: clamp(2.8rem, 5.8vw, 4.3rem); }
   .hud-top > div { min-width: 124px; }
-  .objective-banner { max-width: 46vw; }
 }
 
 @media (max-width: 900px) {
@@ -259,14 +246,6 @@
   }
   .hud-top > div:nth-child(3) { display: none; }
   .hud-top strong { font-size: 2rem; }
-  .objective-banner {
-    top: 88px;
-    left: 10px;
-    max-width: calc(100vw - 20px);
-    padding: 6px 9px 6px 6px;
-    border-width: 3px;
-  }
-  .objective-banner strong { font-size: 0.9rem; }
   .gps-panel {
     top: 151px;
     left: 10px;
@@ -278,8 +257,6 @@
   }
   .gps-header b { font-size: 0.5rem; }
   .gps-header em { font-size: 0.42rem; }
-  .gps-instruction b { font-size: 0.66rem; }
-  .gps-instruction em { display: none; }
   .gps-roads line { stroke-width: 3; }
   .gps-route-shadow { stroke-width: 6; }
   .gps-route-line { stroke-width: 3; }
@@ -296,21 +273,6 @@
   .camera-panel small { font-size: 0.43rem; }
   .camera-panel strong { font-size: 0.75rem; }
   .camera-panel i { font-size: 1rem; }
-  .uturn-warning {
-    top: 282px;
-    right: 10px;
-    left: auto;
-    width: calc(100vw - 188px);
-    min-width: 0;
-    padding: 7px 8px 9px;
-    border-width: 4px;
-    box-shadow: 6px 6px 0 var(--red);
-    transform: rotate(-1deg);
-    animation: none;
-  }
-  .uturn-warning strong { font-size: clamp(1.2rem, 5vw, 1.7rem); }
-  .uturn-warning small,
-  .uturn-warning span { font-size: 0.45rem; letter-spacing: 0.08em; }
   .fare-impact__sequence {
     grid-template-columns: minmax(0, 0.76fr) minmax(0, 1.24fr);
     width: min(94vw, 680px);

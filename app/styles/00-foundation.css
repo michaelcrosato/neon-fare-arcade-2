@@ -54,8 +54,6 @@ button:focus-visible {
   .primary-small,
   .control-strip,
   .hud-top strong,
-  .objective-banner > span,
-  .objective-banner strong,
   .speedometer > strong,
   .combo-sticker strong,
   .comic-callout,
@@ -156,11 +154,4 @@ button:focus-visible {
 .topbar nav button:hover {
   color: var(--yellow);
   transform: translateY(-2px) skewX(-4deg);
-}
-
-.topbar nav > span {
-  width: 2px;
-  height: 29px;
-  background: var(--yellow);
-  transform: skewX(-9deg);
 }

@@ -132,13 +132,6 @@ export function GameStageHud({
             <div className="score-card"><small>SCORE</small><strong>{hud.score.toLocaleString().padStart(5, "0")}</strong></div>
           </div>
 
-          {hud.playerMode === "driving" && <div className={`objective-banner ${hud.needsUTurn ? "is-uturn" : ""} ${hud.objectiveType === "roam" ? "is-roaming" : ""}`}>
-            <span className={hud.objectiveType}>{hud.objectiveType === "roam" ? "OFF DUTY" : hud.objectiveType === "waypoint" ? "PIN" : hud.objectiveType.startsWith("courier") ? "COURIER" : hud.objectiveType === "drop" ? "DROP" : "PICKUP"}</span>
-            <strong>{hud.objective}</strong>
-            {hud.objectiveType !== "roam" && <b>{hud.distance}m</b>}
-            {hud.objectiveType !== "roam" && <i className={hud.needsUTurn ? "is-uturn" : ""} style={hud.needsUTurn ? undefined : { transform: `rotate(${hud.objectiveAngle}rad)` }} aria-hidden="true">{hud.needsUTurn ? "↶" : "➤"}</i>}
-          </div>}
-
           {hud.playerMode !== "driving" && hud.courierActive && (
             <button
               type="button"
@@ -163,7 +156,7 @@ export function GameStageHud({
           )}
 
           {hud.playerMode === "driving" && <button
-            className={`gps-panel ${hud.needsUTurn ? "is-uturn" : ""} ${hud.objectiveType === "roam" ? "is-off-duty" : ""}`}
+            className={`gps-panel ${hud.objectiveType === "roam" ? "is-off-duty" : ""}`}
             onClick={onOpenMap}
             aria-label={hud.objectiveType === "roam"
               ? "Open full regional GPS map. Off duty. Passenger fare guidance is off."
@@ -173,7 +166,6 @@ export function GameStageHud({
           >
             <span className="gps-header"><b>{hud.customDestination ? "CUSTOM ROUTE" : hud.objectiveType === "roam" ? "FREE ROAM" : hud.courierActive ? "COURIER GPS" : "FARE-FINDER"}</b><em>GPS // G</em></span>
             <GpsMap hud={hud} />
-            <span className="gps-instruction"><b>{hud.gpsInstruction}</b><em>{hud.objectiveType === "roam" ? hud.district : `${hud.needsUTurn ? "TURN AROUND" : `${Math.round(hud.gpsTurnDistance * DISPLAY_METERS_PER_WORLD_UNIT)}m`} · ${hud.district}`}</em></span>
           </button>}
 
           <button
@@ -189,14 +181,6 @@ export function GameStageHud({
           >
             <small>{hud.playerMode === "walking" ? "CAM // ON FOOT" : "CAM // C"}</small><strong>{hud.playerMode === "interior" ? "STORE VIEW" : cameraLabel(cameraMode)}</strong><i aria-hidden="true">{hud.playerMode === "driving" ? "↻" : "•"}</i>
           </button>
-
-          {hud.playerMode === "driving" && hud.needsUTurn && (
-            <div className="uturn-warning" aria-hidden="true">
-              <small>WRONG WAY</small>
-              <strong><b>↶</b> U-TURN!</strong>
-              <span>TURN AROUND WHEN CLEAR</span>
-            </div>
-          )}
 
           <div className="speedometer">
             <small>{hud.playerMode === "driving" ? "KM/H" : "PACE · KM/H"}</small>

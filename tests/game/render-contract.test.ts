@@ -213,13 +213,11 @@ test("one navigation glyph model fits every camera and budget", () => {
     const turn = navigationArrowBoxes(game, 0, turnPlan, mode);
     const uTurn = navigationArrowBoxes(game, 0, uTurnPlan, mode);
     assert.equal(turn.length, 16);
-    assert.equal(uTurn.length, 30);
+    assert.equal(uTurn.length, 0, "legacy U-turn glyph is replaced by the temporary vehicle arrow");
     assert.ok(turn.length <= NAVIGATION_INSTANCE_CAPACITY);
-    assert.ok(uTurn.length <= NAVIGATION_INSTANCE_CAPACITY);
     assert.ok(turn.every((box) => box.material === MAT_TURN));
-    assert.ok(uTurn.every((box) => box.material === MAT_TURN));
     assert.ok(turn.filter((box) => box.pitch !== undefined).every((box) => Math.abs(box.pitch ?? 0) === expectedPitch[mode]));
-    assert.ok(uTurn.filter((box) => box.pitch !== undefined).every((box) => box.pitch === expectedPitch[mode]));
+    assert.equal(navigationDistanceBadge(game, 0, uTurnPlan), null);
   }
 });
 
@@ -254,10 +252,10 @@ test("navigation updates show a vehicle departure arrow above the player taxi fo
   // Pointing in departureYaw
   assert.ok(activeBoxes.every((box) => box.yaw === Math.PI / 2));
 
-  // 2. Fits together with a U-turn arrow inside NAVIGATION_INSTANCE_CAPACITY
+  // 2. U-turn plans use only the same temporary vehicle arrow.
   const uTurnWithPrompt: NavigationPlan = { ...planWithPrompt, requiresUTurn: true };
   const combinedBoxes = navigationArrowBoxes(game, 0, uTurnWithPrompt, "chase-low");
-  assert.equal(combinedBoxes.length, 30 + 13);
+  assert.deepEqual(combinedBoxes, activeBoxes);
   assert.ok(combinedBoxes.length <= NAVIGATION_INSTANCE_CAPACITY);
 
   // 3. Once 3 seconds elapse, departure arrow disappears

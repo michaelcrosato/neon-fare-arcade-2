@@ -1,7 +1,5 @@
 /* Courier contracts share the comic HUD language but keep a distinct parcel
    silhouette and orange/magenta route grammar. */
-.objective-banner > span.courier-pickup { background: var(--orange); }
-.objective-banner > span.courier-drop { color: var(--ink); background: var(--pink); }
 .gps-route-line.courier-pickup { stroke: var(--orange); }
 .gps-route-line.courier-drop { stroke: var(--pink); }
 .gps-target.courier-pickup { fill: var(--orange); }

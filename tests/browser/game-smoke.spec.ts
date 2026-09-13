@@ -76,13 +76,13 @@ test("holding pause and mute keys performs one toggle per press", async ({ page 
   await expect(page.getByRole("region", { name: "Game paused" })).toBeHidden();
 
   await page.keyboard.down("m");
-  await expect(page.getByRole("button", { name: "AUDIO OFF", exact: true })).toBeVisible();
   await page.keyboard.down("m");
-  await expect(page.getByRole("button", { name: "AUDIO OFF", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "OPTIONS", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Audio muted. Click to unmute." })).toBeVisible();
   await page.keyboard.up("m");
 });
 
-test("help pauses the countdown and closing it resumes the remaining countdown", async ({ page }) => {
+test("options pauses the countdown and closing it resumes the remaining countdown", async ({ page }) => {
   await page.clock.install({ time: new Date("2026-09-12T00:00:00Z") });
   await page.goto("/");
   await page.getByRole("button", { name: /Start Free Run with arcade/ }).click();
@@ -92,7 +92,7 @@ test("help pauses the countdown and closing it resumes the remaining countdown",
   await lockSteeringIfPrompted(page);
   await page.clock.runFor(100);
   await expect(page.locator(".countdown")).toBeVisible();
-  await page.getByRole("button", { name: "HOW TO PLAY", exact: true }).click();
+  await page.getByRole("button", { name: "OPTIONS", exact: true }).click();
   await page.clock.fastForward(5000);
   await expect(page.locator("main")).not.toHaveClass(/mode-playing/);
   await page.getByRole("button", { name: "Close dialog" }).click();
@@ -179,12 +179,12 @@ test("Simulation Free Run selects the Crown cab and exposes real powertrain cont
 
 test("modal focus is trapped, Escape closes, and focus returns to its trigger", async ({ page }) => {
   await page.goto("/");
-  const trigger = page.getByRole("button", { name: "HOW TO PLAY", exact: true });
+  const trigger = page.getByRole("button", { name: "OPTIONS", exact: true });
   await trigger.click();
-  const dialog = page.getByRole("dialog", { name: "HOW TO PLAY" });
+  const dialog = page.getByRole("dialog", { name: "OPTIONS", exact: true });
   await expect(dialog).toBeVisible();
   const close = page.getByRole("button", { name: "Close dialog" });
-  const back = page.getByRole("button", { name: "BACK TO MODE SELECT" });
+  const back = page.getByRole("button", { name: "CLOSE OPTIONS", exact: true });
   await expect(close).toBeFocused();
   await page.keyboard.press("Shift+Tab");
   await expect(back).toBeFocused();
@@ -229,7 +229,12 @@ test("valid career and run-log saves hydrate into the menu", async ({ page }) =>
   await page.goto("/");
   await expect(page.getByText("BANK $4321", { exact: true })).toBeVisible({ timeout: SCENE_START_TIMEOUT });
   await expect(page.getByText("BEST 4,321", { exact: true })).toBeVisible({ timeout: SCENE_START_TIMEOUT });
-  await page.getByRole("button", { name: "RUN LOG", exact: true }).click();
+  await page.getByRole("button", { name: /Start Free Run with arcade/ }).click();
+  await confirmVehicle(page);
+  await page.getByRole("button", { name: /Choose STREET ACE/ }).click();
+  await lockSteeringIfPrompted(page);
+  await page.getByRole("button", { name: "Pause game" }).click();
+  await page.getByRole("region", { name: "Game paused" }).getByRole("button", { name: "RUN LOG", exact: true }).click();
   await expect(page.getByRole("dialog", { name: "RUN LOG" })).toContainText("4,321");
   await expect(page.getByRole("dialog", { name: "RUN LOG" })).toContainText("3 DELIVERIES · $88 · AUG 25");
 });

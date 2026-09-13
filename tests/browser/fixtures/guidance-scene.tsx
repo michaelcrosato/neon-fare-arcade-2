@@ -15,6 +15,7 @@ import { CityStream } from "../../../game/world";
 import { buildNavigationPlan } from "../../../game/navigation";
 import { defaultCameraBoom } from "../../../game/config";
 import { towTruckBoxes } from "../../../game/render/tow-truck";
+import { navigationArrowBoxes, vehicleDepartureArrowBoxes } from "../../../game/render/navigation-glyph";
 import type { Camera, CameraMode, NavigationPlan, Renderer } from "../../../game/model";
 
 const game = makeGame("street-ace", 901, "free-run");
@@ -38,10 +39,12 @@ function draw(kind: "turn" | "uturn" | "tow", mode: CameraMode, age = .2) {
     Object.assign(game, roadLanePose({ x: 0, y: -24, z: 0 }, -Math.PI / 2), { elapsed: 40, onboard: true });
   } else game.elapsed = (game.towRecovery?.startedAt ?? 40) + age;
   const camera: Camera = { x: game.x, y: game.y, heightOffset: game.z, heading: game.heading,
-    mode, zoom: 1, boom: defaultCameraBoom(mode, 1), onFoot: false, distanceScale: 1 };
+    mode, mobile: matchMedia("(max-width: 820px), (pointer: coarse)").matches,
+    zoom: 1, boom: defaultCameraBoom(mode, 1), onFoot: false, distanceScale: 1 };
   const route = [{ x: game.x, y: game.y, z: game.z }, { x: 0, y: -36, z: 0 }, { x: 36, y: -36, z: 0 }];
   const plan: NavigationPlan = kind === "tow" ? buildNavigationPlan(game, { x: 0, y: -1404, z: 44 }, game.heading)
     : { route, departureYaw: -Math.PI / 2, travelHeading: -Math.PI / 2, requiresUTurn: kind === "uturn",
+      ...(kind === "uturn" ? { departurePromptUntil: game.elapsed + 3, departureArrowYaw: game.heading + Math.PI } : {}),
       turnCue: kind === "uturn" ? null : { point: route[1], incomingYaw: -Math.PI / 2, yaw: 0, kind: "right", distance: 12 } };
   const world = stream.update(game.x, game.y, mode === "fixed" ? 1 : 3);
   renderer.render(game, camera, 0, world, plan);
@@ -56,7 +59,9 @@ function draw(kind: "turn" | "uturn" | "tow", mode: CameraMode, age = .2) {
     onFinishRun={noop} onToggleFareDispatch={noop} onRequestStartRun={noop} onOpenScores={noop} onCopyDiagnostics={noop} onRecover={noop} /></>));
   presentNavigationDistance(badge, game, camera, 0, plan, innerWidth, innerHeight);
   const truck = towTruckBoxes(game);
-  return { fare: game.fare, z: game.z, truck: truck.length ? { x: truck[0].x, y: truck[0].y } : null, badge: badge.textContent };
+  return { fare: game.fare, z: game.z, truck: truck.length ? { x: truck[0].x, y: truck[0].y } : null, badge: badge.textContent,
+    arrows: navigationArrowBoxes(game, 0, plan, mode).length,
+    vehicleArrows: vehicleDepartureArrowBoxes(game, 0, plan, mode).length };
 }
 
 declare global { interface Window { guidanceScene: {

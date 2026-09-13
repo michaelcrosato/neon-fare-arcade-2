@@ -99,14 +99,15 @@ cargo ownership as WebGPU. Reduced motion and player state match in all paths.
 
 ## Navigation glyphs
 
-Every WebGPU camera uses the same canonical turn or U-turn pieces. Camera mode
-changes only the plane pitch. Normal arrows use 16 boxes and U-turns use 30, with
-up to 13 additional boxes for the initial vehicle departure arrow (total budget: 48 instances).
+Every WebGPU camera uses the same canonical turn pieces. Camera mode changes
+only the plane pitch. Normal arrows use 16 boxes, with up to 13 additional boxes
+for the temporary vehicle direction arrow (total budget: 48 instances). U-turn
+plans show only that temporary vehicle arrow, without a separate hairpin or badge.
 
 Canvas consumes these same pieces and their pitch transforms through its 3D
 projection. It must not select a different symbol by rendering backend.
 
-Distance badges use `navigationDistanceBadge` and the shared `viewProjection`
+Mobile distance badges use `navigationDistanceBadge` and the shared `viewProjection`
 through one HTML presenter in `app/runtime/navigation-distance.ts`. Text stays
 crisp in every backend without spending navigation instances. Badge position
 follows the arrow's actual elevation and uses the same reduced-motion clock.

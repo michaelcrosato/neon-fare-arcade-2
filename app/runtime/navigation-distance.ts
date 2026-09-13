@@ -2,9 +2,10 @@ import type { Camera, Game, NavigationPlan } from "@/game/model";
 import { navigationDistanceBadge } from "@/game/render/navigation-glyph";
 import { projectWorldPoint, viewProjection } from "@/game/render/view-projection";
 
-/** One world-anchored HTML badge stays crisp over every rendering backend. */
+/** Mobile keeps a world-anchored distance badge; desktop uses its uncluttered GPS. */
 export function presentNavigationDistance(element: HTMLDivElement, game: Game, camera: Camera,
   seconds: number, navigation: NavigationPlan, width: number, height: number) {
+  if (!camera.mobile) { element.hidden = true; return; }
   const badge = navigationDistanceBadge(game, seconds, navigation);
   if (!badge || width <= 0 || height <= 0) { element.hidden = true; return; }
   const { point } = badge;

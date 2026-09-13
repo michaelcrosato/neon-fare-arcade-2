@@ -40,6 +40,16 @@ Preserve gameplay unless the task explicitly requests a behavior change.
 6. Perform browser verification when presentation, input, camera, CSS, or
    renderer behavior changes.
 
+## Delivery preference
+
+- After completing and verifying requested changes, commit them and push to
+  GitHub. Do not stop at local edits unless the user explicitly asks for that.
+- Verify the Vercel deployment for the pushed commit, then include the playable
+  Vercel link in the final response. The production play URL is
+  https://neon-fare-arcade-2.vercel.app/.
+- If publishing or deployment is blocked, report the specific blocker and the
+  current deployment status instead of claiming the changes are live.
+
 ## Where to read next
 
 - Gameplay, world, navigation, state, and regional content: `game/AGENTS.md`
