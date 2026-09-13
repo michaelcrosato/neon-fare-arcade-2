@@ -41,6 +41,7 @@ import {
 } from "./state";
 import { districtName } from "./world";
 import { recoveryCost } from "./recovery";
+import { cruiseSpeedLimit } from "./cruise-control";
 import { navigationSettingsForGame } from "./development-settings";
 
 export const EMPTY_HUD: Hud = {
@@ -50,6 +51,8 @@ export const EMPTY_HUD: Hud = {
   fare: 0,
   score: 0,
   speed: 0,
+  cruiseSpeed: null,
+  cruiseMaxSpeed: 160,
   drivingTraitId: "street-ace",
   drivingModel: "arcade",
   simulationVehicle: {
@@ -186,6 +189,8 @@ export function makeHud(game: Game, navigation?: NavigationPlan, world?: WorldVi
     drivingModel: game.drivingModel,
     simulationVehicle: { ...game.simulationVehicle },
     runKind: game.runKind,
+    cruiseSpeed: game.cruiseControl ? Math.round(game.cruiseControl.speed * SPEED_KMH_PER_WORLD_UNIT) : null,
+    cruiseMaxSpeed: cruiseSpeedLimit(game),
     boost: game.boost,
     combo: game.combo,
     deliveries: game.deliveries,

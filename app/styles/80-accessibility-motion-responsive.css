@@ -537,6 +537,9 @@
     font-family: "Barlow Condensed", sans-serif;
   }
   .mobile-hud button { pointer-events: auto; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .mobile-hud .cruise-control { right: var(--mobile-right); top: calc(60px + env(safe-area-inset-top)); bottom: auto; }
+  .mobile-hud .cruise-control__toggle { min-width: 116px; border-radius: 8px; font-size: 14px; }
+  .mobile-hud .cruise-control__panel { top: calc(100% + 6px); bottom: auto; max-height: calc(100dvh - 120px); overflow: auto; }
   /* Event cards stay above the road. No screen wipe or flight across the cab. */
   .mobile-hud .fare-impact {
     inset: max(4px, env(safe-area-inset-top)) var(--mobile-right) auto var(--mobile-left);

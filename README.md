@@ -102,10 +102,21 @@ W/A/S/D drive, Space boosts, brake during a turn to drift, C changes cameras, E 
 the taxi, and G opens GPS. Chase High, Chase Low, and Cab View remain 3D even
 when WebGPU is unavailable; the game falls back to WebGL or software rendering.
 
-On a phone, steer with your left thumb and use gas and brake/reverse on the
-right. Double-tap gas and hold the second tap to boost. Tap the route strip for the full map, or **MENU** for camera,
+On a phone, place your left thumb anywhere on the playfield to steer. Default
+uses a sideways drag; Joystick appears at your touch and combines steering with
+up for gas/down for brake; Wheel appears under your thumb and turns with the rim.
+Wheel rotation range is adjustable from 90° to 1260° total in the steering draft
+and **Options → Steering System**. Lower ranges turn more tightly; the setting
+is saved on this device. Default and Wheel keep gas and brake/reverse on the
+right. Double-tap gas and hold the second tap to boost. Open the full map from **MENU**, which also contains camera,
 audio, and fare history. There is no mini-map over the mobile driving view.
 Portrait and landscape both work; the controls adapt when you leave the taxi.
+
+Both Arcade and Simulation Free Run offer **CRUISE** beside the speed display.
+Enter a speed or use the current speed, then select **SET CRUISE**. Gas and arcade
+boost temporarily override the selected speed; releasing them returns to it.
+Braking, a collision, leaving the taxi, or the simulation parking brake disengages
+cruise. **CANCEL CRUISE** also turns it off. Arcade Shift has no cruise control.
 
 To inspect the new roads,
 start Arcade Free Run and use GPS to set a waypoint on Aurora Boulevard.

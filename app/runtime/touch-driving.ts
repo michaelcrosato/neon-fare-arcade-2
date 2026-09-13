@@ -17,6 +17,16 @@ export const JOYSTICK_BRAKE_DEADZONE = 0.12; // 12% neutral deadzone for brake
 
 // Wheel specifications: -630° to +630° (3.5 turns lock-to-lock), 260°/s base return, +65% at speed
 export const WHEEL_MAX_ANGLE_DEG = 630;
+export const WHEEL_RANGES = [90, 180, 270, 360, 540, 900, 1260] as const;
+export type WheelRange = typeof WHEEL_RANGES[number];
+export const DEFAULT_WHEEL_RANGE: WheelRange = 1260;
+export const WHEEL_TOUCH_RADIUS = 68;
+
+/** Total lock-to-lock travel; smaller values reach full steering sooner. */
+export function normalizeWheelRange(value: unknown): WheelRange {
+  const degrees = Number(value);
+  return WHEEL_RANGES.find(range => range === degrees) ?? DEFAULT_WHEEL_RANGE;
+}
 export const WHEEL_BASE_RETURN_RATE_DEG_S = 260;
 export const WHEEL_SPEED_RETURN_BOOST = 0.65;
 // Keep wheel centering stable when the arcade boost ceiling changes.
@@ -32,6 +42,7 @@ export type TouchDrivingSnapshot = {
   thumb: { x: number; y: number; dx: number; kind: TouchKind } | null;
   joystick: {
     active: boolean;
+    center: { x: number; y: number };
     knobX: number;
     knobY: number;
     normX: number;
@@ -40,6 +51,8 @@ export type TouchDrivingSnapshot = {
   wheel: {
     angle: number;
     isHolding: boolean;
+    center: { x: number; y: number };
+    range: WheelRange;
   };
 };
 
@@ -63,6 +76,7 @@ export class TouchDriving {
   private wheelPointerId: number | null = null;
   private wheelCenter = { x: 0, y: 0 };
   private wheelLastAngle = 0;
+  private wheelRange: WheelRange = DEFAULT_WHEEL_RANGE;
 
   getMode(): SteeringMode {
     return this.mode;
@@ -71,6 +85,41 @@ export class TouchDriving {
   setMode(mode: SteeringMode) {
     this.mode = mode;
     this.reset();
+  }
+
+  setWheelRange(value: unknown) {
+    this.wheelRange = normalizeWheelRange(value);
+    this.wheelAngle = Math.max(-this.wheelRange / 2, Math.min(this.wheelRange / 2, this.wheelAngle));
+  }
+
+  /** Every free playfield touch starts the selected control at that touch. */
+  startSteering(id: number, x: number, y: number, time: number, viewport?: { width: number; height: number }) {
+    if (this.pointers.has(id)) return false;
+    if (this.mode === "joystick") return this.startJoystick(id, x, y, x, y);
+    // Put the thumb on the top rim so an initial sideways drag turns naturally.
+    if (this.mode === "wheel") {
+      const radius = 78;
+      const centerX = viewport ? Math.max(radius, Math.min(viewport.width - radius, x)) : x;
+      let centerY = y + WHEEL_TOUCH_RADIUS;
+      if (viewport) {
+        if (centerY > viewport.height - radius) centerY = y - WHEEL_TOUCH_RADIUS;
+        centerY = Math.max(radius, Math.min(viewport.height - radius, centerY));
+      }
+      return this.startWheel(id, x, y, centerX, centerY);
+    }
+    return this.start(id, "steer", x, y, time);
+  }
+
+  moveSteering(id: number, x: number, y: number) {
+    if (this.mode === "joystick") this.moveJoystick(id, x, y);
+    else if (this.mode === "wheel") this.moveWheel(id, x, y);
+    else this.move(id, x, y);
+  }
+
+  endSteering(id: number, time: number, cancelled = false) {
+    if (this.mode === "joystick") this.endJoystick(id);
+    else if (this.mode === "wheel") this.endWheel(id);
+    else this.end(id, time, cancelled);
   }
 
   // --- Pedal & Default Steering Handlers ---
@@ -172,7 +221,7 @@ export class TouchDriving {
     // Continuous 360° boundary tracking without snapping (e.g. 350° -> 359° -> 2° -> 10°)
     while (delta > 180) delta -= 360;
     while (delta < -180) delta += 360;
-    this.wheelAngle = Math.max(-WHEEL_MAX_ANGLE_DEG, Math.min(WHEEL_MAX_ANGLE_DEG, this.wheelAngle + delta));
+    this.wheelAngle = Math.max(-this.wheelRange / 2, Math.min(this.wheelRange / 2, this.wheelAngle + delta));
     this.wheelLastAngle = currentAngle;
   }
 
@@ -227,7 +276,7 @@ export class TouchDriving {
       gas = joy.gas;
       brake = joy.brake;
     } else if (this.mode === "wheel") {
-      steer = Math.max(-1, Math.min(1, this.wheelAngle / WHEEL_MAX_ANGLE_DEG));
+      steer = Math.max(-1, Math.min(1, this.wheelAngle / (this.wheelRange / 2)));
     }
 
     return {
@@ -240,6 +289,7 @@ export class TouchDriving {
       thumb: owner ? { x: owner.x, y: owner.y, dx: Math.max(-THUMB_TRAVEL, Math.min(THUMB_TRAVEL, owner.dx)), kind: owner.kind } : null,
       joystick: {
         active: this.joystickPointerId !== null,
+        center: { ...this.joystickCenter },
         knobX: this.joystickKnob.x,
         knobY: this.joystickKnob.y,
         normX: this.joystickNormX,
@@ -248,6 +298,8 @@ export class TouchDriving {
       wheel: {
         angle: this.wheelAngle,
         isHolding: this.wheelHolding,
+        center: { ...this.wheelCenter },
+        range: this.wheelRange,
       },
     };
   }

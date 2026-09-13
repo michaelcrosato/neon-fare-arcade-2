@@ -141,6 +141,7 @@ export function makeGame(
     drivingModel,
     simulationVehicle: makeSimulationVehicleState(),
     runKind,
+    cruiseControl: null,
     timeLeft: RUN_TIME,
     score: 0,
     fare: 0,

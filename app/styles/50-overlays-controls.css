@@ -598,10 +598,29 @@
 }
 
 /* --- Single-Thumb Joystick (Option 2) --- */
+.steering-wheel-range { display: grid; gap: 7px; margin: 12px 0; font-size: 14px; text-align: left; }
+.steering-wheel-range > span { font-weight: 800; }
+.steering-wheel-range select { width: 100%; min-height: 44px; padding: 8px; border: 2px solid var(--ink); background: var(--paper); color: var(--ink); font: inherit; }
+.steering-wheel-range small { font-size: 12px; line-height: 1.4; }
+
+.cruise-control { position: absolute; z-index: 26; right: 26px; bottom: 218px; color: var(--paper); font-family: "Barlow Condensed", sans-serif; pointer-events: auto; }
+.cruise-control button { min-height: 44px; padding: 8px 12px; border: 2px solid var(--paper); color: var(--paper); background: var(--ink); font: 800 15px/1 "Barlow Condensed", sans-serif; cursor: pointer; }
+.cruise-control button:disabled { opacity: .45; cursor: default; }
+.cruise-control__toggle { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-width: 122px; }
+.cruise-control__toggle b { color: var(--yellow); font-variant-numeric: tabular-nums; }
+.cruise-control[data-active] .cruise-control__toggle { border-color: var(--yellow); }
+.cruise-control__panel { position: absolute; right: 0; bottom: calc(100% + 8px); width: min(280px, calc(100vw - 24px)); padding: 14px; border: 2px solid var(--yellow); border-radius: 8px; background: rgb(9 9 9 / 96%); box-shadow: 0 6px 24px #0008; }
+.cruise-control__panel label { display: grid; gap: 6px; font-size: 17px; font-weight: 700; }
+.cruise-control__panel input { width: 100%; min-height: 44px; padding: 8px; color: var(--ink); background: var(--paper); border: 2px solid var(--paper); font: 700 20px "Barlow Condensed", sans-serif; }
+.cruise-control__actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+.cruise-control__actions button[type=submit] { color: var(--ink); background: var(--yellow); border-color: var(--yellow); }
+.cruise-control__panel .cruise-control__cancel { width: 100%; margin-top: 8px; }
+.cruise-control__panel p { margin: 10px 0 0; font-size: 13px; line-height: 1.35; color: var(--paper); }
+
 .mobile-joystick-wrap {
   position: absolute;
   z-index: 10;
-  left: max(16px, env(safe-area-inset-left));
+  right: max(16px, env(safe-area-inset-right));
   bottom: max(16px, env(safe-area-inset-bottom));
   display: flex;
   align-items: flex-end;
@@ -610,14 +629,15 @@
 }
 
 .mobile-joystick-base {
-  position: relative;
+  position: fixed;
+  transform: translate(-50%, -50%);
   width: 140px;
   height: 140px;
   border-radius: 50%;
   background: rgba(12, 12, 16, 0.72);
   border: 2px solid rgba(255, 255, 255, 0.4);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6), inset 0 0 12px rgba(0, 0, 0, 0.5);
-  pointer-events: auto;
+  pointer-events: none;
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
@@ -690,10 +710,9 @@
 
 /* --- Virtual Steering Wheel (Option 3) --- */
 .mobile-wheel-wrap {
-  position: absolute;
+  position: fixed;
   z-index: 10;
-  left: max(16px, env(safe-area-inset-left));
-  bottom: max(12px, env(safe-area-inset-bottom));
+  transform: translate(-50%, -50%);
   pointer-events: none;
 }
 
@@ -702,7 +721,7 @@
   width: 156px;
   height: 156px;
   border-radius: 50%;
-  pointer-events: auto;
+  pointer-events: none;
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
@@ -789,4 +808,3 @@
   color: #fff;
   opacity: 0.8;
 }
-

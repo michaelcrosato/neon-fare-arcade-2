@@ -92,6 +92,62 @@ test("simulation parking brake uses double-brake hold and cancellation clears it
   touch.end(2, 500, true); assert.equal(touch.input(true).boost, false);
 });
 
+test("floating controls claim a fresh thumb origin anywhere and ignore other pointers", () => {
+  for (const mode of ["joystick", "wheel"] as const) {
+    const touch = new TouchDriving();
+    touch.setMode(mode);
+    for (const [x, y] of [[40, 180], [280, 360], [720, 240]]) {
+      assert.equal(touch.startSteering(1, x, y, 0), true);
+      assert.equal(touch.input().steer, 0);
+      assert.equal(touch.startSteering(2, x + 50, y, 0), false);
+      touch.moveSteering(2, x - 50, y);
+      assert.equal(touch.input().steer, 0);
+      touch.moveSteering(1, x + 40, y);
+      assert.ok(touch.input().steer! > 0);
+      assert.equal(touch.snapshot()[mode].center.x, x);
+      touch.endSteering(1, 100);
+      touch.tick(3);
+      assert.equal(touch.input().steer, 0);
+    }
+    touch.reset();
+    assert.equal(touch.start(3, "gas", 300, 700, 0), true);
+    assert.equal(touch.startSteering(3, 300, 700, 0), false);
+  }
+});
+
+test("smaller wheel ranges reach lock sooner, survive reset and reject invalid preferences", () => {
+  const touch = new TouchDriving();
+  touch.setMode("wheel");
+  touch.setWheelRange(180);
+  touch.startWheel(1, 100, 50, 100, 100);
+  touch.moveWheel(1, 150, 100);
+  assert.equal(touch.input().steer, 1);
+  assert.equal(touch.snapshot().wheel.range, 180);
+  touch.reset();
+  assert.equal(touch.snapshot().wheel.range, 180);
+  touch.setWheelRange(360);
+  touch.startWheel(1, 100, 50, 100, 100);
+  touch.moveWheel(1, 150, 100);
+  assert.equal(touch.input().steer, 0.5);
+  touch.setWheelRange("not a range");
+  assert.equal(touch.snapshot().wheel.range, 1260);
+});
+
+test("the floating wheel stays on screen for touches near every edge", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 844, height: 390 }]) {
+    for (const [x, y] of [[4, 100], [viewport.width - 4, 100], [100, viewport.height - 4]]) {
+      const touch = new TouchDriving();
+      touch.setMode("wheel");
+      touch.startSteering(1, x, y, 0, viewport);
+      const center = touch.snapshot().wheel.center;
+      assert.ok(center.x >= 78 && center.x <= viewport.width - 78);
+      assert.ok(center.y >= 78 && center.y <= viewport.height - 78);
+      touch.moveSteering(1, center.x + 60, center.y);
+      assert.notEqual(touch.input().steer, 0);
+    }
+  }
+});
+
 test("joystick mode honors 7% steer deadzone and 12% throttle/brake deadzones with diagonal movement", () => {
   const touch = new TouchDriving();
   touch.setMode("joystick");

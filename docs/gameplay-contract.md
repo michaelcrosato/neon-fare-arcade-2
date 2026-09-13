@@ -57,7 +57,7 @@ updates the arcade launch, steering, road elevation and contact rules below.
 
 ## Time and physics
 
-- Mobile driving uses a floating thumbstick anywhere on the playfield. Horizontal
+- Default mobile driving uses a floating thumbstick anywhere on the playfield. Horizontal
   travel has a six-pixel dead zone and reaches full steering at 56 pixels.
   The initial touch is neutral; a floating indicator shows displacement.
   A thumb on the playfield keeps steering ownership regardless of pedal press
@@ -72,6 +72,31 @@ updates the arcade launch, steering, road elevation and contact rules below.
   In simulation, double-tap and hold brake operates the parking brake. Keyboard
   steering retains priority. Pointer cancellation, pause, blur, resizing, and leaving driving
   clear touch input. Digital steering and all existing physics tuning are preserved.
+
+- Joystick and Wheel also claim any free playfield touch, without requiring a
+  fixed target. The joystick is centered on the initial touch; upward/downward
+  travel retains the 12% gas/brake deadzones and sideways travel retains the 7%
+  steering deadzone. The wheel normally places its top rim under the initial thumb
+  and adjusts its position near the screen edges to remain visible. It
+  retains continuous rotation across 360° and returns when released. One pointer
+  owns steering until release; unrelated fingers and captured pedal drags never
+  take it over. The selected control appears at that gesture's origin in either
+  orientation. Wheel range is total lock-to-lock travel: 90, 180, 270, 360, 540,
+  900 or 1260 degrees, with 1260 retaining the existing ±630° default. Smaller
+  ranges reach full normalized steering sooner. The validated range persists
+  locally and can be changed in the steering draft or Options. Vehicle road-wheel
+  limits, joystick deadzones and wheel return rates stay unchanged.
+
+- Arcade and Simulation Free Run offer player-set cruise control. Its target is
+  10 km/h through the selected cab's ordinary forward limit, never its boosted
+  limit. Cruise uses the normal engine and service brake through fixed-step
+  regulation; it does not assign velocity or add power. Manual gas and arcade
+  boost override regulation without clearing the target; releasing them restores
+  the set speed. Manual brake, simulation parking brake, building/terrain/world
+  boundary contact, traffic contact, leaving the taxi and overturning cancel it.
+  Collision cancellation does not depend on damage thresholds or score cooldown.
+  Automatic cruise braking does not cancel itself or trigger arcade brake-kicks.
+  Cruise starts off on every run and is unavailable in Arcade Shift or on foot.
 
 - The menu offers Arcade Shift, Arcade Free Run, and Simulation Free Run.
   Arcade modes open the same three-package driver draft. Simulation Free Run

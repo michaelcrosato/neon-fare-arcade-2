@@ -44,8 +44,8 @@ test.describe("steering lock-in", () => {
     await page.getByRole("button", { name: /Choose STREET ACE/ }).click();
     await expect(page.getByRole("dialog", { name: "STEERING SYSTEM" })).toBeVisible();
     await page.getByRole("button", { name: /Select JOYSTICK/ }).click();
-    await expect(page.getByLabel(/Virtual joystick/)).toBeVisible();
-    await expect(page.locator(".mobile-steer-guide")).toHaveCount(0);
+    await expect(page.locator(".mobile-steer-guide")).toContainText("TOUCH TO DRIVE");
+    await expect(page.getByLabel(/Virtual joystick/)).toHaveCount(0);
     await page.screenshot({ path: info.outputPath("steering-joystick.png") });
 
     await expect(page.getByRole("button", { name: "Pause game" })).toBeEnabled({ timeout: SCENE_START_TIMEOUT });
@@ -55,8 +55,8 @@ test.describe("steering lock-in", () => {
     await page.getByRole("button", { name: /Choose STREET ACE/ }).click();
     await expect(page.getByRole("dialog", { name: "STEERING SYSTEM" })).toBeVisible();
     await page.getByRole("button", { name: /Select WHEEL/ }).click();
-    await expect(page.getByLabel(/Virtual steering wheel/)).toBeVisible();
-    await expect(page.locator(".mobile-steer-guide")).toHaveCount(0);
+    await expect(page.locator(".mobile-steer-guide")).toContainText("TOUCH TO TURN");
+    await expect(page.getByLabel(/Virtual steering wheel/)).toHaveCount(0);
     await expect(page.getByLabel(/Virtual joystick/)).toHaveCount(0);
     await page.screenshot({ path: info.outputPath("steering-wheel.png") });
   });

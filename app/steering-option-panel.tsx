@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, type ReactNode } from "react";
-import type { SteeringMode } from "./runtime/touch-driving";
+import type { SteeringMode, WheelRange } from "./runtime/touch-driving";
+import { SteeringWheelRange } from "./steering-wheel-range";
 
 export type SteeringOption = {
   id: SteeringMode;
@@ -46,7 +47,7 @@ export const STEERING_OPTIONS: readonly SteeringOption[] = [
     number: "02",
     name: "JOYSTICK · 1 HAND",
     badge: "1 HAND · SINGLE THUMB",
-    description: "One thumb controls everything: up accelerates, down brakes, left & right steer with center deadzones and full diagonal support.",
+    description: "Touch anywhere on the playfield to place the joystick. Up accelerates, down brakes, left & right steer, with center deadzones and diagonal support.",
     graphic: (
       <svg viewBox="0 0 200 80" className="steering-card__svg" aria-hidden="true">
         <g transform="translate(100, 40)">
@@ -69,16 +70,16 @@ export const STEERING_OPTIONS: readonly SteeringOption[] = [
     id: "wheel",
     number: "03",
     name: "WHEEL · RETURN",
-    badge: "3.5 TURNS · REALISTIC",
-    description: "Virtual steering wheel with 3.5 turns lock-to-lock (-630° to +630°). Holds angle while touched and smoothly returns toward center when released.",
+    badge: "ADJUSTABLE · AUTO RETURN",
+    description: "Touch anywhere on the playfield to place the wheel under your thumb. Turn its rim to steer; release to return to center. Choose a smaller range for tighter turns.",
     graphic: (
       <svg viewBox="0 0 200 80" className="steering-card__svg" aria-hidden="true">
         <path d="M 46 22 A 38 38 0 0 0 46 58" fill="none" stroke="#ffd700" strokeWidth="2.5" strokeDasharray="4 2" />
         <polygon points="43,26 48,18 52,25" fill="#ffd700" />
         <path d="M 154 58 A 38 38 0 0 0 154 22" fill="none" stroke="#ffd700" strokeWidth="2.5" strokeDasharray="4 2" />
         <polygon points="157,54 152,62 148,55" fill="#ffd700" />
-        <text x="28" y="44" textAnchor="middle" fontSize="8" fontWeight="900" fontFamily="monospace" fill="currentColor">-630°</text>
-        <text x="172" y="44" textAnchor="middle" fontSize="8" fontWeight="900" fontFamily="monospace" fill="currentColor">+630°</text>
+        <text x="28" y="44" textAnchor="middle" fontSize="8" fontWeight="900" fontFamily="monospace" fill="currentColor">LEFT</text>
+        <text x="172" y="44" textAnchor="middle" fontSize="8" fontWeight="900" fontFamily="monospace" fill="currentColor">RIGHT</text>
         <g transform="translate(100, 40)">
           <circle cx="0" cy="0" r="30" fill="#121218" stroke="#1f1f28" strokeWidth="8" />
           <circle cx="0" cy="0" r="30" fill="none" stroke="#000" strokeWidth="1" />
@@ -96,13 +97,16 @@ export const STEERING_OPTIONS: readonly SteeringOption[] = [
 
 type SteeringOptionPanelProps = {
   currentMode: SteeringMode;
+  wheelRange?: WheelRange;
+  onSetWheelRange?: (range: WheelRange) => void;
   onSelect: (mode: SteeringMode) => void;
   onBack: () => void;
 };
 
-export function SteeringOptionPanel({ currentMode, onSelect, onBack }: SteeringOptionPanelProps) {
+export function SteeringOptionPanel({ currentMode, wheelRange, onSetWheelRange, onSelect, onBack }: SteeringOptionPanelProps) {
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.target instanceof Element && event.target.closest("input, select, textarea, [contenteditable=true]")) return;
       if (event.key === "1") {
         event.preventDefault();
         onSelect("default");
@@ -147,6 +151,7 @@ export function SteeringOptionPanel({ currentMode, onSelect, onBack }: SteeringO
               </div>
 
               <p className="steering-card__desc">{option.description}</p>
+              {option.id === "wheel" && <SteeringWheelRange value={wheelRange} onChange={onSetWheelRange} />}
 
               <button
                 type="button"

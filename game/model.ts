@@ -653,6 +653,8 @@ export type Game = {
   simulationVehicle: SimulationVehicleState;
   /** Timed score attack or an untimed, player-ended city session. */
   runKind: RunKind;
+  /** Free-run speed hold: target in world units/s and bounded throttle integrator. */
+  cruiseControl: { speed: number; integral: number } | null;
   timeLeft: number;
   score: number;
   fare: number;
@@ -768,6 +770,8 @@ export type Hud = {
   drivingModel: DrivingModel;
   simulationVehicle: SimulationVehicleState;
   runKind: RunKind;
+  cruiseSpeed: number | null;
+  cruiseMaxSpeed: number;
   boost: number;
   combo: number;
   deliveries: number;
@@ -850,6 +854,8 @@ export type Camera = {
   /** Mobile driving reserves three quarters of the view in the travel direction. */
   mobile?: boolean;
 };
+
+export type CruisePedals = Readonly<{ throttle: number; brake: number }>;
 
 export type InputState = {
   up: boolean;

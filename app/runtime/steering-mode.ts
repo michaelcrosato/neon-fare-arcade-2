@@ -1,6 +1,7 @@
 import type { SteeringMode } from "./touch-driving";
 
 export const STEERING_MODE_STORAGE_KEY = "neon-fare-steering-mode";
+export const WHEEL_RANGE_STORAGE_KEY = "neon-fare-wheel-range";
 
 export const STEERING_MODES = ["default", "joystick", "wheel"] as const satisfies readonly SteeringMode[];
 

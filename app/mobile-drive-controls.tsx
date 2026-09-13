@@ -41,12 +41,17 @@ export function MobileDriveControls({ controller, boost, boosting, simulation, e
     event.preventDefault();
     if (!enabled) return;
     if (event.type === "pointerdown") {
-      if (!controller.start(event.pointerId, kind, event.clientX, event.clientY, event.timeStamp)) return;
+      const started = kind === "steer"
+        ? controller.startSteering(event.pointerId, event.clientX, event.clientY, event.timeStamp, { width: window.innerWidth, height: window.innerHeight })
+        : controller.start(event.pointerId, kind, event.clientX, event.clientY, event.timeStamp);
+      if (!started) return;
       event.currentTarget.setPointerCapture(event.pointerId);
     } else if (event.type === "pointermove") {
-      controller.move(event.pointerId, event.clientX, event.clientY);
+      if (kind === "steer") controller.moveSteering(event.pointerId, event.clientX, event.clientY);
+      else controller.move(event.pointerId, event.clientX, event.clientY);
     } else {
-      controller.end(event.pointerId, event.timeStamp, event.type !== "pointerup");
+      if (kind === "steer") controller.endSteering(event.pointerId, event.timeStamp, event.type !== "pointerup");
+      else controller.end(event.pointerId, event.timeStamp, event.type !== "pointerup");
     }
     setState(controller.snapshot());
   };
@@ -58,58 +63,6 @@ export function MobileDriveControls({ controller, boost, boosting, simulation, e
     onPointerCancel: (e: PointerEvent<HTMLElement>) => pointer(e, kind),
     onLostPointerCapture: (e: PointerEvent<HTMLElement>) => pointer(e, kind),
   });
-
-  const handleJoystickPointer = (e: PointerEvent<HTMLElement>) => {
-    if (e.type === "pointerdown" && e.button !== 0) return;
-    e.preventDefault();
-    if (!enabled) return;
-    if (e.type === "pointerdown") {
-      const rect = e.currentTarget.getBoundingClientRect();
-      const cx = rect.left + rect.width / 2;
-      const cy = rect.top + rect.height / 2;
-      if (!controller.startJoystick(e.pointerId, e.clientX, e.clientY, cx, cy)) return;
-      e.currentTarget.setPointerCapture(e.pointerId);
-    } else if (e.type === "pointermove") {
-      controller.moveJoystick(e.pointerId, e.clientX, e.clientY);
-    } else {
-      controller.endJoystick(e.pointerId);
-    }
-    setState(controller.snapshot());
-  };
-
-  const joystickHandlers = {
-    onPointerDown: handleJoystickPointer,
-    onPointerMove: handleJoystickPointer,
-    onPointerUp: handleJoystickPointer,
-    onPointerCancel: handleJoystickPointer,
-    onLostPointerCapture: handleJoystickPointer,
-  };
-
-  const handleWheelPointer = (e: PointerEvent<HTMLElement>) => {
-    if (e.type === "pointerdown" && e.button !== 0) return;
-    e.preventDefault();
-    if (!enabled) return;
-    if (e.type === "pointerdown") {
-      const rect = e.currentTarget.getBoundingClientRect();
-      const cx = rect.left + rect.width / 2;
-      const cy = rect.top + rect.height / 2;
-      if (!controller.startWheel(e.pointerId, e.clientX, e.clientY, cx, cy)) return;
-      e.currentTarget.setPointerCapture(e.pointerId);
-    } else if (e.type === "pointermove") {
-      controller.moveWheel(e.pointerId, e.clientX, e.clientY);
-    } else {
-      controller.endWheel(e.pointerId);
-    }
-    setState(controller.snapshot());
-  };
-
-  const wheelHandlers = {
-    onPointerDown: handleWheelPointer,
-    onPointerMove: handleWheelPointer,
-    onPointerUp: handleWheelPointer,
-    onPointerCancel: handleWheelPointer,
-    onLostPointerCapture: handleWheelPointer,
-  };
 
   const renderPedals = () => (
     <div className="mobile-pedals" aria-label="Touch driving controls">
@@ -149,21 +102,20 @@ export function MobileDriveControls({ controller, boost, boosting, simulation, e
           ? "Hold to accelerate. Use steering control to steer."
           : "Hold to accelerate. Double tap and hold for boost. The fill shows boost remaining."}
       </span>
-
+      <div
+        className="mobile-steer-surface"
+        aria-label="Drag anywhere to steer"
+        aria-describedby={steeringHint}
+        aria-disabled={!enabled}
+        {...handlers("steer")}
+      />
+      <div id={steeringHint} className="mobile-steer-guide" data-steering={state.steer !== 0 ? "" : undefined}>
+        <span className="mobile-steer-guide__track" aria-hidden="true">‹<i />›</span>
+        <strong>{state.mode === "joystick" ? "TOUCH TO DRIVE" : state.mode === "wheel" ? "TOUCH TO TURN" : "DRAG TO STEER"}</strong>
+        <small>LEFT THUMB · ANYWHERE</small>
+      </div>
       {state.mode === "default" && (
         <>
-          <div
-            className="mobile-steer-surface"
-            aria-label="Drag anywhere to steer"
-            aria-describedby={steeringHint}
-            aria-disabled={!enabled}
-            {...handlers("steer")}
-          />
-          <div id={steeringHint} className="mobile-steer-guide" data-steering={state.steer !== 0 ? "" : undefined}>
-            <span className="mobile-steer-guide__track" aria-hidden="true">‹<i />›</span>
-            <strong>DRAG TO STEER</strong>
-            <small>LEFT THUMB · ANYWHERE</small>
-          </div>
           {state.thumb && (
             <div
               className="mobile-thumbstick"
@@ -179,12 +131,12 @@ export function MobileDriveControls({ controller, boost, boosting, simulation, e
 
       {state.mode === "joystick" && (
         <div className="mobile-joystick-wrap">
-          <div
+          {state.joystick.active && <div
             className="mobile-joystick-base"
             aria-label="Virtual joystick. Move up to accelerate, down to brake, left and right to steer."
             aria-disabled={!enabled}
             data-active={state.joystick.active ? "" : undefined}
-            {...joystickHandlers}
+            style={{ left: state.joystick.center.x, top: state.joystick.center.y }}
           >
             <div className="mobile-joystick-deadzone" aria-hidden="true" />
             <span className="mobile-joy-label mobile-joy-label--up" data-lit={state.gas ? "" : undefined}>▲ GAS</span>
@@ -198,7 +150,7 @@ export function MobileDriveControls({ controller, boost, boosting, simulation, e
             >
               <span className="mobile-joystick-knob__grip" />
             </div>
-          </div>
+          </div>}
           <button
             type="button"
             disabled={!enabled || simulation}
@@ -207,6 +159,7 @@ export function MobileDriveControls({ controller, boost, boosting, simulation, e
             onPointerDown={(e) => {
               if (e.button === 0 && enabled) {
                 e.preventDefault();
+                e.currentTarget.setPointerCapture(e.pointerId);
                 controller.setJoystickBoost(true);
                 setState(controller.snapshot());
               }
@@ -219,24 +172,28 @@ export function MobileDriveControls({ controller, boost, boosting, simulation, e
               controller.setJoystickBoost(false);
               setState(controller.snapshot());
             }}
+            onLostPointerCapture={() => {
+              controller.setJoystickBoost(false);
+              setState(controller.snapshot());
+            }}
             aria-label="Boost overdrive"
           >
             <i className="mobile-gas-fill" aria-hidden="true" />
             <span>BOOST</span>
-            <small>{boosting ? "ACTIVE" : "2× TAP"}</small>
+            <small>{boosting ? "ACTIVE" : "HOLD"}</small>
           </button>
         </div>
       )}
 
       {state.mode === "wheel" && (
         <>
-          <div className="mobile-wheel-wrap">
+          {(state.wheel.isHolding || state.wheel.angle !== 0) && <div className="mobile-wheel-wrap"
+            style={{ left: state.wheel.center.x, top: state.wheel.center.y }}>
             <div
               className="mobile-wheel-hitarea"
               aria-label="Virtual steering wheel. Rotate around center to steer."
               aria-disabled={!enabled}
               data-holding={state.wheel.isHolding ? "" : undefined}
-              {...wheelHandlers}
             >
               <svg
                 className="mobile-wheel-svg"
@@ -263,11 +220,10 @@ export function MobileDriveControls({ controller, boost, boosting, simulation, e
                 <small>{state.wheel.isHolding ? "HOLD" : "RETURN"}</small>
               </div>
             </div>
-          </div>
+          </div>}
           {renderPedals()}
         </>
       )}
     </>
   );
 }
-

@@ -23,7 +23,7 @@ import type {
 import { CourierBoardPanel } from "./courier-board-panel";
 import { DriverTraitPanel } from "./driver-trait-panel";
 import { SteeringOptionPanel } from "./steering-option-panel";
-import type { SteeringMode } from "./runtime/touch-driving";
+import type { SteeringMode, WheelRange } from "./runtime/touch-driving";
 import { GasStationPanel } from "./gas-station-panel";
 import { GpsMap } from "./gps-map";
 import { HomeBasePanel } from "./home-base-panel";
@@ -56,6 +56,8 @@ type GameModalHostProps = Readonly<{
   onSetCameraDistanceScale?: (scale: CameraDistanceScale) => void;
   rendererKind?: string;
   steeringMode?: SteeringMode;
+  wheelRange?: WheelRange;
+  onSetWheelRange?: (range: WheelRange) => void;
   onSetSteeringMode?: (mode: SteeringMode) => void;
   onSelectDriverTrait?: (id: DrivingTraitId) => void;
   onSelectSteering?: (mode: SteeringMode) => void;
@@ -98,6 +100,8 @@ export function GameModalHost({
   onSetCameraDistanceScale,
   rendererKind,
   steeringMode,
+  wheelRange,
+  onSetWheelRange,
   onSetSteeringMode,
   onSelectDriverTrait,
   onSelectSteering,
@@ -128,6 +132,7 @@ export function GameModalHost({
         ) : modal === "steering" ? (
           <SteeringOptionPanel
             currentMode={steeringMode ?? "default"}
+            wheelRange={wheelRange} onSetWheelRange={onSetWheelRange}
             onSelect={onSelectSteering ?? (() => {})}
             onBack={onBackToTraits ?? onClose}
           />
@@ -142,6 +147,7 @@ export function GameModalHost({
             cameraDistanceScale={cameraDistanceScale ?? DEFAULT_CAMERA_DISTANCE_SCALE}
             onSetCameraDistanceScale={onSetCameraDistanceScale ?? (() => {})}
             steeringMode={steeringMode}
+            wheelRange={wheelRange} onSetWheelRange={onSetWheelRange}
             onSetSteeringMode={onSetSteeringMode}
             rendererKind={rendererKind ?? "WEBGPU ACTIVE"}
             isFreeRun={hud.runKind === "free-run"}
@@ -160,9 +166,10 @@ export function GameModalHost({
               <article><b>03</b><h3>HIT THE STREET</h3><p>Stop and press E to explore on foot. Run, jump, crouch, enter marked buildings, or return to the parked taxi whenever you are ready.</p></article>
             </div>
             <div className="mobile-help mobile-control-guide">
+              <article><b>FLOATING JOYSTICK &amp; WHEEL</b><p>Both controls start wherever you touch the playfield. Joystick: drag up for gas, down for brake, and sideways to steer. Wheel: turn the rim, then release to let it return. Set Wheel rotation range in the steering selection or Options; fewer degrees give tighter turns.</p></article>
               <article><b>DRIVE WITH YOUR THUMBS</b><p>Place your left thumb anywhere on the playfield, then drag left or right to steer. Your first touch is center; more movement gives a tighter turn. Release to center the steering. Hold GAS or BRAKE on the right with your other thumb; pedal drags never steer. The guide and pedal labels appear during the countdown. The guide fades while you steer and returns when you center or release. Double-tap GAS and hold the second tap to boost; its fill shows your reserve. Hold BRAKE through a stop to reverse. In the simulation cab, double-tap and hold BRAKE for the parking brake.</p></article>
               <article><b>EXPLORE ON FOOT</b><p>Slow below 10 KM/H, then tap the yellow EXIT TAXI action beside the driver’s door. Use the direction pad to walk and turn. RUN, JUMP, and DUCK sit on the right; nearby doors and actions appear above the controls.</p></article>
-              <article><b>YOUR CITY, ON DEMAND</b><p>Tap MENU for the map, camera, audio, and fare history. Destination distance sits beside the timer; speed is at the top center. Music fades after 30 seconds without a passenger and starts again on pickup. The world pauses while you browse.</p></article>
+              <article><b>YOUR CITY, ON DEMAND</b><p>Tap MENU for the map, camera, audio, and fare history. Destination distance sits beside the timer; speed is at the top center. In Free Run, tap CRUISE to set a speed. Gas temporarily overrides it; braking or a collision cancels it. The world pauses while you browse menus.</p></article>
             </div>
             <div className="key-guide desktop-help">
               <span><kbd>W</kbd><kbd>↑</kbd> GAS / WALK</span>

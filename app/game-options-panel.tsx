@@ -8,7 +8,8 @@ import {
 import type { CameraMode } from "@/game/model";
 import { DevelopmentPanel, type DevelopmentPanelProps } from "./development-panel";
 
-import type { SteeringMode } from "./runtime/touch-driving";
+import type { SteeringMode, WheelRange } from "./runtime/touch-driving";
+import { SteeringWheelRange } from "./steering-wheel-range";
 import { useMobileLayout } from "./use-mobile-layout";
 
 export type GameOptionsPanelProps = {
@@ -21,6 +22,8 @@ export type GameOptionsPanelProps = {
   cameraDistanceScale: CameraDistanceScale;
   onSetCameraDistanceScale: (scale: CameraDistanceScale) => void;
   steeringMode?: SteeringMode;
+  wheelRange?: WheelRange;
+  onSetWheelRange?: (range: WheelRange) => void;
   onSetSteeringMode?: (mode: SteeringMode) => void;
   rendererKind: string;
   isFreeRun?: boolean;
@@ -40,6 +43,8 @@ export function GameOptionsPanel({
   cameraDistanceScale,
   onSetCameraDistanceScale,
   steeringMode,
+  wheelRange,
+  onSetWheelRange,
   onSetSteeringMode,
   rendererKind,
   isFreeRun,
@@ -126,10 +131,11 @@ export function GameOptionsPanel({
                 onClick={() => onSetSteeringMode?.("wheel")}
               >
                 <b>WHEEL · RETURN</b>
-                <small>3.5 Turns · 630°</small>
+                <small>Adjustable · Auto return</small>
               </button>
             </div>
-            <p className="options-hint">Default: 2-hand drag &amp; pedals. Joystick: 1-thumb drive with deadzones. Wheel: authentic 630° rotation &amp; auto-return.</p>
+            {steeringMode === "wheel" && <SteeringWheelRange value={wheelRange} onChange={onSetWheelRange} />}
+            <p className="options-hint">Touch anywhere on the playfield to steer. Joystick and wheel appear at your thumb; pedal touches stay separate.</p>
           </fieldset>
           )}
 

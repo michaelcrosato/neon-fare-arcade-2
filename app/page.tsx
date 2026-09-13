@@ -21,11 +21,9 @@ import {
 } from "@/game/config";
 import { EMPTY_HUD, makeHud } from "@/game/hud";
 import { TouchDriving, type SteeringMode } from "./runtime/touch-driving";
-import {
-  STEERING_MODE_STORAGE_KEY,
-  applySteeringForRun,
-  parseStoredSteeringMode,
-} from "./runtime/steering-mode";
+import { useSteeringSettings } from "./use-steering-settings";
+import { setCruiseControl } from "@/game/cruise-control";
+import { applySteeringForRun } from "./runtime/steering-mode";
 import { rankFor } from "@/game/math";
 import { clearCustomDestination, setCustomDestination } from "@/game/custom-destination";
 import type {
@@ -139,19 +137,7 @@ export default function Home() {
   const [pendingRunKind, setPendingRunKind] = useState<RunKind>("timed");
   const [pendingDrivingModel, setPendingDrivingModel] = useState<DrivingModel>("arcade");
   const [pendingDrivingTrait, setPendingDrivingTrait] = useState<DrivingTraitId>("street-ace");
-  const [steeringMode, setSteeringModeState] = useState<SteeringMode>(() => {
-    try {
-      return parseStoredSteeringMode(localStorage.getItem(STEERING_MODE_STORAGE_KEY));
-    } catch {}
-    return "default";
-  });
-  const persistSteeringMode = useCallback((next: SteeringMode) => {
-    setSteeringModeState(next);
-    try { localStorage.setItem(STEERING_MODE_STORAGE_KEY, next); } catch {}
-  }, []);
-  const setSteeringMode = useCallback((next: SteeringMode) => {
-    applySteeringForRun(touchDriving, next, persistSteeringMode);
-  }, [persistSteeringMode, touchDriving]);
+  const { steeringMode, setSteeringMode, persistSteeringMode, wheelRange, setWheelRange } = useSteeringSettings(touchDriving);
   const [modal, setModal] = useState<Modal>(null);
   const [optionsTab, setOptionsTab] = useState<"game" | "dev">("game");
   const [modalParent, setModalParent] = useState<"home" | null>(null);
@@ -191,6 +177,11 @@ export default function Home() {
   const checkpointExternalGameChange = useCallback((reason: string) => {
     if (diagnosticsActive) diagnostics.recordExternalCheckpoint(reason, gameRef.current);
   }, [diagnostics, diagnosticsActive]);
+  const setCruise = useCallback((speed: number | null) => {
+    if (modeRef.current !== "playing" || !setCruiseControl(gameRef.current, speed)) return;
+    checkpointExternalGameChange("cruise-control");
+    setHud(makeHud(gameRef.current));
+  }, [checkpointExternalGameChange]);
 
   const developmentSettingsChanged = useCallback(() => {
     checkpointExternalGameChange("development:settings");
@@ -479,6 +470,7 @@ export default function Home() {
     clearInput();
     ensureAudio();
     applySteeringForRun(touchDriving, lockedSteering ?? steeringMode, persistSteeringMode);
+    touchDriving.setWheelRange(wheelRange);
     resetFareCards();
     setCourierImpact(null);
     setCourierNotice("");
@@ -507,7 +499,7 @@ export default function Home() {
       ? "Crown Cab simulation ready. Automatic transmission in drive. Three, two, one."
       : `${drivingTraitPackage(drivingTraitId).name} locked in. ${runKind === "free-run" ? "Free Run" : "Arcade shift"} starting. Three, two, one.`);
     tone(420, 0.08, "square", 350);
-  }, [careerRef, clearInput, developmentRef, diagnostics, ensureAudio, isMobile, pendingDrivingModel, pendingRunKind, persistSteeringMode, resetFareCards, setMode, steeringMode, tone, touchDriving]);
+  }, [careerRef, clearInput, developmentRef, diagnostics, ensureAudio, isMobile, pendingDrivingModel, pendingRunKind, persistSteeringMode, resetFareCards, setMode, steeringMode, tone, touchDriving, wheelRange]);
 
   const selectDriverTrait = useCallback((drivingTraitId: DrivingTraitId) => {
     setPendingDrivingTrait(drivingTraitId);
@@ -795,6 +787,9 @@ export default function Home() {
     const keyFor = (event: KeyboardEvent, pressed: boolean) => {
       const key = event.key.toLowerCase();
       if (modal !== null) return;
+      if (pressed && event.target instanceof Element
+        && (event.target.closest("input, select, textarea, [contenteditable=true]")
+          || (key === " " && event.target.closest("button")))) return;
       if (["arrowup", "arrowdown", "arrowleft", "arrowright", " "].includes(key)) event.preventDefault();
       const walkingNow = !isDriving(gameRef.current);
       if (key === "w" || key === "arrowup") inputRef.current.up = pressed;
@@ -933,6 +928,7 @@ export default function Home() {
           onTouch={handleTouch}
           touchDriving={touchDriving}
           steeringMode={steeringMode}
+          onSetCruise={setCruise}
           taxiExitRef={taxiExitRef}
         />
         {mode === "playing" && development.enabled && development.showDiagnostics && <DevelopmentReadout hud={hud} />}
@@ -981,6 +977,7 @@ export default function Home() {
         optionsTab={optionsTab} onSelectOptionsTab={setOptionsTab} muted={muted} onToggleMute={toggleMute}
         cameraMode={cameraMode} onSetCameraMode={setCameraMode} cameraDistanceScale={cameraDistance} onSetCameraDistanceScale={setCameraDistanceScale}
         steeringMode={steeringMode} onSetSteeringMode={setSteeringMode}
+        wheelRange={wheelRange} onSetWheelRange={setWheelRange}
         onSelectDriverTrait={selectDriverTrait} onSelectSteering={selectSteeringAndBegin}
         onBackToTraits={() => { setModal("traits"); tone(300, 0.08, "square", 240); }}
         rendererKind={rendererKind} onClose={closeModal} onBeginRun={beginRun}

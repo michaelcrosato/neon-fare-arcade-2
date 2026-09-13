@@ -4,6 +4,7 @@ import { simulationGearLabel } from "@/game/simulation-vehicle";
 import type { CourierImpact } from "./courier-impact-overlay";
 import { FareImpactOverlay } from "./fare-impact-overlay";
 import { MobileDriveControls } from "./mobile-drive-controls";
+import { CruiseControl } from "./cruise-control";
 import type { SteeringMode, TouchDriving } from "./runtime/touch-driving";
 
 type Props = {
@@ -13,6 +14,7 @@ type Props = {
   courierImpact: CourierImpact | null;
   touchDriving: TouchDriving;
   steeringMode?: SteeringMode;
+  onSetCruise?: (speed: number | null) => void;
   taxiExitRef?: RefObject<HTMLButtonElement | null>;
   onPulseInteraction: () => void;
   onSetMode: (mode: Mode) => void;
@@ -41,7 +43,7 @@ function walkingDestination(hud: Hud) {
 }
 
 /** Mobile has its own information hierarchy; no mini-map or desktop card stack. */
-export function MobileGameHud({ mode, hud, fareImpact, courierImpact, touchDriving, steeringMode, taxiExitRef, onPulseInteraction, onSetMode, onTouch }: Props) {
+export function MobileGameHud({ mode, hud, fareImpact, courierImpact, touchDriving, steeringMode, onSetCruise, taxiExitRef, onPulseInteraction, onSetMode, onTouch }: Props) {
   if (mode !== "playing" && mode !== "countdown") return null;
   const driving = hud.playerMode === "driving";
   const simulation = driving && hud.drivingModel === "simulation";
@@ -54,6 +56,8 @@ export function MobileGameHud({ mode, hud, fareImpact, courierImpact, touchDrivi
     <TouchButton input={input} label={label} onTouch={onTouch}>{content}</TouchButton>;
 
   return <div className={`mobile-hud ${driving ? "is-driving" : "is-on-foot"}`}>
+    {mode === "playing" && hud.runKind === "free-run" && driving && onSetCruise
+      && <CruiseControl hud={hud} onSetSpeed={onSetCruise} />}
     {fareImpact && <FareImpactOverlay key={fareImpact.id} impact={fareImpact} />}
     {driving && <MobileDriveControls key={steeringMode ?? touchDriving.getMode()} controller={touchDriving} enabled={mode === "playing"}
       boost={hud.boost} boosting={hud.boosting} simulation={simulation} />}

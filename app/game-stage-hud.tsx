@@ -15,6 +15,7 @@ import { FareImpactOverlay } from "./fare-impact-overlay";
 import { FareCardStack } from "./fare-card-deck";
 import { GpsMap } from "./gps-map";
 import { MobileGameHud } from "./mobile-game-hud";
+import { CruiseControl } from "./cruise-control";
 import { useMobileLayout } from "./use-mobile-layout";
 import type { SteeringMode, TouchDriving } from "./runtime/touch-driving";
 
@@ -34,6 +35,7 @@ type GameStageHudProps = Readonly<{
   onTouch: PointerEventHandler<HTMLButtonElement>;
   touchDriving: TouchDriving;
   steeringMode?: SteeringMode;
+  onSetCruise?: (speed: number | null) => void;
   taxiExitRef: RefObject<HTMLButtonElement | null>;
 }>;
 
@@ -53,11 +55,12 @@ export function GameStageHud({
   onTouch,
   touchDriving,
   steeringMode,
+  onSetCruise,
   taxiExitRef,
 }: GameStageHudProps) {
   const mobile = useMobileLayout();
   if (mobile) return <MobileGameHud mode={mode} hud={hud} fareImpact={fareImpact} courierImpact={courierImpact}
-    touchDriving={touchDriving} steeringMode={steeringMode} taxiExitRef={taxiExitRef} onPulseInteraction={onPulseInteraction} onSetMode={onSetMode} onTouch={onTouch} />;
+    touchDriving={touchDriving} steeringMode={steeringMode} onSetCruise={onSetCruise} taxiExitRef={taxiExitRef} onPulseInteraction={onPulseInteraction} onSetMode={onSetMode} onTouch={onTouch} />;
   const simulationDriving = hud.playerMode === "driving" && hud.drivingModel === "simulation";
   const simulationGear = simulationGearLabel(hud.simulationVehicle.gear);
   const cabRollScale = 1 + Math.abs(Math.sin(hud.simulationVehicle.bodyRoll)) * 0.42;
@@ -65,6 +68,8 @@ export function GameStageHud({
   return (
     <>
       {fareImpact && <FareImpactOverlay key={fareImpact.id} impact={fareImpact} />}
+      {mode === "playing" && hud.runKind === "free-run" && hud.playerMode === "driving" && onSetCruise
+        && <CruiseControl hud={hud} onSetSpeed={onSetCruise} />}
       {courierImpact && <CourierImpactOverlay key={courierImpact.id} impact={courierImpact} />}
       {mode === "playing" && (
         <FareCardStack

@@ -2,6 +2,7 @@ import { SPEED_KMH_PER_WORLD_UNIT } from "./config";
 import { steeringInput } from "./input";
 import { clamp, normalizeAngle } from "./math";
 import type {
+  CruisePedals,
   Game,
   InputState,
   SimulationGear,
@@ -383,6 +384,7 @@ function stepSimulationSubstep(
   input: Readonly<InputState>,
   dt: number,
   onRoad: boolean,
+  cruise: CruisePedals | null,
 ) {
   const state = game.simulationVehicle;
   const previousHeading = game.heading;
@@ -421,6 +423,11 @@ function stepSimulationSubstep(
         brakeTarget = 1;
       }
     }
+  } else if (!state.overturned && cruise) {
+    state.reverseHold = 0;
+    state.gear = state.gear < 1 ? 1 : state.gear;
+    throttleTarget = longitudinal < -0.45 ? 0 : cruise.throttle;
+    brakeTarget = longitudinal < -0.45 ? 1 : cruise.brake;
   } else {
     state.reverseHold = 0;
   }
@@ -660,12 +667,13 @@ export function stepSimulationVehicle(
   input: Readonly<InputState>,
   dt: number,
   onRoad: boolean,
+  cruise: CruisePedals | null = null,
 ): SimulationVehicleStepResult {
   const wasOverturned = game.simulationVehicle.overturned;
   let remaining = Math.max(0, dt);
   while (remaining > 1e-9) {
     const substep = Math.min(PHYSICS_SUBSTEP, remaining);
-    stepSimulationSubstep(game, input, substep, onRoad);
+    stepSimulationSubstep(game, input, substep, onRoad, cruise);
     remaining -= substep;
   }
   if (game.simulationVehicle.overturned) {

@@ -1,6 +1,7 @@
 import { passengerComment, passengerRating, passengerRatingParSeconds, passengerTip, type PassengerStars } from "./passenger-rating";
 import { findTaxiExitPose } from "./player";
 import { steeringInput } from "./input";
+import { cancelCruiseControl, stepCruiseControl } from "./cruise-control";
 import {
   BONE,
   BOOST_OVERDRIVE_BONUS_WORLD_UNITS,
@@ -113,17 +114,17 @@ export type SimulationEvent = ExplorationEvent
   | { type: "clock-warning"; secondsRemaining: number };
 
 function collisionSafeSteeringPose(world: WorldView, x: number, y: number, heading: number, delta: number, z: number) {
-  if (Math.abs(delta) < 1e-8) return { x, y, heading };
+  if (Math.abs(delta) < 1e-8) return { x, y, heading, contact: false };
   const desired = heading + delta;
-  if (!taxiHitsBuilding(world, x, y, desired, z)) return { x, y, heading: desired };
-  if (taxiHitsBuilding(world, x, y, heading, z)) return { x, y, heading };
+  if (!taxiHitsBuilding(world, x, y, desired, z)) return { x, y, heading: desired, contact: false };
+  if (taxiHitsBuilding(world, x, y, heading, z)) return { x, y, heading, contact: true };
 
   // A small outward correction lets the taxi pivot while scraping a facade or
   // squeezing between props. Large corrections are rejected so steering can
   // never become a disguised teleport through a building.
   const repairedTurn = depenetrateTaxi(world, x, y, desired, 6, z);
   if (repairedTurn.resolved && Math.hypot(repairedTurn.x - x, repairedTurn.y - y) <= 0.45) {
-    return { x: repairedTurn.x, y: repairedTurn.y, heading: desired };
+    return { x: repairedTurn.x, y: repairedTurn.y, heading: desired, contact: true };
   }
 
   let safeFraction = 0;
@@ -134,7 +135,7 @@ function collisionSafeSteeringPose(world: WorldView, x: number, y: number, headi
     if (taxiHitsBuilding(world, x, y, candidateHeading, z)) blockedFraction = candidateFraction;
     else safeFraction = candidateFraction;
   }
-  return { x, y, heading: heading + delta * safeFraction };
+  return { x, y, heading: heading + delta * safeFraction, contact: true };
 }
 
 function applyBuildingResponse(game: Game, contact: Pick<BuildingContact, "normalX" | "normalY">, dampTangent: boolean) {
@@ -218,17 +219,20 @@ export function stepGame(
   const previousVx = game.vx, previousVy = game.vy;
   events.push(...stepExploration(game, input, dt, world));
   const driving = isDriving(game);
+  const cruisePedals = stepCruiseControl(game, input, dt);
   const drivingTrait = drivingTraitPackage(game.drivingTraitId).modifiers;
   const controlInput: Readonly<InputState> = driving
     ? input
     : { up: false, down: false, left: false, right: false, boost: false, interact: input.interact };
   const repairedStart = depenetrateTaxi(world, game.x, game.y, game.heading, 8, game.z);
   if (repairedStart.resolved && repairedStart.moved) {
+    cancelCruiseControl(game);
     game.x = repairedStart.x;
     game.y = repairedStart.y;
     game.vx *= 0.35;
     game.vy *= 0.35;
   } else if (!repairedStart.resolved) {
+    cancelCruiseControl(game);
     const recoveryPose = nearestClearRoadPose(world, game.x, game.y, game.heading, game.z);
     if (recoveryPose) {
       game.x = recoveryPose.x;
@@ -255,8 +259,12 @@ export function stepGame(
       controlInput,
       dt,
       isRoadSurface(game),
+      game.cruiseControl ? cruisePedals : null,
     );
-    if (vehicleResult.rolloverStarted) events.push({ type: "vehicle-overturned" });
+    if (vehicleResult.rolloverStarted) {
+      cancelCruiseControl(game);
+      events.push({ type: "vehicle-overturned" });
+    }
     const requestedDelta = normalizeAngle(game.heading - previousHeading);
     const steeringPose = collisionSafeSteeringPose(
       world,
@@ -269,6 +277,7 @@ export function stepGame(
     game.x = steeringPose.x;
     game.y = steeringPose.y;
     reconcileSimulationHeading(game, previousHeading, steeringPose.heading);
+    if (steeringPose.contact) cancelCruiseControl(game);
     if (!taxiHitsBuilding(world, game.x, game.y, game.heading, game.z)) {
       lastSafePose = { x: game.x, y: game.y, heading: game.heading };
     }
@@ -279,10 +288,10 @@ export function stepGame(
   const rightY = forwardX;
   let forwardSpeed = game.vx * forwardX + game.vy * forwardY;
   let lateralSpeed = game.vx * rightX + game.vy * rightY;
-  const throttle = controlInput.up ? 1 : 0;
-  const brake = controlInput.down ? 1 : 0;
-  const brakePressed = brake > 0 && !game.brakeInputHeld;
-  game.brakeInputHeld = brake > 0;
+  const throttle = controlInput.up ? 1 : game.cruiseControl ? cruisePedals?.throttle ?? 0 : 0;
+  const brake = controlInput.down ? 1 : game.cruiseControl ? cruisePedals?.brake ?? 0 : 0;
+  const brakePressed = controlInput.down && !game.brakeInputHeld;
+  game.brakeInputHeld = controlInput.down;
   const steerInput = steeringInput(controlInput);
   const previousSteering = game.steering;
   const steeringResponse = steerInput === 0
@@ -297,10 +306,10 @@ export function stepGame(
 
   const groundTraction = game.roadMotion.grounded ? 1 : 0.08;
   const launchAcceleration = 20 + 3.5 * (1 - clamp(Math.abs(forwardSpeed) / 24, 0, 1));
-  if (throttle) forwardSpeed += launchAcceleration * drivingTrait.throttleMultiplier * groundTraction * dt;
+  if (throttle) forwardSpeed += launchAcceleration * drivingTrait.throttleMultiplier * groundTraction * throttle * dt;
   if (brake) {
-    if (forwardSpeed > 1) forwardSpeed -= 34 * drivingTrait.brakingMultiplier * groundTraction * dt;
-    else forwardSpeed -= (game.collisionCooldown > 0 ? 16 : 9) * dt;
+    if (forwardSpeed > 1) forwardSpeed -= 34 * drivingTrait.brakingMultiplier * groundTraction * brake * dt;
+    else forwardSpeed -= (game.collisionCooldown > 0 ? 16 : 9) * brake * dt;
   }
 
   game.boosting = controlInput.boost && game.boost > 0 && forwardSpeed > 3;
@@ -383,6 +392,7 @@ export function stepGame(
   const headingDelta = arcadeHeadingDelta(game, requestedHeadingDelta + catchAssist, dt, counterSteering);
   const previousHeading = game.heading;
   const steeringPose = collisionSafeSteeringPose(world, game.x, game.y, game.heading, headingDelta, game.z);
+  if (steeringPose.contact) cancelCruiseControl(game);
   game.x = steeringPose.x;
   game.y = steeringPose.y;
   game.heading = steeringPose.heading;
@@ -617,6 +627,7 @@ export function stepGame(
     impactFrictionAvailable = false;
   }
 
+  if (hitBuilding) cancelCruiseControl(game);
   if (hitBuilding && impact > 7 && game.collisionCooldown <= 0) {
     game.collisionCooldown = 0.7;
     game.collisions += 1;
@@ -744,6 +755,7 @@ export function stepGame(
       { x: game.x, y: game.y, heading: game.heading, halfLength: 2.25, halfWidth: 1.03 },
       { x: traffic.x, y: traffic.y, heading: trafficHeading, halfLength: 2.05, halfWidth: 0.98 },
     );
+    if (driving && trafficHit) cancelCruiseControl(game);
     if (driving && trafficHit && traffic.cooldown <= 0) {
       traffic.cooldown = 0.75;
       const impact = game.speed;
@@ -778,17 +790,20 @@ export function stepGame(
 
   const finalRepair = depenetrateTaxi(world, game.x, game.y, game.heading, 8, game.z);
   if (finalRepair.resolved && finalRepair.moved) {
+    cancelCruiseControl(game);
     game.x = finalRepair.x;
     game.y = finalRepair.y;
     game.vx *= 0.35;
     game.vy *= 0.35;
   } else if (!finalRepair.resolved && lastSafePose) {
+    cancelCruiseControl(game);
     game.x = lastSafePose.x;
     game.y = lastSafePose.y;
     game.heading = lastSafePose.heading;
     game.vx = 0;
     game.vy = 0;
   } else if (!finalRepair.resolved) {
+    cancelCruiseControl(game);
     const recoveryPose = nearestClearRoadPose(world, game.x, game.y, game.heading, game.z);
     if (recoveryPose) {
       game.x = recoveryPose.x;
