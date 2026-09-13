@@ -16,7 +16,7 @@ export const FareImpactOverlay = memo(function FareImpactOverlay({ impact }: Far
 
   return (
     <div
-      className={`fare-impact fare-impact--${impact.kind}`}
+      className={`fare-impact fare-impact--banner fare-impact--${impact.kind}`}
       style={style}
       aria-hidden="true"
     >

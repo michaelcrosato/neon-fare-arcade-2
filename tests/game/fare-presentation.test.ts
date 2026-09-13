@@ -120,9 +120,10 @@ test("pickup and dropoff presentation copy keeps gameplay rewards intact", () =>
   assert.equal(freeDropoff.detail, "2.0× MULTI · FREE RUN");
 });
 
-test("fare cards hold for a full readable beat before docking", () => {
+test("passenger and destination cards each show for three seconds including transitions", () => {
   const total = FARE_CARD_TIMING_MS.enter + FARE_CARD_TIMING_MS.hold + FARE_CARD_TIMING_MS.dock;
-  assert.equal(FARE_CARD_TIMING_MS.hold, 1000);
+  assert.equal(total, 3000);
+  assert.equal(FARE_CARD_TIMING_MS.hold, 2400);
   assert.equal(FARE_IMPACT_DURATION_MS.pickup, total);
   assert.equal(FARE_IMPACT_DURATION_MS.dropoff, total);
 });

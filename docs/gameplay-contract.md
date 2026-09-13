@@ -28,9 +28,10 @@ updates the arcade launch, steering, road elevation and contact rules below.
   browser supports it. The full dynamic viewport, safe-area padding, and active
   playfield gesture protection prevent document scrolling, pull-to-refresh,
   pinch zoom, and long-press menus during driving. Paused menus remain scrollable.
-- Mobile pickup and dropoff cards appear in a compact banner at the top safe
-  edge, then dismiss upward. They never wipe or fly across the cab or navigation
-  arrow. Fare history remains available in Pause.
+- Desktop and mobile pickup and dropoff cards appear in a compact banner at the
+  top safe edge, then dismiss upward. Each card lasts three seconds total:
+  180 ms entrance, 2400 ms hold and 420 ms exit. They never wipe or fly across
+  the cab or navigation arrow. Fare history remains available in Pause.
 
 - `+x` points east, `+y` points south, and `+z` points up.
 - Local street coordinates use a 36-unit lattice with a 6-unit half width.

@@ -2,7 +2,7 @@ import type { DestinationCard, DrivingModel, FareId, FareImpact, RunKind } from 
 
 export const FARE_CARD_TIMING_MS = {
   enter: 180,
-  hold: 1000,
+  hold: 2400,
   dock: 420,
 } as const;
 

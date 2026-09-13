@@ -1,5 +1,5 @@
 .fare-impact {
-  --fare-duration: 1600ms;
+  --fare-duration: 3000ms;
   --fare-dock-scale: 0.25;
   --fare-dock-x: calc(var(--fare-stack-center-x) - 50vw);
   --fare-dock-y: calc(50dvh - var(--stage-top-half) - var(--fare-stack-bottom) - var(--fare-stack-half-height));
@@ -288,6 +288,52 @@
   line-height: 0.9;
   transform-origin: 50% 50%;
   animation: fare-impact-stamp var(--fare-duration) cubic-bezier(0.12, 1.14, 0.18, 1) both;
+}
+
+/* Pickup and destination cards share the compact top banner on every device. */
+.fare-impact--banner {
+  inset: max(4px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) auto max(12px, env(safe-area-inset-left));
+  display: block; overflow: visible;
+}
+.fare-impact--banner::before,
+.fare-impact--banner::after,
+.fare-impact--banner .fare-impact__speed-lines,
+.fare-impact--banner .fare-impact__stamp,
+.fare-impact--banner .fare-impact__fare-number { display: none; }
+.fare-impact--banner .fare-impact__sequence {
+  display: grid; grid-template-columns: clamp(64px, 10dvh, 88px) minmax(0, 1fr);
+  width: min(100%, 500px); min-height: 0; margin: 0 auto; gap: 0;
+  filter: drop-shadow(0 3px 2px rgb(0 0 0 / 45%)); transform: none;
+  animation: fare-banner var(--fare-duration) ease-out both;
+}
+.fare-impact--banner .fare-impact__art {
+  align-self: stretch; width: 100%; min-height: 0; aspect-ratio: 1;
+  border: 2px solid var(--ink); clip-path: none; transform: none; animation: none;
+}
+.fare-impact--banner .fare-impact__sprite { transform: none; animation: none; }
+.fare-impact--banner .fare-impact__verb {
+  inset: auto 0 0; padding: 3px 1px; border: 0; border-top: 2px solid var(--ink);
+  font-size: 13px; text-align: center; transform: none;
+}
+.fare-impact--banner .fare-impact__copy {
+  align-self: stretch; display: flex; flex-direction: column; justify-content: center;
+  min-height: 0; min-width: 0; margin: 0; padding: 5px 8px;
+  border: 2px solid var(--ink); border-left: 0; clip-path: none;
+  transform: none; animation: none;
+}
+.fare-impact--banner .fare-impact__copy small { font-size: 9px; letter-spacing: .06em; }
+.fare-impact--banner .fare-impact__route {
+  display: block; margin: 2px 0 0; font: 900 16px/1.05 "Barlow Condensed", sans-serif; letter-spacing: 0;
+}
+.fare-impact--banner .fare-impact__route b,
+.fare-impact--banner .fare-impact__route span { padding: 0; border: 0; color: inherit; background: none; }
+.fare-impact--banner .fare-impact__route b { margin-right: 5px; }
+.fare-impact--banner .fare-impact__route i { margin-right: 5px; font-size: 13px; }
+.fare-impact--banner .fare-impact__copy > strong { display: none; }
+.fare-impact--banner .fare-impact__copy > .fare-card-occasion { margin: 2px 0 0; font-size: 10px; line-height: 1.1; }
+.fare-impact--banner .fare-impact__copy > em {
+  margin: 3px 0 0; padding: 0; color: inherit; background: none;
+  font: 700 11px/1.1 "Barlow Condensed", sans-serif; letter-spacing: .02em;
 }
 
 .fare-card-art {
