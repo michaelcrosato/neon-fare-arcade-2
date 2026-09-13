@@ -1,9 +1,9 @@
 import { useEffect, useId, useState, type CSSProperties, type PointerEvent } from "react";
 import type { TouchDriving } from "./runtime/touch-driving";
 
-type Props = { controller: TouchDriving; boost: number; boosting: boolean; simulation: boolean; enabled: boolean };
+type Props = { controller: TouchDriving; boost: number; boosting: boolean; simulation: boolean; manual?: boolean; enabled: boolean };
 
-export function MobileDriveControls({ controller, boost, boosting, simulation, enabled }: Props) {
+export function MobileDriveControls({ controller, boost, boosting, simulation, manual = false, enabled }: Props) {
   const gasHint = useId();
   const steeringHint = useId();
   const [state, setState] = useState(() => controller.snapshot());
@@ -72,11 +72,11 @@ export function MobileDriveControls({ controller, boost, boosting, simulation, e
         className="mobile-pedal mobile-pedal--brake"
         disabled={!enabled}
         data-held={state.brake ? "" : undefined}
-        aria-label={simulation ? "Brake or reverse. Double tap and hold for parking brake." : "Brake or reverse"}
+        aria-label={manual ? simulation ? "Brake. Double tap and hold for parking brake." : "Brake" : simulation ? "Brake or reverse. Double tap and hold for parking brake." : "Brake or reverse"}
         {...handlers("brake")}
       >
         <span>BRAKE</span>
-        <small>{simulation && state.park ? "PARK" : "REVERSE"}</small>
+        <small>{simulation && state.park ? "PARK" : manual ? "SERVICE" : "REVERSE"}</small>
       </button>
       <button
         type="button"

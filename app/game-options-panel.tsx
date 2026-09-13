@@ -201,6 +201,7 @@ export function GameOptionsPanel({
             <div className="options-key-guide">
               <span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / <kbd>↑</kbd><kbd>←</kbd><kbd>↓</kbd><kbd>→</kbd> DRIVE / STEER</span>
               <span><kbd>SPACE</kbd> ARCADE BOOST / SIM HANDBRAKE</span>
+              <span><kbd>SHIFT</kbd> ACCORD CLUTCH · <kbd>Z</kbd><kbd>X</kbd> MANUAL GEAR DOWN / UP</span>
               <span><kbd>E</kbd> ENTER / EXIT TAXI / INTERACT</span>
               <span><kbd>C</kbd> CYCLE CAMERA</span>
               <span><kbd>G</kbd> REGIONAL GPS MAP</span>

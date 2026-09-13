@@ -111,8 +111,9 @@ test("Drift Demon holds a larger slip angle and converts it into more charge and
   const streetAngleDegrees = Math.abs(street.driftAngle) * 180 / Math.PI;
   const driftAngleDegrees = Math.abs(drift.driftAngle) * 180 / Math.PI;
 
-  assert.ok(streetAngleDegrees > 9 && streetAngleDegrees < 12);
-  assert.ok(driftAngleDegrees > 11.5 && driftAngleDegrees < 15);
+  // The vehicle update deliberately opens the former 10–12° Street Ace slide.
+  assert.ok(streetAngleDegrees > 24 && streetAngleDegrees < 29);
+  assert.ok(driftAngleDegrees > 30 && driftAngleDegrees < 35);
   assert.ok(Math.abs(drift.driftAngle) > Math.abs(street.driftAngle) * 1.15);
   assert.ok(drift.boost > street.boost);
   assert.ok(drift.driftBank > street.driftBank * 1.4);

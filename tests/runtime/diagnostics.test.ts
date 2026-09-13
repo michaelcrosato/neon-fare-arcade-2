@@ -57,8 +57,30 @@ function recordTick(
 }
 
 test("all diagnostic input masks round-trip", () => {
-  for (let mask = 0; mask < 1024; mask += 1) {
+  for (let mask = 0; mask < 8192; mask += 1) {
     assert.equal(encodeDiagnosticInput(decodeDiagnosticInput(mask)), mask);
+  }
+});
+
+test("Accord clutch faults, recovery and manual shifts survive recorded replay", () => {
+  for (const model of ["arcade", "simulation"] as const) {
+    const game = makeGame("street-ace", 12, "free-run", model, "accord-v6", "manual");
+    const recorder = new DiagnosticsRecorder();
+    const city = new CityStream();
+    for (let tick = 0; tick < 80; tick++) {
+      recordTick(recorder, game, city, {
+        up: tick > 60, down: false, left: false, right: false, boost: false,
+        clutch: tick < 40 && tick % 10 < 5,
+        shiftUp: tick === 1,
+        shiftDown: tick === 61,
+      }, () => .4);
+    }
+    assert.equal(game.transmission.gear, 2);
+    assert.equal(game.transmission.engagements, 1);
+    assert.equal(game.transmission.stuck, false);
+    const snapshot = recorder.snapshot(game, null, "playing");
+    verifyDiagnosticsSnapshot(snapshot);
+    assert.deepEqual(replayDiagnosticSegment(snapshot.trace.segments[0]), game);
   }
 });
 

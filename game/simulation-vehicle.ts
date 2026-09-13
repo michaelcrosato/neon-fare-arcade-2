@@ -1,3 +1,5 @@
+import { clutchConnected, stepManualTransmission } from "./manual-transmission";
+import { ACCORD_GEARS, ACCORD_FINAL_DRIVE, ACCORD_WHEEL_RADIUS_M, ACCORD_REDLINE_RPM } from "./vehicles";
 import { SPEED_KMH_PER_WORLD_UNIT } from "./config";
 import { steeringInput } from "./input";
 import { clamp, normalizeAngle } from "./math";
@@ -7,6 +9,7 @@ import type {
   InputState,
   SimulationGear,
   SimulationVehicleState,
+  VehicleId,
 } from "./model";
 
 /**
@@ -50,13 +53,36 @@ const WORLD_SPEED_TO_MPS = SPEED_KMH_PER_WORLD_UNIT / 3.6;
 const MPS_TO_WORLD_SPEED = 1 / WORLD_SPEED_TO_MPS;
 const MAX_STEER_RADIANS = 0.56;
 const PHYSICS_SUBSTEP = 1 / 120;
-const AVERAGE_TRACK_M = (CROWN_TAXI_SPECS.frontTrackM + CROWN_TAXI_SPECS.rearTrackM) / 2;
-const HALF_TRACK_M = AVERAGE_TRACK_M / 2;
-const STATIC_STABILITY_FACTOR = AVERAGE_TRACK_M / (2 * CROWN_TAXI_SPECS.cgHeightM);
-const PIVOT_ROLL_INERTIA_KG_M2 = CROWN_TAXI_SPECS.rollInertiaKgM2
-  + CROWN_TAXI_SPECS.massKg * (
-    CROWN_TAXI_SPECS.cgHeightM ** 2 + HALF_TRACK_M ** 2
-  );
+type VehicleSpecs = { readonly [K in keyof typeof CROWN_TAXI_SPECS]:
+  K extends "forwardGearRatios" ? readonly number[] : number };
+
+/** Custom 300 hp coupe on winter rubber. Loaded mass includes its driver. */
+export const ACCORD_V6_SPECS: VehicleSpecs = {
+  ...CROWN_TAXI_SPECS,
+  massKg: 1_640, yawInertiaKgM2: 2_650, rollInertiaKgM2: 540,
+  wheelbaseM: 2.725, cgToFrontAxleM: 1.09, cgToRearAxleM: 1.635,
+  cgHeightM: 0.51, frontTrackM: 1.585, rearTrackM: 1.59,
+  wheelRadiusM: ACCORD_WHEEL_RADIUS_M, finalDriveRatio: ACCORD_FINAL_DRIVE,
+  forwardGearRatios: ACCORD_GEARS, reverseGearRatio: 2.269,
+  drivelineEfficiency: 0.89, idleRpm: 750, redlineRpm: ACCORD_REDLINE_RPM,
+  governedTopSpeedMps: 62, serviceBrakeForceN: 14_400, parkingBrakeForceN: 6_500,
+  frontCorneringStiffnessNPerRad: 68_000, rearCorneringStiffnessNPerRad: 61_000,
+  dragCoefficient: 0.31, frontalAreaM2: 2.16, rollingResistance: 0.018,
+  roadFriction: 0.78, offroadFriction: 0.6, rallyOffroadFriction: 0.68,
+};
+
+function chassisSpecs(specs: VehicleSpecs) {
+  const averageTrackM = (specs.frontTrackM + specs.rearTrackM) / 2;
+  const halfTrackM = averageTrackM / 2;
+  return { ...specs, averageTrackM, halfTrackM,
+    staticStabilityFactor: averageTrackM / (2 * specs.cgHeightM),
+    pivotRollInertia: specs.rollInertiaKgM2 + specs.massKg * (specs.cgHeightM ** 2 + halfTrackM ** 2) };
+}
+const CROWN_CHASSIS = chassisSpecs(CROWN_TAXI_SPECS);
+const ACCORD_CHASSIS = chassisSpecs(ACCORD_V6_SPECS);
+export function simulationVehicleSpecs(id: VehicleId) {
+  return id === "accord-v6" ? ACCORD_CHASSIS : CROWN_CHASSIS;
+}
 const SIDE_REST_ANGLE = Math.PI / 2;
 const ROOF_REST_ANGLE = Math.PI;
 
@@ -64,10 +90,10 @@ export type SimulationVehicleStepResult = Readonly<{
   rolloverStarted: boolean;
 }>;
 
-export function makeSimulationVehicleState(): SimulationVehicleState {
+export function makeSimulationVehicleState(vehicleId: VehicleId = "crown-cab"): SimulationVehicleState {
   return {
     gear: 1,
-    engineRpm: CROWN_TAXI_SPECS.idleRpm,
+    engineRpm: simulationVehicleSpecs(vehicleId).idleRpm,
     longitudinalSpeed: 0,
     lateralSpeed: 0,
     longitudinalAcceleration: 0,
@@ -146,6 +172,7 @@ export function applySimulationGroundImpulse(
   leverage = 1,
 ) {
   if (game.drivingModel !== "simulation") return;
+  const specs = simulationVehicleSpecs(game.vehicleId);
   const rightX = -Math.sin(game.heading);
   const rightY = Math.cos(game.heading);
   const lateralDeltaMps = (
@@ -153,15 +180,17 @@ export function applySimulationGroundImpulse(
   ) * WORLD_SPEED_TO_MPS;
   if (Math.abs(lateralDeltaMps) < 0.05) return;
   game.simulationVehicle.rollRate += lateralDeltaMps
-    * CROWN_TAXI_SPECS.massKg
-    * CROWN_TAXI_SPECS.cgHeightM
-    / PIVOT_ROLL_INERTIA_KG_M2
+    * specs.massKg
+    * specs.cgHeightM
+    / specs.pivotRollInertia
     * clamp(leverage, 0, 1.4);
   game.simulationVehicle.rollRate = clamp(game.simulationVehicle.rollRate, -7.5, 7.5);
 }
 
-function engineTorqueNm(rpm: number) {
-  const points = [
+function engineTorqueNm(rpm: number, accord: boolean) {
+  const points = accord ? [
+    [750, 175], [1_500, 245], [3_000, 310], [4_900, 365], [6_200, 344.6], [6_800, 285],
+  ] : [
     [650, 235],
     [1_400, 285],
     [2_250, 335],
@@ -253,6 +282,7 @@ function lateralTireForce(slipAngle: number, stiffness: number, capacity: number
 }
 
 function stepBodyAttitude(
+  specs: ReturnType<typeof simulationVehicleSpecs>,
   state: SimulationVehicleState,
   longitudinalAcceleration: number,
   lateralAcceleration: number,
@@ -267,9 +297,9 @@ function stepBodyAttitude(
   state.pitchRate += pitchAcceleration * dt;
   state.bodyPitch = clamp(state.bodyPitch + state.pitchRate * dt, -0.16, 0.16);
 
-  const demand = Math.abs(lateralAcceleration) / (GRAVITY * STATIC_STABILITY_FACTOR);
+  const demand = Math.abs(lateralAcceleration) / (GRAVITY * specs.staticStabilityFactor);
   const lateralUnload = clamp(demand, 0, 1);
-  const tipAngle = Math.atan(STATIC_STABILITY_FACTOR);
+  const tipAngle = Math.atan(specs.staticStabilityFactor);
   const rollUnload = clamp(
     (Math.abs(state.bodyRoll) - 0.15) / Math.max(0.1, tipAngle - 0.15),
     0,
@@ -299,16 +329,16 @@ function stepBodyAttitude(
   } else if (!state.overturned) {
     const direction = Math.sign(previousRoll || state.rollRate || lateralAcceleration || 1);
     const angle = Math.min(Math.abs(previousRoll), SIDE_REST_ANGLE - 0.02);
-    const centerSide = -HALF_TRACK_M * Math.cos(angle)
-      + CROWN_TAXI_SPECS.cgHeightM * Math.sin(angle);
-    const centerHeight = HALF_TRACK_M * Math.sin(angle)
-      + CROWN_TAXI_SPECS.cgHeightM * Math.cos(angle);
+    const centerSide = -specs.halfTrackM * Math.cos(angle)
+      + specs.cgHeightM * Math.sin(angle);
+    const centerHeight = specs.halfTrackM * Math.sin(angle)
+      + specs.cgHeightM * Math.cos(angle);
     const alignedAcceleration = lateralAcceleration * direction;
-    const pivotMoment = CROWN_TAXI_SPECS.massKg * (
+    const pivotMoment = specs.massKg * (
       alignedAcceleration * Math.max(0.08, centerHeight)
       + GRAVITY * centerSide
     );
-    rollAcceleration = direction * pivotMoment / PIVOT_ROLL_INERTIA_KG_M2
+    rollAcceleration = direction * pivotMoment / specs.pivotRollInertia
       - state.rollRate * 0.42;
   } else {
     const direction = Math.sign(previousRoll || state.rollRate || 1);
@@ -354,6 +384,7 @@ function stepBodyAttitude(
 }
 
 function terrainTripForce(
+  specs: ReturnType<typeof simulationVehicleSpecs>,
   state: SimulationVehicleState,
   longitudinal: number,
   lateral: number,
@@ -369,11 +400,11 @@ function terrainTripForce(
       tripLimit,
       Math.max(0, Math.abs(lateral) - 2.4) * tripFraction,
     );
-    force += lateralVelocityChange * CROWN_TAXI_SPECS.massKg / dt;
+    force += lateralVelocityChange * specs.massKg / dt;
   }
   if (!onRoad && Math.abs(lateral) > 1.2) {
     const soilAcceleration = Math.min(22, 1.6 + Math.abs(lateral) * 0.72);
-    force += -Math.sign(lateral) * soilAcceleration * CROWN_TAXI_SPECS.massKg;
+    force += -Math.sign(lateral) * soilAcceleration * specs.massKg;
   }
   state.surfaceOnRoad = onRoad;
   return force;
@@ -387,6 +418,10 @@ function stepSimulationSubstep(
   cruise: CruisePedals | null,
 ) {
   const state = game.simulationVehicle;
+  const specs = simulationVehicleSpecs(game.vehicleId);
+  const accord = game.vehicleId === "accord-v6";
+  if (accord) state.gear = game.transmission.gear;
+  const connected = clutchConnected(game);
   const previousHeading = game.heading;
   const grounded = game.roadMotion?.grounded !== false;
   const forwardX = Math.cos(previousHeading);
@@ -402,7 +437,21 @@ function stepSimulationSubstep(
   let throttleTarget = 0;
   let brakeTarget = 0;
 
-  if (!state.overturned && wantsForward) {
+  if (accord && !state.overturned) {
+    if (game.transmissionMode === "manual") {
+      throttleTarget = wantsForward ? 1 : cruise?.throttle ?? 0;
+      brakeTarget = input.down ? 1 : cruise?.brake ?? 0;
+    } else {
+      const direction = state.gear === -1 ? -1 : 1;
+      const wantsDrive = direction > 0 ? wantsForward : wantsReverse;
+      throttleTarget = wantsDrive && longitudinal * direction >= -0.45 ? 1 : 0;
+      brakeTarget = (wantsForward || wantsReverse) && throttleTarget === 0 ? 1 : 0;
+      if (!wantsForward && !wantsReverse && cruise && state.gear > 0) {
+        throttleTarget = cruise.throttle;
+        brakeTarget = cruise.brake;
+      }
+    }
+  } else if (!state.overturned && wantsForward) {
     state.reverseHold = 0;
     if (longitudinal < -0.45) {
       brakeTarget = 1;
@@ -432,6 +481,10 @@ function stepSimulationSubstep(
     state.reverseHold = 0;
   }
 
+  if (accord && !connected && input.down) {
+    throttleTarget = 0;
+    brakeTarget = 1;
+  }
   state.shiftCooldown = Math.max(0, state.shiftCooldown - dt);
   state.throttle = smooth(state.throttle, throttleTarget, throttleTarget > state.throttle ? 5.2 : 8.5, dt);
   state.brake = smooth(state.brake, brakeTarget, brakeTarget > state.brake ? 11 : 15, dt);
@@ -447,38 +500,38 @@ function stepSimulationSubstep(
   const steeringRate = steerInput === 0 ? 1.35 : 0.94;
   state.steeringAngle = moveToward(state.steeringAngle, steerTarget, steeringRate * dt);
 
-  if (state.gear > 0 && !state.overturned) automaticGear(state, Math.max(0, longitudinal));
+  if (!accord && state.gear > 0 && !state.overturned) automaticGear(state, Math.max(0, longitudinal));
   const gearRatio = state.gear === -1
-    ? CROWN_TAXI_SPECS.reverseGearRatio
-    : CROWN_TAXI_SPECS.forwardGearRatios[Math.max(1, state.gear)];
-  const wheelRpm = Math.abs(longitudinal) / CROWN_TAXI_SPECS.wheelRadiusM * 60 / (Math.PI * 2);
-  const coupledRpm = wheelRpm * gearRatio * CROWN_TAXI_SPECS.finalDriveRatio;
-  const launchRpm = CROWN_TAXI_SPECS.idleRpm + state.throttle * 1_450;
+    ? specs.reverseGearRatio
+    : specs.forwardGearRatios[state.gear];
+  const wheelRpm = Math.abs(longitudinal) / specs.wheelRadiusM * 60 / (Math.PI * 2);
+  const coupledRpm = wheelRpm * gearRatio * specs.finalDriveRatio;
+  const launchRpm = specs.idleRpm + state.throttle * 1_450;
   const targetRpm = clamp(
-    Math.max(CROWN_TAXI_SPECS.idleRpm, coupledRpm, Math.abs(longitudinal) < 1.2 ? launchRpm : 0),
-    CROWN_TAXI_SPECS.idleRpm,
-    CROWN_TAXI_SPECS.redlineRpm,
+    accord && !connected ? specs.idleRpm + state.throttle * (specs.redlineRpm - specs.idleRpm) : Math.max(specs.idleRpm, coupledRpm, Math.abs(longitudinal) < 1.2 ? launchRpm : 0),
+    specs.idleRpm,
+    specs.redlineRpm,
   );
   state.engineRpm = smooth(state.engineRpm, targetRpm, state.shiftCooldown > 0 ? 14 : 8, dt);
 
   const rallyTires = game.installedUpgrades.includes("rally-tires");
   const friction = !grounded ? 0 : onRoad
-    ? CROWN_TAXI_SPECS.roadFriction
-    : rallyTires ? CROWN_TAXI_SPECS.rallyOffroadFriction : CROWN_TAXI_SPECS.offroadFriction;
-  const staticFrontLoad = CROWN_TAXI_SPECS.massKg * GRAVITY
-    * CROWN_TAXI_SPECS.cgToRearAxleM / CROWN_TAXI_SPECS.wheelbaseM;
-  const totalWeight = CROWN_TAXI_SPECS.massKg * GRAVITY;
+    ? specs.roadFriction
+    : rallyTires ? specs.rallyOffroadFriction : specs.offroadFriction;
+  const staticFrontLoad = specs.massKg * GRAVITY
+    * specs.cgToRearAxleM / specs.wheelbaseM;
+  const totalWeight = specs.massKg * GRAVITY;
   const staticRearLoad = totalWeight - staticFrontLoad;
-  const longitudinalTransfer = CROWN_TAXI_SPECS.massKg
+  const longitudinalTransfer = specs.massKg
     * state.longitudinalAcceleration
-    * CROWN_TAXI_SPECS.cgHeightM
-    / CROWN_TAXI_SPECS.wheelbaseM;
+    * specs.cgHeightM
+    / specs.wheelbaseM;
   const frontLoad = clamp(staticFrontLoad - longitudinalTransfer, totalWeight * 0.12, totalWeight * 0.88);
   const rearLoad = totalWeight - frontLoad;
-  const lateralTransfer = CROWN_TAXI_SPECS.massKg
+  const lateralTransfer = specs.massKg
     * state.lateralAcceleration
-    * CROWN_TAXI_SPECS.cgHeightM
-    / AVERAGE_TRACK_M;
+    * specs.cgHeightM
+    / specs.averageTrackM;
   const attitudeTransferFront = Math.abs(state.wheelLift) * frontLoad / 2;
   const attitudeTransferRear = Math.abs(state.wheelLift) * rearLoad / 2;
   const frontCapacity = axleCapacity(
@@ -497,47 +550,48 @@ function stepSimulationSubstep(
   const driveDirection = state.gear === -1 ? -1 : 1;
   const speedInDriveDirection = longitudinal * driveDirection;
   const speedLimit = state.gear === -1
-    ? CROWN_TAXI_SPECS.governedReverseSpeedMps
-    : CROWN_TAXI_SPECS.governedTopSpeedMps;
+    ? specs.governedReverseSpeedMps
+    : specs.governedTopSpeedMps;
   const governor = clamp((speedLimit - speedInDriveDirection) / 3.2, 0, 1);
-  const converterMultiplication = state.gear === 1
+  const converterMultiplication = !accord && state.gear === 1
     ? 1 + 0.62 * (1 - clamp(Math.abs(longitudinal) / 8.5, 0, 1))
     : 1;
-  const driveDemand = state.overturned ? 0 : engineTorqueNm(state.engineRpm)
+  const driveDemand = state.overturned || !connected ? 0 : engineTorqueNm(state.engineRpm, accord)
     * gearRatio
-    * CROWN_TAXI_SPECS.finalDriveRatio
-    * CROWN_TAXI_SPECS.drivelineEfficiency
-    / CROWN_TAXI_SPECS.wheelRadiusM
+    * specs.finalDriveRatio
+    * specs.drivelineEfficiency
+    / specs.wheelRadiusM
     * state.throttle
     * driveDirection
     * governor
-    * converterMultiplication;
+    * converterMultiplication
+    * (accord ? clamp((specs.redlineRpm + 100 - coupledRpm) / 250, 0, 1) : 1);
   const speedSign = Math.abs(longitudinal) > 0.08 ? Math.sign(longitudinal) : driveDirection;
-  const serviceBrakeDemand = CROWN_TAXI_SPECS.serviceBrakeForceN * state.brake;
+  const serviceBrakeDemand = specs.serviceBrakeForceN * state.brake;
   const frontLongitudinalForce = state.overturned ? 0 : signedClamp(
-    -speedSign * serviceBrakeDemand * 0.7,
+    (accord ? driveDemand : 0) - speedSign * serviceBrakeDemand * 0.7,
     frontCapacity,
   );
   const rearLongitudinalForce = state.overturned ? 0 : signedClamp(
-    driveDemand
+    (accord ? 0 : driveDemand)
       - speedSign * serviceBrakeDemand * 0.3
-      - speedSign * CROWN_TAXI_SPECS.parkingBrakeForceN * state.parkingBrake,
+      - speedSign * specs.parkingBrakeForceN * state.parkingBrake,
     rearCapacity,
   );
 
   const aeroForce = -Math.sign(longitudinal)
     * 0.5
     * AIR_DENSITY
-    * CROWN_TAXI_SPECS.dragCoefficient
-    * CROWN_TAXI_SPECS.frontalAreaM2
+    * specs.dragCoefficient
+    * specs.frontalAreaM2
     * longitudinal * longitudinal;
   const rollingCoefficient = onRoad
-    ? CROWN_TAXI_SPECS.rollingResistance
+    ? specs.rollingResistance
     : rallyTires ? 0.029 : 0.038;
   const rollingForce = grounded && Math.abs(longitudinal) > 0.08
-    ? -Math.sign(longitudinal) * rollingCoefficient * CROWN_TAXI_SPECS.massKg * GRAVITY
+    ? -Math.sign(longitudinal) * rollingCoefficient * specs.massKg * GRAVITY
     : 0;
-  const engineBrakingForce = grounded && !state.overturned && state.throttle < 0.03 && Math.abs(longitudinal) > 0.35
+  const engineBrakingForce = grounded && connected && !state.overturned && state.throttle < 0.03 && Math.abs(longitudinal) > 0.35
     ? -Math.sign(longitudinal) * 1_050 * Math.max(0.7, gearRatio)
     : 0;
 
@@ -545,11 +599,11 @@ function stepSimulationSubstep(
   const slipDenominator = Math.max(1.25, absLongitudinal);
   const directionForSlip = longitudinal < -0.35 ? -1 : 1;
   const frontSlip = Math.atan2(
-    lateral + CROWN_TAXI_SPECS.cgToFrontAxleM * state.yawRate,
+    lateral + specs.cgToFrontAxleM * state.yawRate,
     slipDenominator,
   ) - state.steeringAngle * directionForSlip;
   const rearSlip = Math.atan2(
-    lateral - CROWN_TAXI_SPECS.cgToRearAxleM * state.yawRate,
+    lateral - specs.cgToRearAxleM * state.yawRate,
     slipDenominator,
   );
   state.frontSlipAngle = frontSlip;
@@ -561,36 +615,36 @@ function stepSimulationSubstep(
     * rearParkingRelease;
   const frontLateralForce = state.overturned ? 0 : lateralTireForce(
     frontSlip,
-    CROWN_TAXI_SPECS.frontCorneringStiffnessNPerRad,
+    specs.frontCorneringStiffnessNPerRad,
     frontLateralCapacity,
   );
   const rearLateralForce = state.overturned ? 0 : lateralTireForce(
     rearSlip,
-    CROWN_TAXI_SPECS.rearCorneringStiffnessNPerRad,
+    specs.rearCorneringStiffnessNPerRad,
     rearLateralCapacity,
   );
-  const tripForce = state.overturned || !grounded ? 0 : terrainTripForce(state, longitudinal, lateral, onRoad, dt);
+  const tripForce = state.overturned || !grounded ? 0 : terrainTripForce(specs, state, longitudinal, lateral, onRoad, dt);
 
   let chassisLongitudinalForce = aeroForce + rollingForce + engineBrakingForce;
   let chassisLateralForce = tripForce;
   if (state.overturned && grounded) {
-    chassisLongitudinalForce += -longitudinal * CROWN_TAXI_SPECS.massKg * 1.45;
-    chassisLateralForce += -lateral * CROWN_TAXI_SPECS.massKg * 2.1;
+    chassisLongitudinalForce += -longitudinal * specs.massKg * 1.45;
+    chassisLateralForce += -lateral * specs.massKg * 2.1;
   }
   const longitudinalForceAcceleration = (
     frontLongitudinalForce + rearLongitudinalForce + chassisLongitudinalForce
-  ) / CROWN_TAXI_SPECS.massKg;
+  ) / specs.massKg;
   const lateralForceAcceleration = (
     frontLateralForce + rearLateralForce + chassisLateralForce
-  ) / CROWN_TAXI_SPECS.massKg;
+  ) / specs.massKg;
   const longitudinalDerivative = longitudinalForceAcceleration + lateral * state.yawRate;
   const lateralDerivative = lateralForceAcceleration - longitudinal * state.yawRate;
   const yawAcceleration = state.overturned
     ? -state.yawRate * 3.2
     : (
-      CROWN_TAXI_SPECS.cgToFrontAxleM * frontLateralForce
-      - CROWN_TAXI_SPECS.cgToRearAxleM * rearLateralForce
-    ) / CROWN_TAXI_SPECS.yawInertiaKgM2;
+      specs.cgToFrontAxleM * frontLateralForce
+      - specs.cgToRearAxleM * rearLateralForce
+    ) / specs.yawInertiaKgM2;
 
   const previousLongitudinal = longitudinal;
   longitudinal += longitudinalDerivative * dt;
@@ -601,7 +655,7 @@ function stepSimulationSubstep(
   // parking maneuver. Keep its momentum under the tire-force model.
   const lowSpeedBlend = clamp((planarSpeed - 1.1) / 4.2, 0, 1);
   if (!state.overturned && grounded) {
-    const kinematicYawRate = longitudinal / CROWN_TAXI_SPECS.wheelbaseM * Math.tan(state.steeringAngle);
+    const kinematicYawRate = longitudinal / specs.wheelbaseM * Math.tan(state.steeringAngle);
     state.yawRate = kinematicYawRate * (1 - lowSpeedBlend) + state.yawRate * lowSpeedBlend;
     lateral *= Math.exp(-(1 - lowSpeedBlend) * 8 * dt);
   }
@@ -622,6 +676,7 @@ function stepSimulationSubstep(
   state.longitudinalAcceleration = longitudinalForceAcceleration;
   state.lateralAcceleration = lateralForceAcceleration;
   stepBodyAttitude(
+    specs,
     state,
     longitudinalForceAcceleration,
     lateralForceAcceleration,
@@ -653,7 +708,7 @@ function stepSimulationSubstep(
   state.longitudinalSpeed = longitudinal;
   state.lateralSpeed = lateral;
   state.wheelRotation = normalizeAngle(
-    state.wheelRotation + longitudinal / CROWN_TAXI_SPECS.wheelRadiusM * dt,
+    state.wheelRotation + longitudinal / specs.wheelRadiusM * dt,
   );
 }
 
@@ -669,6 +724,7 @@ export function stepSimulationVehicle(
   onRoad: boolean,
   cruise: CruisePedals | null = null,
 ): SimulationVehicleStepResult {
+  stepManualTransmission(game, input, dt);
   const wasOverturned = game.simulationVehicle.overturned;
   let remaining = Math.max(0, dt);
   while (remaining > 1e-9) {

@@ -15,6 +15,8 @@ import { FareImpactOverlay } from "./fare-impact-overlay";
 import { FareCardStack } from "./fare-card-deck";
 import { GpsMap } from "./gps-map";
 import { MobileGameHud } from "./mobile-game-hud";
+import { TransmissionControls, type TransmissionInputHandler } from "./transmission-controls";
+import { vehicleDefinition } from "@/game/vehicles";
 import { CruiseControl } from "./cruise-control";
 import { useMobileLayout } from "./use-mobile-layout";
 import type { SteeringMode, TouchDriving } from "./runtime/touch-driving";
@@ -34,6 +36,7 @@ type GameStageHudProps = Readonly<{
   onPulseInteraction: () => void;
   onSetMode: (mode: Mode) => void;
   onTouch: PointerEventHandler<HTMLButtonElement>;
+  onTransmissionInput?: TransmissionInputHandler;
   touchDriving: TouchDriving;
   steeringMode?: SteeringMode;
   onSetCruise?: (speed: number | null) => void;
@@ -55,6 +58,7 @@ export function GameStageHud({
   onPulseInteraction,
   onSetMode,
   onTouch,
+  onTransmissionInput,
   touchDriving,
   steeringMode,
   onSetCruise,
@@ -62,13 +66,14 @@ export function GameStageHud({
 }: GameStageHudProps) {
   const mobile = useMobileLayout();
   if (mobile) return <MobileGameHud mode={mode} hud={hud} fareImpact={fareImpact} fareImpactRef={fareImpactRef} courierImpact={courierImpact}
-    touchDriving={touchDriving} steeringMode={steeringMode} onSetCruise={onSetCruise} taxiExitRef={taxiExitRef} onPulseInteraction={onPulseInteraction} onSetMode={onSetMode} onTouch={onTouch} />;
+    touchDriving={touchDriving} steeringMode={steeringMode} onSetCruise={onSetCruise} taxiExitRef={taxiExitRef} onPulseInteraction={onPulseInteraction} onSetMode={onSetMode} onTouch={onTouch} onTransmissionInput={onTransmissionInput} />;
   const simulationDriving = hud.playerMode === "driving" && hud.drivingModel === "simulation";
-  const simulationGear = simulationGearLabel(hud.simulationVehicle.gear);
+  const simulationGear = (hud.vehicleId === "accord-v6" ? String(hud.transmission.gear === -1 ? "R" : hud.transmission.gear === 0 ? "N" : hud.transmission.gear) : simulationGearLabel(hud.simulationVehicle.gear));
   const cabRollScale = 1 + Math.abs(Math.sin(hud.simulationVehicle.bodyRoll)) * 0.42;
   const canvasCabRoll = simulationDriving && rendererKind !== "WEBGPU ACTIVE";
   return (
     <>
+      {mode !== "menu" && <TransmissionControls hud={hud} enabled={mode === "playing"} onTouch={onTouch} onInput={onTransmissionInput} />}
       {fareImpact && <FareImpactOverlay key={fareImpact.id} impact={fareImpact} overlayRef={fareImpactRef} />}
       {mode === "playing" && hud.runKind === "free-run" && hud.playerMode === "driving" && onSetCruise
         && <CruiseControl hud={hud} onSetSpeed={onSetCruise} />}
@@ -92,7 +97,7 @@ export function GameStageHud({
           <i className="cab-mirror" />
           <span className="cab-pillars" />
           <div className="cab-dashboard">
-            <small>{simulationDriving ? `CROWN CAB // ${simulationGear}` : "NEON FARE // CAB"}</small>
+            <small>{simulationDriving ? `${vehicleDefinition(hud.vehicleId).shortName} // ${simulationGear}` : vehicleDefinition(hud.vehicleId).shortName}</small>
             <b>{hud.speed}</b>
             <em>{simulationDriving ? `${Math.round(hud.simulationVehicle.engineRpm / 50) * 50} RPM` : "KM/H"}</em>
           </div>
@@ -199,7 +204,7 @@ export function GameStageHud({
                 ? hud.simulationVehicle.parkingBrake > 0.05 ? `PARK BRAKE · SLIP ${hud.driftAngle}°`
                   : hud.simulationVehicle.brake > 0.05 ? "SERVICE BRAKE"
                     : hud.simulationVehicle.throttle > 0.05 ? "THROTTLE"
-                      : `4-SPEED AUTO · ${simulationGear}`
+                      : hud.vehicleId === "accord-v6" ? `6-SPEED ${hud.transmissionMode === "manual" ? "MANUAL" : "AUTO SHIFT"} · ${simulationGear}` : `4-SPEED AUTO · ${simulationGear}`
                 : hud.brakeDriftKick > 0.05 ? `BRAKE KICK ${hud.driftAngle}°` : hud.boosting ? "BOOSTING" : hud.drifting ? `DRIFT ${hud.driftAngle}°` : "BOOST"
               : hud.onFootAction === "run" ? "RUNNING · SHIFT"
                 : hud.onFootAction === "crouch" ? "CROUCHED · C / CTRL"

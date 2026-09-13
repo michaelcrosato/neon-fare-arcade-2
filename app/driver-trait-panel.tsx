@@ -1,14 +1,20 @@
 "use client";
 
 import { DRIVING_TRAIT_PACKAGES } from "@/game/driving-traits";
-import type { DrivingModel, DrivingTraitId, RunKind } from "@/game/model";
+import type { DrivingModel, DrivingTraitId, RunKind, VehicleId, TransmissionMode } from "@/game/model";
 import type { ReactNode } from "react";
+import { vehicleDefinition } from "@/game/vehicles";
+import { VehicleSelection } from "./vehicle-selection";
 import { useMobileLayout } from "./use-mobile-layout";
 
 type DriverTraitPanelProps = {
   onSelect: (traitId: DrivingTraitId) => void;
   runKind: RunKind;
   drivingModel: DrivingModel;
+  vehicleId: VehicleId;
+  transmissionMode: TransmissionMode;
+  onVehicleChange: (id: VehicleId) => void;
+  onTransmissionChange: (mode: TransmissionMode) => void;
 };
 
 function StatMeter({ label, value }: { label: string; value: number }) {
@@ -26,51 +32,25 @@ function HandlingDetails({ mobile, children }: { mobile: boolean; children: Reac
   return mobile ? <details className="driver-trait__details"><summary>HANDLING DETAILS</summary>{children}</details> : <>{children}</>;
 }
 
-export function DriverTraitPanel({ onSelect, runKind, drivingModel }: DriverTraitPanelProps) {
+export function DriverTraitPanel({ onSelect, runKind, drivingModel, vehicleId, transmissionMode, onVehicleChange, onTransmissionChange }: DriverTraitPanelProps) {
   const mobile = useMobileLayout();
+  const vehicle = vehicleDefinition(vehicleId);
+  const garage = <VehicleSelection vehicleId={vehicleId} transmissionMode={transmissionMode} onVehicleChange={onVehicleChange} onTransmissionChange={onTransmissionChange} />;
   if (drivingModel === "simulation") {
-    return (
-      <div className="driver-traits driver-traits--simulation">
-        <p className="modal-kicker">SIMULATION FREE RUN · NO TIMER</p>
-        <h2 id="modal-title">CROWN CAB ’96</h2>
-        <p className="driver-traits__intro" id="trait-modal-description">
-          A separate full-size taxi model inspired by 1990s Crown Victoria fleet cabs. The city, fares, couriers, interiors, and earnings stay the same; the vehicle does not.
-        </p>
-        <div className="driver-traits__grid" role="list" aria-label="Simulation taxi specification">
-          <article role="listitem" className="driver-trait driver-trait--simulation">
-            <span className="driver-trait__number">SIM</span>
-            <span className="driver-trait__icon" aria-hidden="true"><i /><b /></span>
-            <small className="driver-trait__role">FULL-SIZE · REAR-WHEEL DRIVE</small>
-            <strong className="driver-trait__name">CROWN CAB ’96</strong>
-            <p>Heavy body-on-frame sedan dynamics with a naturally aspirated V8 and four-speed automatic.</p>
-            <HandlingDetails mobile={mobile}><ul aria-label="Simulation systems">
-              <li>1,900 KG LOADED · 2.91 M WHEELBASE</li>
-              <li>4-SPEED AUTO · REAL GEAR/RPM LOAD</li>
-              <li>FRICTION CIRCLES · LOAD TRANSFER · BODY ROLL</li>
-              <li>WHEEL LIFT · CURB TRIPS · PHYSICAL ROLLOVER</li>
-              <li>SPACE = PARKING BRAKE · NO ARCADE BOOST</li>
-            </ul>
-            <div className="simulation-specs" aria-label="Driving behavior">
-              <span><small>THROTTLE</small><b>PROGRESSIVE</b></span>
-              <span><small>BRAKES</small><b>WEIGHTED</b></span>
-              <span><small>STEERING</small><b>FULL LOCK · RATE-LIMITED</b></span>
-              <span><small>REVERSE</small><b>BRAKE · THEN ENGAGE</b></span>
-            </div>
-            <em>THIS IS NOT A DRIVER TRAIT. IT REPLACES THE ARCADE VEHICLE MODEL FOR THE ENTIRE FREE RUN.</em></HandlingDetails>
-            <button
-              type="button"
-              className="driver-trait__pick"
-              data-modal-autofocus="true"
-              onClick={() => onSelect("street-ace")}
-              aria-label="Start Simulation Free Run in the Crown Cab 96."
-            >
-              START SIMULATION <b aria-hidden="true">➜</b>
-            </button>
-          </article>
-        </div>
-        <p className="driver-traits__footnote">W / S control the automatic transmission. Hold S through a stop to engage reverse. Exit a stopped overturned cab and press E beside it to right it.</p>
+    return <div className="driver-traits driver-traits--simulation">
+      <p className="modal-kicker">SIMULATION FREE RUN · NO TIMER</p>
+      <h2 id="modal-title">CHOOSE YOUR VEHICLE</h2>
+      <p className="driver-traits__intro" id="trait-modal-description">Real weight, tire grip, engine load and body roll. Pick a car for this run.</p>
+      {garage}
+      <div className="simulation-start">
+        <strong>{vehicle.name} · {vehicle.layout}</strong>
+        <p>{vehicleId === "accord-v6" ? transmissionMode === "manual"
+          ? "Hold Shift (CLUTCH), tap Z / X (− / +) to change gear, then release. Reverse is below neutral; use GAS to back up. Launch assistance prevents stalling."
+          : "Six manual gears with automatic shifting assistance. GAS goes forward; hold BRAKE through a stop to reverse. Pump CLUTCH three times if it sticks."
+          : "Four-speed automatic. GAS goes forward; hold BRAKE through a stop to reverse. Heavy V8, rear-wheel drive."} Space operates the parking brake.</p>
+        <button type="button" className="driver-trait__pick" data-modal-autofocus="true" onClick={() => onSelect("street-ace")} aria-label={`Start Simulation Free Run in the ${vehicleId === "crown-cab" ? "Crown Cab 96" : vehicle.name}.`}>START SIMULATION <b aria-hidden="true">➜</b></button>
       </div>
-    );
+    </div>;
   }
   const freeRun = runKind === "free-run";
   return (
@@ -82,6 +62,8 @@ export function DriverTraitPanel({ onSelect, runKind, drivingModel }: DriverTrai
           ? "Choose one package, then explore all seven regions at your pace, including the new Ironwake Works industrial harbor. Fares, courier jobs, interiors, and earnings stay active with no time pressure."
           : "Choose one package for this run. Passenger and courier payouts stay the same; handling, boost rhythm, and drift scoring can change."}
       </p>
+      {garage}
+      <h3 className="garage-handling-title">CHOOSE YOUR ARCADE HANDLING</h3>
       <div className="driver-traits__grid" role="list" aria-label="Driving trait packages">
         {DRIVING_TRAIT_PACKAGES.map((trait) => (
           <article

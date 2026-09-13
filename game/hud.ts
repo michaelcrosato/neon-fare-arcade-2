@@ -15,6 +15,7 @@ import {
 import { farePickupMarkers } from "./fare-selection";
 import { isTaxiNearGasStation } from "./gas-station";
 import { interactionPrompt } from "./interactions";
+import { accordCoupledRpm, makeManualTransmission } from "./manual-transmission";
 import { distance } from "./math";
 import type { Game, Hud, NavigationPlan, WorldView } from "./model";
 import {
@@ -55,6 +56,10 @@ export const EMPTY_HUD: Hud = {
   cruiseMaxSpeed: 160,
   drivingTraitId: "street-ace",
   drivingModel: "arcade",
+  vehicleId: "crown-cab",
+  transmissionMode: "automatic",
+  transmission: makeManualTransmission(),
+  vehicleRpm: 750,
   simulationVehicle: {
     gear: 1,
     engineRpm: 650,
@@ -187,6 +192,11 @@ export function makeHud(game: Game, navigation?: NavigationPlan, world?: WorldVi
     ),
     drivingTraitId: game.drivingTraitId,
     drivingModel: game.drivingModel,
+    vehicleId: game.vehicleId,
+    transmissionMode: game.transmissionMode,
+    transmission: { ...game.transmission },
+    vehicleRpm: game.drivingModel === "simulation" ? game.simulationVehicle.engineRpm : Math.max(750,
+      accordCoupledRpm((game.vx * Math.cos(game.heading) + game.vy * Math.sin(game.heading)) * SPEED_KMH_PER_WORLD_UNIT / 3.6, game.transmission.gear)),
     simulationVehicle: { ...game.simulationVehicle },
     runKind: game.runKind,
     cruiseSpeed: game.cruiseControl ? Math.round(game.cruiseControl.speed * SPEED_KMH_PER_WORLD_UNIT) : null,

@@ -16,7 +16,7 @@ export function runDevelopmentCommand(game: Game, action: DevelopmentAction, car
     if (!Number.isSafeInteger(action.seed) || action.seed < 0 || action.seed > 0xffffffff) {
       return { game, ok: false, message: "Use a whole seed between 0 and 4,294,967,295." };
     }
-    const next = makeGame(game.drivingTraitId, action.seed, game.runKind, game.drivingModel);
+    const next = makeGame(game.drivingTraitId, action.seed, game.runKind, game.drivingModel, game.vehicleId, game.transmissionMode);
     applyCareerRunBonuses(next, career);
     applyDevelopmentSettings(next, game.development);
     next.playtest = true;

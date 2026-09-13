@@ -51,9 +51,9 @@ export function GameModeMenu({
               className="start-mode-button is-simulation"
               disabled={!ready}
               onClick={() => onRequestStartRun("free-run", "simulation")}
-              aria-label="Start Simulation Free Run. Drive a 1990s Crown Victoria-style taxi with realistic vehicle physics."
+              aria-label="Start Simulation Free Run. Drive the RWD Crown Cab or FWD Accord with realistic vehicle physics."
             >
-              <span><b>SIMULATION</b><em>NO TIMER · CROWN CAB PHYSICS</em></span><i aria-hidden="true">D</i>
+              <span><b>SIMULATION</b><em>NO TIMER · VEHICLE PHYSICS</em></span><i aria-hidden="true">D</i>
             </button>
           </div>
         </div>

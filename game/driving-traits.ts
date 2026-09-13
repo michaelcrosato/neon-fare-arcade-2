@@ -50,9 +50,9 @@ export const DRIVING_TRAIT_PACKAGES: readonly DrivingTraitPackage[] = [
     number: "01",
     name: "STREET ACE",
     role: "ALL-ROUND CONTROL",
-    tagline: "Predictable response, clean lines, no hidden weakness.",
-    tradeoff: "THE ORIGINAL NEON FARE HANDLING",
-    highlights: ["FULL ROAD GRIP", "STEADY BRAKING", "BALANCED BOOST"],
+    tagline: "Quick steering, a lively tail, and room to catch the slide.",
+    tradeoff: "COUNTERSTEER EARLY · THE TAIL CARRIES MOMENTUM",
+    highlights: ["BALANCED ROAD GRIP", "STEADY BRAKING", "BALANCED BOOST"],
     stats: { speed: 3, control: 5, drift: 3 },
     modifiers: {
       throttleMultiplier: 1,

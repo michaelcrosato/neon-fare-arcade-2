@@ -4,6 +4,7 @@ import { simulationGearLabel } from "@/game/simulation-vehicle";
 import type { CourierImpact } from "./courier-impact-overlay";
 import { FareImpactOverlay } from "./fare-impact-overlay";
 import { MobileDriveControls } from "./mobile-drive-controls";
+import { TransmissionControls, type TransmissionInputHandler } from "./transmission-controls";
 import { CruiseControl } from "./cruise-control";
 import type { SteeringMode, TouchDriving } from "./runtime/touch-driving";
 
@@ -20,6 +21,7 @@ type Props = {
   onPulseInteraction: () => void;
   onSetMode: (mode: Mode) => void;
   onTouch: PointerEventHandler<HTMLButtonElement>;
+  onTransmissionInput?: TransmissionInputHandler;
 };
 
 function TouchButton({ input, label, children, onTouch }: {
@@ -44,7 +46,7 @@ function walkingDestination(hud: Hud) {
 }
 
 /** Mobile has its own information hierarchy; no mini-map or desktop card stack. */
-export function MobileGameHud({ mode, hud, fareImpact, fareImpactRef, courierImpact, touchDriving, steeringMode, onSetCruise, taxiExitRef, onPulseInteraction, onSetMode, onTouch }: Props) {
+export function MobileGameHud({ mode, hud, fareImpact, fareImpactRef, courierImpact, touchDriving, steeringMode, onSetCruise, taxiExitRef, onPulseInteraction, onSetMode, onTouch, onTransmissionInput }: Props) {
   if (mode !== "playing" && mode !== "countdown") return null;
   const driving = hud.playerMode === "driving";
   const simulation = driving && hud.drivingModel === "simulation";
@@ -60,8 +62,9 @@ export function MobileGameHud({ mode, hud, fareImpact, fareImpactRef, courierImp
     {mode === "playing" && hud.runKind === "free-run" && driving && onSetCruise
       && <CruiseControl hud={hud} onSetSpeed={onSetCruise} joystick={(steeringMode ?? touchDriving.getMode()) === "joystick"} />}
     {fareImpact && <FareImpactOverlay key={fareImpact.id} impact={fareImpact} overlayRef={fareImpactRef} />}
+    <TransmissionControls hud={hud} enabled={mode === "playing"} onTouch={onTouch} onInput={onTransmissionInput} />
     {driving && <MobileDriveControls key={steeringMode ?? touchDriving.getMode()} controller={touchDriving} enabled={mode === "playing"}
-      boost={hud.boost} boosting={hud.boosting} simulation={simulation} />}
+      boost={hud.boost} boosting={hud.boosting} simulation={simulation} manual={hud.vehicleId === "accord-v6" && hud.transmissionMode === "manual"} />}
     <div className="mobile-statusbar">
       <div className="mobile-journey">
         <div className={`mobile-meter ${hud.runKind === "timed" && hud.time <= 10 ? "is-urgent" : ""}`}>
@@ -76,7 +79,7 @@ export function MobileGameHud({ mode, hud, fareImpact, fareImpactRef, courierImp
     </div>
 
     {driving && <div className="speedometer mobile-speed"><strong>{hud.speed}</strong><small>KM/H</small>
-      {simulation && <b>{simulationGearLabel(hud.simulationVehicle.gear)}</b>}</div>}
+      {simulation && hud.vehicleId !== "accord-v6" && <b>{simulationGearLabel(hud.simulationVehicle.gear)}</b>}</div>}
 
     {mode === "playing" && (event || hud.message) && <div className={`mobile-notice ${event ? "is-event" : ""}`} aria-hidden="true">
       <strong>{event?.title ?? hud.message}</strong>{event && <span>{event.detail}</span>}

@@ -1,5 +1,7 @@
 "use client";
 
+import { applyKeyboardInput } from "./runtime/keyboard-input";
+
 import {
   useCallback,
   useEffect,
@@ -30,6 +32,8 @@ import type {
   Camera,
   CameraMode,
   DrivingModel,
+  VehicleId,
+  TransmissionMode,
   DrivingTraitId,
   Game,
   Hud,
@@ -136,6 +140,8 @@ export default function Home() {
   const runResultBankedRef = useRef(false);
   const [mode, setModeState] = useState<Mode>("menu");
   const [pendingRunKind, setPendingRunKind] = useState<RunKind>("timed");
+  const [pendingVehicleId, setPendingVehicleId] = useState<VehicleId>("crown-cab");
+  const [pendingTransmissionMode, setPendingTransmissionMode] = useState<TransmissionMode>("automatic");
   const [pendingDrivingModel, setPendingDrivingModel] = useState<DrivingModel>("arcade");
   const [pendingDrivingTrait, setPendingDrivingTrait] = useState<DrivingTraitId>("street-ace");
   const { steeringMode, setSteeringMode, persistSteeringMode, wheelRange, setWheelRange } = useSteeringSettings(touchDriving);
@@ -461,7 +467,7 @@ export default function Home() {
     setModalParent(null);
     setModal("traits");
     setAudioAnnouncement(drivingModel === "simulation"
-      ? "Simulation Free Run with no timer. Review the Crown Cab specification, then start the simulation."
+      ? "Simulation Free Run with no timer. Choose a vehicle, review its shifting setting, then start the simulation."
       : `${runKind === "free-run" ? "Arcade Free Run with no timer" : "Timed arcade shift"}. Choose Street Ace, Drift Demon, or Redline Rush.`);
     tone(300, 0.08, "square", 520);
   }, [clearInput, ensureAudio, isMobile, tone]);
@@ -480,7 +486,7 @@ export default function Home() {
     uTurnActiveRef.current = false;
     const runKind = pendingRunKind;
     const drivingModel = pendingDrivingModel;
-    const game = makeGame(drivingTraitId, freshRunSeed(), runKind, drivingModel);
+    const game = makeGame(drivingTraitId, freshRunSeed(), runKind, drivingModel, pendingVehicleId, pendingTransmissionMode);
     applyDevelopmentSettings(game, developmentRef.current);
     warmPassengerArt(game.fareJobs);
     runResultBankedRef.current = false;
@@ -497,10 +503,10 @@ export default function Home() {
     setModal(null);
     setMode("countdown");
     setAudioAnnouncement(drivingModel === "simulation"
-      ? "Crown Cab simulation ready. Automatic transmission in drive. Three, two, one."
+      ? `Simulation ready. ${pendingVehicleId === "accord-v6" ? "Accord V6" : "Crown Cab"}, ${game.transmissionMode} shifting. Three, two, one.`
       : `${drivingTraitPackage(drivingTraitId).name} locked in. ${runKind === "free-run" ? "Free Run" : "Arcade shift"} starting. Three, two, one.`);
     tone(420, 0.08, "square", 350);
-  }, [careerRef, clearInput, developmentRef, diagnostics, ensureAudio, isMobile, pendingDrivingModel, pendingRunKind, persistSteeringMode, resetFareCards, setMode, steeringMode, tone, touchDriving, wheelRange]);
+  }, [careerRef, clearInput, developmentRef, diagnostics, ensureAudio, isMobile, pendingDrivingModel, pendingVehicleId, pendingTransmissionMode, pendingRunKind, persistSteeringMode, resetFareCards, setMode, steeringMode, tone, touchDriving, wheelRange]);
 
   const selectDriverTrait = useCallback((drivingTraitId: DrivingTraitId) => {
     setPendingDrivingTrait(drivingTraitId);
@@ -750,7 +756,7 @@ export default function Home() {
       const first = (modal === "traits" || modal === "steering")
         ? dialog?.querySelector<HTMLElement>("[data-modal-autofocus='true']")
         : dialog?.querySelector<HTMLElement>(focusableSelector);
-      (first ?? dialog)?.focus();
+      (first ?? dialog)?.focus({ preventScroll: modal === "traits" });
     });
     const onModalKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape" && !event.repeat) {
@@ -793,28 +799,7 @@ export default function Home() {
           || (key === " " && event.target.closest("button")))) return;
       if (["arrowup", "arrowdown", "arrowleft", "arrowright", " "].includes(key)) event.preventDefault();
       const walkingNow = !isDriving(gameRef.current);
-      if (key === "w" || key === "arrowup") inputRef.current.up = pressed;
-      if (key === "s" || key === "arrowdown") inputRef.current.down = pressed;
-      if (key === "a" || key === "arrowleft") inputRef.current.left = pressed;
-      if (key === "d" || key === "arrowright") inputRef.current.right = pressed;
-      if (key === " ") {
-        if (!pressed) {
-          inputRef.current.boost = false;
-          inputRef.current.jump = false;
-        } else if (walkingNow) {
-          inputRef.current.boost = false;
-          inputRef.current.jump = true;
-        } else {
-          inputRef.current.jump = false;
-          inputRef.current.boost = true;
-        }
-      }
-      if (key === "shift") inputRef.current.sprint = pressed;
-      if (key === "control") inputRef.current.crouch = pressed;
-      if (key === "c") {
-        inputRef.current.crouch = walkingNow ? pressed : false;
-      }
-      if (key === "e" && !event.repeat) inputRef.current.interact = pressed && modeRef.current === "playing" && modal === null;
+      applyKeyboardInput(inputRef.current, key, pressed, walkingNow, event.repeat, modeRef.current === "playing");
       if (!pressed || event.repeat) return;
       if ((key === "p" || key === "escape") && modal === null) {
         if (modeRef.current === "playing") {
@@ -848,6 +833,10 @@ export default function Home() {
     event.currentTarget.toggleAttribute("data-held", active);
     if (active && key === "jump") jumpPulseRef.current = true;
     if (active) event.currentTarget.setPointerCapture?.(event.pointerId);
+  }, []);
+
+  const handleTransmissionInput = useCallback((key: "clutch" | "shiftUp" | "shiftDown", active: boolean) => {
+    inputRef.current[key] = active && modeRef.current === "playing";
   }, []);
 
   const pulseInteraction = useCallback(() => {
@@ -928,6 +917,7 @@ export default function Home() {
           onPulseInteraction={pulseInteraction}
           onSetMode={setMode}
           onTouch={handleTouch}
+          onTransmissionInput={handleTransmissionInput}
           touchDriving={touchDriving}
           steeringMode={steeringMode}
           onSetCruise={setCruise}
@@ -967,6 +957,10 @@ export default function Home() {
         mode={mode}
         pendingRunKind={pendingRunKind}
         pendingDrivingModel={pendingDrivingModel}
+        pendingVehicleId={pendingVehicleId}
+        pendingTransmissionMode={pendingTransmissionMode}
+        onSelectVehicle={setPendingVehicleId}
+        onSelectTransmission={setPendingTransmissionMode}
         hud={hud}
         career={career}
         records={records}

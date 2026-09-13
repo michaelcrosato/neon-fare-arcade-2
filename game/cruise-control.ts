@@ -2,13 +2,13 @@ import { SPEED_KMH_PER_WORLD_UNIT } from "./config";
 import { drivingTraitPackage } from "./driving-traits";
 import { clamp } from "./math";
 import type { CruisePedals, Game, InputState } from "./model";
-import { CROWN_TAXI_SPECS } from "./simulation-vehicle";
+import { simulationVehicleSpecs } from "./simulation-vehicle";
 
 export const MIN_CRUISE_KMH = 10;
 
-export function cruiseSpeedLimit(game: Pick<Game, "drivingModel" | "drivingTraitId">) {
+export function cruiseSpeedLimit(game: Pick<Game, "drivingModel" | "drivingTraitId" | "vehicleId">) {
   return Math.floor(game.drivingModel === "simulation"
-    ? CROWN_TAXI_SPECS.governedTopSpeedMps * 3.6
+    ? simulationVehicleSpecs(game.vehicleId).governedTopSpeedMps * 3.6
     : drivingTraitPackage(game.drivingTraitId).modifiers.maxForwardSpeed * SPEED_KMH_PER_WORLD_UNIT);
 }
 
@@ -33,6 +33,7 @@ export function stepCruiseControl(game: Game, input: Readonly<InputState>, dt: n
   const cruise = game.cruiseControl;
   if (!cruise) return null;
   if (game.runKind !== "free-run" || game.player.kind !== "driving" || (input.down && !input.brakePreservesCruise)
+    || (game.vehicleId === "accord-v6" && (input.clutch || game.transmission.stuck || game.transmission.gear <= 0))
     || game.simulationVehicle.overturned || (game.drivingModel === "simulation" && input.boost)) {
     cancelCruiseControl(game);
     return null;

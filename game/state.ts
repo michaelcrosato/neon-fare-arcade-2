@@ -26,7 +26,9 @@ import {
   createFareMarket,
 } from "./fare-market";
 import { mulberry32, rightHandTrafficLane } from "./math";
-import type { DrivingModel, DrivingTraitId, Game, RunKind, TrafficCar } from "./model";
+import type { DrivingModel, DrivingTraitId, Game, RunKind, TrafficCar, VehicleId, TransmissionMode } from "./model";
+import { DEFAULT_VEHICLE_ID } from "./vehicles";
+import { makeManualTransmission } from "./manual-transmission";
 import { makeSimulationVehicleState } from "./simulation-vehicle";
 import { sampleSpecialRoad, specialRoadLength } from "./road-network";
 import { containingRegionForPosition } from "./regions";
@@ -116,6 +118,8 @@ export function makeGame(
   runSeed = DEFAULT_FARE_RUN_SEED,
   runKind: RunKind = "timed",
   requestedDrivingModel: DrivingModel = "arcade",
+  vehicleId: VehicleId = DEFAULT_VEHICLE_ID,
+  transmissionMode: TransmissionMode = "automatic",
 ): Game {
   const drivingTrait = drivingTraitPackage(drivingTraitId);
   const drivingModel: DrivingModel = runKind === "free-run" ? requestedDrivingModel : "arcade";
@@ -139,7 +143,10 @@ export function makeGame(
     brakeDriftCooldown: 0,
     drivingTraitId,
     drivingModel,
-    simulationVehicle: makeSimulationVehicleState(),
+    vehicleId,
+    transmissionMode: vehicleId === "accord-v6" ? transmissionMode : "automatic",
+    transmission: makeManualTransmission(),
+    simulationVehicle: makeSimulationVehicleState(vehicleId),
     runKind,
     cruiseControl: null,
     timeLeft: RUN_TIME,

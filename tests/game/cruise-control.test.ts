@@ -106,3 +106,17 @@ test("arcade boost overrides cruise without cancelling the set speed", () => {
   assert.equal(Math.round(game.cruiseControl!.speed * SPEED_KMH_PER_WORLD_UNIT), 60);
   assert.ok(Math.abs(drive(game, 20) - 60) < 1);
 });
+
+test("clutch input cancels cruise only for the Accord's six-speed gearbox", () => {
+  for (const model of ["arcade", "simulation"] as const) {
+    const crown = cab(model);
+    const accord = makeGame("street-ace", 42, "free-run", model, "accord-v6");
+    accord.traffic = [];
+    for (const game of [crown, accord]) {
+      setCruiseControl(game, 30);
+      drive(game, 0.1, { ...TEST_IDLE_INPUT, clutch: true });
+    }
+    assert.notEqual(crown.cruiseControl, null, "Shift has no clutch function in the automatic Crown");
+    assert.equal(accord.cruiseControl, null, "pressing the Accord clutch disengages cruise");
+  }
+});

@@ -7,7 +7,7 @@ import { applyDevelopmentSettings, developmentTimeScale } from "../../game/devel
 import { makeGame } from "../../game/state";
 
 test("a paused playtest steps exactly once and a seeded restart reproduces its six fares", () => {
-  const game = makeGame("street-ace", 271, "free-run");
+  const game = makeGame("street-ace", 271, "free-run", "arcade", "accord-v6", "manual");
   const career = makeCareerState();
   applyDevelopmentSettings(game, { enabled: true, timeScale: .5 });
   assert.equal(developmentTimeScale(game), .5);
@@ -20,6 +20,8 @@ test("a paused playtest steps exactly once and a seeded restart reproduces its s
   assert.equal(first.game.elapsed, 0);
   assert.equal(first.game.drivingModel, game.drivingModel);
   assert.equal(first.game.runKind, game.runKind);
+  assert.equal(first.game.vehicleId, "accord-v6");
+  assert.equal(first.game.transmissionMode, "manual");
   assert.equal(first.game.playtest, true);
   assert.deepEqual(first.game.fareJobs, second.game.fareJobs);
   assert.deepEqual(first.game.development, game.development);

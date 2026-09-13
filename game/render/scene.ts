@@ -54,6 +54,7 @@ import { vehicleGroundShadow } from "./lighting";
 import { placeBoxesOnRoad, type RoadPose } from "./road-pose";
 import { groundAt } from "../vehicle-road-contact";
 import { roadLanePose } from "../road-lanes";
+import { addAccordBoxes } from "./accord";
 import { towTruckBoxes } from "./tow-truck";
 
 export function taxiRoadPose(game: Game): RoadPose {
@@ -257,7 +258,7 @@ export function cabInteriorBoxes(game: Game) {
   };
 
   add(0.84, 0, 1.2, 0.72, 1.9, 0.32, INK, { tilt: -0.08 });
-  add(1.35, 0, 1.01, 1.35, 1.94, 0.16, YELLOW, { tilt: -0.03 });
+  add(1.35, 0, 1.01, 1.35, 1.94, 0.16, game.vehicleId === "accord-v6" ? WHITE : YELLOW, { tilt: -0.03 });
   add(0.45, -0.88, 1.69, 0.18, 0.16, 1.05, INK, { tilt: -0.16 });
   add(0.45, 0.88, 1.69, 0.18, 0.16, 1.05, INK, { tilt: 0.16 });
   add(0.39, 0, 2.09, 0.2, 1.92, 0.16, INK);
@@ -361,7 +362,8 @@ export function taxiBoxes(game: Game, options: { includeGroundShadow?: boolean }
   const boxes: Box[] = [];
   if (options.includeGroundShadow !== false) boxes.push(taxiGroundShadow(game)!);
   const vehicleStart = boxes.length;
-  if (game.drivingModel === "simulation") addCrownTaxiBoxes(boxes, game);
+  if (game.vehicleId === "accord-v6") addAccordBoxes(boxes, game, crownVehiclePointPose);
+  else if (game.drivingModel === "simulation") addCrownTaxiBoxes(boxes, game);
   else addCarBoxes(boxes, game.x, game.y, game.heading, YELLOW, true, false, game.steering);
   if (game.activeCourier?.stage === "dropoff" && game.activeCourier.loadedInTaxi) {
     const parcel = game.drivingModel === "simulation"

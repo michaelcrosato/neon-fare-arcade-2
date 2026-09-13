@@ -808,3 +808,15 @@
   color: #fff;
   opacity: 0.8;
 }
+
+.transmission-controls { position: absolute; z-index: 27; bottom: 24px; left: 100px; padding: 9px; background: #151915ee; color: var(--paper); border: 2px solid #a7b0a0; border-radius: 8px; pointer-events: auto; font: 800 12px/1.2 "Barlow Condensed", sans-serif; }
+.transmission-controls__status { display: flex; align-items: center; gap: 9px; padding: 0 2px 6px; }
+.transmission-controls__status > b { font-size: 30px; min-width: 20px; color: var(--yellow); }
+.transmission-controls__status small { display: block; font-size: 10px; margin-top: 3px; }
+.transmission-controls__buttons { display: flex; gap: 5px; }
+.transmission-controls button { min-width: 44px; min-height: 46px; padding: 6px 10px; background: #e9ebdf; color: #171b19; font: 900 14px "Barlow Condensed", sans-serif; border-radius: 4px; border: 2px solid #9ea297; touch-action: none; cursor: pointer; }
+.transmission-controls button[data-held] { background: var(--yellow); transform: translateY(2px); }
+.transmission-controls button:disabled { opacity: .5; cursor: default; }
+.transmission-controls__keys { display: block; margin-top: 5px; font-size: 10px; }
+.transmission-controls.is-stuck { border-color: #ff794e; background: #431a13f5; }
+.transmission-controls.is-stuck .transmission-controls__status small { color: #ffae7a; }

@@ -112,8 +112,11 @@ updates the arcade launch, steering, road elevation and contact rules below.
   Cruise starts off on every run and is unavailable in Arcade Shift or on foot.
 
 - The menu offers Arcade Shift, Arcade Free Run, and Simulation Free Run.
-  Arcade modes open the same three-package driver draft. Simulation Free Run
-  opens the Crown Cab specification instead and never exposes arcade traits.
+  Every mode offers the RWD Crown Cab, the white FWD 2015 Accord Coupe V6,
+  and an empty third garage bay. Arcade modes also offer the same three-package
+  driver draft; Simulation never exposes arcade traits. The Accord defaults to
+  automatic shifting in every mode, with Manual selectable on its card. See
+  `docs/vehicles.md` for six-speed, winter-tire and sticky-clutch contracts.
   Run kind and driving model are orthogonal, run-scoped selections, but the
   simulation model is authoritatively normalized back to arcade for timed runs.
 - Street Ace uses the shared responsive arcade launch, braking, steering and
@@ -134,8 +137,11 @@ updates the arcade launch, steering, road elevation and contact rules below.
   shifts, engine RPM, nonlinear front/rear tire slip, load-sensitive friction
   circles, longitudinal/lateral load transfer, yaw inertia, low-speed bicycle
   behavior, sprung pitch/roll, wheel lift, and rollover are fixed-step state. W
-  selects drive; S first applies the service brake and engages reverse only
-  after being held through a complete stop. Space is the rear parking brake.
+  selects drive in Automatic; S first applies the service brake and engages reverse only
+  after being held through a complete stop. With the Accord in Manual, Shift
+  operates the clutch, Z/X select R–N–1–6 with the clutch held, W applies gas
+  in the selected direction, and S only brakes. Launch assistance prevents
+  stalling. Space is the rear parking brake.
   Simulation has no boost, brake-kick, arcade drift charge, or drift scoring.
   Engine governors limit drive force, never the momentum of a backward slide.
   Low-speed handling blends from total planar speed, not forward speed alone.
@@ -171,7 +177,10 @@ updates the arcade launch, steering, road elevation and contact rules below.
   controllable signed slip angle rather than a binary grip swap. Slide intensity,
   yaw, tire grip, smoke, drift charge, and drift score scale with that angle and
   speed. Releasing steering restores grip; countersteering restores it faster
-  and actively pulls the taxi back into line.
+  and pulls the taxi back into line. The vehicle update deliberately reduces
+  yaw damping: rotation carries through a correction and produces alternating
+  tail swings before settling. The RWD cab opens wider power slides; the FWD
+  Accord pulls wide on throttle and rotates on lift-off or braking.
 - A 50 ms steering tap reaches about half lock; a 300 ms hold reaches full lock.
   Rotation follows a damped yaw rate, while countersteer responds faster than
   ordinary steering. Acceleration/braking and lateral load drive bounded body

@@ -159,8 +159,9 @@ test("free run supports exploration, GPS, driving, pause, and copyable replay di
 test("Simulation Free Run selects the Crown cab and exposes real powertrain controls", async ({ page }) => {
   await page.goto("/?diagnostics=1");
   await page.getByRole("button", { name: /Start Simulation Free Run/i }).click();
-  const specification = page.getByRole("dialog", { name: /CROWN CAB/i });
-  await expect(specification).toContainText("1,900 KG");
+  const specification = page.getByRole("dialog", { name: "CHOOSE YOUR VEHICLE", exact: true });
+  await expect(specification.getByRole("button", { name: "Select Crown Cab ’96", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(specification).toContainText("1,900 kg");
   await specification.getByRole("button", { name: /Start Simulation Free Run/i }).click();
   await expect(page.getByRole("button", { name: "Pause game" })).toBeVisible({ timeout: SCENE_START_TIMEOUT });
   await expect(page.locator('button[aria-label="Parking brake"]')).toHaveCount(1);

@@ -70,7 +70,7 @@ test("fixed-step arcade replay has a stronger launch and preserves reverse while
   assert.ok(steering.speed > 16);
   assert.ok(steering.boost > 45);
   assert.equal(steering.drifting, true);
-  assert.ok(steering.driftIntensity > 0.1 && steering.driftIntensity < 0.3);
+  assert.ok(steering.driftIntensity > 0.3 && steering.driftIntensity < 0.65);
   assert.ok(Math.abs(steering.driftAngle) > 0);
   assert.ok(steering.driftBank > 0);
 
@@ -152,7 +152,7 @@ test("drift intensity and slip scale with speed and held turning angle", () => {
   const held = slide(40, 18);
   assert.ok(tap.steering > 0.45 && tap.steering < 0.55, "a 50 ms tap reaches half lock");
   assert.ok(held.steering > 0.98, "a 300 ms hold reaches full lock");
-  assert.ok(held.driftIntensity > tap.driftIntensity * 6);
+  assert.ok(held.driftIntensity > tap.driftIntensity * 5);
   assert.ok(Math.abs(held.driftAngle) > Math.abs(tap.driftAngle) * 20);
 });
 
@@ -364,7 +364,7 @@ test("countersteering catches a slide faster than holding the turn", () => {
     stepGame(continued, { ...IDLE_INPUT, up: true, right: true }, FIXED_DT, EMPTY_WORLD, () => 1);
   }
   assert.ok(counter.driftIntensity < continued.driftIntensity * 0.35);
-  assert.ok(Math.abs(counter.driftAngle) < Math.abs(continued.driftAngle) * 0.25);
+  assert.ok(Math.abs(counter.driftAngle) < Math.abs(continued.driftAngle) * 0.4);
 });
 
 test("four-lane corridors keep the same normal and boosted speed as ordinary streets", () => {

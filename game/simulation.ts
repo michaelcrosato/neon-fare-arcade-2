@@ -36,6 +36,9 @@ import {
 } from "./fare-selection";
 import { passengerDistanceQuote } from "./fare-market";
 import { scheduleSixthFareTransfer } from "./regional-fares";
+import { SPEED_KMH_PER_WORLD_UNIT } from "./config";
+import { vehicleDefinition } from "./vehicles";
+import { accordCoupledRpm, clutchConnected, stepManualTransmission } from "./manual-transmission";
 import { drivingTraitPackage } from "./driving-traits";
 import {
   clamp,
@@ -282,6 +285,11 @@ export function stepGame(
       lastSafePose = { x: game.x, y: game.y, heading: game.heading };
     }
   } else {
+  stepManualTransmission(game, controlInput, dt);
+  const vehicle = vehicleDefinition(game.vehicleId).arcade;
+  const accord = game.vehicleId === "accord-v6";
+  const manual = accord && game.transmissionMode === "manual";
+  const connected = clutchConnected(game);
   const forwardX = Math.cos(game.heading);
   const forwardY = Math.sin(game.heading);
   const rightX = -forwardY;
@@ -306,15 +314,22 @@ export function stepGame(
 
   const groundTraction = game.roadMotion.grounded ? 1 : 0.08;
   const launchAcceleration = 20 + 3.5 * (1 - clamp(Math.abs(forwardSpeed) / 24, 0, 1));
-  if (throttle) forwardSpeed += launchAcceleration * drivingTrait.throttleMultiplier * groundTraction * throttle * dt;
+  const gear = game.transmission.gear;
+  const rpm = accordCoupledRpm(forwardSpeed * SPEED_KMH_PER_WORLD_UNIT / 3.6, gear);
+  const gearPull = manual ? [0, 1.12, 1, 0.88, 0.76, 0.66, 0.58][Math.max(1, gear)] * clamp((6900 - rpm) / 300, 0, 1) : 1;
+  if (throttle && connected && !(accord && !manual && gear < 0)) forwardSpeed += launchAcceleration * drivingTrait.throttleMultiplier
+    * vehicle.acceleration * gearPull * (manual && gear === -1 ? -0.5 : 1) * groundTraction * throttle * dt;
+  if (accord && !manual && gear < 0 && throttle) forwardSpeed = Math.min(0, forwardSpeed + 34 * groundTraction * throttle * dt);
   if (brake) {
-    if (forwardSpeed > 1) forwardSpeed -= 34 * drivingTrait.brakingMultiplier * groundTraction * brake * dt;
-    else forwardSpeed -= (game.collisionCooldown > 0 ? 16 : 9) * brake * dt;
+    if (manual || (accord && !connected)) forwardSpeed -= Math.sign(forwardSpeed) * Math.min(Math.abs(forwardSpeed), 34 * drivingTrait.brakingMultiplier * groundTraction * brake * dt);
+    else if (forwardSpeed > 1) forwardSpeed -= 34 * drivingTrait.brakingMultiplier * groundTraction * brake * dt;
+    else if (accord && gear !== -1) forwardSpeed = Math.max(0, forwardSpeed - 34 * groundTraction * brake * dt);
+    else if (connected) forwardSpeed -= (game.collisionCooldown > 0 ? 16 : 9) * brake * dt;
   }
 
-  game.boosting = controlInput.boost && game.boost > 0 && forwardSpeed > 3;
+  game.boosting = controlInput.boost && connected && (!manual || gear > 0) && game.boost > 0 && forwardSpeed > 3;
   if (game.boosting) {
-    forwardSpeed += 24 * drivingTrait.boostAccelerationMultiplier * (game.roadMotion.grounded ? 1 : 0.35) * dt;
+    forwardSpeed += 24 * drivingTrait.boostAccelerationMultiplier * (manual ? clamp((6900 - rpm) / 300, 0, 1) : 1) * (game.roadMotion.grounded ? 1 : 0.35) * dt;
     const coolerDrain = hasRunUpgrade(game, "boost-cooler") ? BOOST_COOLER_DRAIN_MULTIPLIER : 1;
     game.boost = Math.max(0, game.boost - 30 * drivingTrait.boostDrainMultiplier * coolerDrain * dt);
   }
@@ -352,18 +367,19 @@ export function stepGame(
     forwardSpeed *= 1 - Math.abs(game.brakeDriftKick) * 0.015;
     brakeKickTriggered = true;
   }
-  const driftIntent = throttle
+  const driftIntent = clamp((throttle * vehicle.powerSlide + (1 - throttle) * vehicle.liftSlide * Math.max(game.driftIntensity, brake * 0.8))
     * steeringCommitment
     * driftSpeedFactor
-    * (counterSteering ? 0.3 : 1);
+    * (counterSteering ? 0.3 : 1), 0, 1);
   const steeringDriftIntensity = Math.max(game.driftIntensity, driftIntent);
   let steerStrength = clamp(Math.abs(forwardSpeed) / 4, 0, 1) * (1 - speedRatio * 0.42);
   const steeringDirection = steer * Math.sign(forwardSpeed || 1);
   const recoverySteerStrength = Math.max(steerStrength, 0.5);
-  const traitSteering = drivingTrait.steeringMultiplier
+  const traitSteering = drivingTrait.steeringMultiplier * vehicle.steering
+    * (accord ? 1 - throttle * driftSpeedFactor * 0.16 : 1)
     * (1 + (drivingTrait.driftSteeringMultiplier - 1) * steeringDriftIntensity);
   const driftYawScale = 1
-    + steeringDriftIntensity * (0.21 + driftSpeedFactor * 0.5);
+    + steeringDriftIntensity * (0.3 + driftSpeedFactor * 0.65);
   const highSpeedBrakeKickFactor = clamp((Math.abs(forwardSpeed) - 38) / 14, 0, 1);
   const brakeKickYawRate = game.brakeDriftKick
     * (1.45 + highSpeedBrakeKickFactor * 0.4);
@@ -388,7 +404,7 @@ export function stepGame(
     * dt
     + brakeKickYawRate * traitSteering * dt;
   const catchAssist = steerInput === 0 && game.roadMotion.grounded
-    ? game.driftAngle * game.driftIntensity * 1.2 * dt : 0;
+    ? game.driftAngle * game.driftIntensity * 3.8 * vehicle.yawRecovery * dt : 0;
   const headingDelta = arcadeHeadingDelta(game, requestedHeadingDelta + catchAssist, dt, counterSteering);
   const previousHeading = game.heading;
   const steeringPose = collisionSafeSteeringPose(world, game.x, game.y, game.heading, headingDelta, game.z);
@@ -420,15 +436,15 @@ export function stepGame(
     + lateralSpeed * Math.cos(appliedHeadingDelta);
   const inertiaBlend = clamp(
     steeringDriftIntensity
-      * (0.25 + driftSpeedFactor * 0.46)
+      * (0.42 + driftSpeedFactor * 0.6)
       * (counterSteering ? 0.65 : 1),
     0,
-    0.76,
+    0.92,
   ) + effectiveBrakeKick * 0.2;
   const cappedInertiaBlend = clamp(
     game.roadMotion.grounded ? inertiaBlend : 1,
     0,
-    game.roadMotion.grounded ? 0.86 : 1,
+    game.roadMotion.grounded ? 0.94 : 1,
   );
   forwardSpeed += (inertialForwardSpeed - forwardSpeed) * cappedInertiaBlend;
   lateralSpeed += (inertialLateralSpeed - lateralSpeed) * cappedInertiaBlend;
@@ -439,7 +455,7 @@ export function stepGame(
   );
   const driftAngleFactor = clamp(Math.abs(rawDriftAngle) / (Math.PI / 5), 0, 1);
   let targetDriftIntensity = Math.max(
-    effectiveDriftIntent * 0.72,
+    effectiveDriftIntent * 0.86,
     effectiveBrakeKick * (0.55 + driftSpeedFactor * 0.45),
     driftSpeedFactor * driftAngleFactor * (steeringCommitment > 0 ? 1 : 0.45),
   );
@@ -450,7 +466,7 @@ export function stepGame(
       ? 12
       : steeringCommitment > 0
         ? 4.5
-        : 6.5;
+        : 2.5;
   game.driftIntensity += (targetDriftIntensity - game.driftIntensity)
     * (1 - Math.exp(-driftResponse * dt));
   game.driftIntensity = clamp(game.driftIntensity, 0, 1);
@@ -458,17 +474,17 @@ export function stepGame(
     && game.driftIntensity > 0.1
     && (effectiveDriftIntent > 0.12 || effectiveBrakeKick > 0.08 || driftAngleFactor > 0.08);
 
-  const roadGrip = 8.5 * drivingTrait.roadGripMultiplier;
-  const slideGrip = 2.42 * drivingTrait.driftGripMultiplier;
+  const roadGrip = 7.2 * drivingTrait.roadGripMultiplier;
+  const slideGrip = 1.25 * drivingTrait.driftGripMultiplier * vehicle.slideGrip;
   let gripMix = clamp(
-    game.driftIntensity * (0.4 + driftAngleFactor * 0.6)
+    game.driftIntensity * (0.58 + driftAngleFactor * 0.55)
       + effectiveDriftIntent * 0.15
       + effectiveBrakeKick * 0.26,
     0,
     1,
   );
   if (counterSteering) gripMix *= 0.58;
-  if (steeringCommitment === 0) gripMix *= 0.72;
+  if (steeringCommitment === 0) gripMix *= 0.92;
   const grip = (roadGrip + (slideGrip - roadGrip) * gripMix) * groundTraction;
   lateralSpeed *= Math.exp(-grip * dt);
   game.driftAngle = Math.atan2(

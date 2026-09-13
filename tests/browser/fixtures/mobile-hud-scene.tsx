@@ -53,7 +53,7 @@ function render(scenario: Scenario) {
 
 function renderModal(modal: "home" | "gas" | "courier" | "how" | "traits" | "scores") {
   flushSync(() => root.render(<GameModalHost modal={modal} modalParent={null} mode="paused"
-    pendingRunKind="free-run" pendingDrivingModel="arcade" hud={EMPTY_HUD} career={makeCareerState()} records={[]}
+    pendingRunKind="free-run" pendingDrivingModel="arcade" pendingVehicleId="crown-cab" pendingTransmissionMode="automatic" onSelectVehicle={noop} onSelectTransmission={noop} hud={EMPTY_HUD} career={makeCareerState()} records={[]}
     mapNotice="" homeNotice="" courierNotice="" gasNotice=""
     development={{ settings: normalizeDevelopmentSettings(null), activeRun: false, notice: "", onChange: noop, onAction: noop }}
     dialogRef={createRef()} onClose={noop} onBeginRun={noop} onSelectDestination={noop}

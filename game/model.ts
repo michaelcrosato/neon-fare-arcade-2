@@ -7,7 +7,20 @@ export type DrivingTraitId = "street-ace" | "drift-demon" | "redline-rush";
 export type RunKind = "timed" | "free-run";
 /** Arcade handling remains the default. Simulation is intentionally Free Run-only. */
 export type DrivingModel = "arcade" | "simulation";
-export type SimulationGear = -1 | 0 | 1 | 2 | 3 | 4;
+export type VehicleId = "crown-cab" | "accord-v6";
+export type TransmissionMode = "automatic" | "manual";
+export type SimulationGear = -1 | 0 | 1 | 2 | 3 | 4 | 5 | 6;
+export type ManualTransmissionState = {
+  gear: SimulationGear;
+  clutchHeld: boolean;
+  shiftUpHeld: boolean;
+  shiftDownHeld: boolean;
+  stuck: boolean;
+  pumpsRemaining: number;
+  engagements: number;
+  cooldown: number;
+  reverseHold: number;
+};
 
 /**
  * Fixed-step powertrain and chassis state for the simulation taxi. Speeds are
@@ -612,6 +625,8 @@ export type VehicleRoadMotion = {
 
 export type ArcadeVehicleState = {
   yawRate: number;
+  /** Stored tire/chassis rotation response; low damping permits a tail rebound. */
+  yawAcceleration: number;
   bodyPitch: number;
   pitchRate: number;
   bodyRoll: number;
@@ -649,6 +664,9 @@ export type Game = {
   drivingTraitId: DrivingTraitId;
   /** Selects the isolated vehicle dynamics implementation for this run. */
   drivingModel: DrivingModel;
+  vehicleId: VehicleId;
+  transmissionMode: TransmissionMode;
+  transmission: ManualTransmissionState;
   /** Always initialized so deterministic diagnostics can switch models safely. */
   simulationVehicle: SimulationVehicleState;
   /** Timed score attack or an untimed, player-ended city session. */
@@ -768,7 +786,11 @@ export type Hud = {
   speed: number;
   drivingTraitId: DrivingTraitId;
   drivingModel: DrivingModel;
+  vehicleId: VehicleId;
+  transmissionMode: TransmissionMode;
+  transmission: ManualTransmissionState;
   simulationVehicle: SimulationVehicleState;
+  vehicleRpm: number;
   runKind: RunKind;
   cruiseSpeed: number | null;
   cruiseMaxSpeed: number;
@@ -863,6 +885,10 @@ export type InputState = {
   left: boolean;
   right: boolean;
   boost: boolean;
+  /** Held clutch and edge-triggered sequential shifts for the Accord. */
+  clutch?: boolean;
+  shiftUp?: boolean;
+  shiftDown?: boolean;
   /** A joystick brake/reverse gesture temporarily overrides cruise without disengaging it. */
   brakePreservesCruise?: boolean;
   /** Optional proportional taxi steering, normalized from -1 (left) to 1 (right). */

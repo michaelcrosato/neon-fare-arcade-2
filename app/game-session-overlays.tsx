@@ -1,5 +1,6 @@
 import { CAMERA_DISTANCE_SCALES, CAMERA_OPTIONS, type CameraDistanceScale } from "@/game/config";
 import { drivingTraitPackage } from "@/game/driving-traits";
+import { vehicleDefinition } from "@/game/vehicles";
 import { rankFor } from "@/game/math";
 import type {
   CameraMode,
@@ -70,7 +71,7 @@ export function GameSessionOverlays({
       {mode === "countdown" && (
         <div className="countdown" aria-live="assertive">
           <small>{hud.drivingModel === "simulation" ? "SIMULATION FREE RUN" : hud.runKind === "free-run" ? "FREE RUN · NO TIMER" : "DRIVER PACKAGE"}</small>
-          <b>{hud.drivingModel === "simulation" ? "CROWN CAB ’96" : drivingTraitPackage(hud.drivingTraitId).name}</b>
+          <b>{hud.drivingModel === "simulation" ? vehicleDefinition(hud.vehicleId).shortName : `${vehicleDefinition(hud.vehicleId).shortName} · ${drivingTraitPackage(hud.drivingTraitId).name}`}</b>
           <span>{Math.ceil(Math.max(0, hud.countdown)) || "GO!"}</span>
         </div>
       )}

@@ -29,6 +29,9 @@ const INPUT_BITS = {
   crouch: 1 << 7,
   interact: 1 << 8,
   brakePreservesCruise: 1 << 9,
+  clutch: 1 << 10,
+  shiftUp: 1 << 11,
+  shiftDown: 1 << 12,
 } as const;
 
 export type DiagnosticStreamContext = Readonly<{
@@ -129,7 +132,10 @@ export function encodeDiagnosticInput(input: Readonly<InputState>) {
     | (input.jump ? INPUT_BITS.jump : 0)
     | (input.crouch ? INPUT_BITS.crouch : 0)
     | (input.interact ? INPUT_BITS.interact : 0)
-    | (input.brakePreservesCruise ? INPUT_BITS.brakePreservesCruise : 0);
+    | (input.brakePreservesCruise ? INPUT_BITS.brakePreservesCruise : 0)
+    | (input.clutch ? INPUT_BITS.clutch : 0)
+    | (input.shiftUp ? INPUT_BITS.shiftUp : 0)
+    | (input.shiftDown ? INPUT_BITS.shiftDown : 0);
 }
 
 export function decodeDiagnosticInput(mask: number, steer?: number): InputState {
@@ -145,6 +151,9 @@ export function decodeDiagnosticInput(mask: number, steer?: number): InputState 
     crouch: Boolean(mask & INPUT_BITS.crouch),
     interact: Boolean(mask & INPUT_BITS.interact),
     brakePreservesCruise: Boolean(mask & INPUT_BITS.brakePreservesCruise),
+    ...(mask & INPUT_BITS.clutch ? { clutch: true } : {}),
+    ...(mask & INPUT_BITS.shiftUp ? { shiftUp: true } : {}),
+    ...(mask & INPUT_BITS.shiftDown ? { shiftDown: true } : {}),
   };
 }
 
