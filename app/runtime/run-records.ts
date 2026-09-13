@@ -22,6 +22,9 @@ export function normalizeRunRecords(raw: unknown): RunRecord[] {
       deliveries: row.deliveries,
       rank: row.rank,
       date: row.date,
+      ...(row.stunts && [row.stunts.driftTotalMeters, row.stunts.driftBestMeters, row.stunts.airTotalMeters, row.stunts.airBestMeters].every(isNonnegativeNumber)
+        ? { stunts: { driftTotalMeters: row.stunts.driftTotalMeters, driftBestMeters: row.stunts.driftBestMeters,
+          airTotalMeters: row.stunts.airTotalMeters, airBestMeters: row.stunts.airBestMeters } } : {}),
     });
     if (records.length === 5) break;
   }

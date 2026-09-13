@@ -3,7 +3,7 @@ import { build } from "esbuild";
 import type { CameraMode } from "../../game/model";
 import type {} from "./fixtures/guidance-scene";
 import { SCENE_TEST_TIMEOUT, WEBGPU_TEST_OPTIONS } from "./browser-options";
-import { lockSteeringIfPrompted } from "./start-helpers";
+import { confirmVehicle, lockSteeringIfPrompted } from "./start-helpers";
 import { openScenePage } from "./scene-page";
 
 test.use(WEBGPU_TEST_OPTIONS);
@@ -61,6 +61,7 @@ for (const viewport of [{ width: 320, height: 568 }, { width: 1280, height: 800 
     await page.addInitScript(() => Object.defineProperty(navigator, "gpu", { configurable: true, value: undefined }));
     await page.goto("/?diagnostics=1");
     await page.getByRole("button", { name: /Start Free Run with arcade/ }).click();
+    await confirmVehicle(page);
     await page.getByRole("button", { name: /Choose STREET ACE/ }).click();
     await lockSteeringIfPrompted(page);
     await expect(page.getByRole("button", { name: "Pause game" })).toBeEnabled();

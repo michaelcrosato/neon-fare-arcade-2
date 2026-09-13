@@ -51,12 +51,12 @@ function render(scenario: Scenario) {
   </section></main>));
 }
 
-function renderModal(modal: "home" | "gas" | "courier" | "how" | "traits" | "scores") {
+function renderModal(modal: "home" | "gas" | "courier" | "how" | "vehicles" | "traits" | "steering" | "scores") {
   flushSync(() => root.render(<GameModalHost modal={modal} modalParent={null} mode="paused"
     pendingRunKind="free-run" pendingDrivingModel="arcade" pendingVehicleId="crown-cab" pendingTransmissionMode="automatic" onSelectVehicle={noop} onSelectTransmission={noop} hud={EMPTY_HUD} career={makeCareerState()} records={[]}
     mapNotice="" homeNotice="" courierNotice="" gasNotice=""
     development={{ settings: normalizeDevelopmentSettings(null), activeRun: false, notice: "", onChange: noop, onAction: noop }}
-    dialogRef={createRef()} onClose={noop} onBeginRun={noop} onSelectDestination={noop}
+    dialogRef={createRef()} onClose={noop} onConfirmVehicle={noop} onBeginRun={noop} onSelectDestination={noop}
     onRemoveDestination={noop} onToggleFareDispatch={noop} onPurchaseHomeItem={noop}
     onRechargeAtHome={noop} onOpenHomeSubview={noop} onPurchaseGasOffer={noop}
     onTakeCourierContract={() => { throw new Error("Layout fixture only"); }} onRequestStartRun={noop} />));

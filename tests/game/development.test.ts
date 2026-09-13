@@ -14,7 +14,7 @@ test("Dev Mode is opt-in, normalizes saved values and restores standard GPS when
   const game = makeGame("street-ace", 271);
   const defaults = normalizeDevelopmentSettings(null);
   assert.equal(defaults.enabled, false);
-  assert.deepEqual(defaults.navigation, { rerouteDistanceMeters: 1000, uTurnSavingsMeters: 1000 });
+  assert.deepEqual(defaults.navigation, { rerouteDistanceMeters: 100, uTurnSavingsMeters: 1000 });
   assert.deepEqual(normalizeDevelopmentSettings({ enabled: "true", timeScale: Infinity, navigation: null }), defaults);
   const settings = normalizeDevelopmentSettings({ enabled: true, timeScale: 99,
     navigation: { rerouteDistanceMeters: -20, uTurnSavingsMeters: 99999 } });

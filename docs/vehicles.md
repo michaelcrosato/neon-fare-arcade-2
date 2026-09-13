@@ -6,6 +6,13 @@ from Street Ace, Drift Demon and Redline Rush. Both vehicles work in Arcade
 Shift, Arcade Free Run and Simulation Free Run. Shifting defaults to Automatic
 in every mode. The Accord card also offers Manual in every mode.
 
+Each setup stage is its own screen: Arcade Shift and Free Run use Vehicle →
+Edge → Steering; Simulation keeps its physical chassis and uses Vehicle →
+Steering. This applies to keyboard and touch. Locking steering starts the
+countdown. Back and Escape return one stage while retaining the car and
+transmission choices. The garage's new comic artwork and prompts are documented
+in [garage-art.md](garage-art.md).
+
 The Crown Cab retains its established 1990s Ford Crown Victoria–inspired V8,
 four-speed automatic and 1,900 kg loaded simulation chassis. Its arcade
 character now emphasizes rear-drive power slides and a tail that rebounds
@@ -46,8 +53,11 @@ the modeled body uses the 2015 pre-facelift coupe shape.
   disengaged. An automatic gear change is an engagement; in Manual, releasing
   the clutch is an engagement. A stuck clutch interrupts drive and arcade
   boost, cancels cruise, and shows a persistent recovery counter.
-- Three complete press/release pumps restore drive. Holding the pedal does
-  not count repeatedly. Repair pumps do not roll another fault. Fault RNG has
+- In Automatic, three new complete gas taps or clutch pumps restore drive.
+  A gas key already held when the fault occurs does not count when released.
+  Manual still requires three actual clutch pumps. Holding either control does
+  not count repeatedly, and simultaneous gas/clutch releases count once.
+  Repair pumps do not roll another fault. Fault RNG has
   its own seed/counter and never depends on rendering, particles or traffic.
 - Space remains arcade boost or Simulation's rear parking brake. On a phone,
   double-tap and hold the Simulation brake pedal for the parking brake.
@@ -69,3 +79,10 @@ supplier plaques, wear marks and white cockpit hood. Its actor geometry stays
 inside the 96-instance ghost budget. The garage and clutch/gear controls are
 keyboard-accessible, fit phone rotation, and follow the game's input reset
 rules. Diagnostic input masks include clutch and both shift directions.
+
+Both cars record horizontal drift and airborne distance, with live counters,
+completion feedback, run bests and pause/result totals. These measurements do
+not change Simulation scoring or handling. Off-road driving lowers the forward
+speed ceiling over three seconds, by a maximum 30 km/h, and restores it over
+two seconds on pavement. Rally Tires reduce that penalty to 22.2 km/h. Lower
+speeds no longer receive the old abrupt off-road drag.

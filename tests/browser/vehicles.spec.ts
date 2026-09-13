@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { SCENE_START_TIMEOUT, SCENE_TEST_TIMEOUT, WEBGPU_TEST_OPTIONS } from "./browser-options";
-import { lockSteeringIfPrompted } from "./start-helpers";
+import { confirmVehicle, lockSteeringIfPrompted } from "./start-helpers";
 import type { Game } from "../../game/model";
 
 test.use(WEBGPU_TEST_OPTIONS);
@@ -67,7 +67,8 @@ async function start(page: Page, renderer: string, model: string, manual: boolea
   if (manual) await page.getByRole("radio", { name: "Manual", exact: true }).check();
   await expect(page.getByRole("button", { name: "Select 2015 Honda Accord Coupe V6", exact: true })).toHaveAttribute("aria-pressed", "true");
   await page.screenshot({ path: test.info().outputPath("garage.png") });
-  await page.getByRole("button", { name: model === "simulation" ? /Start Simulation Free Run in the 2015 Honda/ : /Choose STREET ACE/ }).click();
+  await confirmVehicle(page);
+  if (model === "arcade") await page.getByRole("button", { name: /Choose STREET ACE/ }).click();
   await lockSteeringIfPrompted(page);
   await page.clock.fastForward(3500);
   await page.clock.runFor(100);
@@ -104,6 +105,11 @@ for (const renderer of ["WebGPU", "Canvas"]) for (const model of ["arcade", "sim
     }
     await page.keyboard.up("Shift"); await advance(page, 100);
     await expect(status).toContainText("CLUTCH STUCK · 3 PUMPS");
+    for (let tap = 0; tap < 3; tap++) {
+      await page.keyboard.down("w"); await advance(page, 100);
+      await page.keyboard.up("w"); await advance(page, 100);
+    }
+    await expect(status).toContainText("CLUTCH STUCK · 3 PUMPS");
     for (let left = 2; left >= 0; left--) {
       await page.keyboard.down("Shift"); await advance(page, 100);
       await expect(status).toContainText(`CLUTCH STUCK · ${left + 1} PUMPS`);
@@ -124,15 +130,15 @@ for (const renderer of ["WebGPU", "Canvas"]) for (const model of ["arcade", "sim
 
   test.describe(`${renderer} ${model} phone`, () => {
     test.use({ viewport: { width: 390, height: 844 }, contextOptions: { hasTouch: true, isMobile: true, reducedMotion: "reduce" } });
-    test("automatic default, touch clutch and rotation", async ({ page, context }) => {
+    test("automatic default, three touch gas taps recover the clutch and survive rotation", async ({ page, context }) => {
       const errors: string[] = [];
       page.on("pageerror", error => errors.push(error.message));
       await start(page, renderer, model, false);
       const cdp = await context.newCDPSession(page);
       const clutch = page.getByRole("button", { name: /^Clutch\. Hold Shift/ });
       const status = page.locator(".transmission-controls__status");
-      async function pump() {
-        const box = (await clutch.boundingBox())!;
+      async function pump(gas = false) {
+        const box = (await (gas ? page.getByRole("button", { name: "Accelerate", exact: true }) : clutch).boundingBox())!;
         await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: box.x + box.width / 2, y: box.y + box.height / 2, id: 1 }] });
         await advance(page, 100);
         await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
@@ -144,7 +150,7 @@ for (const renderer of ["WebGPU", "Canvas"]) for (const model of ["arcade", "sim
       await expect(status).toContainText("CLUTCH STUCK · 3 PUMPS");
       await page.screenshot({ path: test.info().outputPath("clutch-stuck.png") });
       for (let left = 2; left >= 0; left--) {
-        await pump();
+        await pump(true);
         if (left) await expect(status).toContainText(`CLUTCH STUCK · ${left} PUMPS`);
       }
       await expect(status).toContainText("ACCORD V6");
@@ -161,5 +167,27 @@ for (const renderer of ["WebGPU", "Canvas"]) for (const model of ["arcade", "sim
       expect(game.transmission.clutchHeld).toBe(false);
       expect(errors).toEqual([]);
     });
+  });
+
+  test(`${renderer} ${model}: automatic keyboard gas taps recover only on complete releases`, async ({ page }) => {
+    await start(page, renderer, model, false);
+    const status = page.locator(".transmission-controls__status");
+    await page.keyboard.down("Shift"); await advance(page, 100);
+    await page.keyboard.up("Shift"); await advance(page, 100);
+    await expect(status).toContainText("CLUTCH STUCK · 3 PUMPS");
+    for (let left = 2; left >= 0; left--) {
+      await page.keyboard.down("w"); await advance(page, 350);
+      await page.keyboard.down("w"); await advance(page, 100);
+      await expect(status).toContainText(`CLUTCH STUCK · ${left + 1} PUMPS`);
+      await page.keyboard.up("w"); await advance(page, 100);
+      if (left) await expect(status).toContainText(`CLUTCH STUCK · ${left} PUMPS`);
+    }
+    await expect(status).toContainText("ACCORD V6");
+    await page.keyboard.down("w"); await advance(page, 500); await page.keyboard.up("w");
+    const game = await currentGame(page);
+    expect(game.transmissionMode).toBe("automatic");
+    expect(game.transmission.stuck).toBe(false);
+    expect(game.transmission.engagements).toBe(1);
+    expect(game.speed).toBeGreaterThan(0);
   });
 }

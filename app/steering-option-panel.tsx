@@ -2,6 +2,8 @@
 
 import { useEffect, type ReactNode } from "react";
 import type { SteeringMode, WheelRange } from "./runtime/touch-driving";
+import { RunSetupProgress } from "./run-setup-progress";
+import { useMobileLayout } from "./use-mobile-layout";
 import { SteeringWheelRange } from "./steering-wheel-range";
 
 export type SteeringOption = {
@@ -97,13 +99,15 @@ export const STEERING_OPTIONS: readonly SteeringOption[] = [
 
 type SteeringOptionPanelProps = {
   currentMode: SteeringMode;
+  simulation?: boolean;
   wheelRange?: WheelRange;
   onSetWheelRange?: (range: WheelRange) => void;
   onSelect: (mode: SteeringMode) => void;
   onBack: () => void;
 };
 
-export function SteeringOptionPanel({ currentMode, wheelRange, onSetWheelRange, onSelect, onBack }: SteeringOptionPanelProps) {
+export function SteeringOptionPanel({ currentMode, wheelRange, onSetWheelRange, onSelect, onBack, simulation = false }: SteeringOptionPanelProps) {
+  const mobile = useMobileLayout();
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.target instanceof Element && event.target.closest("input, select, textarea, [contenteditable=true]")) return;
@@ -126,11 +130,12 @@ export function SteeringOptionPanel({ currentMode, wheelRange, onSetWheelRange, 
   }, [onSelect, onBack]);
 
   return (
-    <div className="driver-traits steering-options">
-      <p className="modal-kicker">MOBILE CONTROLS · CHOOSE STEERING</p>
+    <div className="driver-traits steering-options setup-screen">
+      <RunSetupProgress current="steering" simulation={simulation} />
+      <p className="modal-kicker">FINAL STEP · CHOOSE STEERING</p>
       <h2 id="modal-title">STEERING SYSTEM</h2>
       <p className="driver-traits__intro" id="steering-modal-description">
-        Select how you want to control your vehicle on mobile. You can switch systems anytime in Options.
+        {mobile ? "Choose your touch steering. Lock it in to start the countdown." : "WASD and arrow keys work with every option. Choose your touch steering for a touchscreen, then lock in to start."}
       </p>
 
       <div className="driver-traits__grid steering-options__grid" role="list" aria-label="Steering options">
@@ -172,9 +177,9 @@ export function SteeringOptionPanel({ currentMode, wheelRange, onSetWheelRange, 
           type="button"
           className="steering-options__back-btn"
           onClick={onBack}
-          aria-label="Back to vehicle selection"
+          aria-label={`Back to ${simulation ? "vehicle" : "edge"} selection`}
         >
-          ‹ BACK TO VEHICLES
+          ‹ BACK TO {simulation ? "VEHICLES" : "EDGES"}
         </button>
       </div>
     </div>

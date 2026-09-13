@@ -36,8 +36,8 @@ test("route deviation measures the closest physical deck, including elevation", 
 });
 
 test("navigation settings retain meter units and normalize invalid or extreme input", () => {
-  assert.deepEqual(normalizeNavigationSettings(), { rerouteDistanceMeters: 1000, uTurnSavingsMeters: 1000 });
-  assert.deepEqual(normalizeNavigationSettings({ rerouteDistanceMeters: NaN, uTurnSavingsMeters: Infinity }), { rerouteDistanceMeters: 1000, uTurnSavingsMeters: 1000 });
+  assert.deepEqual(normalizeNavigationSettings(), { rerouteDistanceMeters: 100, uTurnSavingsMeters: 1000 });
+  assert.deepEqual(normalizeNavigationSettings({ rerouteDistanceMeters: NaN, uTurnSavingsMeters: Infinity }), { rerouteDistanceMeters: 100, uTurnSavingsMeters: 1000 });
   assert.deepEqual(normalizeNavigationSettings({ rerouteDistanceMeters: -10, uTurnSavingsMeters: 10001 }), { rerouteDistanceMeters: 0, uTurnSavingsMeters: 10000 });
 });
 
@@ -266,19 +266,19 @@ test("missing a turn by a few meters keeps the selected route and turn", () => {
   ]);
 });
 
-test("rerouting waits until more than 1000 meters from the closest route point", () => {
+test("rerouting waits until more than 100 meters from the closest route point", () => {
   const controller = new NavigationController();
   const game = makeGame();
   Object.assign(game, { fareJobs: [...NAV_JOBS], jobIndex: 0, onboard: true,
     x: 0, y: -20, z: 0, heading: Math.PI / 2, elapsed: 0 });
   const initial = controller.update(game);
-  for (const meters of [100, 500, 999, 1000]) {
+  for (const meters of [10, 50, 99, 100]) {
     Object.assign(game, { x: meters / NAVIGATION_METERS_PER_WORLD_UNIT, y: -10, elapsed: game.elapsed + 1 });
     const plan = controller.update(game);
     assert.equal(plan.diagnostics?.revision, initial.diagnostics?.revision);
     assert.deepEqual(plan.route.slice(1), initial.route.slice(1), `${meters}m keeps the road path`);
   }
-  game.x = 1001 / NAVIGATION_METERS_PER_WORLD_UNIT;
+  game.x = 101 / NAVIGATION_METERS_PER_WORLD_UNIT;
   game.elapsed += 1;
   const rerouted = controller.update(game);
   assert.equal(rerouted.diagnostics?.revision, 2);

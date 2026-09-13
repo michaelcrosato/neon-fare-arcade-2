@@ -5,6 +5,7 @@ import type { CourierImpact } from "./courier-impact-overlay";
 import { FareImpactOverlay } from "./fare-impact-overlay";
 import { MobileDriveControls } from "./mobile-drive-controls";
 import { TransmissionControls, type TransmissionInputHandler } from "./transmission-controls";
+import { DrivingStuntFeedback } from "./driving-stunt-feedback";
 import { CruiseControl } from "./cruise-control";
 import type { SteeringMode, TouchDriving } from "./runtime/touch-driving";
 
@@ -59,6 +60,7 @@ export function MobileGameHud({ mode, hud, fareImpact, fareImpactRef, courierImp
     <TouchButton input={input} label={label} onTouch={onTouch}>{content}</TouchButton>;
 
   return <div className={`mobile-hud ${driving ? "is-driving" : "is-on-foot"}`}>
+    {mode === "playing" && driving && <DrivingStuntFeedback stunts={hud.stunts} />}
     {mode === "playing" && hud.runKind === "free-run" && driving && onSetCruise
       && <CruiseControl hud={hud} onSetSpeed={onSetCruise} joystick={(steeringMode ?? touchDriving.getMode()) === "joystick"} />}
     {fareImpact && <FareImpactOverlay key={fareImpact.id} impact={fareImpact} overlayRef={fareImpactRef} />}

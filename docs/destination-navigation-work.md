@@ -1,5 +1,9 @@
 # Destination realism, stable navigation, and Dev Mode
 
+The later driving update changes the default reroute threshold to **100 m**.
+U-turn savings remain **1,000 m**. The implementation record below describes
+the original navigation work; current rules live in `gameplay-contract.md`.
+
 This is the implementation and local verification record for the user request.
 Production verification is performed against the published commit after these gates.
 

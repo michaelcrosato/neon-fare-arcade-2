@@ -820,3 +820,16 @@
 .transmission-controls__keys { display: block; margin-top: 5px; font-size: 10px; }
 .transmission-controls.is-stuck { border-color: #ff794e; background: #431a13f5; }
 .transmission-controls.is-stuck .transmission-controls__status small { color: #ffae7a; }
+
+/* Measured stunts stay beside the road view and clear of the driving controls. */
+.driving-stunts { position: absolute; top: 205px; right: 26px; z-index: 22; display: grid; gap: 10px; width: 166px; pointer-events: none; }
+.driving-stunt { background: var(--yellow); border: 3px solid var(--ink); padding: 10px 12px; color: var(--ink); box-shadow: 4px 4px 0 var(--ink); transform: rotate(-2deg); }
+.driving-stunt--air { background: var(--cyan); transform: rotate(2deg); }
+.driving-stunt > small, .driving-stunt > span:not(.sr-only) { display: block; font: 900 10px/1.2 var(--font-geist-mono), monospace; }
+.driving-stunt > strong { display: block; font: italic 900 42px/1 Impact, sans-serif; margin: 3px 0; white-space: nowrap; }
+.driving-stunt.is-complete { background: var(--paper); }
+.stunt-statistics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 14px 0; }
+.stunt-statistics > div { padding: 10px; border: 2px solid currentColor; text-align: left; }
+.stunt-statistics dt, .stunt-statistics small { display: block; font: 800 9px/1.4 var(--font-geist-mono), monospace; }
+.stunt-statistics dd { font: italic 900 26px/1.1 Impact, sans-serif; margin: 3px 0 0; }
+.transmission-controls__recovery { display: block; max-width: 205px; margin: 4px 0 7px; color: var(--yellow); font-size: 10px; font-weight: 800; line-height: 1.3; }

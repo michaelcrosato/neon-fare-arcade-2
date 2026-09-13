@@ -39,6 +39,8 @@ import { scheduleSixthFareTransfer } from "./regional-fares";
 import { SPEED_KMH_PER_WORLD_UNIT } from "./config";
 import { vehicleDefinition } from "./vehicles";
 import { accordCoupledRpm, clutchConnected, stepManualTransmission } from "./manual-transmission";
+import { stepOffroadSpeedLimit } from "./offroad-speed";
+import { stepDrivingStunts } from "./driving-stunts";
 import { drivingTraitPackage } from "./driving-traits";
 import {
   clamp,
@@ -57,7 +59,6 @@ import { terrainBarrier } from "./terrain/surface";
 import {
   BOOST_COOLER_DRAIN_MULTIPLIER,
   IMPACT_BAR_BOOST_LOSS_MULTIPLIER,
-  RALLY_TIRE_OFFROAD_DRAG,
   hasRunUpgrade,
 } from "./gas-station";
 import { stepExploration, type ExplorationEvent } from "./exploration";
@@ -285,6 +286,7 @@ export function stepGame(
       lastSafePose = { x: game.x, y: game.y, heading: game.heading };
     }
   } else {
+  stepOffroadSpeedLimit(game, isRoadSurface(game), dt);
   stepManualTransmission(game, controlInput, dt);
   const vehicle = vehicleDefinition(game.vehicleId).arcade;
   const accord = game.vehicleId === "accord-v6";
@@ -500,7 +502,7 @@ export function stepGame(
   const maxSpeed = Math.min(
     overdriveActive ? BOOST_OVERDRIVE_TOP_SPEED_WORLD_UNITS : TAXI_TOP_SPEED_WORLD_UNITS,
     requestedMaxSpeed,
-  );
+  ) - (game.roadMotion.grounded ? game.offroadSpeedPenaltyKmh / SPEED_KMH_PER_WORLD_UNIT : 0);
   forwardSpeed = clamp(forwardSpeed, -7, maxSpeed);
   game.vx = Math.cos(game.heading) * forwardSpeed - Math.sin(game.heading) * lateralSpeed;
   game.vy = Math.sin(game.heading) * forwardSpeed + Math.cos(game.heading) * lateralSpeed;
@@ -571,6 +573,7 @@ export function stepGame(
 
   const impact = game.speed;
   const previousPosition = { x: game.x, y: game.y, z: game.z };
+  const wasGrounded = game.roadMotion.grounded;
   if (game.roadMotion.grounded && driving) {
     const support = groundAt(game, 0.85, game.roadMotion.roadId);
     const gravityAlongRoad = game.drivingModel === "simulation" ? 10 : 5;
@@ -662,12 +665,8 @@ export function stepGame(
   }
 
   stepVehicleRoadContact(game, dt, previousPosition, world);
+  stepDrivingStunts(game, previousPosition, wasGrounded, dt);
   if (game.roadMotion.grounded && !isRoadSurface(game)) {
-    if (game.drivingModel !== "simulation") {
-      const offroadDrag = hasRunUpgrade(game, "rally-tires") ? RALLY_TIRE_OFFROAD_DRAG : 2.35;
-      game.vx *= Math.exp(-offroadDrag * dt);
-      game.vy *= Math.exp(-offroadDrag * dt);
-    }
     if (game.speed > 7 && random() < 0.18) {
       game.particles.push({ x: game.x, y: game.y, vx: -game.vx * 0.08, vy: -game.vy * 0.08, life: 0.48, maxLife: 0.48, color: BONE });
     }

@@ -13,7 +13,7 @@ export const GAS_TIME_SECONDS = 15;
 export const GAS_TIME_COST = 20;
 export const GAS_TIME_PURCHASE_LIMIT = 2;
 export const BOOST_COOLER_DRAIN_MULTIPLIER = 0.88;
-export const RALLY_TIRE_OFFROAD_DRAG = 1.75;
+export const RALLY_TIRE_OFFROAD_PENALTY_MULTIPLIER = 0.74;
 export const IMPACT_BAR_BOOST_LOSS_MULTIPLIER = 0.5;
 
 export type GasStationOfferId = "time-splash" | RunUpgradeId;

@@ -7,7 +7,7 @@ export const CLUTCH_STICK_CHANCE = 0.05;
 export const CLUTCH_RECOVERY_PUMPS = 3;
 
 export function makeManualTransmission(): ManualTransmissionState {
-  return { gear: 1, clutchHeld: false, shiftUpHeld: false, shiftDownHeld: false,
+  return { gear: 1, clutchHeld: false, gasHeld: false, gasPumpArmed: false, shiftUpHeld: false, shiftDownHeld: false,
     stuck: false, pumpsRemaining: 0, engagements: 0, cooldown: 0, reverseHold: 0 };
 }
 
@@ -33,10 +33,15 @@ export function stepManualTransmission(game: Game, input: Readonly<InputState>, 
   const state = game.transmission;
   const pressed = Boolean(input.clutch);
   const released = state.clutchHeld && !pressed;
+  const gas = Boolean(input.up);
+  if (state.stuck && game.transmissionMode === "automatic" && gas && !state.gasHeld) state.gasPumpArmed = true;
+  const gasPump = game.transmissionMode === "automatic" && state.gasPumpArmed && state.gasHeld && !gas;
+  if (!gas || !state.stuck) state.gasPumpArmed = false;
+  state.gasHeld = gas;
   const up = Boolean(input.shiftUp && !state.shiftUpHeld);
   const down = Boolean(input.shiftDown && !state.shiftDownHeld);
   state.cooldown = Math.max(0, state.cooldown - dt);
-  if (released) {
+  if (released || gasPump) {
     if (state.stuck) {
       state.pumpsRemaining = Math.max(0, state.pumpsRemaining - 1);
       if (state.pumpsRemaining === 0) {
@@ -45,7 +50,7 @@ export function stepManualTransmission(game: Game, input: Readonly<InputState>, 
         game.message = "CLUTCH FREED · DRIVE READY";
         game.messageUntil = game.elapsed + 1.6;
       }
-    } else engage(game);
+    } else if (released) engage(game);
   }
   state.clutchHeld = pressed;
   state.shiftUpHeld = Boolean(input.shiftUp);
@@ -82,7 +87,9 @@ export function stepManualTransmission(game: Game, input: Readonly<InputState>, 
   }
   if (state.stuck) {
     game.cruiseControl = null;
-    game.message = `CLUTCH STUCK · PUMP ${state.pumpsRemaining} MORE`;
+    game.message = game.transmissionMode === "automatic"
+      ? `CLUTCH STUCK · TAP GAS ${state.pumpsRemaining} MORE`
+      : `CLUTCH STUCK · PUMP ${state.pumpsRemaining} MORE`;
     game.messageUntil = game.elapsed + 0.3;
   }
 }

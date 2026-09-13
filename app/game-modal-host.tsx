@@ -24,6 +24,8 @@ import type {
 } from "@/game/model";
 import { CourierBoardPanel } from "./courier-board-panel";
 import { DriverTraitPanel } from "./driver-trait-panel";
+import { stuntMeters } from "./driving-stunt-feedback";
+import { VehicleSelection } from "./vehicle-selection";
 import { SteeringOptionPanel } from "./steering-option-panel";
 import type { SteeringMode, WheelRange } from "./runtime/touch-driving";
 import { GasStationPanel } from "./gas-station-panel";
@@ -42,6 +44,7 @@ type GameModalHostProps = Readonly<{
   pendingVehicleId: VehicleId;
   pendingTransmissionMode: TransmissionMode;
   onSelectVehicle: (id: VehicleId) => void;
+  onConfirmVehicle?: () => void;
   onSelectTransmission: (mode: TransmissionMode) => void;
   hud: Hud;
   career: CareerState;
@@ -67,7 +70,6 @@ type GameModalHostProps = Readonly<{
   onSetSteeringMode?: (mode: SteeringMode) => void;
   onSelectDriverTrait?: (id: DrivingTraitId) => void;
   onSelectSteering?: (mode: SteeringMode) => void;
-  onBackToTraits?: () => void;
   onClose: () => void;
   onBeginRun: (id: DrivingTraitId) => void;
   onSelectDestination: (point: WorldPoint) => void;
@@ -87,7 +89,7 @@ export function GameModalHost({
   mode,
   pendingRunKind,
   pendingDrivingModel,
-  pendingVehicleId, pendingTransmissionMode, onSelectVehicle, onSelectTransmission,
+  pendingVehicleId, pendingTransmissionMode, onSelectVehicle, onSelectTransmission, onConfirmVehicle,
   hud,
   career,
   records,
@@ -112,7 +114,6 @@ export function GameModalHost({
   onSetSteeringMode,
   onSelectDriverTrait,
   onSelectSteering,
-  onBackToTraits,
   onClose,
   onBeginRun,
   onSelectDestination,
@@ -132,16 +133,19 @@ export function GameModalHost({
       if (event.currentTarget !== event.target) return;
       onClose();
     }}>
-      <section ref={dialogRef} className={`comic-modal ${modal === "traits" || modal === "steering" ? "trait-modal" : modal === "gas" ? "gas-modal" : modal === "map" ? "map-modal" : ""}`} role="dialog" aria-modal="true" aria-labelledby="modal-title" aria-describedby={modal === "traits" ? "trait-modal-description" : modal === "steering" ? "steering-modal-description" : modal === "gas" ? "gas-station-description" : undefined} tabIndex={-1}>
-        <button className="modal-close" onClick={onClose} aria-label={modal === "traits" ? "Back without starting" : modal === "steering" ? "Back to vehicle selection" : modalParent === "home" && modal !== "home" ? "Back to Home Hub" : "Close dialog"}>×</button>
-        {modal === "traits" ? (
-          <DriverTraitPanel onSelect={onSelectDriverTrait ?? onBeginRun} runKind={pendingRunKind} drivingModel={pendingDrivingModel} vehicleId={pendingVehicleId} transmissionMode={pendingTransmissionMode} onVehicleChange={onSelectVehicle} onTransmissionChange={onSelectTransmission} />
+      <section key={modal} ref={dialogRef} className={`comic-modal ${modal === "vehicles" ? "trait-modal vehicle-modal" : modal === "traits" || modal === "steering" ? "trait-modal" : modal === "gas" ? "gas-modal" : modal === "map" ? "map-modal" : ""}`} role="dialog" aria-modal="true" aria-labelledby="modal-title" aria-describedby={modal === "vehicles" ? "vehicle-modal-description" : modal === "traits" ? "trait-modal-description" : modal === "steering" ? "steering-modal-description" : modal === "gas" ? "gas-station-description" : undefined} tabIndex={-1}>
+        <button className="modal-close" onClick={onClose} aria-label={modal === "vehicles" ? "Back without starting" : modal === "traits" ? "Back to vehicle selection" : modal === "steering" ? `Back to ${pendingDrivingModel === "simulation" ? "vehicle" : "edge"} selection` : modalParent === "home" && modal !== "home" ? "Back to Home Hub" : "Close dialog"}>×</button>
+        {modal === "vehicles" ? (
+          <VehicleSelection vehicleId={pendingVehicleId} transmissionMode={pendingTransmissionMode} drivingModel={pendingDrivingModel} runKind={pendingRunKind}
+            onVehicleChange={onSelectVehicle} onTransmissionChange={onSelectTransmission} onConfirm={onConfirmVehicle ?? (() => {})} />
+        ) : modal === "traits" ? (
+          <DriverTraitPanel onSelect={onSelectDriverTrait ?? onBeginRun} runKind={pendingRunKind} />
         ) : modal === "steering" ? (
           <SteeringOptionPanel
             currentMode={steeringMode ?? "default"}
             wheelRange={wheelRange} onSetWheelRange={onSetWheelRange}
             onSelect={onSelectSteering ?? (() => {})}
-            onBack={onBackToTraits ?? onClose}
+            onBack={onClose} simulation={pendingDrivingModel === "simulation"}
           />
         ) : modal === "options" ? (
           <GameOptionsPanel
@@ -168,14 +172,14 @@ export function GameModalHost({
             <p className="modal-kicker">DRIVER ORIENTATION</p>
             <h2 id="modal-title">HOW TO PLAY</h2>
             <div className="instruction-grid">
-              <article><b>01</b><h3>CHOOSE YOUR SHIFT</h3><p>Play a 75-second Arcade Shift, untimed Arcade Free Run, or Simulation Free Run. Choose the RWD Crown Cab or the tuned FWD Accord coupe in the garage.</p></article>
+              <article><b>01</b><h3>CHOOSE YOUR SHIFT</h3><p>Play a 75-second Arcade Shift, untimed Arcade Free Run, or Simulation Free Run. Choose your vehicle, then your Arcade Edge, then lock in steering. Simulation goes from Vehicle straight to Steering.</p></article>
               <article><b>02</b><h3>FOLLOW THE GPS</h3><p>The floating yellow arrow marks your next turn and shows the total distance remaining to your destination. Open the regional map with G and tap a street to set your route instantly.</p></article>
               <article><b>03</b><h3>HIT THE STREET</h3><p>Stop and press E to explore on foot. Run, jump, crouch, enter marked buildings, or return to the parked taxi whenever you are ready.</p></article>
             </div>
             <div className="mobile-help mobile-control-guide">
               <article><b>FLOATING JOYSTICK &amp; WHEEL</b><p>Both controls start wherever you touch the playfield. Joystick: drag up for gas, down for brake, and sideways to steer. Wheel: turn the rim, then release to let it return. Set Wheel rotation range in the steering selection or Options; fewer degrees give tighter turns.</p></article>
               <article><b>DRIVE WITH YOUR THUMBS</b><p>Place your left thumb anywhere on the playfield, then drag left or right to steer. Your first touch is center; more movement gives a tighter turn. Release to center the steering. Hold GAS or BRAKE on the right with your other thumb; pedal drags never steer. The guide and pedal labels appear during the countdown. The guide fades while you steer and returns when you center or release. Double-tap GAS and hold the second tap to boost; its fill shows your reserve. Hold BRAKE through a stop to reverse. In the simulation cab, double-tap and hold BRAKE for the parking brake.</p></article>
-              <article><b>ACCORD CLUTCH</b><p>Automatic shifting is the default. Choose Manual on the Accord card to use CLUTCH with − / + for R, N and gears 1–6. Hold the clutch, change gear, then release. In Manual, GAS moves in the selected direction and BRAKE only brakes. If the clutch sticks, press and release CLUTCH three times.</p></article>
+              <article><b>ACCORD CLUTCH</b><p>Automatic shifting is the default. Choose Manual on the Accord card to use CLUTCH with − / + for R, N and gears 1–6. Hold the clutch, change gear, then release. In Manual, GAS moves in the selected direction and BRAKE only brakes. If the clutch sticks in Automatic, tap and release GAS three times or pump CLUTCH. Manual requires three CLUTCH pumps.</p></article>
               <article><b>EXPLORE ON FOOT</b><p>Slow below 10 KM/H, then tap the yellow EXIT TAXI action beside the driver’s door. Use the direction pad to walk and turn. RUN, JUMP, and DUCK sit on the right; nearby doors and actions appear above the controls.</p></article>
               <article><b>YOUR CITY, ON DEMAND</b><p>Tap MENU for the map, camera, audio, and fare history. Destination distance sits beside the timer; speed is at the top center. In Free Run, tap CRUISE to set a speed. Joystick gas, brake and reverse temporarily override it; release to resume. Separate brakes or a collision cancel it. The world pauses while you browse menus.</p></article>
             </div>
@@ -288,7 +292,7 @@ export function GameModalHost({
               <ol className="run-list">
                 {records.map((record, index) => (
                   <li key={`${record.date}-${record.score}-${index}`}>
-                    <strong>{index + 1}</strong><b className="run-rank">{record.rank}</b><span><em>{record.score.toLocaleString()}</em><small>{record.deliveries} DELIVERIES · ${record.fare} · {record.date}</small></span>
+                    <strong>{index + 1}</strong><b className="run-rank">{record.rank}</b><span><em>{record.score.toLocaleString()}</em><small>{record.deliveries} DELIVERIES · ${record.fare} · {record.date}</small>{record.stunts && <small>DRIFT {stuntMeters(record.stunts.driftTotalMeters)} · AIR {stuntMeters(record.stunts.airTotalMeters)}</small>}</span>
                   </li>
                 ))}
               </ol>

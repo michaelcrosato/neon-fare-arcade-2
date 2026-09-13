@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import type { Game } from "../../game/model";
 import { SCENE_TEST_TIMEOUT, WEBGPU_TEST_OPTIONS } from "./browser-options";
-import { lockSteeringIfPrompted, presentUntilVisible } from "./start-helpers";
+import { confirmVehicle, lockSteeringIfPrompted, presentUntilVisible } from "./start-helpers";
 
 test.use(WEBGPU_TEST_OPTIONS);
 // Software WebGPU needs time for six world uploads and full-canvas readback.
@@ -18,6 +18,7 @@ for (const renderer of ["WebGPU", "Canvas"] as const) {
     await page.goto("/?diagnostics=1");
     await expect(page.locator(".game-canvas").nth(renderer === "WebGPU" ? 1 : 0)).toHaveClass(/is-active/, { timeout: 30_000 });
     await page.getByRole("button", { name: /Start Free Run with arcade/ }).click();
+    await confirmVehicle(page);
     await page.getByRole("button", { name: /Choose STREET ACE/ }).click();
     await lockSteeringIfPrompted(page);
     await expect(page.getByRole("button", { name: "Pause game" })).toBeEnabled({ timeout: 30_000 });

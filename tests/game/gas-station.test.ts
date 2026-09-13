@@ -227,8 +227,15 @@ test("named gas upgrades change only their advertised simulation effects", () =>
   rally.installedUpgrades = ["rally-tires"];
   stepGame(dirt, IDLE, FIXED_DT, EMPTY_WORLD, () => 1);
   stepGame(rally, IDLE, FIXED_DT, EMPTY_WORLD, () => 1);
-  assert.ok(rally.vx > dirt.vx);
+  assert.equal(rally.vx, dirt.vx, "Rally Tires no longer change low-speed coasting drag");
   assert.equal(rally.x, dirt.x);
+  for (let tick = 0; tick < 240; tick++) for (const game of [dirt, rally]) {
+    game.x = 18; game.y = 18;
+    stepGame(game, { ...IDLE, up: true }, FIXED_DT, EMPTY_WORLD, () => 1);
+  }
+  assert.equal(dirt.offroadSpeedPenaltyKmh, 30);
+  assert.equal(rally.offroadSpeedPenaltyKmh, 22.2);
+  assert.ok(rally.speed > dirt.speed, "Rally Tires retain more of the top speed on a shoulder");
 
   const wall: WorldView = {
     ...EMPTY_WORLD,

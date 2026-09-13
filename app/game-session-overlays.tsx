@@ -1,6 +1,7 @@
 import { CAMERA_DISTANCE_SCALES, CAMERA_OPTIONS, type CameraDistanceScale } from "@/game/config";
 import { drivingTraitPackage } from "@/game/driving-traits";
 import { vehicleDefinition } from "@/game/vehicles";
+import { StuntStatistics } from "./driving-stunt-feedback";
 import { rankFor } from "@/game/math";
 import type {
   CameraMode,
@@ -82,6 +83,7 @@ export function GameSessionOverlays({
             <div className="pause-paper">
               <p>{hud.runKind === "free-run" ? "NO RUSH. NO CLOCK." : "THE CITY CAN WAIT…"}</p>
               <h2>{hud.runKind === "free-run" ? "FREE RUN PAUSED!" : "PAUSED!"}</h2>
+              <StuntStatistics stunts={hud.stunts} />
               {mobile && <>
                 <button className="primary-small" onClick={() => onSetMode("playing")}>{hud.runKind === "free-run" ? "RESUME FREE RUN" : "RESUME RUN"}</button>
                 <div className="pause-stats"><span><small>FARE</small><b>${hud.fare}</b></span><span><small>SCORE</small><b>{hud.score.toLocaleString()}</b></span><span><small>DROPS</small><b>{hud.deliveries}</b></span></div>
@@ -151,6 +153,7 @@ export function GameSessionOverlays({
             <p>{hud.playtest ? "PLAYTEST · LOCAL PROGRESS UNCHANGED" : hud.runKind === "free-run" ? "CAB PARKED · FARE BANKED" : "SHIFT'S OVER"}</p>
             <h2>{hud.playtest ? "PLAYTEST COMPLETE!" : hud.runKind === "free-run" ? "FREE RUN SAVED!" : "RUN COMPLETE!"}</h2>
             <div className="end-total"><span>TOTAL SCORE</span><strong>{hud.score.toLocaleString()}</strong></div>
+            <StuntStatistics stunts={hud.stunts} />
             <div className="end-grid">
               <span><small>FARE</small><b>${hud.fare}</b></span>
               <span><small>DELIVERIES</small><b>{hud.deliveries}</b></span>

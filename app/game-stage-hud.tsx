@@ -16,6 +16,7 @@ import { FareCardStack } from "./fare-card-deck";
 import { GpsMap } from "./gps-map";
 import { MobileGameHud } from "./mobile-game-hud";
 import { TransmissionControls, type TransmissionInputHandler } from "./transmission-controls";
+import { DrivingStuntFeedback } from "./driving-stunt-feedback";
 import { vehicleDefinition } from "@/game/vehicles";
 import { CruiseControl } from "./cruise-control";
 import { useMobileLayout } from "./use-mobile-layout";
@@ -73,6 +74,7 @@ export function GameStageHud({
   const canvasCabRoll = simulationDriving && rendererKind !== "WEBGPU ACTIVE";
   return (
     <>
+      {mode === "playing" && hud.playerMode === "driving" && <DrivingStuntFeedback stunts={hud.stunts} />}
       {mode !== "menu" && <TransmissionControls hud={hud} enabled={mode === "playing"} onTouch={onTouch} onInput={onTransmissionInput} />}
       {fareImpact && <FareImpactOverlay key={fareImpact.id} impact={fareImpact} overlayRef={fareImpactRef} />}
       {mode === "playing" && hud.runKind === "free-run" && hud.playerMode === "driving" && onSetCruise

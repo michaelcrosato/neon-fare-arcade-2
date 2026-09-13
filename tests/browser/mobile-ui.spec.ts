@@ -4,7 +4,7 @@ import { openScenePage } from "./scene-page";
 import type {} from "./fixtures/mobile-hud-scene";
 import type { DiagnosticsSnapshot } from "../../app/runtime/diagnostics";
 import { SCENE_START_TIMEOUT, SCENE_TEST_TIMEOUT } from "./browser-options";
-import { lockSteeringIfPrompted } from "./start-helpers";
+import { confirmVehicle, lockSteeringIfPrompted } from "./start-helpers";
 
 test.setTimeout(SCENE_TEST_TIMEOUT);
 test.use({ contextOptions: { hasTouch: true, isMobile: true, reducedMotion: "reduce" } });
@@ -16,6 +16,7 @@ async function startFreeRun(page: Page, checkCountdown?: () => Promise<void>) {
   if (checkCountdown) await page.clock.install({ time: new Date("2026-01-01T00:00:00Z") });
   await page.goto("/?diagnostics=1");
   await page.getByRole("button", { name: /Start Free Run with arcade/ }).click();
+  await confirmVehicle(page);
   if (checkCountdown) await page.clock.pauseAt(new Date("2026-01-01T01:00:00Z"));
   await page.getByRole("button", { name: /Choose STREET ACE/ }).click();
   await lockSteeringIfPrompted(page);
@@ -41,6 +42,7 @@ test.describe("steering lock-in", () => {
     await page.addInitScript(() => localStorage.setItem("neon-fare-steering-mode", "default"));
     await page.goto("/?diagnostics=1");
     await page.getByRole("button", { name: /Start Free Run with arcade/ }).click();
+    await confirmVehicle(page);
     await page.getByRole("button", { name: /Choose STREET ACE/ }).click();
     await expect(page.getByRole("dialog", { name: "STEERING SYSTEM" })).toBeVisible();
     await page.getByRole("button", { name: /Select JOYSTICK/ }).click();
@@ -52,6 +54,7 @@ test.describe("steering lock-in", () => {
     await page.getByRole("button", { name: "Pause game" }).click();
     await page.getByRole("button", { name: /END FREE RUN/ }).click();
     await page.getByRole("button", { name: /FREE RUN AGAIN/ }).click();
+    await confirmVehicle(page);
     await page.getByRole("button", { name: /Choose STREET ACE/ }).click();
     await expect(page.getByRole("dialog", { name: "STEERING SYSTEM" })).toBeVisible();
     await page.getByRole("button", { name: /Select WHEEL/ }).click();
@@ -344,14 +347,16 @@ test.describe("mobile notification and meter states", () => {
   test("help, driver choices, services and run history fit the phone and remain scrollable", async ({ page }, info) => {
     const bundle = (await build({ entryPoints: ["tests/browser/fixtures/mobile-hud-scene.tsx"], bundle: true, write: false, format: "iife", platform: "browser", target: "es2022", tsconfig: "tsconfig.json" })).outputFiles[0].text;
     await openScenePage(page, bundle);
-    for (const modal of ["home", "gas", "courier", "how", "traits", "scores"] as const) {
+    for (const modal of ["home", "gas", "courier", "how", "vehicles", "traits", "steering", "scores"] as const) {
       await page.evaluate(modal => window.mobileHudFixture.renderModal(modal), modal);
       const dialog = page.getByRole("dialog");
       const dimensions = await dialog.evaluate(element => ({ width: element.clientWidth, scrollWidth: element.scrollWidth, height: element.clientHeight }));
       expect(dimensions.width).toBe(320);
       expect(dimensions.height).toBe(568);
       expect(dimensions.scrollWidth, modal).toBeLessThanOrEqual(dimensions.width);
-      const close = page.getByRole("button", { name: modal === "traits" ? "Back without starting" : "Close dialog" });
+      const close = dialog.locator(".modal-close");
+      await expect(close).toHaveAttribute("aria-label", modal === "vehicles" ? "Back without starting"
+        : modal === "traits" ? "Back to vehicle selection" : modal === "steering" ? "Back to edge selection" : "Close dialog");
       await close.click({ trial: true });
       const lastButton = dialog.getByRole("button").last();
       await lastButton.scrollIntoViewIfNeeded();

@@ -98,7 +98,7 @@ export const CAREER_ITEMS = [
     category: "UPGRADE",
     cost: 160,
     description: "Chunky street rubber keeps more momentum when a shortcut leaves the asphalt.",
-    effect: "26% LESS OFF-ROAD DRAG",
+    effect: "26% LESS OFF-ROAD SPEED PENALTY",
     requires: [],
     vendor: "gas",
   },

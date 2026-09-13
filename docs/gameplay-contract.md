@@ -117,6 +117,10 @@ updates the arcade launch, steering, road elevation and contact rules below.
   driver draft; Simulation never exposes arcade traits. The Accord defaults to
   automatic shifting in every mode, with Manual selectable on its card. See
   `docs/vehicles.md` for six-speed, winter-tire and sticky-clutch contracts.
+  Setup uses separate Vehicle → Edge → Steering screens on desktop and mobile.
+  Simulation retains its physics and uses Vehicle → Steering. Only locking
+  steering starts the countdown; Back and Escape preserve the draft vehicle
+  and transmission while returning one screen.
   Run kind and driving model are orthogonal, run-scoped selections, but the
   simulation model is authoritatively normalized back to arcade for timed runs.
 - Street Ace uses the shared responsive arcade launch, braking, steering and
@@ -168,7 +172,7 @@ updates the arcade launch, steering, road elevation and contact rules below.
   closing the dialog restores that exact phase. Pause and mute keys toggle
   once per press and ignore key-repeat events.
 - `Game` is mutated in place inside `stepGame`; do not clone it per tick.
-- Speed is calculated before collision/off-road damping and refreshes on the
+- Speed is calculated before collision response and refreshes on the
   following tick. That timing is part of the current feel.
 - Digital steering input resolves into a progressive front-wheel angle, so a
   tap makes a shallow turn while a held input reaches full lock. A drift builds
@@ -198,6 +202,19 @@ updates the arcade launch, steering, road elevation and contact rules below.
 - The simulation cab also requires ground contact for tire, brake, rolling
   resistance and terrain-trip forces. Its airborne body retains momentum under
   aerodynamic drag until the shared road-contact controller lands it.
+- Both models record drift and airborne horizontal distance from resolved
+  fixed-step travel. Drift excludes straight and airborne movement; a neutral
+  countersteer gap of up to 0.3 seconds joins the same drift. Air includes the
+  takeoff and landing segments, never vertical height. Walking and teleports
+  do not add distance. Live HUD counters show meters, followed by a four-second
+  result and run best. Pause and results retain totals and bests; saved timed
+  run records carry those distances without invalidating older saved records.
+- Off-road travel gradually lowers the ordinary and boosted forward ceiling by
+  at most 30 km/h: 10 km/h per second to apply, 15 km/h per second to recover on
+  pavement. Airborne travel holds this state without applying the ground cap.
+  It does not add low-speed drag or stronger rolling resistance. Simulation's
+  governor still limits engine force; shoulder tire grip and trip forces remain.
+  Rally Tires reduce the maximum penalty by 26%, to 22.2 km/h.
 - Tapping brake while committed to a turn above roughly 31 km/h creates one
   short trail-brake rotation pulse in the steering direction. Its yaw, rear
   grip release, smoke, and momentum cost scale with speed and steering angle.
@@ -314,8 +331,8 @@ updates the arcade launch, steering, road elevation and contact rules below.
   boosted cap is 390 km/h on every road class.
 - Permanent upgrades remain purchasable during Simulation Free Run because
   ownership applies across modes. Rally Tires improve the simulation cab's
-  off-road friction and rolling resistance while retaining the arcade taxi's
-  shared off-road damping change. Boost Cooler, Boost Overdrive, Impact Bars, and Boost
+  off-road friction and reduce the shared off-road speed ceiling penalty.
+  Boost Cooler, Boost Overdrive, Impact Bars, and Boost
   Locker remain owned for arcade taxis but do not manufacture simulation boost.
 
 ## Navigation
@@ -330,7 +347,7 @@ updates the arcade launch, steering, road elevation and contact rules below.
   meters of actual road-distance savings compared with continuing forward.
   Weighted graph costs and route ratios are not passenger-distance savings.
   An unknown/unreachable forward route cannot prove the required savings.
-- The controller keeps the selected route until the player is more than 1,000
+- The controller keeps the selected route until the player is more than 100
   displayed meters from the closest point on any remaining segment, measured
   in three dimensions. Passing a turn, leaving one lane, or reversing heading
   cannot bypass that gate. Normal waypoint progress and a valid later rejoin
@@ -646,7 +663,8 @@ the same reviewed change, with the intended gameplay difference documented.
 
 - Options is visible in the header and pause menu. Dev Mode defaults off and
   stores its normalized settings on this device. Turning it off restores the
-  normal 1,000 m GPS thresholds and ordinary clock, boost and simulation speed.
+  normal 100 m reroute threshold, 1,000 m U-turn savings threshold, and ordinary
+  clock, boost and simulation speed.
 - GPS reroute distance and U-turn savings accept 0–10,000 displayed meters.
   Updating thresholds does not itself discard the current route. A live
   readout exposes route revision/reason, deviation, remaining distance, position,

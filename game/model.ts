@@ -1,7 +1,7 @@
 import type { WorldRegionId } from "./region-types";
 
 export type Mode = "menu" | "countdown" | "playing" | "paused" | "ended";
-export type Modal = "traits" | "steering" | "how" | "scores" | "map" | "home" | "courier" | "gas" | "options" | null;
+export type Modal = "vehicles" | "traits" | "steering" | "how" | "scores" | "map" | "home" | "courier" | "gas" | "options" | null;
 export type CameraMode = "fixed" | "chase-high" | "chase-low" | "cab";
 export type DrivingTraitId = "street-ace" | "drift-demon" | "redline-rush";
 export type RunKind = "timed" | "free-run";
@@ -13,6 +13,8 @@ export type SimulationGear = -1 | 0 | 1 | 2 | 3 | 4 | 5 | 6;
 export type ManualTransmissionState = {
   gear: SimulationGear;
   clutchHeld: boolean;
+  gasHeld: boolean;
+  gasPumpArmed: boolean;
   shiftUpHeld: boolean;
   shiftDownHeld: boolean;
   stuck: boolean;
@@ -738,6 +740,9 @@ export type Game = {
   driftBank: number;
   /** Fractional intensity-scaled drift score carried between simulation ticks. */
   driftScoreCarry: number;
+  /** A gradual reduction of the ordinary/boosted speed ceiling, in displayed km/h. */
+  offroadSpeedPenaltyKmh: number;
+  stunts: DrivingStunts;
   lastBeep: number;
   traffic: TrafficCar[];
   particles: Particle[];
@@ -774,6 +779,7 @@ export type CourierMapMarker = {
 };
 
 export type Hud = {
+  stunts: DrivingStuntsHud;
   playtest?: boolean;
   navigationDiagnostics?: NavigationPlan["diagnostics"];
   runSeed?: number;
@@ -903,12 +909,27 @@ export type InputState = {
   interact?: boolean;
 };
 
+export type StuntDistance = {
+  active: boolean;
+  meters: number;
+  totalMeters: number;
+  bestMeters: number;
+  lastMeters: number;
+  count: number;
+  gapSeconds: number;
+  resultUntil: number;
+};
+export type DrivingStunts = { drift: StuntDistance; air: StuntDistance };
+export type DrivingStuntsHud = { [K in keyof DrivingStunts]: Pick<StuntDistance, "active" | "meters" | "totalMeters" | "bestMeters" | "lastMeters" | "count"> & { showResult: boolean } };
+export type StuntRunRecord = { driftTotalMeters: number; driftBestMeters: number; airTotalMeters: number; airBestMeters: number };
+
 export type RunRecord = {
   score: number;
   fare: number;
   deliveries: number;
   rank: string;
   date: string;
+  stunts?: StuntRunRecord;
 };
 
 export type Renderer = {

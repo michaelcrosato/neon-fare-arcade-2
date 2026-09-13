@@ -1,4 +1,5 @@
 import { clutchConnected, stepManualTransmission } from "./manual-transmission";
+import { stepOffroadSpeedLimit } from "./offroad-speed";
 import { ACCORD_GEARS, ACCORD_FINAL_DRIVE, ACCORD_WHEEL_RADIUS_M, ACCORD_REDLINE_RPM } from "./vehicles";
 import { SPEED_KMH_PER_WORLD_UNIT } from "./config";
 import { steeringInput } from "./input";
@@ -551,7 +552,7 @@ function stepSimulationSubstep(
   const speedInDriveDirection = longitudinal * driveDirection;
   const speedLimit = state.gear === -1
     ? specs.governedReverseSpeedMps
-    : specs.governedTopSpeedMps;
+    : specs.governedTopSpeedMps - (grounded ? game.offroadSpeedPenaltyKmh / 3.6 : 0);
   const governor = clamp((speedLimit - speedInDriveDirection) / 3.2, 0, 1);
   const converterMultiplication = !accord && state.gear === 1
     ? 1 + 0.62 * (1 - clamp(Math.abs(longitudinal) / 8.5, 0, 1))
@@ -585,9 +586,7 @@ function stepSimulationSubstep(
     * specs.dragCoefficient
     * specs.frontalAreaM2
     * longitudinal * longitudinal;
-  const rollingCoefficient = onRoad
-    ? specs.rollingResistance
-    : rallyTires ? 0.029 : 0.038;
+  const rollingCoefficient = specs.rollingResistance;
   const rollingForce = grounded && Math.abs(longitudinal) > 0.08
     ? -Math.sign(longitudinal) * rollingCoefficient * specs.massKg * GRAVITY
     : 0;
@@ -729,6 +728,7 @@ export function stepSimulationVehicle(
   let remaining = Math.max(0, dt);
   while (remaining > 1e-9) {
     const substep = Math.min(PHYSICS_SUBSTEP, remaining);
+    stepOffroadSpeedLimit(game, onRoad, substep);
     stepSimulationSubstep(game, input, substep, onRoad, cruise);
     remaining -= substep;
   }

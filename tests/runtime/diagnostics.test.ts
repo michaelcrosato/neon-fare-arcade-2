@@ -7,6 +7,7 @@ import { mulberry32 } from "@/game/random";
 import { stepGame } from "@/game/simulation";
 import { setCruiseControl } from "@/game/cruise-control";
 import { makeGame } from "@/game/state";
+import { groundAt } from "@/game/vehicle-road-contact";
 import { CityStream } from "@/game/world";
 import {
   DIAGNOSTIC_SEGMENT_LIMIT,
@@ -96,6 +97,29 @@ test("joystick cruise brake overrides survive deterministic diagnostic replay", 
     }
     assert.ok(game.cruiseControl);
     verifyDiagnosticsSnapshot(recorder.snapshot(game, null, "playing"));
+  }
+});
+
+test("automatic gas recovery and measured air distance survive diagnostic replay in both models", () => {
+  for (const model of ["arcade", "simulation"] as const) {
+    const game = makeGame("street-ace", 12, "free-run", model, "accord-v6");
+    game.traffic = []; game.x = 0; game.y = 0; game.heading = 0;
+    game.z = groundAt(game, 1).height; game.vx = 40; game.speed = 40;
+    game.roadMotion.verticalSpeed = 8;
+    const recorder = new DiagnosticsRecorder(), city = new CityStream();
+    for (let tick = 0; tick < 180; tick++) {
+      recordTick(recorder, game, city, {
+        up: tick >= 10 && tick < 40 && tick % 10 < 5,
+        down: false, left: false, right: false, boost: false, clutch: tick < 5,
+      }, () => .4);
+      if (tick === 5) assert.equal(game.transmission.stuck, true);
+      if (tick === 39) assert.equal(game.transmission.stuck, false);
+    }
+    assert.equal(game.transmission.stuck, false);
+    assert.ok(game.stunts.air.totalMeters > 5);
+    const snapshot = recorder.snapshot(game, null, "playing");
+    verifyDiagnosticsSnapshot(snapshot);
+    assert.deepEqual(replayDiagnosticSegment(snapshot.trace.segments[0]), game);
   }
 });
 

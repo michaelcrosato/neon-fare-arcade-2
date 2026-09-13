@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { lockSteeringIfPrompted } from "./start-helpers";
+import { confirmVehicle, lockSteeringIfPrompted } from "./start-helpers";
 import { installMediaRanges } from "./media-ranges";
 import { SCENE_START_TIMEOUT, SCENE_TEST_TIMEOUT } from "./browser-options";
 
@@ -20,6 +20,7 @@ test("mobile start enters fullscreen, protects gestures and keeps music looping 
   const audio = page.locator("#neon-fare-bgm");
   expect(await audio.evaluate((element: HTMLAudioElement) => element.paused)).toBe(true);
   await page.getByRole("button", { name: /Start Free Run with arcade/ }).tap();
+  await confirmVehicle(page);
   await expect.poll(() => page.evaluate(() => document.fullscreenElement === document.documentElement)).toBe(true);
   await page.getByRole("button", { name: /Choose STREET ACE/ }).tap();
   await lockSteeringIfPrompted(page);

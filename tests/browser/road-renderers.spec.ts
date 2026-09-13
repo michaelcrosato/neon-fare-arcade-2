@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { SCENE_START_TIMEOUT, SCENE_TEST_TIMEOUT, WEBGPU_TEST_OPTIONS } from "./browser-options";
-import { lockSteeringIfPrompted } from "./start-helpers";
+import { confirmVehicle, lockSteeringIfPrompted } from "./start-helpers";
 
 // Chromium's headless GPU adapter is opt-in. This compiles and executes the
 // actual WGSL pipeline; a failed GPU activation must fail this test.
@@ -22,6 +22,7 @@ for (const renderer of ["WebGPU", "Canvas 2D"] as const) {
       await page.goto("/");
       await expect(page.getByText(renderer === "WebGPU" ? "WEBGPU ACTIVE" : "CANVAS FALLBACK", { exact: true })).toBeVisible({ timeout: SCENE_START_TIMEOUT });
       await page.getByRole("button", { name: /Start Free Run with arcade/i }).click();
+      await confirmVehicle(page);
       await page.getByRole("button", { name: /Choose STREET ACE/i }).click();
       await lockSteeringIfPrompted(page);
       await expect(page.getByRole("button", { name: "Pause game" })).toBeVisible({ timeout: SCENE_START_TIMEOUT });

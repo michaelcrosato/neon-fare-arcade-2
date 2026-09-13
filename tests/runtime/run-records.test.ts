@@ -29,3 +29,15 @@ test("run log keeps five valid rows in stored order and copies only known fields
   records[0].score = 0;
   assert.equal(raw[0].score, 7);
 });
+
+test("run log preserves measured distances, isolates copies and tolerates old or malformed stunt data", () => {
+  const stunts = { driftTotalMeters: 55.5, driftBestMeters: 40, airTotalMeters: 22, airBestMeters: 12 };
+  const saved = { ...VALID, stunts: { ...stunts, extra: true } };
+  const records = normalizeRunRecords([saved, VALID]);
+  assert.deepEqual(records, [{ ...VALID, stunts }, VALID]);
+  records[0].stunts!.airTotalMeters = 0;
+  assert.equal(saved.stunts.airTotalMeters, 22);
+  for (const malformed of [null, [], "bad", { ...stunts, airBestMeters: Infinity }, { ...stunts, driftTotalMeters: -1 }, { ...stunts, airTotalMeters: "22" }]) {
+    assert.deepEqual(normalizeRunRecords([{ ...VALID, stunts: malformed }]), [VALID]);
+  }
+});

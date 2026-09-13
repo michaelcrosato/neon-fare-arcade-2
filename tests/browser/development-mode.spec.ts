@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import type { Game } from "../../game/model";
 import { SCENE_START_TIMEOUT, SCENE_TEST_TIMEOUT, WEBGPU_TEST_OPTIONS } from "./browser-options";
-import { lockSteeringIfPrompted, presentUntilVisible } from "./start-helpers";
+import { confirmVehicle, lockSteeringIfPrompted, presentUntilVisible } from "./start-helpers";
 
 test.use(WEBGPU_TEST_OPTIONS);
 // This journey includes several world uploads, captures and a persisted reload.
@@ -11,6 +11,7 @@ const gameplayTimeout = Math.max(15_000, SCENE_START_TIMEOUT);
 async function startRun(page: Page, pauseAt = "2026-09-12T01:00:00Z") {
   await page.clock.resume();
   await page.getByRole("button", { name: /Start Free Run with arcade/ }).click();
+  await confirmVehicle(page);
   await page.getByRole("button", { name: /Choose STREET ACE/ }).click();
   await lockSteeringIfPrompted(page);
   await expect(page.getByRole("button", { name: "Pause game" })).toBeEnabled({ timeout: gameplayTimeout });
@@ -110,8 +111,8 @@ for (const renderer of ["WebGPU", "Canvas"] as const) for (const mobile of [fals
     await expect(options.getByRole("checkbox", { name: /DEV MODE/ })).toBeChecked();
     await expect(options.getByLabel("Reroute distance (m)")).toHaveValue("600");
     await expect(options.getByLabel("U-turn savings (m)")).toHaveValue("1500");
-    await options.getByRole("button", { name: "RESET GPS TO 1,000 m" }).click();
-    await expect(options.getByLabel("Reroute distance (m)")).toHaveValue("1000");
+    await options.getByRole("button", { name: "RESET GPS DEFAULTS" }).click();
+    await expect(options.getByLabel("Reroute distance (m)")).toHaveValue("100");
     await options.getByRole("checkbox", { name: /DEV MODE/ }).uncheck();
     await expect(options.getByLabel("Reroute distance (m)")).toHaveCount(0);
     expect(errors).toEqual([]);

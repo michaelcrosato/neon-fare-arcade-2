@@ -831,30 +831,38 @@
 }
 
 @media (max-width: 760px), (pointer: coarse) and (max-width: 1100px) {
-  .vehicle-garage__heading { flex-wrap: wrap; gap: 6px 10px; }
-  .vehicle-garage__heading small { display: none; }
-  .vehicle-garage__grid { grid-template-columns: 1fr; }
-  .vehicle-card { padding: 12px; }
-  .garage-car { height: 76px; }
-  .vehicle-card__select > strong { font-size: 22px; }
+  .run-setup-progress { gap: 4px; margin: 0 26px 18px 0; }
+  .run-setup-progress li { gap: 5px; font-size: 9px; padding: 5px 8px; }
+  .run-setup-progress b { font-size: 16px; }
+  .vehicle-garage__grid { grid-template-columns: 1fr; gap: 16px; }
+  .vehicle-card__select > strong { font-size: 28px; }
   .vehicle-card:not(.is-selected) > p, .vehicle-card:not(.is-selected) > ul { display: none; }
   .vehicle-card:not(.is-selected) .vehicle-transmission { display: none; }
-  .vehicle-card--empty { flex-direction: row; height: 75px; justify-content: space-between; }
-  .vehicle-card--empty > span { align-self: center; }
-  .vehicle-card--empty i { width: 45px; height: 35px; }
+  .vehicle-card:not(.is-selected) .garage-car { aspect-ratio: 2 / 1; background-position: center 60%; }
+  .vehicle-card--empty { flex-direction: row; min-height: 90px; justify-content: space-around; }
+  .vehicle-card--empty > span { font-size: 46px; }
+  .vehicle-card--empty i { width: 44px; height: 30px; }
   .vehicle-card--empty small { display: none; }
+  .vehicle-screen__continue { bottom: -16px; padding: 10px; gap: 8px; }
+  .vehicle-screen__continue > span { font-size: 18px; }
+  .vehicle-screen__continue .primary-small { font-size: 16px; min-height: 48px; padding: 10px; }
   .mobile-hud .transmission-controls { left: max(12px, env(safe-area-inset-left)); bottom: max(16px, env(safe-area-inset-bottom)); transform: none; padding: 6px; max-width: calc(100vw - 138px); }
   .mobile-hud .transmission-controls__keys { display: none; }
   .mobile-hud .transmission-controls__status > b { font-size: 24px; }
   .mobile-hud .transmission-controls__status { padding-bottom: 4px; }
   .mobile-hud:has(.transmission-controls) .mobile-steer-guide { bottom: max(240px, env(safe-area-inset-bottom)); }
+  .mobile-hud .driving-stunts { top: 126px; right: max(14px, env(safe-area-inset-right)); width: 130px; gap: 8px; }
+  .mobile-hud .driving-stunt { padding: 6px 8px; }
+  .mobile-hud .driving-stunt > strong { font-size: 30px; margin: 1px 0; }
+  .mobile-hud .driving-stunt > small, .mobile-hud .driving-stunt > span:not(.sr-only) { font-size: 8px; }
 }
 @media (max-height: 520px) and (orientation: landscape) and (pointer: coarse) {
-  .vehicle-garage__grid { grid-template-columns: 1fr 1fr .55fr; }
-  .vehicle-card--empty { height: auto; flex-direction: column; justify-content: center; }
-  .vehicle-card__select > strong { font-size: 20px; }
+  .vehicle-garage__grid { grid-template-columns: 1fr 1fr .5fr; }
+  .vehicle-card--empty { flex-direction: column; justify-content: center; }
+  .vehicle-card__select > strong { font-size: 23px; }
   .vehicle-card__top { align-items: flex-start; flex-direction: column; }
-  .vehicle-garage .garage-car { height: 70px; }
   .mobile-hud .transmission-controls { left: 180px; bottom: max(12px, env(safe-area-inset-bottom)); }
   .mobile-hud:has(.transmission-controls) .mobile-steer-guide { bottom: max(32px, env(safe-area-inset-bottom)); }
+  .mobile-hud .driving-stunts { top: 116px; }
 }
+@media (prefers-reduced-motion: reduce) { .setup-screen { animation: none; } }

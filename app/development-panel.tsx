@@ -31,7 +31,7 @@ export function DevelopmentPanel({ settings, hud, activeRun, notice, onChange, o
     </>}
     <label className="development-enable"><input type="checkbox" checked={settings.enabled}
       onChange={event => update({ enabled: event.target.checked })} /><span><strong>DEV MODE</strong><small>GPS tuning, destination previews and playtest tools</small></span></label>
-    {!settings.enabled && <p>Enable Dev Mode to open the tools. Regular GPS uses 1,000 m for rerouting and U-turn savings.</p>}
+    {!settings.enabled && <p>Enable Dev Mode to open the tools. Regular GPS reroutes beyond 100 m; a U-turn must save at least 1,000 m.</p>}
     {settings.enabled && <>
       <fieldset className="development-section">
         <legend>GPS BEHAVIOR</legend>
@@ -44,7 +44,7 @@ export function DevelopmentPanel({ settings, hud, activeRun, notice, onChange, o
         </div>
         <label className="development-check"><input type="checkbox" checked={settings.showDiagnostics}
           onChange={event => update({ showDiagnostics: event.target.checked })} />Show live GPS diagnostics</label>
-        <button onClick={() => update({ navigation: normalizeDevelopmentSettings(null).navigation })}>RESET GPS TO 1,000 m</button>
+        <button onClick={() => update({ navigation: normalizeDevelopmentSettings(null).navigation })}>RESET GPS DEFAULTS</button>
       </fieldset>
       <fieldset className="development-section">
         <legend>PLAYTEST CONTROLS</legend>
@@ -97,7 +97,7 @@ export function DevelopmentReadout({ hud }: { hud: Hud }) {
   return <output className="development-readout" aria-label="Live GPS diagnostics" aria-live="off">
     <strong>{hud.playtest ? "PLAYTEST" : "DEV MODE"} · GPS #{diagnostics?.revision ?? 0}</strong>
     <span>{hud.distance.toLocaleString()} m remaining · {Math.round(diagnostics?.deviationMeters ?? 0)} m off route</span>
-    <span>Reroute &gt; {diagnostics?.rerouteDistanceMeters ?? 1000} m · U-turn saves ≥ {diagnostics?.uTurnSavingsMeters ?? 1000} m</span>
+    <span>Reroute &gt; {diagnostics?.rerouteDistanceMeters ?? 100} m · U-turn saves ≥ {diagnostics?.uTurnSavingsMeters ?? 1000} m</span>
     <span>{diagnostics?.reason ?? "start"} · x {hud.player.x.toFixed(1)} / y {hud.player.y.toFixed(1)} / z {(hud.player.z ?? 0).toFixed(1)}</span>
     <span>Seed {hud.runSeed} · {(hud.elapsed ?? 0).toFixed(2)} s · {hud.speed} km/h</span>
   </output>;

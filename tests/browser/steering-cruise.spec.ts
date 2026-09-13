@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { SCENE_TEST_TIMEOUT, WEBGPU_TEST_OPTIONS } from "./browser-options";
+import { confirmVehicle } from "./start-helpers";
 import type { Game } from "../../game/model";
 
 test.use(WEBGPU_TEST_OPTIONS);
@@ -12,7 +13,8 @@ async function begin(page: Page, renderer: string, model = "arcade", steering = 
   await expect(page.locator(".game-canvas").nth(renderer === "WebGPU" ? 1 : 0)).toHaveClass(/is-active/, { timeout: 30_000 });
   await page.getByRole("button", { name: model === "simulation" ? /^Start Simulation Free Run\. Drive/ : /Start Free Run with arcade/ }).click();
   await page.clock.pauseAt(new Date("2026-09-12T01:00:00Z"));
-  await page.getByRole("button", { name: model === "simulation" ? /Start Simulation Free Run in the Crown/ : /Choose STREET ACE/ }).click();
+  await confirmVehicle(page);
+  if (model === "arcade") await page.getByRole("button", { name: /Choose STREET ACE/ }).click();
   if (await page.getByRole("dialog", { name: "STEERING SYSTEM" }).isVisible()) {
     if (steering === "WHEEL") await page.getByLabel("Wheel rotation range").selectOption("180");
     await page.getByRole("button", { name: new RegExp(`Select ${steering}`) }).click();
@@ -71,7 +73,10 @@ test.describe("floating steering", () => {
         await expect(page.locator(".mobile-steer-guide, .mobile-thumbstick")).toHaveCount(0);
         if (mode === "JOYSTICK") await expect(control.locator(".mobile-joy-label--right")).toHaveAttribute("data-lit", "");
         else await expect(page.locator(".mobile-wheel-readout strong")).not.toHaveText("0°");
-        expect(Number(await page.locator(".speedometer > strong").textContent())).toBeGreaterThan(1);
+        // The first gesture starts on a clear road and proves acceleration.
+        // Later origins reuse the moving cab: with gradual shoulder speed loss,
+        // several turns can carry it into a building, which legitimately stops it.
+        if (x === 80) expect(Number(await page.locator(".speedometer > strong").textContent())).toBeGreaterThan(1);
         await page.screenshot({ path: info.outputPath(`${mode.toLowerCase()}-${x}.png`) });
         await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
         await page.clock.runFor(600);
@@ -97,6 +102,7 @@ test.describe("floating steering", () => {
         await page.clock.resume();
         await page.reload();
         await page.getByRole("button", { name: /Start Free Run with arcade/ }).click();
+        await confirmVehicle(page);
         await page.getByRole("button", { name: /Choose STREET ACE/ }).click();
         await expect(page.getByLabel("Wheel rotation range")).toHaveValue("90");
         await page.getByLabel("Wheel rotation range").scrollIntoViewIfNeeded();

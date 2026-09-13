@@ -1,6 +1,6 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { SCENE_START_TIMEOUT, SCENE_TEST_TIMEOUT, WEBGPU_TEST_OPTIONS } from "./browser-options";
-import { lockSteeringIfPrompted, presentUntilVisible } from "./start-helpers";
+import { confirmVehicle, lockSteeringIfPrompted, presentUntilVisible } from "./start-helpers";
 
 test.use(WEBGPU_TEST_OPTIONS);
 test.setTimeout(Math.max(120_000, SCENE_TEST_TIMEOUT * 4));
@@ -65,6 +65,7 @@ for (const renderer of ["WebGPU", "Canvas"]) for (const mobile of [false, true])
       await page.goto("/?diagnostics=1");
       await expect(page.locator(".game-canvas").nth(renderer === "WebGPU" ? 1 : 0)).toHaveClass(/is-active/, { timeout: SCENE_START_TIMEOUT });
       await page.getByRole("button", { name: /Start Free Run with arcade/ }).click();
+      await confirmVehicle(page);
       await page.clock.pauseAt(new Date("2026-09-12T01:00:00Z"));
       await page.getByRole("button", { name: /Choose STREET ACE/ }).click();
       await lockSteeringIfPrompted(page);

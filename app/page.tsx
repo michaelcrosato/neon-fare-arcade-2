@@ -1,6 +1,7 @@
 "use client";
 
 import { applyKeyboardInput } from "./runtime/keyboard-input";
+import { stuntRunRecord } from "@/game/driving-stunts";
 
 import {
   useCallback,
@@ -338,9 +339,9 @@ export default function Home() {
   }, [openModal]);
 
   const closeModal = useCallback(() => {
-    if (modal === "steering") {
-      setModal("traits");
-      setAudioAnnouncement("Back to vehicle selection.");
+    if (modal === "steering" || modal === "traits") {
+      setModal(modal === "steering" && pendingDrivingModel !== "simulation" ? "traits" : "vehicles");
+      setAudioAnnouncement(modal === "steering" && pendingDrivingModel !== "simulation" ? "Back to edge selection." : "Back to vehicle selection.");
       return;
     }
     if (modalParent === "home" && modal !== "home") {
@@ -354,7 +355,7 @@ export default function Home() {
     setModalParent(null);
     setModal(null);
     if (shouldResume && modeRef.current === "paused") setMode(shouldResume);
-  }, [modal, modalParent, setMode]);
+  }, [modal, modalParent, pendingDrivingModel, setMode]);
 
   const openHomeSubview = useCallback((next: "map" | "scores" | "courier") => {
     setModalParent("home");
@@ -465,10 +466,8 @@ export default function Home() {
     setPendingDrivingModel(drivingModel);
     resumeAfterModalRef.current = null;
     setModalParent(null);
-    setModal("traits");
-    setAudioAnnouncement(drivingModel === "simulation"
-      ? "Simulation Free Run with no timer. Choose a vehicle, review its shifting setting, then start the simulation."
-      : `${runKind === "free-run" ? "Arcade Free Run with no timer" : "Timed arcade shift"}. Choose Street Ace, Drift Demon, or Redline Rush.`);
+    setModal("vehicles");
+    setAudioAnnouncement("Choose your vehicle and shifting setting for this run.");
     tone(300, 0.08, "square", 520);
   }, [clearInput, ensureAudio, isMobile, tone]);
 
@@ -508,16 +507,18 @@ export default function Home() {
     tone(420, 0.08, "square", 350);
   }, [careerRef, clearInput, developmentRef, diagnostics, ensureAudio, isMobile, pendingDrivingModel, pendingVehicleId, pendingTransmissionMode, pendingRunKind, persistSteeringMode, resetFareCards, setMode, steeringMode, tone, touchDriving, wheelRange]);
 
+  const confirmVehicle = useCallback(() => {
+    if (pendingDrivingModel === "simulation") setPendingDrivingTrait("street-ace");
+    setModal(pendingDrivingModel === "simulation" ? "steering" : "traits");
+    setAudioAnnouncement(pendingDrivingModel === "simulation" ? "Vehicle locked in. Choose steering." : "Vehicle locked in. Choose your edge.");
+  }, [pendingDrivingModel]);
+
   const selectDriverTrait = useCallback((drivingTraitId: DrivingTraitId) => {
     setPendingDrivingTrait(drivingTraitId);
-    if (isMobile) {
-      setModal("steering");
-      setAudioAnnouncement("Vehicle locked in. Choose steering option.");
-      tone(360, 0.08, "square", 480);
-    } else {
-      beginRun(drivingTraitId);
-    }
-  }, [beginRun, isMobile, tone]);
+    setModal("steering");
+    setAudioAnnouncement("Edge locked in. Choose your steering.");
+    tone(360, 0.08, "square", 480);
+  }, [tone]);
 
   const selectSteeringAndBegin = useCallback((selectedMode: SteeringMode) => {
     beginRun(pendingDrivingTrait, selectedMode);
@@ -534,6 +535,7 @@ export default function Home() {
       fare: game.fare,
       deliveries: game.deliveries,
       rank,
+      stunts: stuntRunRecord(game.stunts),
       date: new Date().toLocaleDateString(undefined, { month: "short", day: "numeric" }),
     };
     if (game.runKind === "timed" && !game.playtest) {
@@ -753,10 +755,10 @@ export default function Home() {
     const focusableSelector = "button:not([disabled]),a[href],input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex='-1'])";
     const frame = window.requestAnimationFrame(() => {
       const dialog = modalDialogRef.current;
-      const first = (modal === "traits" || modal === "steering")
+      const first = (modal === "vehicles" || modal === "traits" || modal === "steering")
         ? dialog?.querySelector<HTMLElement>("[data-modal-autofocus='true']")
         : dialog?.querySelector<HTMLElement>(focusableSelector);
-      (first ?? dialog)?.focus({ preventScroll: modal === "traits" });
+      (first ?? dialog)?.focus({ preventScroll: modal === "vehicles" || modal === "traits" || modal === "steering" });
     });
     const onModalKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape" && !event.repeat) {
@@ -959,7 +961,7 @@ export default function Home() {
         pendingDrivingModel={pendingDrivingModel}
         pendingVehicleId={pendingVehicleId}
         pendingTransmissionMode={pendingTransmissionMode}
-        onSelectVehicle={setPendingVehicleId}
+        onSelectVehicle={setPendingVehicleId} onConfirmVehicle={confirmVehicle}
         onSelectTransmission={setPendingTransmissionMode}
         hud={hud}
         career={career}
@@ -975,7 +977,6 @@ export default function Home() {
         steeringMode={steeringMode} onSetSteeringMode={setSteeringMode}
         wheelRange={wheelRange} onSetWheelRange={setWheelRange}
         onSelectDriverTrait={selectDriverTrait} onSelectSteering={selectSteeringAndBegin}
-        onBackToTraits={() => { setModal("traits"); tone(300, 0.08, "square", 240); }}
         rendererKind={rendererKind} onClose={closeModal} onBeginRun={beginRun}
         onSelectDestination={selectCustomDestination} onRemoveDestination={removeCustomDestination}
         onToggleFareDispatch={toggleFareDispatch} onPurchaseHomeItem={purchaseHomeItem}

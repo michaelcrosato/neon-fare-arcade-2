@@ -9,11 +9,14 @@ export async function presentUntilVisible(page: Page, target: Locator, maxMillis
   await expect(target).toBeVisible();
 }
 
-/**
- * Mobile start goes PICK YOUR EDGE → STEERING SYSTEM. Desktop skips the second
- * modal. Existing helpers that wait for Pause after STREET ACE must lock a
- * system when the steering dialog appears so they are not stuck there.
- */
+/** Every run starts with its own garage screen, including repeat runs. */
+export async function confirmVehicle(page: Page) {
+  const garage = page.getByRole("dialog", { name: "SELECT YOUR VEHICLE", exact: true });
+  await expect(garage).toBeVisible();
+  await garage.getByRole("button", { name: /^Continue to (Edge|Steering) selection$/ }).click();
+}
+
+/** Both desktop and mobile lock steering after Arcade's Edge or Simulation's Vehicle. */
 export async function lockSteeringIfPrompted(page: Page, lockName = /Select DEFAULT/) {
   const steering = page.getByRole("dialog", { name: "STEERING SYSTEM" });
   const countdown = page.locator(".countdown");

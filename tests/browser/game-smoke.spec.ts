@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { createRequire } from "node:module";
 import { SCENE_START_TIMEOUT, SCENE_TEST_TIMEOUT } from "./browser-options";
-import { lockSteeringIfPrompted } from "./start-helpers";
+import { confirmVehicle, lockSteeringIfPrompted } from "./start-helpers";
 
 test.setTimeout(SCENE_TEST_TIMEOUT);
 
@@ -46,6 +46,7 @@ async function startFreeRun(page: Page) {
   await expect(page.getByRole("group", { name: "Choose game mode" })).toBeVisible({ timeout: SCENE_START_TIMEOUT });
   await expect(page.locator("canvas").first()).toHaveClass(/is-active/, { timeout: SCENE_START_TIMEOUT });
   await page.getByRole("button", { name: /Start Free Run/i }).click();
+  await confirmVehicle(page);
   await expect(page.getByRole("dialog", { name: "PICK YOUR EDGE" })).toBeVisible();
   await page.getByRole("button", { name: /Choose STREET ACE/i }).click();
   await lockSteeringIfPrompted(page);
@@ -85,6 +86,7 @@ test("help pauses the countdown and closing it resumes the remaining countdown",
   await page.clock.install({ time: new Date("2026-09-12T00:00:00Z") });
   await page.goto("/");
   await page.getByRole("button", { name: /Start Free Run with arcade/ }).click();
+  await confirmVehicle(page);
   await page.clock.pauseAt(new Date("2026-09-12T01:00:00Z"));
   await page.getByRole("button", { name: /Choose STREET ACE/ }).click();
   await lockSteeringIfPrompted(page);
@@ -159,10 +161,11 @@ test("free run supports exploration, GPS, driving, pause, and copyable replay di
 test("Simulation Free Run selects the Crown cab and exposes real powertrain controls", async ({ page }) => {
   await page.goto("/?diagnostics=1");
   await page.getByRole("button", { name: /Start Simulation Free Run/i }).click();
-  const specification = page.getByRole("dialog", { name: "CHOOSE YOUR VEHICLE", exact: true });
+  const specification = page.getByRole("dialog", { name: "SELECT YOUR VEHICLE", exact: true });
   await expect(specification.getByRole("button", { name: "Select Crown Cab ’96", exact: true })).toHaveAttribute("aria-pressed", "true");
   await expect(specification).toContainText("1,900 kg");
-  await specification.getByRole("button", { name: /Start Simulation Free Run/i }).click();
+  await confirmVehicle(page);
+  await lockSteeringIfPrompted(page);
   await expect(page.getByRole("button", { name: "Pause game" })).toBeVisible({ timeout: SCENE_START_TIMEOUT });
   await expect(page.locator('button[aria-label="Parking brake"]')).toHaveCount(1);
   await page.keyboard.down("w");

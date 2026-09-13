@@ -29,6 +29,7 @@ import { mulberry32, rightHandTrafficLane } from "./math";
 import type { DrivingModel, DrivingTraitId, Game, RunKind, TrafficCar, VehicleId, TransmissionMode } from "./model";
 import { DEFAULT_VEHICLE_ID } from "./vehicles";
 import { makeManualTransmission } from "./manual-transmission";
+import { makeDrivingStunts } from "./driving-stunts";
 import { makeSimulationVehicleState } from "./simulation-vehicle";
 import { sampleSpecialRoad, specialRoadLength } from "./road-network";
 import { containingRegionForPosition } from "./regions";
@@ -192,6 +193,8 @@ export function makeGame(
     boosting: false,
     driftBank: 0,
     driftScoreCarry: 0,
+    offroadSpeedPenaltyKmh: 0,
+    stunts: makeDrivingStunts(),
     lastBeep: 11,
     traffic: makeTraffic(),
     particles: [],
