@@ -29,7 +29,8 @@ function fareNumber(card: FareImpact) {
 }
 
 export const FareCardStack = memo(function FareCardStack({ cards, onOpen }: FareCardStackProps) {
-  if (cards.length === 0) return null;
+  // Keep a measured landing slot before the first card joins the deck.
+  if (cards.length === 0) return <div className="fare-card-stack is-empty" aria-hidden="true" />;
   const visibleCards = cards.slice(-3);
   const latest = cards[cards.length - 1];
 

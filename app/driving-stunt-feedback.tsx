@@ -8,17 +8,20 @@ export function DrivingStuntFeedback({ stunts }: { stunts: DrivingStuntsHud }) {
   return <aside className="driving-stunts" aria-label="Driving distance feedback">
     {(["drift", "air"] as const).map(kind => {
       const stunt = stunts[kind];
-      if (!stunt.active && !stunt.showResult) return null;
+      if (!stunt.showActive && !stunt.showResult) return null;
       const meters = stunt.active ? stunt.meters : stunt.lastMeters;
       return <div key={kind} className={`driving-stunt driving-stunt--${kind} ${stunt.active ? "is-active" : "is-complete"}`}>
         <small>{kind === "drift" ? stunt.active ? "DRIFTING!" : "DRIFT BANKED" : stunt.active ? "AIR!" : "LANDED!"}</small>
         <strong aria-label={`${kind === "drift" ? "Drift" : "Air"} distance ${stuntMeters(meters)}`}>{stuntMeters(meters)}</strong>
+        {kind === "drift" && <b className="driving-stunt__score" aria-label={`Drift score ${stunt.active ? stunts.drift.score : stunts.drift.lastScore} points`}>
+          +{(stunt.active ? stunts.drift.score : stunts.drift.lastScore).toLocaleString()} <small>PTS</small>
+        </b>}
         <span>{stunt.active ? "DISTANCE" : meters >= stunt.bestMeters - .01 ? "RUN BEST" : `BEST ${stuntMeters(stunt.bestMeters)}`}</span>
       </div>;
     })}
     <span className="sr-only" role="status" aria-atomic="true">{(["drift", "air"] as const).map(kind => {
       const stunt = stunts[kind];
-      return stunt.showResult ? `${kind === "drift" ? "Drift complete" : "Landed"}: ${stuntMeters(stunt.lastMeters)}. ` : "";
+      return stunt.showResult ? `${kind === "drift" ? "Drift complete" : "Landed"}: ${stuntMeters(stunt.lastMeters)}${kind === "drift" ? `, ${stunts.drift.lastScore} points` : ""}. ` : "";
     }).join("")}</span>
   </aside>;
 }

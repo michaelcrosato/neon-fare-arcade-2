@@ -20,11 +20,13 @@ async function checkBanner(page: Page, card: Locator) {
   const stage = (await page.locator(".game-stage").boundingBox())!;
   const sequence = card.locator(".fare-impact__sequence");
   await expect(card).toHaveCSS("visibility", "visible");
+  const desktop = !await page.evaluate(() => matchMedia("(max-width: 820px), (pointer: coarse)").matches);
+  await expect(card).toHaveAttribute("data-docking", desktop ? "deck" : "fade");
   const motion = await sequence.evaluate(element => {
     const animation = element.getAnimations()[0];
-    if (!animation) throw new Error("Fare banner must have its entrance and upward exit animation");
+    if (!animation) throw new Error("Fare banner must have its entrance and exit animation");
     animation.pause();
-    const frames = [0, 180, 1500, 2580, 2970].map(time => {
+    const frames = [0, 180, 1500, 2580, 2790, 2970].map(time => {
       animation.currentTime = time;
       const box = element.getBoundingClientRect();
       return { x: box.x, y: box.y, width: box.width, height: box.height };
@@ -33,12 +35,22 @@ async function checkBanner(page: Page, card: Locator) {
   });
   expect(motion.duration).toBe(3000);
   const fitted = motion.frames[2];
-  for (const frame of motion.frames) {
+  for (const frame of motion.frames.slice(0, 4)) {
     expect(frame.x).toBeGreaterThanOrEqual(fitted.x - 1);
     expect(frame.y + frame.height).toBeLessThanOrEqual(fitted.y + fitted.height + 1);
     expect(frame.width).toBeLessThanOrEqual(fitted.width + 1);
   }
-  expect(motion.frames.at(-1)!.y).toBeLessThan(motion.frames[2].y);
+  const landed = motion.frames.at(-1)!;
+  if (desktop) {
+    const dock = (await page.locator(".fare-card-stack").boundingBox())!;
+    expect(landed.x + landed.width / 2).toBeCloseTo(dock.x + dock.width / 2, 0);
+    expect(landed.y + landed.height / 2).toBeCloseTo(dock.y + dock.height / 2, 0);
+    expect(landed.width).toBeLessThanOrEqual(dock.width + 1);
+    expect(landed.height).toBeLessThanOrEqual(dock.height + 1);
+    expect(motion.frames[4].width).toBeLessThan(fitted.width);
+    expect(motion.frames[4].width).toBeGreaterThan(landed.width);
+    expect(motion.frames[4].x).toBeLessThan(fitted.x);
+  } else expect(landed.y).toBeLessThan(fitted.y);
   const decoration = await card.evaluate(element => ["::before", "::after"].map(pseudo => getComputedStyle(element, pseudo).display));
   expect(decoration).toEqual(["none", "none"]);
   await expect(card.locator(".fare-impact__speed-lines")).toBeHidden();
@@ -48,7 +60,7 @@ async function checkBanner(page: Page, card: Locator) {
   await expect(sequence).toBeInViewport({ ratio: 1 });
   const box = (await sequence.boundingBox())!;
   expect(box.width * box.height).toBeGreaterThan(stage.width * stage.height * .13);
-  if (!await page.evaluate(() => matchMedia("(max-width: 820px), (pointer: coarse)").matches)) {
+  if (desktop) {
     expect(box.width).toBeCloseTo((stage.width - 24) / 2, 0);
     expect(box.x + box.width / 2).toBeCloseTo(stage.x + stage.width / 2, 0);
     expect(box.height).toBeLessThanOrEqual((stage.height - 16) * .38);
@@ -106,6 +118,7 @@ for (const renderer of ["WebGPU", "Canvas"]) for (const mobile of [false, true])
       await expect(pickup).toBeVisible();
       await page.clock.fastForward(100);
       await expect(pickup).toHaveCount(0);
+      if (!mobile) await expect(page.getByRole("button", { name: /Pause and browse 1 run card/ })).toBeVisible();
 
       await openOptions(page);
       await page.getByRole("button", { name: "JUMP TO DROPOFF", exact: true }).click();
@@ -122,6 +135,7 @@ for (const renderer of ["WebGPU", "Canvas"]) for (const mobile of [false, true])
       await expect(dropoff).toBeVisible();
       await page.clock.fastForward(400);
       await expect(dropoff).toHaveCount(0);
+      if (!mobile) await expect(page.getByRole("button", { name: /Pause and browse 2 run cards/ })).toBeVisible();
       expect(errors).toEqual([]);
     });
   });

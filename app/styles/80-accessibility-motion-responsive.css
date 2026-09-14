@@ -453,6 +453,13 @@
   100% { opacity: 0; transform: translateY(-18px) scale(.98); }
 }
 
+@keyframes fare-banner-dock {
+  0% { opacity: 0; transform: translateY(-18px) scale(.96); }
+  6%, 86% { opacity: 1; transform: translate(0, 0) scale(1); }
+  98% { opacity: 1; transform: translate(var(--fare-dock-x), var(--fare-dock-y)) scale(var(--fare-dock-scale)); }
+  100% { opacity: 0; transform: translate(var(--fare-dock-x), var(--fare-dock-y)) scale(var(--fare-dock-scale)); }
+}
+
 /* Mobile is a driving surface, with planning and settings opened on demand.
    Keep the media query aligned with use-mobile-layout.ts. */
 @media (max-width: 820px), (pointer: coarse) {
@@ -777,6 +784,7 @@
   .mobile-hud .driving-stunts { top: 126px; right: max(14px, env(safe-area-inset-right)); width: 130px; gap: 8px; }
   .mobile-hud .driving-stunt { padding: 6px 8px; }
   .mobile-hud .driving-stunt > strong { font-size: 30px; margin: 1px 0; }
+  .mobile-hud .driving-stunt__score { margin: 3px 0 5px; padding: 3px 5px; font-size: 19px; }
   .mobile-hud .driving-stunt > small, .mobile-hud .driving-stunt > span:not(.sr-only) { font-size: 8px; }
 }
 @media (max-height: 520px) and (orientation: landscape) and (pointer: coarse) {
@@ -786,7 +794,7 @@
   .vehicle-card__top { align-items: flex-start; flex-direction: column; }
   .mobile-hud .transmission-controls { left: 180px; bottom: max(12px, env(safe-area-inset-bottom)); }
   .mobile-hud:has(.transmission-controls) .mobile-steer-guide { bottom: max(32px, env(safe-area-inset-bottom)); }
-  .mobile-hud .driving-stunts { top: 116px; }
+  .mobile-hud .driving-stunts { top: 100px; }
 }
 @media (prefers-reduced-motion: reduce) { .setup-screen { animation: none; } }
 /* Desktop navigation is one rail; the archive docks directly below the map. */

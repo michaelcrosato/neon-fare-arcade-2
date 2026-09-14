@@ -1,4 +1,6 @@
 import { DISPLAY_METERS_PER_WORLD_UNIT } from "./config";
+import { drivingTraitPackage } from "./driving-traits";
+import { clamp } from "./math";
 import type { DrivingStunts, DrivingStuntsHud, Game, StuntDistance, StuntRunRecord, Vec2 } from "./model";
 
 function distanceTracker(): StuntDistance {
@@ -6,7 +8,7 @@ function distanceTracker(): StuntDistance {
 }
 
 export function makeDrivingStunts(): DrivingStunts {
-  return { drift: distanceTracker(), air: distanceTracker() };
+  return { drift: { ...distanceTracker(), score: 0, lastScore: 0 }, air: distanceTracker() };
 }
 
 function track(state: StuntDistance, active: boolean, meters: number, dt: number, elapsed: number, grace: number) {
@@ -39,17 +41,38 @@ export function stepDrivingStunts(game: Game, previous: Vec2, wasGrounded: boole
   const grounded = game.roadMotion.grounded;
   const drifting = driving && grounded && game.drifting;
   const airborne = driving && !grounded;
+  if (drifting && !stunts.drift.active) {
+    stunts.drift.score = 0;
+    game.driftScoreCarry = 0;
+  }
+  if (drifting && meters > 0) {
+    // Reward actual slip in either direction, up to a sideways (90 degree) slide.
+    // Distance comes after collision resolution, so pushing a wall earns nothing.
+    const angleReward = clamp(Math.abs(game.driftAngle), 0, Math.PI / 2) / (Math.PI / 7);
+    const speedReward = .55 + clamp((game.speed - 8) / 30, 0, 1) * .45;
+    game.driftScoreCarry += meters / DISPLAY_METERS_PER_WORLD_UNIT * game.combo
+      * game.driftIntensity * (.35 + angleReward * .65) * speedReward * 1.6
+      * drivingTraitPackage(game.drivingTraitId).modifiers.driftScoreMultiplier;
+    const points = Math.floor(game.driftScoreCarry + 1e-9);
+    game.driftScoreCarry -= points;
+    stunts.drift.score += points;
+    game.score += points;
+  }
   // Brief neutral slip while countersteering keeps one drift, without counting the straight section.
   track(stunts.drift, drifting, drifting ? meters : 0, dt, game.elapsed, grounded && driving ? .3 : 0);
+  if (!stunts.drift.active) stunts.drift.lastScore = stunts.drift.score;
   // Include the final horizontal landing segment as well as the takeoff segment.
   track(stunts.air, airborne, airborne || (driving && !wasGrounded && stunts.air.active) ? meters : 0, dt, game.elapsed, 0);
 }
 
 export function drivingStuntsHud(stunts: DrivingStunts, elapsed: number): DrivingStuntsHud {
-  const hud = (state: StuntDistance) => ({ active: state.active, meters: state.meters, lastMeters: state.lastMeters,
+  const hud = (state: StuntDistance, minimumMeters: number) => ({ active: state.active, meters: state.meters, lastMeters: state.lastMeters,
     totalMeters: state.totalMeters, bestMeters: state.bestMeters, count: state.count,
-    showResult: !state.active && state.lastMeters >= .5 && elapsed < state.resultUntil });
-  return { drift: hud(stunts.drift), air: hud(stunts.air) };
+    showActive: state.active && state.meters > minimumMeters,
+    showResult: !state.active && state.lastMeters > minimumMeters && elapsed < state.resultUntil });
+  return { drift: { ...hud(stunts.drift, 10), score: stunts.drift.score, lastScore: stunts.drift.lastScore },
+    air: { ...hud(stunts.air, 0), showActive: stunts.air.active,
+      showResult: !stunts.air.active && stunts.air.lastMeters >= .5 && elapsed < stunts.air.resultUntil } };
 }
 
 export function stuntRunRecord(stunts: DrivingStunts): StuntRunRecord {

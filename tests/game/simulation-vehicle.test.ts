@@ -287,7 +287,7 @@ test("the rear parking brake consumes the rear friction circle and produces a sp
   assert.equal(sliding.simulationVehicle.overturned, false);
   assert.equal(sliding.boosting, false);
   assert.equal(sliding.boost, 0);
-  assert.equal(sliding.score, 0);
+  assert.equal(sliding.score, 0, "the chassis alone does not award gameplay points before resolved travel");
 });
 
 test("a ground-level collision impulse brackets rocking, wheel lift, and a genuine rollover", () => {

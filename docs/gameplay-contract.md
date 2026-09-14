@@ -37,8 +37,11 @@ updates the arcade launch, steering, road elevation and contact rules below.
   first-person arrow reaches the top edge, use the clear gap below it and above
   the dashboard. Mobile distance labels share their projected placement with
   the fitter. Each card lasts three seconds total:
-  180 ms entrance, 2400 ms hold and 420 ms exit. They never wipe or fly across
-  the cab or navigation arrow. Fare history remains available in Pause.
+  180 ms entrance, 2400 ms hold and 420 ms exit. Desktop cards slide and shrink
+  into the measured deck slot below the GPS; the first card reserves the same
+  landing slot. Mobile cards fade upward. Pausing freezes both the animation
+  and its lifetime; reduced motion skips the movement. Fare history remains
+  available in Pause.
 - The splash screen contains mode selection without duplicate Options or a
   controls strip. Header Options and Escape open the same pause hub. During
   countdown, Resume returns to the remaining countdown; from the lobby,
@@ -167,7 +170,7 @@ updates the arcade launch, steering, road elevation and contact rules below.
   operates the clutch, Z/X select R–N–1–6 with the clutch held, W applies gas
   in the selected direction, and S only brakes. Launch assistance prevents
   stalling. Space is the rear parking brake.
-  Simulation has no boost, brake-kick, arcade drift charge, or drift scoring.
+  Simulation has no boost, brake-kick, or arcade drift charge.
   Engine governors limit drive force, never the momentum of a backward slide.
   Low-speed handling blends from total planar speed, not forward speed alone.
   Steering retains its physical 32-degree road-wheel lock at every speed and is
@@ -227,8 +230,16 @@ updates the arcade launch, steering, road elevation and contact rules below.
   fixed-step travel. Drift excludes straight and airborne movement; a neutral
   countersteer gap of up to 0.3 seconds joins the same drift. Air includes the
   takeoff and landing segments, never vertical height. Walking and teleports
-  do not add distance. Live HUD counters show meters, followed by a four-second
-  result and run best. Pause and results retain totals and bests; saved timed
+  do not add distance. Drift points use that resolved travel, current absolute
+  slip angle, intensity, speed, combo and driving package in both models. More
+  angle earns more points, capped at a sideways 90-degree slide; stationary,
+  airborne, walking and teleport motion earn none. Whole points are added to
+  the run score and the same drift's counter, with fractional points carried
+  through countersteer gaps. A new drift starts its score from zero.
+  Drift feedback appears only after exceeding 10 meters, with earned points in
+  the distance box. Short drift results and announcements stay hidden. Air
+  counters retain their existing visibility. Results last four seconds and show
+  the run best. Pause and results retain totals and bests; saved timed
   run records carry those distances without invalidating older saved records.
 - Off-road travel gradually lowers the ordinary and boosted forward ceiling by
   at most 30 km/h: 10 km/h per second to apply, 15 km/h per second to recover on

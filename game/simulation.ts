@@ -548,15 +548,6 @@ export function stepGame(
       100,
       game.boost + 8 * drivingTrait.driftBoostGainMultiplier * driftReward * dt,
     );
-    game.driftScoreCarry += game.speed
-      * dt
-      * game.combo
-      * driftReward
-      * 1.6
-      * drivingTrait.driftScoreMultiplier;
-    const driftScore = Math.floor(game.driftScoreCarry + 1e-9);
-    game.score += driftScore;
-    game.driftScoreCarry -= driftScore;
     if (random() < 0.14 + game.driftIntensity * 0.58) {
       for (const side of [-1, 1]) {
         const tire = localPoint(game.x, game.y, game.heading, -1.85, side * 0.72);

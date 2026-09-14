@@ -723,7 +723,6 @@ function stepSimulationSubstep(
   game.driftIntensity = clamp((Math.abs(bodySlip) - 0.045) / 0.52, 0, 1);
   game.drifting = !state.overturned && Math.abs(longitudinal) > 4.5 && game.driftIntensity > 0.12;
   game.driftBank = 0;
-  game.driftScoreCarry = 0;
 
   state.longitudinalSpeed = longitudinal;
   state.lateralSpeed = lateral;

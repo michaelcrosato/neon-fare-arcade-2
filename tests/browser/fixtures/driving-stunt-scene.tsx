@@ -8,6 +8,7 @@ import { GameSessionOverlays } from "../../../app/game-session-overlays";
 import { TouchDriving } from "../../../app/runtime/touch-driving";
 import { defaultCameraBoom, FIXED_DT } from "../../../game/config";
 import { makeHud } from "../../../game/hud";
+import { makeDrivingStunts } from "../../../game/driving-stunts";
 import { buildNavigationPlan } from "../../../game/navigation";
 import { stepGame } from "../../../game/simulation";
 import { makeSimulationVehicleState } from "../../../game/simulation-vehicle";
@@ -71,7 +72,12 @@ const fixture = {
   },
   drift() {
     resetPose(); game.vy = 16; game.speed = Math.hypot(game.vx, game.vy);
-    for (let i = 0; i < 18; i++) tick({ ...idle, up: true, right: true });
+    for (let i = 0; i < 120 && game.stunts.drift.meters <= 12; i++) tick({ ...idle, up: true, right: true });
+    return draw();
+  },
+  shortDrift() {
+    resetPose(); game.stunts = makeDrivingStunts(); game.vy = 16; game.speed = Math.hypot(game.vx, game.vy);
+    for (let i = 0; i < 120 && game.stunts.drift.meters === 0; i++) tick({ ...idle, up: true, right: true });
     return draw();
   },
   finishDrift() {

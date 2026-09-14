@@ -82,6 +82,7 @@ export function presentFareImpact(element: HTMLDivElement, canvas: HTMLCanvasEle
   camera: Camera, seconds: number, navigation: NavigationPlan, badge?: FareRect) {
   const stage = canvas.getBoundingClientRect(), area = element.getBoundingClientRect();
   if (area.width <= 0 || area.height <= 0) return;
+  const dock = element.closest(".game-stage")?.querySelector(".fare-card-stack")?.getBoundingClientRect();
   const obstacles = fareImpactObstacles(game, camera, seconds, navigation, stage.width, stage.height)
     .map(rect => ({ ...rect, x: rect.x + stage.x - area.x, y: rect.y + stage.y - area.y }));
   if (badge) obstacles.push({ ...badge, x: badge.x + stage.x - area.x, y: badge.y + stage.y - area.y });
@@ -96,6 +97,20 @@ export function presentFareImpact(element: HTMLDivElement, canvas: HTMLCanvasEle
   for (const [name, value] of Object.entries(values)) {
     const next = name === "unit" ? value.toFixed(3) : `${value}px`;
     if (element.style.getPropertyValue(`--fare-fit-${name}`) !== next) element.style.setProperty(`--fare-fit-${name}`, next);
+  }
+  // Measure the actual rail slot (including the empty first-card slot), so the
+  // exit stays attached to the deck across viewport and camera changes.
+  const canDock = !camera.mobile && dock && dock.width > 0 && dock.height > 0 && rect.height > 0;
+  element.dataset.docking = canDock ? "deck" : "fade";
+  if (canDock) {
+    const docking = {
+      x: `${dock.x + dock.width / 2 - area.x - rect.x - rect.width / 2}px`,
+      y: `${dock.y + dock.height / 2 - area.y - rect.y - rect.height / 2}px`,
+      scale: Math.min(1, dock.width / rect.width, dock.height / rect.height).toFixed(5),
+    };
+    for (const [name, value] of Object.entries(docking)) {
+      if (element.style.getPropertyValue(`--fare-dock-${name}`) !== value) element.style.setProperty(`--fare-dock-${name}`, value);
+    }
   }
   element.dataset.layout = wide ? "wide" : "portrait";
   element.dataset.compact = String(wide ? rect.height < 190 || rect.width - art < 190 : rect.height < 300);

@@ -919,8 +919,11 @@ export type StuntDistance = {
   gapSeconds: number;
   resultUntil: number;
 };
-export type DrivingStunts = { drift: StuntDistance; air: StuntDistance };
-export type DrivingStuntsHud = { [K in keyof DrivingStunts]: Pick<StuntDistance, "active" | "meters" | "totalMeters" | "bestMeters" | "lastMeters" | "count"> & { showResult: boolean } };
+export type DrivingStunts = { drift: StuntDistance & { score: number; lastScore: number }; air: StuntDistance };
+type StuntDistanceHud = Pick<StuntDistance, "active" | "meters" | "totalMeters" | "bestMeters" | "lastMeters" | "count"> & {
+  showActive: boolean; showResult: boolean;
+};
+export type DrivingStuntsHud = { drift: StuntDistanceHud & { score: number; lastScore: number }; air: StuntDistanceHud };
 export type StuntRunRecord = { driftTotalMeters: number; driftBestMeters: number; airTotalMeters: number; airBestMeters: number };
 
 export type RunRecord = {

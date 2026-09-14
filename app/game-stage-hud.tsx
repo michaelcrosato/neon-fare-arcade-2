@@ -165,7 +165,8 @@ export function GameStageHud({
             <GpsMap hud={hud} />
           </button>}
 
-          {mode === "playing" && <FareCardStack key={dockedFareCards[dockedFareCards.length - 1]?.id} cards={dockedFareCards} onOpen={onOpenFareDeck} />}
+          {(mode === "playing" || mode === "paused") && (fareImpact !== null || dockedFareCards.length > 0)
+            && <FareCardStack key={dockedFareCards[dockedFareCards.length - 1]?.id} cards={dockedFareCards} onOpen={onOpenFareDeck} />}
 
           <button
             className="camera-panel"

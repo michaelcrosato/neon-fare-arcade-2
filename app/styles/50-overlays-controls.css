@@ -737,6 +737,8 @@
 .driving-stunt--air { background: var(--cyan); transform: rotate(2deg); }
 .driving-stunt > small, .driving-stunt > span:not(.sr-only) { display: block; font: 900 10px/1.2 var(--font-geist-mono), monospace; }
 .driving-stunt > strong { display: block; font: italic 900 42px/1 Impact, sans-serif; margin: 3px 0; white-space: nowrap; }
+.driving-stunt__score { display: block; margin: 5px 0 7px; padding: 4px 6px; color: var(--yellow); background: var(--ink); font: 900 23px/1 "Barlow Condensed", sans-serif; }
+.driving-stunt__score > small { font-size: 11px; }
 .driving-stunt.is-complete { background: var(--paper); }
 .stunt-statistics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 14px 0; }
 .stunt-statistics > div { padding: 10px; border: 2px solid currentColor; text-align: left; }

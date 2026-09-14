@@ -59,6 +59,76 @@ test("air distance includes takeoff and landing travel, excludes height and neve
   assert.equal(game.stunts.air.totalMeters, 25, "teleport-sized jumps are not traveled distance");
 });
 
+test("drift feedback stays silent through ten meters, including short banked drifts", () => {
+  const game = makeGame("street-ace", 12);
+  game.drifting = true;
+  travel(game, 5, 0); travel(game, 5, 0);
+  assert.equal(drivingStuntsHud(game.stunts, game.elapsed).drift.showActive, false);
+  game.drifting = false;
+  for (let i = 0; i < 4; i++) travel(game, 0, 0);
+  assert.equal(drivingStuntsHud(game.stunts, game.elapsed).drift.showResult, false);
+  game.drifting = true;
+  travel(game, 5, 0); travel(game, 5, 0); travel(game, .01, 0);
+  assert.equal(drivingStuntsHud(game.stunts, game.elapsed).drift.showActive, true);
+  game.drifting = false;
+  for (let i = 0; i < 4; i++) travel(game, 0, 0);
+  assert.equal(drivingStuntsHud(game.stunts, game.elapsed).drift.showResult, true);
+});
+
+test("drift points reward the current absolute angle and equal earned run score in both models", () => {
+  for (const model of ["arcade", "simulation"] as const) {
+    const scoreAt = (degrees: number) => {
+      const game = makeGame("street-ace", 12, "free-run", model);
+      game.drifting = true; game.driftIntensity = .8; game.driftAngle = degrees * Math.PI / 180;
+      for (let i = 0; i < 20; i++) travel(game, 3, 4);
+      assert.equal(game.stunts.drift.score, game.score);
+      assert.ok(game.score > 0);
+      return game.score;
+    };
+    assert.ok(scoreAt(60) > scoreAt(30));
+    assert.ok(scoreAt(30) > scoreAt(10));
+    assert.equal(scoreAt(-30), scoreAt(30));
+    assert.equal(scoreAt(120), scoreAt(90), "spinning past sideways cannot multiply the reward indefinitely");
+  }
+});
+
+test("drift points survive countersteer, bank with the distance, and exclude stationary, air, walking and teleport travel", () => {
+  const game = makeGame("street-ace", 12);
+  game.drifting = true; game.driftIntensity = .8; game.driftAngle = .6;
+  for (let i = 0; i < 4; i++) travel(game, 3, 4);
+  const first = game.stunts.drift.score;
+  travel(game, 0, 0); travel(game, 500, 0);
+  game.drifting = false; travel(game, 5, 0);
+  assert.equal(game.stunts.drift.score, first);
+  game.drifting = true; travel(game, 3, 4);
+  assert.ok(game.stunts.drift.score > first);
+  travel(game, 3, 4, false);
+  assert.equal(game.stunts.drift.lastScore, game.score);
+  const banked = game.score;
+  travel(game, 3, 4, false);
+  game.player = { kind: "walking", location: { kind: "city" }, actor: makeWalkingActor(taxiPose(game)) };
+  travel(game, 3, 4);
+  assert.equal(game.score, banked);
+  assert.equal(drivingStuntsHud(game.stunts, game.elapsed).drift.lastScore, banked);
+});
+
+test("changing angle changes this drift's point rate and the next drift starts a fresh score", () => {
+  const game = makeGame("street-ace", 12);
+  game.drifting = true; game.driftIntensity = .8; game.driftAngle = .2;
+  for (let i = 0; i < 10; i++) travel(game, 3, 4);
+  const shallow = game.stunts.drift.score;
+  game.driftAngle = .9;
+  for (let i = 0; i < 10; i++) travel(game, 3, 4);
+  assert.ok(game.stunts.drift.score - shallow > shallow);
+  const completed = game.stunts.drift.score;
+  game.drifting = false;
+  for (let i = 0; i < 4; i++) travel(game, 0, 0);
+  game.drifting = true; travel(game, 3, 4);
+  assert.ok(game.stunts.drift.score > 0 && game.stunts.drift.score < shallow);
+  assert.equal(game.stunts.drift.lastScore, completed);
+  assert.equal(game.score, completed + game.stunts.drift.score);
+});
+
 test("actual fixed-step crest flight measures distance and lands in both driving models", () => {
   for (const model of ["arcade", "simulation"] as const) {
     const game = makeGame("street-ace", 12, "free-run", model);
