@@ -109,6 +109,16 @@ cargo ownership as WebGPU. Reduced motion and player state match in all paths.
 
 ## Navigation glyphs
 
+Red passenger destination beams use material 22 (`MAT_BEACON`). Their far depth
+is clamped just inside the existing projection's far plane and their red tint
+is emissive, without distance fog, in WebGPU, WebGL and software. Side/near
+clipping and foreground occlusion remain active. The beam stays anchored to
+the destination, extends above the viewer's horizon and keeps a small angular
+width at long range; its fourteen panels use the existing actor budget. The
+arrival ring retains its original size. World streaming, ordinary draw/fog
+distance, collision and pickup/courier markers remain unchanged. A beam still
+needs to be inside the selected camera's field of view.
+
 Every WebGPU camera uses the same canonical turn pieces. Camera mode changes
 only the plane pitch. Normal arrows use 16 boxes, with up to 13 additional boxes
 for the temporary vehicle direction arrow (total budget: 48 instances). U-turn

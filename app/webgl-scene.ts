@@ -1,8 +1,8 @@
 import type { Box, Camera, WorldView } from "@/game/model";
 import { cubeVertices, INSTANCE_BYTES, INSTANCE_FIELD_OFFSET_BYTES, packBoxes } from "@/game/render/packing";
 import { packSurfaceQuads, SURFACE_VERTEX_BYTES } from "@/game/render/surfaces";
-import { sphereInView } from "@/game/render/clip";
-import { MAT_WINDOW, MAT_LAMP, MAT_MARKER, MAT_ROUTE, MAT_TURN } from "@/game/config";
+import { BEACON_FAR_DEPTH, sphereInView } from "@/game/render/clip";
+import { MAT_WINDOW, MAT_LAMP, MAT_MARKER, MAT_ROUTE, MAT_TURN, MAT_BEACON } from "@/game/config";
 import type { CompatibilityScene } from "./compatibility-scene";
 import { WebGLHorizon, type HorizonFrame } from "./webgl-horizon";
 
@@ -18,6 +18,7 @@ uniform bool ghost;
 out vec4 pixel;
 void main() {
   if (ghost) { pixel=vec4(0.05,0.9,0.95,0.23); return; }
+  if (material==${MAT_BEACON}.0) { pixel=color; return; }
   vec3 n=normalize(normal);
   float direct=max(0.0,dot(n,normalize(vec3(0.64,0.22,0.74))));
   float fill=0.7+max(0.0,n.z)*0.12;
@@ -56,6 +57,7 @@ void main() {
   worldPosition=positionMaterial.xyz+rotate(vertex.xyz*scaleYaw.xyz);
   color=tint; material=positionMaterial.w;
   vec4 clip=matrix*vec4(worldPosition,1);
+  if (material==${MAT_BEACON}.0) clip.z=min(clip.z,clip.w*${BEACON_FAR_DEPTH});
   gl_Position=vec4(clip.xy,2.0*clip.z-clip.w,clip.w);
 }`;
 

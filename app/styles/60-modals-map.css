@@ -392,6 +392,12 @@
   clip-path: polygon(1% 0, 98% 1%, 100% 8%, 98.5% 96%, 92% 100%, 2% 98%, 0 89%);
 }
 
+.minimap-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.minimap-options label { display: grid; grid-template-rows: max-content 44px 1fr; gap: 8px; min-width: 0; }
+.minimap-options select { width: 100%; min-height: 44px; padding: 8px; border: 2px solid var(--ink); background: var(--paper); color: var(--ink); font: 800 16px "Barlow Condensed", sans-serif; }
+.minimap-options small { font-size: 12px; }
+.minimap-options select:focus-visible { outline: 3px solid var(--cyan); outline-offset: 3px; }
+
 .comic-modal.map-modal {
   width: min(1180px, 100%);
   max-height: calc(100dvh - 32px);

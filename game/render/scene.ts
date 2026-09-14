@@ -15,6 +15,7 @@ import {
   CYAN,
   INK,
   MAT_MARKER,
+  MAT_BEACON,
   MAT_PERSON,
   MAT_PLAYER,
   MAT_ROUTE,
@@ -812,11 +813,16 @@ function addObjectiveRing(
   color: Color,
   direction: number,
   segments = 14,
+  beamViewer?: WorldPoint,
 ) {
   const pulse = 1 + Math.sin(seconds * 6) * 0.12;
   const radius = 4.1 * pulse;
-  const cylinderHeight = 120;
-  const panelWidth = ((2 * Math.PI * radius) / segments) * 1.04;
+  const beamDistance = beamViewer ? distance(point, beamViewer) : 0;
+  // A destination beam reaches above the viewer's horizon and retains a small
+  // angular width at long range. The ground ring and arrival zone never grow.
+  const beamRadius = Math.max(radius, beamDistance * .005);
+  const cylinderHeight = Math.max(120, beamDistance + Math.max(0, (beamViewer?.z ?? 0) - (point.z ?? 0)));
+  const panelWidth = ((2 * Math.PI * beamRadius) / segments) * 1.04;
   const cylinderColor: Color = [color[0], color[1], color[2], 0.2];
   for (let index = 0; index < segments; index += 1) {
     const angle = (index / segments) * Math.PI * 2 + seconds * direction;
@@ -836,8 +842,8 @@ function addObjectiveRing(
       material: MAT_MARKER,
     });
     boxes.push({
-      x,
-      y,
+      x: point.x + Math.cos(angle) * beamRadius,
+      y: point.y + Math.sin(angle) * beamRadius,
       z: (point.z ?? 0) + cylinderHeight / 2,
       screenLift: point.z ?? 0,
       sx: panelWidth,
@@ -845,7 +851,7 @@ function addObjectiveRing(
       sz: cylinderHeight,
       yaw,
       color: cylinderColor,
-      material: MAT_MARKER,
+      material: beamViewer ? MAT_BEACON : MAT_MARKER,
     });
   }
 }
@@ -862,7 +868,7 @@ export function farePresentationBoxes(game: Game, seconds: number) {
   }
   if (game.onboard) {
     const target = getObjective(game);
-    addObjectiveRing(boxes, target, seconds, RED, -1.2);
+    addObjectiveRing(boxes, target, seconds, RED, -1.2, 14, controlledPose(game));
   }
   return boxes;
 }

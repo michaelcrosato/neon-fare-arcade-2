@@ -820,9 +820,11 @@
 @media (prefers-reduced-motion: reduce) { .setup-screen { animation: none; } }
 /* Desktop navigation is one rail; the archive docks directly below the map. */
 @media (min-width: 821px) and (pointer: fine) {
-  .game-stage, .game-stage.camera-cab.player-driving { --fare-stack-left: 24px; --fare-stack-width: 244px; --fare-stack-center-x: 146px; --fare-stack-bottom: calc(100% - 224px - var(--fare-stack-height)); }
-  .navigation-rail { position: absolute; z-index: 27; top: 22px; left: 24px; display: flex; flex-direction: column; gap: 18px; width: 244px; }
-  .navigation-rail > .gps-panel, .navigation-rail > .fare-card-stack, .navigation-rail > .camera-panel { position: relative; inset: auto; width: 100%; flex-shrink: 0; }
+  .game-stage, .game-stage.camera-cab.player-driving { --minimap-width: min(calc(244px * var(--minimap-size, 1)), calc(100vw - 560px), 55.7dvh); --minimap-height: calc(var(--minimap-width) * .75409836); --fare-stack-left: 24px; --fare-stack-width: 244px; --fare-stack-center-x: 146px; --fare-stack-bottom: calc(100% - 40px - var(--minimap-height) - var(--fare-stack-height)); }
+  .navigation-rail { position: absolute; z-index: 27; top: 22px; left: 24px; display: flex; flex-direction: column; gap: 18px; width: var(--minimap-width, 244px); }
+  .navigation-rail > .gps-panel, .navigation-rail > .fare-card-stack, .navigation-rail > .camera-panel { position: relative; inset: auto; flex-shrink: 0; }
+  .navigation-rail > .gps-panel { width: 100%; height: var(--minimap-height, 184px); }
+  .navigation-rail > .fare-card-stack, .navigation-rail > .camera-panel { width: 244px; }
   .navigation-rail > .camera-panel { margin-top: 5px; }
   .transmission-controls { left: 24px; bottom: 24px; }
 }

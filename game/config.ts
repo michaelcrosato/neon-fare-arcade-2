@@ -233,6 +233,7 @@ export const MATERIAL = {
   ADOBE: 19,
   CACTUS: 20,
   SANDSTONE: 21,
+  BEACON: 22,
 } as const satisfies Record<string, MaterialId>;
 
 // Compatibility aliases keep the existing rendering code readable while the
@@ -259,6 +260,7 @@ export const MAT_SNOW = MATERIAL.SNOW;
 export const MAT_ADOBE = MATERIAL.ADOBE;
 export const MAT_CACTUS = MATERIAL.CACTUS;
 export const MAT_SANDSTONE = MATERIAL.SANDSTONE;
+export const MAT_BEACON = MATERIAL.BEACON;
 
 /** Passenger and destination atlases scale independently. */
 export const PASSENGER_ART_CELL_COUNT = 174;

@@ -30,3 +30,16 @@ test("semi-transparent surfaces blend smoothly over existing pixels without upda
   assert.ok(pixel[1] >= 120 && pixel[1] <= 135, `green was ${pixel[1]}`);
   assert.ok(pixel[2] >= 120 && pixel[2] <= 135, `blue was ${pixel[2]}`);
 });
+
+test("transparent destination beams retain their alpha over the sky and respect foreground depth", () => {
+  const raster = new TerrainRaster(); raster.begin(4, 4);
+  const triangle = (depth: number, color: [number, number, number, number]) => raster.triangle(
+    { x: 0, y: 0, depth }, { x: 4, y: 0, depth }, { x: 0, y: 4, depth }, color);
+  triangle(.001, [1, 0, 0, .2]);
+  assert.deepEqual([...raster.pixels.slice(0, 4)], [255, 0, 0, 51]);
+  triangle(.001, [1, 0, 0, .2]);
+  assert.deepEqual([...raster.pixels.slice(0, 4)], [255, 0, 0, 92]);
+  triangle(.5, [0, 1, 0, 1]);
+  triangle(.001, [1, 0, 0, .2]);
+  assert.deepEqual([...raster.pixels.slice(0, 4)], [0, 255, 0, 255]);
+});

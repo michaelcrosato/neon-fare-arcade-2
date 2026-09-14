@@ -1,6 +1,7 @@
 "use client";
 
 import { applyKeyboardInput } from "./runtime/keyboard-input";
+import { useMinimapSettings } from "./minimap-settings";
 import { stuntRunRecord } from "@/game/driving-stunts";
 
 import {
@@ -113,6 +114,7 @@ function warmPassengerArt(jobs: Game["fareJobs"]) {
 }
 
 export default function Home() {
+  const minimap = useMinimapSettings();
   const isMobile = useMobileLayout();
   const canvas2dRef = useRef<HTMLCanvasElement>(null);
   const webGpuCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -878,7 +880,7 @@ export default function Home() {
 
       <section
         className={`game-stage camera-${effectiveCameraMode(hud.playerMode, cameraMode)} player-${hud.playerMode} driving-${hud.drivingModel} ${hud.playerMode !== "driving" ? `on-foot-${hud.onFootAction}` : ""} ${mode === "playing" && hud.boosting ? "is-boosting" : ""} ${hud.drifting ? "is-drifting" : ""} ${hud.message.startsWith("KRAK") || hud.message.startsWith("WHAM") ? "is-crashed" : ""}`}
-        style={{ "--drift-intensity": hud.driftIntensity } as CSSProperties}
+        style={{ "--drift-intensity": hud.driftIntensity, "--minimap-size": minimap.size } as CSSProperties}
         aria-label="Neon Fare arcade game"
         inert={modal ? true : undefined}
         aria-hidden={modal ? true : undefined}

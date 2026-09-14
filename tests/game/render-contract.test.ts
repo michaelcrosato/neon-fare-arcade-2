@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   MAT_MARKER,
+  MAT_BEACON,
   MAT_GENERIC,
   MAT_PLAYER,
   MAT_TURN,
@@ -551,7 +552,7 @@ test("objective rings include a transparent cylinder along their edge", () => {
   // Onboard dropoff ring also produces transparent cylinder panels
   game.onboard = true;
   const onboardBoxes = farePresentationBoxes(game, 0);
-  const onboardCylinders = onboardBoxes.filter((box) => box.material === MAT_MARKER && (box.color[3] ?? 1) < 0.99);
+  const onboardCylinders = onboardBoxes.filter((box) => box.material === MAT_BEACON && (box.color[3] ?? 1) < 0.99);
   // Only the occupied fare's dropoff is highlighted.
   assert.equal(onboardCylinders.length, 14);
 });

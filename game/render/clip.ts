@@ -1,14 +1,17 @@
 import type { Vec3 } from "../model";
 
 export type ClipVertex = { x: number; y: number; z: number; w: number };
+export const BEACON_FAR_DEPTH = .999999;
 
-export function clipVertex(matrix: Float32Array, point: Vec3): ClipVertex {
+export function clipVertex(matrix: Float32Array, point: Vec3, unlimitedFar = false): ClipVertex {
   const { x, y, z } = point;
+  const w = matrix[3] * x + matrix[7] * y + matrix[11] * z + matrix[15];
+  const depth = matrix[2] * x + matrix[6] * y + matrix[10] * z + matrix[14];
   return {
     x: matrix[0] * x + matrix[4] * y + matrix[8] * z + matrix[12],
     y: matrix[1] * x + matrix[5] * y + matrix[9] * z + matrix[13],
-    z: matrix[2] * x + matrix[6] * y + matrix[10] * z + matrix[14],
-    w: matrix[3] * x + matrix[7] * y + matrix[11] * z + matrix[15],
+    z: unlimitedFar ? Math.min(depth, w * BEACON_FAR_DEPTH) : depth,
+    w,
   };
 }
 
@@ -48,8 +51,9 @@ export function clipPolygon(vertices: ClipVertex[]): ClipVertex[] {
 }
 
 /** Conservative sphere/frustum culling before expanding a cuboid's six faces. */
-export function sphereInView(matrix: Float32Array, x: number, y: number, z: number, radius: number) {
+export function sphereInView(matrix: Float32Array, x: number, y: number, z: number, radius: number, unlimitedFar = false) {
   for (let plane = 0; plane < 6; plane++) {
+    if (unlimitedFar && plane === 5) continue;
     const row = Math.floor(plane / 2);
     const sign = plane % 2 === 0 ? 1 : -1;
     const near = plane === 4;

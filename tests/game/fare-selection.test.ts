@@ -11,6 +11,7 @@ import {
   FARE_STOP_RULES,
   FARE_TARGET_SWITCH_MARGIN,
   FIXED_DT,
+  MAT_BEACON,
   MAT_MARKER,
   MAT_PERSON,
   MIN_FARE_HANDOFF_DISTANCE,
@@ -359,7 +360,8 @@ test("pickup highlights disappear while occupied and return after dropoff withou
   assert.deepEqual(occupiedHud.fareDestinations.map(marker => marker.id), [game.fareJobs[game.jobIndex].id]);
   const onboardBoxes = farePresentationBoxes(game, 0);
   assert.equal(onboardBoxes.filter((box) => box.material === MAT_PERSON).length, 0);
-  assert.equal(onboardBoxes.filter((box) => box.material === MAT_MARKER).length, 28);
+  assert.equal(onboardBoxes.filter((box) => box.material === MAT_MARKER).length, 14);
+  assert.equal(onboardBoxes.filter((box) => box.material === MAT_BEACON).length, 14);
   assert.equal(onboardBoxes.filter((box) => (box.color[3] ?? 1) < 0.99).length, 14);
   const target = game.fareJobs[game.jobIndex].dropoff;
   assert.ok(onboardBoxes.every(box => Math.hypot(box.x - target.x, box.y - target.y) > 4), "only the ring remains, with no center beacon");

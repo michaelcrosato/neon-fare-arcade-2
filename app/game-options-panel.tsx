@@ -1,6 +1,7 @@
 "use client";
 
 import { VehicleGraphicsOptions } from "./vehicle-graphics";
+import { MinimapOptions } from "./minimap-settings";
 import {
   CAMERA_OPTIONS,
   CAMERA_DISTANCE_SCALES,
@@ -183,6 +184,8 @@ export function GameOptionsPanel({
             </div>
             <p className="options-hint">Quick shortcut: Press <kbd>C</kbd> while driving to cycle camera modes.</p>
           </fieldset>
+
+          <MinimapOptions mobile={isMobile} />
 
           <fieldset className="game-options-section">
             <legend>GRAPHICS ENGINE</legend>

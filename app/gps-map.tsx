@@ -47,11 +47,8 @@ import { REGIONAL_CONTENT } from "@/game/regional-content";
 import { gridStreetSegmentEnabled } from "@/game/road-topology";
 import { SPECIAL_ROADS } from "@/game/road-layout";
 import { NorthstarTopography, CopperTopography, CoastTopography, ReachTopography, CityTopography, IndustrialTopography } from "./gps-terrain";
-import { inIronwake } from "@/game/industrial-layout";
-import { inCoastTerrain } from "@/game/terrain/coast-forms";
-import { inNorthstarTerrain } from "@/game/terrain/northstar-forms";
-import { inCopperTerrain } from "@/game/terrain/copper-forms";
-import { inCityTerrain } from "@/game/terrain/city-forms";
+import { useMinimapSettings } from "./minimap-settings";
+import { compactMapProjection } from "./runtime/minimap-preferences";
 
 type GpsMapProps = {
   hud: Hud;
@@ -66,6 +63,8 @@ export function GpsMap({
   onDestinationSelect,
   onReturn,
 }: GpsMapProps) {
+  const minimap = useMinimapSettings();
+  const compactProjection = compactMapProjection(minimap.zoom);
   const svgRef = useRef<SVGSVGElement | null>(null);
   const mapAspectReadyRef = useRef(false);
   const pointerRef = useRef<{
@@ -105,17 +104,18 @@ export function GpsMap({
     const dx = point.x - hud.player.x;
     const dy = point.y - hud.player.y;
     return {
-      x: (-Math.sin(hud.heading) * dx + Math.cos(hud.heading) * dy) * 0.58,
-      y: -(Math.cos(hud.heading) * dx + Math.sin(hud.heading) * dy) * 0.58,
+      x: (-Math.sin(hud.heading) * dx + Math.cos(hud.heading) * dy) * compactProjection.pixelsPerMetre,
+      y: -(Math.cos(hud.heading) * dx + Math.sin(hud.heading) * dy) * compactProjection.pixelsPerMetre,
     };
   };
   const pointFor = (point: Vec2) => full ? point : compactPoint(point);
   const origin = pointFor({ x: 0, y: 0 }), east = pointFor({ x: 1, y: 0 }), south = pointFor({ x: 0, y: 1 });
   const terrainTransform = `matrix(${east.x - origin.x} ${east.y - origin.y} ${south.x - origin.x} ${south.y - origin.y} ${origin.x} ${origin.y})`;
-  const mountainPlayer = inNorthstarTerrain(hud.player.x, hud.player.y);
-  const copperPlayer = inCopperTerrain(hud.player.x, hud.player.y);
-  const coastPlayer = inCoastTerrain(hud.player.x, hud.player.y);
-  const cityPlayer = inCityTerrain(hud.player.x, hud.player.y);
+  const terrainRegions = new Set(ACTIVE_WORLD_REGIONS.filter(region => {
+    const bounds = regionRoadBounds(region), radius = compactProjection.radiusMetres;
+    return full || hud.player.x + radius >= bounds.minX && hud.player.x - radius <= bounds.maxX
+      && hud.player.y + radius >= bounds.minY && hud.player.y - radius <= bounds.maxY;
+  }).map(region => region.id));
   const displayedRoute = hud.route;
   const displayedRouteType = hud.objectiveType;
   const showNavigationTarget = displayedRouteType !== "roam";
@@ -181,11 +181,13 @@ export function GpsMap({
   } else {
     const centerRoadX = nearestRoadX(hud.player.x);
     const centerRoadY = nearestRoadY(hud.player.y);
-    for (let offset = -4; offset <= 4; offset += 1) {
+    const localRadius = compactProjection.radiusMetres + ROAD_SPACING;
+    const roadRadius = Math.ceil(localRadius / ROAD_SPACING);
+    for (let offset = -roadRadius; offset <= roadRadius; offset += 1) {
       const roadX = centerRoadX + offset * ROAD_SPACING;
       const roadY = centerRoadY + offset * ROAD_SPACING;
-      const localMinY = Math.floor((hud.player.y - 180) / ROAD_SPACING) * ROAD_SPACING;
-      const localMaxY = Math.ceil((hud.player.y + 180) / ROAD_SPACING) * ROAD_SPACING;
+      const localMinY = Math.floor((hud.player.y - localRadius) / ROAD_SPACING) * ROAD_SPACING;
+      const localMaxY = Math.ceil((hud.player.y + localRadius) / ROAD_SPACING) * ROAD_SPACING;
       let verticalRunStart: number | null = null;
       for (let y = localMinY; y < localMaxY; y += ROAD_SPACING) {
         const a = { x: roadX, y };
@@ -202,8 +204,8 @@ export function GpsMap({
           verticalRunStart = null;
         }
       }
-      const localMinX = Math.floor((hud.player.x - 180) / ROAD_SPACING) * ROAD_SPACING;
-      const localMaxX = Math.ceil((hud.player.x + 180) / ROAD_SPACING) * ROAD_SPACING;
+      const localMinX = Math.floor((hud.player.x - localRadius) / ROAD_SPACING) * ROAD_SPACING;
+      const localMaxX = Math.ceil((hud.player.x + localRadius) / ROAD_SPACING) * ROAD_SPACING;
       let horizontalRunStart: number | null = null;
       for (let x = localMinX; x < localMaxX; x += ROAD_SPACING) {
         const a = { x, y: roadY };
@@ -455,12 +457,12 @@ export function GpsMap({
             ))}
           </g>
         )}
-        {(full || cityPlayer) && <g transform={terrainTransform}><CityTopography /></g>}
-        {(full || mountainPlayer) && <g transform={terrainTransform}><NorthstarTopography /></g>}
-        {(full || copperPlayer) && <g transform={terrainTransform}><CopperTopography /></g>}
-        {(full || coastPlayer) && <g transform={terrainTransform}><CoastTopography /></g>}
-        {(full || inIronwake(hud.player.x, hud.player.y)) && <g transform={terrainTransform}><IndustrialTopography /></g>}
-        {(full || (hud.player.x >= 792 && hud.player.y >= 792)) && <g transform={terrainTransform}><ReachTopography /></g>}
+        {terrainRegions.has("city-center") && <g transform={terrainTransform}><CityTopography /></g>}
+        {terrainRegions.has("northstar-range") && <g transform={terrainTransform}><NorthstarTopography /></g>}
+        {terrainRegions.has("copper-mesa") && <g transform={terrainTransform}><CopperTopography /></g>}
+        {terrainRegions.has("solana-coast") && <g transform={terrainTransform}><CoastTopography /></g>}
+        {terrainRegions.has("ironwake-works") && <g transform={terrainTransform}><IndustrialTopography /></g>}
+        {terrainRegions.has("cypress-reach") && <g transform={terrainTransform}><ReachTopography /></g>}
         {(!full || mapDetail !== "overview") && <g className="gps-roads">
           {roadLines.map((line) => {
             const a = pointFor(line.a);
@@ -637,7 +639,7 @@ export function GpsMap({
         <button type="button" onClick={fitRoute}>FIT ROUTE</button>
         <button type="button" onClick={showOverview}>ALL 9 REGIONS</button>
         <span>{mapDetail.toUpperCase()} VIEW</span>
-        {(cityPlayer || mountainPlayer || copperPlayer || coastPlayer) && <output aria-label="Altitude">ELEV {Math.round((hud.player.z ?? 0) * DISPLAY_METERS_PER_WORLD_UNIT).toLocaleString()} m</output>}
+        {["city", "mountain", "desert", "coastal"].includes(regionForPosition(hud.player.x, hud.player.y)?.theme ?? "") && <output aria-label="Altitude">ELEV {Math.round((hud.player.z ?? 0) * DISPLAY_METERS_PER_WORLD_UNIT).toLocaleString()} m</output>}
       </div>
       <div className="regional-map-regions" aria-label="Active regions">
         <button className="mobile-help" type="button" onClick={showOverview}>ALL REGIONS</button>

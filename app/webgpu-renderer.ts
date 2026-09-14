@@ -4,7 +4,9 @@
 import {
   MAX_STREAM_BOXES,
   PERSPECTIVE_DRAW_DISTANCE,
+  MAT_BEACON,
 } from "@/game/config";
+import { BEACON_FAR_DEPTH } from "@/game/render/clip";
 import type {
   Box,
   Camera,
@@ -165,6 +167,9 @@ struct VertexOut {
   }
   var out: VertexOut;
   out.position = camera.viewProj * vec4<f32>(world, 1.0);
+  if (v.worldData.w == ${MAT_BEACON}.0) {
+    out.position.z = min(out.position.z, out.position.w * ${BEACON_FAR_DEPTH});
+  }
   out.color = v.tint;
   out.worldPos = world;
   out.localPos = v.localPos;
@@ -190,6 +195,7 @@ struct SurfaceVertexIn {
   return out;
 }
 @fragment fn fsMain(v: VertexOut) -> @location(0) vec4<f32> {
+  if (v.material == ${MAT_BEACON}.0) { return v.color; }
   let normal = normalize(v.worldNormal);
   let sunDirection = normalize(vec3<f32>(0.64, 0.22, 0.74));
   let direct = max(dot(normal, sunDirection), 0.0);

@@ -57,6 +57,11 @@ updates the arcade launch, steering, road elevation and contact rules below.
   direction arrow; the legacy floating hairpin, U-turn distance badge, warning
   sticker and GPS symbol are removed. Routing thresholds and accessible
   navigation announcements are unchanged.
+- Game Options saves independent desktop mini-map panel size (75–200%) and
+  geographic zoom (50–200%) on the device. Panel size fits the available screen
+  and moves the archive/camera rail below it; zoom changes visible street area,
+  including neighboring terrain at seams. The regional map keeps its own view
+  and zoom controls. Phone driving continues to use MAP in the pause menu.
 
 - `+x` points east, `+y` points south, and `+z` points up.
 - Local street coordinates use a 36-unit lattice with a 6-unit half width.
