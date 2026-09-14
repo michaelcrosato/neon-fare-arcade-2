@@ -30,6 +30,7 @@ import type { DrivingModel, DrivingTraitId, Game, RunKind, TrafficCar, VehicleId
 import { DEFAULT_VEHICLE_ID } from "./vehicles";
 import { makeManualTransmission } from "./manual-transmission";
 import { makeDrivingStunts } from "./driving-stunts";
+import { makeVehicleDamage } from "./vehicle-damage";
 import { makeSimulationVehicleState } from "./simulation-vehicle";
 import { sampleSpecialRoad, specialRoadLength } from "./road-network";
 import { containingRegionForPosition } from "./regions";
@@ -195,6 +196,7 @@ export function makeGame(
     driftScoreCarry: 0,
     offroadSpeedPenaltyKmh: 0,
     stunts: makeDrivingStunts(),
+    damage: makeVehicleDamage(),
     lastBeep: 11,
     traffic: makeTraffic(),
     particles: [],

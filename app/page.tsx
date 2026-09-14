@@ -87,6 +87,7 @@ import {
 import { presentSimulationEvents } from "./runtime/present-simulation-events";
 import { reportRuntimeError } from "./runtime/runtime-errors";
 import { useGameRuntime } from "./runtime/use-game-runtime";
+import { VehicleRepairProvider } from "./vehicle-repair";
 import { copyText } from "./runtime/copy-text";
 import { recoverToRoad } from "@/game/recovery";
 
@@ -859,7 +860,7 @@ export default function Home() {
   }, [mode, setMode]);
 
   return (
-    <main className={`arcade-shell mode-${mode}`}>
+    <VehicleRepairProvider gameRef={gameRef} hud={hud} mode={mode} modal={modal} setHud={setHud} checkpoint={checkpointExternalGameChange}><main className={`arcade-shell mode-${mode}`}>
       <header className="topbar" inert={modal ? true : undefined} aria-hidden={modal ? true : undefined}>
         <button className="brand" onClick={returnHome} aria-label="Neon Fare home" disabled={!careerReady}>
           <span>NEON FARE</span>
@@ -985,6 +986,6 @@ export default function Home() {
       />
 
       <div className="sr-only" aria-live="polite" aria-atomic="true">{audioAnnouncement}</div>
-    </main>
+    </main></VehicleRepairProvider>
   );
 }

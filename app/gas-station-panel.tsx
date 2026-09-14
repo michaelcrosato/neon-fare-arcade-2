@@ -11,6 +11,7 @@ import {
   type GasStationOfferId,
 } from "@/game/gas-station";
 import type { DrivingModel, RunKind } from "@/game/model";
+import { VehicleRepairOffer } from "./vehicle-repair";
 
 export function GasStationPanel({
   career,
@@ -41,9 +42,9 @@ export function GasStationPanel({
   const simulation = drivingModel === "simulation";
   const quote = quoteGasTimePurchase(time, timePurchases);
   const contextBlock = passengerOnboard
-    ? "DROP OFF YOUR PASSENGER BEFORE SERVICING THE TAXI."
+    ? "CLOCK SERVICE AND UPGRADES REQUIRE AN EMPTY TAXI."
     : !taxiNearby
-      ? "PARK THE TAXI NEAR THE GO-GO GAS ENTRANCE."
+      ? "PARK NEAR THE ENTRANCE FOR CLOCK SERVICE AND UPGRADES."
       : "";
   const timeShortfall = quote.status === "available" ? Math.max(0, quote.cost - career.bank) : 0;
   const timeDisabled = freeRun || Boolean(contextBlock) || quote.status !== "available" || timeShortfall > 0;
@@ -81,10 +82,11 @@ export function GasStationPanel({
 
       {contextBlock && (
         <div id="gas-station-block" className="gas-station__blocked" role="status">
-          <small>SERVICE HOLD</small><strong>{contextBlock}</strong>
+          <small>CLOCK SERVICE / UPGRADES</small><strong>{contextBlock}</strong>
         </div>
       )}
 
+      <VehicleRepairOffer inline />
       <section className="gas-station__section" aria-labelledby="gas-time-title">
         <div className="gas-station__section-title">
           <span>01</span><div><small>FUEL // BUY MORE CLOCK</small><h3 id="gas-time-title">TIME SPLASH</h3></div>
@@ -142,7 +144,7 @@ export function GasStationPanel({
       </section>
 
       <footer className="gas-station__footer">
-        <p role="status" aria-live="polite">{notice || "BANKED FARE PAYS THE BILL. CURRENT-RUN FARE STILL BANKS WHEN THE SESSION ENDS."}</p>
+        <p role="status" aria-live="polite">{notice || "REPAIRS USE RUN FARE. CLOCK SERVICE AND UPGRADES USE BANKED FARE."}</p>
         <button className="primary-small" onClick={onClose}>BACK TO GO-GO GAS</button>
       </footer>
     </div>

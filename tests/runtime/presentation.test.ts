@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { presentSimulationEvents, type SimulationEventPresentation } from "../../app/runtime/present-simulation-events";
-import type { DrivingModel, FareImpact } from "../../game/model";
+import type { DrivingModel, FareImpact, Modal, RunKind } from "../../game/model";
 import { makeGame } from "../../game/state";
 
 test("Simulation pickup cards and announcements never promise arcade boost", () => {
@@ -32,5 +32,28 @@ test("Simulation pickup cards and announcements never promise arcade boost", () 
       assert.match(announcements[0], /Eight boost added/);
     }
     assert.deepEqual(game, before, "presentation must not change the game");
+  }
+});
+
+test("gas counter opens repair access even while a passenger is onboard", () => {
+  for (const runKind of ["free-run", "timed"] satisfies RunKind[]) {
+    const game = makeGame("street-ace", 512, runKind);
+    game.onboard = true;
+    const opened: Modal[] = [];
+    const announcements: string[] = [];
+    const before = structuredClone(game);
+    presentSimulationEvents([{
+      type: "service-used", serviceId: "gas-counter",
+      venue: { id: "gas-test", kind: "gas", label: "GO-GO GAS" },
+    }], {
+      game: () => game,
+      announce: (message) => { announcements.push(message); },
+      openModal: (modal) => { opened.push(modal); },
+      tone() {}, warmPassengerArt() {}, triggerFareImpact() {}, triggerCourierImpact() {},
+      setHomeNotice() {}, setCourierNotice() {}, setGasNotice() {}, setHud() {},
+    });
+    assert.deepEqual(opened, ["gas"]);
+    assert.match(announcements[0], /repairs use run fare/i);
+    assert.deepEqual(game, before, "opening the counter must not change fare, passenger, or clock");
   }
 });

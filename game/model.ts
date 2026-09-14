@@ -167,7 +167,7 @@ type WorldInteractionBase = {
 
 /** Exhaustive semantic interaction contract. Each action carries its payload. */
 export type WorldInteraction =
-  | (WorldInteractionBase & { kind: "venue-entrance"; venue: VenueRef })
+  | (WorldInteractionBase & { kind: "venue-entrance"; venue: VenueRef; serviceLot?: { x: number; y: number; halfX: number; halfY: number } })
   | (WorldInteractionBase & { kind: "interior-exit"; venue: VenueRef })
   | (WorldInteractionBase & { kind: "service"; venue: VenueRef; serviceId: VenueServiceId })
   | (WorldInteractionBase & { kind: "courier-counter"; venue: VenueRef });
@@ -743,6 +743,7 @@ export type Game = {
   /** A gradual reduction of the ordinary/boosted speed ceiling, in displayed km/h. */
   offroadSpeedPenaltyKmh: number;
   stunts: DrivingStunts;
+  damage: import("./vehicle-damage").VehicleDamageState;
   lastBeep: number;
   traffic: TrafficCar[];
   particles: Particle[];
@@ -779,6 +780,7 @@ export type CourierMapMarker = {
 };
 
 export type Hud = {
+  damage: import("./vehicle-damage").VehicleDamageHud;
   stunts: DrivingStuntsHud;
   playtest?: boolean;
   navigationDiagnostics?: NavigationPlan["diagnostics"];
@@ -867,6 +869,8 @@ export type Hud = {
 };
 
 export type Camera = {
+  /** Presentation preference; never changes vehicle physics or collision. */
+  vehicleDetail?: "classic" | "detailed";
   x: number;
   y: number;
   zoom: number;

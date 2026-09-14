@@ -40,6 +40,7 @@ import {
   walkingCameraHeightOffset,
 } from "@/game/player";
 import { Canvas2DRenderer } from "../canvas2d-renderer";
+import { vehicleDetailSetting } from "../vehicle-graphics";
 import {
   createWebGPURenderer,
   type WebGPURenderer,
@@ -331,6 +332,7 @@ export function useGameRuntime(options: GameRuntimeOptions) {
         camera.mode = effectiveCameraMode(playerMode, cameraModeRef.current);
         camera.onFoot = playerMode !== "driving";
         camera.mobile = mobileLayout.matches;
+        camera.vehicleDetail = vehicleDetailSetting(game.vehicleId);
         const cameraModeChanged = camera.mode !== previousEffectiveCameraMode;
         previousEffectiveCameraMode = camera.mode;
         const positionRate = camera.mode === "chase-high" ? 7 : camera.mode === "chase-low" ? 10 : 6;

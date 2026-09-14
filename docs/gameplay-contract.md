@@ -667,6 +667,21 @@ updates the arcade launch, steering, road elevation and contact rules below.
 - Cargo is shown on the taxi while driving and on the avatar while walking; it
   must never appear on both at once.
 
+## Vehicle damage and gas-lot repairs
+
+- A distinct physical vehicle impact removes 1 km/h of available speed and emits
+  one humorous damage line. Persistent contact is debounced; tiny resting terrain
+  corrections are not hits. The loss persists until a paid repair or a new run.
+- All driving/transmission modes respect damage with a 10 km/h minimum ceiling.
+  The player can still brake and stop. Tow recovery does not repair bodywork.
+- At a gas venue's service lot, a grounded, upright cab stopped below 2 km/h for
+  0.6 seconds receives a repair offer. Each lost km/h costs $10 from run fare.
+  R / tap accepts; N / Not Now dismisses until the cab leaves and re-enters.
+  Repairs are also available inside the matching station while the taxi is on
+  its lot. Transactions revalidate position, elevation, motion and funds.
+- Detailed/Classic graphics choices are per-vehicle presentation preferences.
+  They never affect simulation, collision or the authored driving characteristics.
+
 ## Free Run completion
 
 - Free Run never auto-finishes. The pause menu exposes an explicit end action

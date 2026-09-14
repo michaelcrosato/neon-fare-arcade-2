@@ -253,8 +253,9 @@ test("named gas upgrades change only their advertised simulation effects", () =>
     game.boost = 50;
   }
   barredImpact.installedUpgrades = ["impact-bars"];
-  assert.deepEqual(stepGame(plainImpact, IDLE, FIXED_DT, wall, () => 1), [{ type: "building-collision" }]);
-  assert.deepEqual(stepGame(barredImpact, IDLE, FIXED_DT, wall, () => 1), [{ type: "building-collision" }]);
+  const impactEvents = [{ type: "building-collision" }, { type: "vehicle-damaged", line: "There goes the quarter panel!", lossKmh: 1, totalLossKmh: 1 }];
+  assert.deepEqual(stepGame(plainImpact, IDLE, FIXED_DT, wall, () => 1), impactEvents);
+  assert.deepEqual(stepGame(barredImpact, IDLE, FIXED_DT, wall, () => 1), impactEvents);
   assert.equal(plainImpact.boost, 40);
   assert.equal(barredImpact.boost, 45);
   assert.equal(barredImpact.score, plainImpact.score);

@@ -1,6 +1,7 @@
 import type { DrivingModel, RunKind, TransmissionMode, VehicleId } from "@/game/model";
 import { RunSetupProgress } from "./run-setup-progress";
 import { VEHICLES, vehicleDefinition } from "@/game/vehicles";
+import { AccordStory } from "./vehicle-story";
 
 type Props = {
   vehicleId: VehicleId;
@@ -33,6 +34,7 @@ export function VehicleSelection({ vehicleId, transmissionMode, onVehicleChange,
         </fieldset>}
         <p>{vehicle.description}</p>
         <ul>{vehicle.details.map(detail => <li key={detail}>{detail}</li>)}</ul>
+        {vehicle.id === "accord-v6" && <AccordStory />}
       </article>)}
       <article className="vehicle-card vehicle-card--empty" aria-label="Vehicle slot 3. Empty."><span>03</span><b>EMPTY BAY</b><i aria-hidden="true" /><small>ROOM FOR ONE MORE</small></article>
     </div>

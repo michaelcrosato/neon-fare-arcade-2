@@ -42,6 +42,7 @@ import { accordCoupledRpm, accordGearSpeedLimitMps, clutchConnected, stepManualT
 import { ACCORD_V6_SPECS, accordManualAcceleration } from "./simulation-vehicle";
 import { stepOffroadSpeedLimit } from "./offroad-speed";
 import { stepDrivingStunts } from "./driving-stunts";
+import { damageSpeedLimit, recordVehicleContacts, stepRepairLot } from "./vehicle-damage";
 import { drivingTraitPackage } from "./driving-traits";
 import {
   clamp,
@@ -78,6 +79,7 @@ import {
 export type RandomSource = () => number;
 
 export type SimulationEvent = ExplorationEvent
+  | { type: "vehicle-damaged"; line: string; lossKmh: number; totalLossKmh: number }
   | { type: "building-collision" }
   | { type: "traffic-collision" }
   | { type: "vehicle-overturned" }
@@ -119,17 +121,19 @@ export type SimulationEvent = ExplorationEvent
   | { type: "clock-warning"; secondsRemaining: number };
 
 function collisionSafeSteeringPose(world: WorldView, x: number, y: number, heading: number, delta: number, z: number) {
-  if (Math.abs(delta) < 1e-8) return { x, y, heading, contact: false };
+  if (Math.abs(delta) < 1e-8) return { x, y, heading, contact: false, colliderId: null };
   const desired = heading + delta;
-  if (!taxiHitsBuilding(world, x, y, desired, z)) return { x, y, heading: desired, contact: false };
-  if (taxiHitsBuilding(world, x, y, heading, z)) return { x, y, heading, contact: true };
+  const hit = taxiBuildingContact(world, x, y, desired, z);
+  if (!hit) return { x, y, heading: desired, contact: false, colliderId: null };
+  const colliderId = hit.collider.id;
+  if (taxiHitsBuilding(world, x, y, heading, z)) return { x, y, heading, contact: true, colliderId };
 
   // A small outward correction lets the taxi pivot while scraping a facade or
   // squeezing between props. Large corrections are rejected so steering can
   // never become a disguised teleport through a building.
   const repairedTurn = depenetrateTaxi(world, x, y, desired, 6, z);
   if (repairedTurn.resolved && Math.hypot(repairedTurn.x - x, repairedTurn.y - y) <= 0.45) {
-    return { x: repairedTurn.x, y: repairedTurn.y, heading: desired, contact: true };
+    return { x: repairedTurn.x, y: repairedTurn.y, heading: desired, contact: true, colliderId };
   }
 
   let safeFraction = 0;
@@ -140,7 +144,7 @@ function collisionSafeSteeringPose(world: WorldView, x: number, y: number, headi
     if (taxiHitsBuilding(world, x, y, candidateHeading, z)) blockedFraction = candidateFraction;
     else safeFraction = candidateFraction;
   }
-  return { x, y, heading: heading + delta * safeFraction, contact: true };
+  return { x, y, heading: heading + delta * safeFraction, contact: true, colliderId };
 }
 
 function applyBuildingResponse(game: Game, contact: Pick<BuildingContact, "normalX" | "normalY">, dampTangent: boolean) {
@@ -224,6 +228,7 @@ export function stepGame(
   const previousVx = game.vx, previousVy = game.vy;
   events.push(...stepExploration(game, input, dt, world));
   const driving = isDriving(game);
+  const damageContacts = new Set<string>();
   const cruisePedals = stepCruiseControl(game, input, dt);
   const drivingTrait = drivingTraitPackage(game.drivingTraitId).modifiers;
   const controlInput: Readonly<InputState> = driving
@@ -283,6 +288,7 @@ export function stepGame(
     game.y = steeringPose.y;
     reconcileSimulationHeading(game, previousHeading, steeringPose.heading);
     if (steeringPose.contact) cancelCruiseControl(game);
+    if (steeringPose.colliderId !== null) damageContacts.add(steeringPose.colliderId);
     if (!taxiHitsBuilding(world, game.x, game.y, game.heading, game.z)) {
       lastSafePose = { x: game.x, y: game.y, heading: game.heading };
     }
@@ -413,6 +419,7 @@ export function stepGame(
   const previousHeading = game.heading;
   const steeringPose = collisionSafeSteeringPose(world, game.x, game.y, game.heading, headingDelta, game.z);
   if (steeringPose.contact) cancelCruiseControl(game);
+  if (steeringPose.colliderId !== null) damageContacts.add(steeringPose.colliderId);
   game.x = steeringPose.x;
   game.y = steeringPose.y;
   game.heading = steeringPose.heading;
@@ -505,10 +512,11 @@ export function stepGame(
     overdriveActive ? BOOST_OVERDRIVE_TOP_SPEED_WORLD_UNITS : TAXI_TOP_SPEED_WORLD_UNITS,
     requestedMaxSpeed,
   )) - (game.roadMotion.grounded ? game.offroadSpeedPenaltyKmh / SPEED_KMH_PER_WORLD_UNIT : 0);
+  const damagedLimit = damageSpeedLimit(game, vehicleSpeedLimit * SPEED_KMH_PER_WORLD_UNIT) / SPEED_KMH_PER_WORLD_UNIT;
   const maxSpeed = manual && connected && gear > 0
-    ? Math.min(vehicleSpeedLimit, accordGearSpeedLimitMps(gear) * 3.6 / SPEED_KMH_PER_WORLD_UNIT)
-    : vehicleSpeedLimit;
-  forwardSpeed = clamp(forwardSpeed, -7, maxSpeed);
+    ? Math.min(damagedLimit, accordGearSpeedLimitMps(gear) * 3.6 / SPEED_KMH_PER_WORLD_UNIT)
+    : damagedLimit;
+  forwardSpeed = clamp(forwardSpeed, -damageSpeedLimit(game, 7 * SPEED_KMH_PER_WORLD_UNIT) / SPEED_KMH_PER_WORLD_UNIT, maxSpeed);
   game.vx = Math.cos(game.heading) * forwardSpeed - Math.sin(game.heading) * lateralSpeed;
   game.vy = Math.sin(game.heading) * forwardSpeed + Math.cos(game.heading) * lateralSpeed;
   game.speed = Math.hypot(game.vx, game.vy);
@@ -591,10 +599,12 @@ export function stepGame(
       2.4,
     );
     if (nextX !== unclampedX) {
+      if (Math.abs(game.vx) > .1) damageContacts.add("world-edge:x");
       game.vx *= -0.16;
       hitBuilding = true;
     }
     if (nextY !== unclampedY) {
+      if (Math.abs(game.vy) > .1) damageContacts.add("world-edge:y");
       game.vy *= -0.16;
       hitBuilding = true;
     }
@@ -603,8 +613,9 @@ export function stepGame(
       ? groundAt({ x: nextX, y: nextY, z: game.z }, 0.85, game.roadMotion.roadId).height
       : game.z;
     const candidateZ = Math.abs(candidateHeight - game.z) <= 0.85 ? candidateHeight : game.z;
-    const candidateContact = terrainBarrier(game, { x: nextX, y: nextY })
-      ?? taxiBuildingContact(world, nextX, nextY, game.heading, candidateZ);
+    const barrierContact = terrainBarrier(game, { x: nextX, y: nextY });
+    const buildingContact = barrierContact ? null : taxiBuildingContact(world, nextX, nextY, game.heading, candidateZ);
+    const candidateContact = barrierContact ?? buildingContact;
     if (!candidateContact) {
       game.x = nextX;
       game.y = nextY;
@@ -614,6 +625,8 @@ export function stepGame(
 
     hitBuilding = true;
     const moveLength = Math.hypot(moveX, moveY);
+    // A support-height correction or resting slope jitter is not an impact.
+    if (moveLength > movementDt * .1) damageContacts.add(buildingContact?.collider.id ?? "terrain-barrier");
     const candidateApproach = moveX * candidateContact.normalX + moveY * candidateContact.normalY;
     // Overlapping lot colliders can make the deepest candidate manifold point
     // away from the surface that this substep actually crossed. Falling back
@@ -767,6 +780,7 @@ export function stepGame(
       { x: traffic.x, y: traffic.y, heading: trafficHeading, halfLength: 2.05, halfWidth: 0.98 },
     );
     if (driving && trafficHit) cancelCruiseControl(game);
+    if (driving && trafficHit) damageContacts.add(`traffic:${trafficIndex}`);
     if (driving && trafficHit && traffic.cooldown <= 0) {
       traffic.cooldown = 0.75;
       const impact = game.speed;
@@ -825,6 +839,8 @@ export function stepGame(
     }
   }
 
+  for (const hit of recordVehicleContacts(game, driving ? [...damageContacts] : [])) events.push({ type: "vehicle-damaged", ...hit });
+  stepRepairLot(game, world, dt);
   if (game.drivingModel === "arcade") stepArcadeChassis(game, previousVx, previousVy, dt);
   for (const particle of game.particles) {
     particle.z ??= game.z;

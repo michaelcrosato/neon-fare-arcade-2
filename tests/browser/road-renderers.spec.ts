@@ -17,6 +17,7 @@ for (const renderer of ["WebGPU", "Canvas 2D"] as const) {
       await page.clock.install({ time: new Date("2026-09-12T00:00:00Z") });
       await page.addInitScript((fallback) => {
         localStorage.setItem("neon-fare-camera-v1", "fixed");
+        localStorage.setItem("neon-fare-vehicle-graphics-v1", JSON.stringify({ "crown-cab": "detailed", "accord-v6": "detailed" }));
         if (fallback) Object.defineProperty(navigator, "gpu", { configurable: true, value: undefined });
       }, renderer === "Canvas 2D");
       await page.goto("/");
@@ -30,6 +31,7 @@ for (const renderer of ["WebGPU", "Canvas 2D"] as const) {
       // unbounded software-GPU render loop on the CI runner.
       await page.clock.pauseAt(new Date("2026-09-12T01:00:00Z"));
       const canvas = page.locator(".game-canvas").nth(renderer === "WebGPU" ? 1 : 0);
+      await expect(canvas).toHaveAttribute("data-vehicle-detail", "detailed");
       for (const mode of ["FIXED ISO", "CHASE HIGH", "CHASE LOW", "CAB VIEW"]) {
         await expect(page.getByRole("button", { name: `Camera: ${mode}. Activate to switch camera.` })).toBeVisible();
         await expect(canvas).toHaveAttribute("aria-hidden", "false");

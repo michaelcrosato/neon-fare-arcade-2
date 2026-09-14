@@ -1,5 +1,6 @@
 "use client";
 
+import { VehicleGraphicsOptions } from "./vehicle-graphics";
 import {
   CAMERA_OPTIONS,
   CAMERA_DISTANCE_SCALES,
@@ -185,6 +186,7 @@ export function GameOptionsPanel({
 
           <fieldset className="game-options-section">
             <legend>GRAPHICS ENGINE</legend>
+            <VehicleGraphicsOptions />
             <div className="graphics-status-box">
               <span className="graphics-status-label">ACTIVE BACKEND</span>
               <strong className="graphics-status-val">{rendererKind}</strong>

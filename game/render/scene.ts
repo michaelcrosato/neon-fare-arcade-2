@@ -346,25 +346,29 @@ export function routeBoxes(
   return boxes;
 }
 
-export function taxiGroundShadow(game: Game) {
+export function taxiGroundShadow(game: Game, detailed = false) {
   if (isInterior(game)) return null;
   const shadow = vehicleGroundShadow(game.x, game.y, game.heading,
     game.drivingModel === "simulation" ? 5.75 : 5.2,
     game.drivingModel === "simulation" ? 2.35 : 2.7);
   const height = groundAt(game, 0.85).height;
   shadow.z += height;
+  // Detailed round tires reach the pavement; a raised cuboid shadow cuts through them.
+  if (detailed) { shadow.z = height + .015; shadow.sz = .01; }
   shadow.screenLift = height;
   return shadow;
 }
 
-export function taxiBoxes(game: Game, options: { includeGroundShadow?: boolean } = {}) {
+export function taxiBoxes(game: Game, options: { includeGroundShadow?: boolean; includeBody?: boolean } = {}) {
   if (isInterior(game)) return [];
   const boxes: Box[] = [];
   if (options.includeGroundShadow !== false) boxes.push(taxiGroundShadow(game)!);
   const vehicleStart = boxes.length;
-  if (game.vehicleId === "accord-v6") addAccordBoxes(boxes, game, crownVehiclePointPose);
-  else if (game.drivingModel === "simulation") addCrownTaxiBoxes(boxes, game);
-  else addCarBoxes(boxes, game.x, game.y, game.heading, YELLOW, true, false, game.steering);
+  if (options.includeBody !== false) {
+    if (game.vehicleId === "accord-v6") addAccordBoxes(boxes, game, crownVehiclePointPose);
+    else if (game.drivingModel === "simulation") addCrownTaxiBoxes(boxes, game);
+    else addCarBoxes(boxes, game.x, game.y, game.heading, YELLOW, true, false, game.steering);
+  }
   if (game.activeCourier?.stage === "dropoff" && game.activeCourier.loadedInTaxi) {
     const parcel = game.drivingModel === "simulation"
       ? crownVehiclePointPose(game, -0.25, 0, 2.17)

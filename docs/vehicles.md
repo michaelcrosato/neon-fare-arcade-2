@@ -19,11 +19,17 @@ character now emphasizes rear-drive power slides and a tail that rebounds
 after a sudden release or correction.
 
 The Accord is a cared-for, lightly worn ninth-generation two-door coupe with
-about 150,000 km, a tuned 3.5L V6 making approximately 300 hp, and a six-speed
+154,298 km, a 3.5L V6 that feels closer to 300 hp, and a six-speed
 manual gearbox driving the front axle. Its winter tires have softer dry-road
 grip and carry the owner's “still being financed” description. Financing is
-vehicle backstory. K&N, Borla, HKS and Hondata badges are cosmetic; they do not
+vehicle backstory. K&N, Brembo and Injen stickers are cosmetic; they do not
 claim a specific fitted parts list or individually add power.
+
+The garage's **Read the Accord's Story** opens the owner-supplied comic poster,
+preserved at `/art/vehicle-stories/accord-backstory.png`, with readable companion
+text and a link to the full-size original. The poster's factory-power wording
+is part of the artwork; the game's existing authored torque curve is unchanged.
+Escape and Close return focus to the story button without leaving vehicle setup.
 
 Simulation uses a separate front-heavy 1,640 kg loaded chassis with a 2.725 m
 wheelbase. Drive force consumes the front tires' friction circles; the Crown
@@ -87,14 +93,43 @@ and care required than before. Straight-line Crown launch, reverse, boost
 limits, passenger scoring formulas and collision containment are retained.
 
 Both rendering paths consume the same coupe body, glass, wheels, winter tread,
-supplier plaques, wear marks and white cockpit hood. Its actor geometry stays
-inside the 96-instance ghost budget. The garage and clutch/gear controls are
+supplier plaques, wear marks and white cockpit hood. Classic actor geometry stays
+inside the 96-instance ghost budget. Options → Graphics Engine offers separate
+Classic/Detailed choices for the Crown and Accord, saved on this device. Detailed
+models use sculpted mesh bodywork, tapered glasshouses, wheel arches, round tires
+and rims, lights and trim, with the original comic colors. The Crown retains a
+long sedan silhouette and taxi equipment; the Accord is a lower two-door coupe.
+The mesh has its own 2,048-face budget, shared by WebGPU, WebGL and software
+Canvas. Wheels steer and the body follows road pitch, jumps and rollover pose.
+Physics, collision footprints, passengers and cargo do not depend on detail.
+The garage and clutch/gear controls are
 keyboard-accessible, fit phone rotation, and follow the game's input reset
 rules. Diagnostic input masks include clutch and both shift directions.
 
 Both cars record horizontal drift and airborne distance, with live counters,
-completion feedback, run bests and pause/result totals. These measurements do
-not change Simulation scoring or handling. Off-road driving lowers the forward
+completion feedback, run bests and pause/result totals. Drifts earn the existing
+angle-based distance score; airborne distance is a measurement only. Off-road driving lowers the forward
 speed ceiling over three seconds, by a maximum 30 km/h, and restores it over
 two seconds on pavement. Rally Tires reduce that penalty to 22.2 km/h. Lower
 speeds no longer receive the old abrupt off-road drag.
+
+## Bodywork and repairs
+
+Every distinct vehicle impact removes 1 km/h of available top speed for the rest
+of the run, until repaired. Both forward/reverse limits, arcade boost, manual
+gears and the Simulation governor respect damage, with a 10 km/h minimum ceiling.
+This is not forced movement: braking and stopping still work normally. Continuous
+scraping is one contact, with a 0.25-second release tolerance. Tiny resting support
+corrections do not count. Quips cycle through 24 lines without consuming RNG.
+Once every available ceiling reaches 10, further hits still get a quip but do not
+increase the repair bill. New runs start undamaged; tow/unstuck does not repair.
+
+Gas venue interactions own their service-lot rectangle and elevation. Stopping
+below 2 km/h for 0.6 seconds on that lot offers a complete repair for $10 per lost
+km/h, paid from the current run's fare. Tap **Repair Vehicle** or press **R**;
+**Not Now** / **N** dismisses the automatic offer until the cab leaves that lot
+and returns. Leaving the vehicle or going inside does not re-arm it. The same
+repair can be requested inside the matching gas station with the cab parked on
+its lot. Funds, motion, elevation and location are checked again on acceptance;
+repeated acceptance never charges twice. Bodywork repairs do not alter upgrades,
+passenger jobs, the clock or the Accord's characteristic clutch fault.

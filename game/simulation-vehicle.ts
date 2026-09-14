@@ -1,6 +1,7 @@
 import { accordCoupledRpm, clutchConnected, stepManualTransmission } from "./manual-transmission";
 import { stepOffroadSpeedLimit } from "./offroad-speed";
-import { ACCORD_GEARS, ACCORD_FINAL_DRIVE, ACCORD_WHEEL_RADIUS_M, ACCORD_REDLINE_RPM } from "./vehicles";
+import { ACCORD_GEARS, ACCORD_FINAL_DRIVE, ACCORD_WHEEL_RADIUS_M, ACCORD_REDLINE_RPM, VEHICLE_GOVERNED_SPEED_KMH } from "./vehicles";
+import { damageSpeedLimit } from "./vehicle-damage";
 import { SPEED_KMH_PER_WORLD_UNIT } from "./config";
 import { steeringInput } from "./input";
 import { clamp, normalizeAngle } from "./math";
@@ -34,7 +35,7 @@ export const CROWN_TAXI_SPECS = {
   drivelineEfficiency: 0.78,
   idleRpm: 650,
   redlineRpm: 5_250,
-  governedTopSpeedMps: 53,
+  governedTopSpeedMps: VEHICLE_GOVERNED_SPEED_KMH["crown-cab"] / 3.6,
   governedReverseSpeedMps: 8.9,
   serviceBrakeForceN: 15_800,
   parkingBrakeForceN: 7_200,
@@ -66,7 +67,7 @@ export const ACCORD_V6_SPECS: VehicleSpecs = {
   wheelRadiusM: ACCORD_WHEEL_RADIUS_M, finalDriveRatio: ACCORD_FINAL_DRIVE,
   forwardGearRatios: ACCORD_GEARS, reverseGearRatio: 2.269,
   drivelineEfficiency: 0.89, idleRpm: 750, redlineRpm: ACCORD_REDLINE_RPM,
-  governedTopSpeedMps: 62, serviceBrakeForceN: 14_400, parkingBrakeForceN: 6_500,
+  governedTopSpeedMps: VEHICLE_GOVERNED_SPEED_KMH["accord-v6"] / 3.6, serviceBrakeForceN: 14_400, parkingBrakeForceN: 6_500,
   frontCorneringStiffnessNPerRad: 68_000, rearCorneringStiffnessNPerRad: 61_000,
   dragCoefficient: 0.31, frontalAreaM2: 2.16, rollingResistance: 0.018,
   roadFriction: 0.78, offroadFriction: 0.6, rallyOffroadFriction: 0.68,
@@ -572,7 +573,8 @@ function stepSimulationSubstep(
   const speedLimit = state.gear === -1
     ? specs.governedReverseSpeedMps
     : specs.governedTopSpeedMps - (grounded ? game.offroadSpeedPenaltyKmh / 3.6 : 0);
-  const governor = clamp((speedLimit - speedInDriveDirection) / 3.2, 0, 1);
+  const damagedSpeedLimit = damageSpeedLimit(game, speedLimit * 3.6) / 3.6;
+  const governor = clamp((damagedSpeedLimit - speedInDriveDirection) / Math.min(3.2, damagedSpeedLimit * .5), 0, 1);
   const converterMultiplication = !accord && state.gear === 1
     ? 1 + 0.62 * (1 - clamp(Math.abs(longitudinal) / 8.5, 0, 1))
     : 1;

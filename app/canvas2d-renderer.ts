@@ -37,6 +37,7 @@ export class Canvas2DRenderer implements Renderer {
   }
 
   render(game: Game, camera: Camera, seconds: number, world: WorldView, navigation: NavigationPlan) {
+    this.canvas.dataset.vehicleDetail = camera.vehicleDetail ?? "classic";
     const { width, height } = this.canvas;
     const distance = world.landscapeSurfaces?.length ? 1200 : PERSPECTIVE_DRAW_DISTANCE;
     const matrix = viewProjection(game, camera, width / Math.max(1, height), distance);

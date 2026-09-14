@@ -22,6 +22,7 @@ import {
   taxiGroundShadow,
 } from "@/game/render/scene";
 import { renderTargetSize } from "@/game/render/resolution";
+import { detailedTaxiSurfaces, MAX_VEHICLE_SURFACE_FACES } from "@/game/render/detailed-vehicles";
 import {
   MAX_STREAM_SURFACE_QUADS, SURFACE_VERTEX_BYTES, SURFACE_VERTICES_PER_QUAD, packSurfaceQuads,
 } from "@/game/render/surfaces";
@@ -56,18 +57,21 @@ export class WebGPURenderer implements Renderer {
   private horizon: WebGPUHorizon;
   private pipeline: any;
   private surfacePipeline: any;
+  private ghostSurfacePipeline: any;
   private ghostPipeline: any;
   private transparentPipeline: any;
   private postPipeline: any;
   private vertexBuffer: any;
   private cityBuffer: any;
   private surfaceBuffer: any;
+  private vehicleSurfaceBuffer: any;
   private actorBuffer: any;
   private navBuffer: any;
   private ghostBuffer: any;
   private cameraBuffer: any;
   private bindGroup: any;
   private surfaceBindGroup: any;
+  private ghostSurfaceBindGroup: any;
   private ghostBindGroup: any;
   private transparentBindGroup: any;
   private postBindGroup: any = null;
@@ -381,9 +385,7 @@ fn bloomColor(color: vec3<f32>) -> vec3<f32> {
       primitive: { topology: "triangle-list", cullMode: "none" },
       depthStencil: { format: "depth24plus", depthWriteEnabled: true, depthCompare: "less" },
     });
-    this.surfacePipeline = device.createRenderPipeline({
-      layout: "auto",
-      vertex: {
+    const surfaceVertex = {
         module: shader, entryPoint: "vsSurface",
         buffers: [{
           arrayStride: SURFACE_VERTEX_BYTES,
@@ -393,10 +395,22 @@ fn bloomColor(color: vec3<f32>) -> vec3<f32> {
             { shaderLocation: 2, offset: 32, format: "float32x4" },
           ],
         }],
-      },
+      };
+    this.surfacePipeline = device.createRenderPipeline({
+      layout: "auto",
+      vertex: surfaceVertex,
       fragment: { module: shader, entryPoint: "fsMain", targets: [{ format: this.sceneFormat }] },
       primitive: { topology: "triangle-list", cullMode: "none" },
       depthStencil: { format: "depth24plus", depthWriteEnabled: true, depthCompare: "less" },
+    });
+    this.ghostSurfacePipeline = device.createRenderPipeline({
+      layout: "auto", vertex: surfaceVertex,
+      fragment: { module: shader, entryPoint: "fsGhost", targets: [{ format: this.sceneFormat, blend: {
+        color: { srcFactor: "src-alpha", dstFactor: "one-minus-src-alpha", operation: "add" },
+        alpha: { srcFactor: "one", dstFactor: "one-minus-src-alpha", operation: "add" },
+      } }] },
+      primitive: { topology: "triangle-list", cullMode: "none" },
+      depthStencil: { format: "depth24plus", depthWriteEnabled: false, depthCompare: "greater" },
     });
     this.ghostPipeline = device.createRenderPipeline({
       layout: "auto",
@@ -444,6 +458,7 @@ fn bloomColor(color: vec3<f32>) -> vec3<f32> {
     device.queue.writeBuffer(this.vertexBuffer, 0, vertices);
     this.cityBuffer = device.createBuffer({ size: INSTANCE_BYTES * MAX_STREAM_BOXES, usage: 0x20 | 0x08 });
     this.surfaceBuffer = device.createBuffer({ size: SURFACE_VERTEX_BYTES * SURFACE_VERTICES_PER_QUAD * MAX_STREAM_SURFACE_QUADS, usage: 0x20 | 0x08 });
+    this.vehicleSurfaceBuffer = device.createBuffer({ size: SURFACE_VERTEX_BYTES * SURFACE_VERTICES_PER_QUAD * MAX_VEHICLE_SURFACE_FACES, usage: 0x20 | 0x08 });
     this.actorBuffer = device.createBuffer({ size: INSTANCE_BYTES * ACTOR_INSTANCE_CAPACITY, usage: 0x20 | 0x08 });
     this.navBuffer = device.createBuffer({ size: INSTANCE_BYTES * NAVIGATION_INSTANCE_CAPACITY, usage: 0x20 | 0x08 });
     this.ghostBuffer = device.createBuffer({ size: INSTANCE_BYTES * GHOST_INSTANCE_CAPACITY, usage: 0x20 | 0x08 });
@@ -454,6 +469,10 @@ fn bloomColor(color: vec3<f32>) -> vec3<f32> {
     });
     this.surfaceBindGroup = device.createBindGroup({
       layout: this.surfacePipeline.getBindGroupLayout(0),
+      entries: [{ binding: 0, resource: { buffer: this.cameraBuffer } }],
+    });
+    this.ghostSurfaceBindGroup = device.createBindGroup({
+      layout: this.ghostSurfacePipeline.getBindGroupLayout(0),
       entries: [{ binding: 0, resource: { buffer: this.cameraBuffer } }],
     });
     this.ghostBindGroup = device.createBindGroup({
@@ -541,8 +560,12 @@ fn bloomColor(color: vec3<f32>) -> vec3<f32> {
     }
     const playerMode = isInterior(game) ? "interior" : isDriving(game) ? "driving" : "walking";
     const showTaxi = shouldRenderTaxi(playerMode, camera.mode);
-    const taxi = showTaxi ? taxiBoxes(game, { includeGroundShadow: false }) : [];
-    const taxiShadow = showTaxi ? taxiGroundShadow(game) : null;
+    const taxi = showTaxi ? taxiBoxes(game, { includeGroundShadow: false, includeBody: camera.vehicleDetail !== "detailed" }) : [];
+    const vehicleVertices = packSurfaceQuads(showTaxi && camera.vehicleDetail === "detailed" ? detailedTaxiSurfaces(game) : []);
+    const vehicleVertexCount = vehicleVertices.byteLength / SURFACE_VERTEX_BYTES;
+    if (vehicleVertexCount) this.device.queue.writeBuffer(this.vehicleSurfaceBuffer, 0, vehicleVertices);
+    this.canvas.dataset.vehicleDetail = camera.vehicleDetail ?? "classic";
+    const taxiShadow = showTaxi ? taxiGroundShadow(game, camera.vehicleDetail === "detailed") : null;
     const playerAvatar = shouldRenderPlayerAvatar(playerMode, camera.mode)
       ? playerAvatarBoxes(game, seconds)
       : [];
@@ -633,6 +656,15 @@ fn bloomColor(color: vec3<f32>) -> vec3<f32> {
       scenePass.setBindGroup(0, this.bindGroup);
       scenePass.draw(36, ghostActors.length);
     }
+    if (vehicleVertexCount) {
+      scenePass.setPipeline(this.ghostSurfacePipeline);
+      scenePass.setBindGroup(0, this.ghostSurfaceBindGroup);
+      scenePass.setVertexBuffer(0, this.vehicleSurfaceBuffer);
+      scenePass.draw(vehicleVertexCount);
+      scenePass.setPipeline(this.surfacePipeline);
+      scenePass.setBindGroup(0, this.surfaceBindGroup);
+      scenePass.draw(vehicleVertexCount);
+    }
     if (transparentActors.length) {
       scenePass.setPipeline(this.transparentPipeline);
       scenePass.setBindGroup(0, this.transparentBindGroup);
@@ -669,6 +701,7 @@ fn bloomColor(color: vec3<f32>) -> vec3<f32> {
     this.vertexBuffer?.destroy?.();
     this.cityBuffer?.destroy?.();
     this.surfaceBuffer?.destroy?.();
+    this.vehicleSurfaceBuffer?.destroy?.();
     this.actorBuffer?.destroy?.();
     this.navBuffer?.destroy?.();
     this.ghostBuffer?.destroy?.();

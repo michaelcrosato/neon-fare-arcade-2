@@ -3,12 +3,13 @@ import { isDriving, isInterior } from "@/game/player";
 import { shouldRenderPlayerAvatar, shouldRenderTaxi } from "@/game/render/camera";
 import { cabInteriorBoxes, dynamicBoxes, playerAvatarBoxes, taxiBoxes, taxiGroundShadow } from "@/game/render/scene";
 import { navigationArrowBoxes } from "@/game/render/navigation-glyph";
+import { detailedTaxiSurfaces } from "@/game/render/detailed-vehicles";
 
 /** The fallback draws the same actors, cockpit, road pose and GPS as WebGPU. */
 export function compatibilityScene(game: Game, camera: Camera, seconds: number, world: WorldView, navigation: NavigationPlan) {
   const playerMode = isInterior(game) ? "interior" : isDriving(game) ? "driving" : "walking";
   const showTaxi = shouldRenderTaxi(playerMode, camera.mode);
-  const shadow = showTaxi ? taxiGroundShadow(game) : null;
+  const shadow = showTaxi ? taxiGroundShadow(game, camera.vehicleDetail === "detailed") : null;
   return {
     actors: [
       ...dynamicBoxes(game, seconds, navigation.route, world, { showPlayerAvatar: false }),
@@ -16,9 +17,10 @@ export function compatibilityScene(game: Game, camera: Camera, seconds: number, 
       ...(shadow ? [shadow] : []),
     ],
     focus: [
-      ...(showTaxi ? taxiBoxes(game, { includeGroundShadow: false }) : []),
+      ...(showTaxi ? taxiBoxes(game, { includeGroundShadow: false, includeBody: camera.vehicleDetail !== "detailed" }) : []),
       ...(shouldRenderPlayerAvatar(playerMode, camera.mode) ? playerAvatarBoxes(game, seconds) : []),
     ],
+    focusSurfaces: showTaxi && camera.vehicleDetail === "detailed" ? detailedTaxiSurfaces(game) : [],
     navigation: navigationArrowBoxes(game, seconds, navigation, camera.mode),
   };
 }

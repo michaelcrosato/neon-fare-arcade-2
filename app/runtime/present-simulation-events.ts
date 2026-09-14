@@ -1,5 +1,4 @@
 import type { Game, Hud, Modal } from "@/game/model";
-import { makeHud } from "@/game/hud";
 import type { SimulationEvent } from "@/game/simulation";
 import {
   makeDropoffFareImpact,
@@ -44,12 +43,14 @@ export function presentSimulationEvents(
     setHomeNotice,
     setCourierNotice,
     setGasNotice,
-    setHud,
     openModal,
   } = presentation;
 
   for (const event of events) {
     switch (event.type) {
+      case "vehicle-damaged":
+        announce(`${event.line} ${event.lossKmh > 0 ? "One kilometre per hour of top speed lost." : "At the ten kilometre per hour limp-home limit."}`);
+        break;
       case "building-collision":
         tone(90, 0.18, "square", 45);
         break;
@@ -200,22 +201,10 @@ export function presentSimulationEvents(
           openModal("courier");
           tone(620, 0.09, "square", 920);
         } else if (event.serviceId === "gas-counter") {
-          const current = getGame();
-          if (current.onboard) {
-            const message = current.runKind === "free-run"
-              ? "DROP OFF YOUR PASSENGER BEFORE SERVICING THE TAXI."
-              : "DROP OFF YOUR PASSENGER BEFORE SERVICING THE TAXI. THE FARE CLOCK IS STILL RUNNING.";
-            announce(message);
-            setHud(makeHud(current));
-            tone(170, 0.1, "square", 110);
-          } else {
-            setGasNotice("");
-            announce(current.runKind === "free-run"
-              ? "GO-GO GAS pit stop open. Free Run needs no clock service; permanent cab upgrades remain available."
-              : "GO-GO GAS pit stop open. Buy run time or install permanent cab upgrades with banked fare.");
-            openModal("gas");
-            tone(620, 0.09, "square", 980);
-          }
+          setGasNotice("");
+          announce("GO-GO GAS pit stop open. Bodywork repairs use run fare. Clock service and permanent upgrades use banked fare.");
+          openModal("gas");
+          tone(620, 0.09, "square", 980);
         } else {
           announce(`${event.venue.label}. The clerk says fresh stock is coming in.`);
           tone(680, 0.09, "square", 880);

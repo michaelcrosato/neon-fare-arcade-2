@@ -360,6 +360,7 @@ function addLotInteractions(
       heading: pose.heading,
       radius: 2.35,
       venue: { id, kind: spec.kind, label: spec.label },
+      ...(spec.kind === "gas" ? { serviceLot: { x: centerX, y: centerY, halfX: 11.25 * contentScale, halfY: 11.25 * contentScale } } : {}),
     });
   }
 }

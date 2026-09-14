@@ -17,6 +17,7 @@ import { isTaxiNearGasStation } from "./gas-station";
 import { interactionPrompt } from "./interactions";
 import { accordCoupledRpm, makeManualTransmission } from "./manual-transmission";
 import { drivingStuntsHud, makeDrivingStunts } from "./driving-stunts";
+import { vehicleRepairQuote } from "./vehicle-damage";
 import { distance } from "./math";
 import type { Game, Hud, NavigationPlan, WorldView } from "./model";
 import {
@@ -47,6 +48,7 @@ import { cruiseSpeedLimit } from "./cruise-control";
 import { navigationSettingsForGame } from "./development-settings";
 
 export const EMPTY_HUD: Hud = {
+  damage: { lossKmh: 0, cost: 0, shortfall: 0, eligible: false, station: "GO-GO GAS", showOffer: false, line: "", lastLoss: 0 },
   stunts: drivingStuntsHud(makeDrivingStunts(), 0),
   towCost: 0,
   towReceipt: null,
@@ -179,6 +181,7 @@ export function makeHud(game: Game, navigation?: NavigationPlan, world?: WorldVi
     : specialRoadNamesNear(controlled, 1)[0] ?? districtName(controlled.x, controlled.y);
   return {
     stunts: drivingStuntsHud(game.stunts ?? makeDrivingStunts(), game.elapsed),
+    damage: vehicleRepairQuote(game),
     playtest: game.playtest ?? false,
     navigationDiagnostics: plan.diagnostics,
     runSeed: game.runSeed,

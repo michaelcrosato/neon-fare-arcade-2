@@ -608,6 +608,7 @@ test("low-speed steering can back the taxi out from between close props", () => 
 });
 
 test("high-speed and glancing building impacts rebound once and preserve wall slide", () => {
+  const firstImpact = { type: "vehicle-damaged", line: "There goes the quarter panel!", lossKmh: 1, totalLossKmh: 1 };
   const world: WorldView = makeTestWorld({
     key: "wall",
     colliders: [{ id: "wall", x: 5, y: 0, halfX: 5, halfY: 20, height: 8 }],
@@ -620,7 +621,7 @@ test("high-speed and glancing building impacts rebound once and preserve wall sl
   headOn.heading = 0;
   headOn.vx = 24;
   headOn.vy = 0;
-  assert.deepEqual(stepGame(headOn, IDLE_INPUT, FIXED_DT, world, () => 1), [{ type: "building-collision" }]);
+  assert.deepEqual(stepGame(headOn, IDLE_INPUT, FIXED_DT, world, () => 1), [{ type: "building-collision" }, firstImpact]);
   assert.ok(headOn.vx < 0, "the rebound must point away from the facade");
   assert.equal(Boolean(taxiHitsBuilding(world, headOn.x, headOn.y, headOn.heading)), false);
 
@@ -632,7 +633,7 @@ test("high-speed and glancing building impacts rebound once and preserve wall sl
   topSpeed.vx = TAXI_TOP_SPEED_WORLD_UNITS;
   topSpeed.vy = 0;
   topSpeed.boost = 100;
-  assert.deepEqual(stepGame(topSpeed, { ...IDLE_INPUT, boost: true }, FIXED_DT, world, () => 1), [{ type: "building-collision" }]);
+  assert.deepEqual(stepGame(topSpeed, { ...IDLE_INPUT, boost: true }, FIXED_DT, world, () => 1), [{ type: "building-collision" }, firstImpact]);
   assert.ok(topSpeed.vx < 0, "the top-speed rebound must point away from the facade");
   assert.equal(Boolean(taxiHitsBuilding(world, topSpeed.x, topSpeed.y, topSpeed.heading)), false);
 
@@ -647,7 +648,7 @@ test("high-speed and glancing building impacts rebound once and preserve wall sl
   overdriveSpeed.boost = 100;
   assert.deepEqual(
     stepGame(overdriveSpeed, { ...IDLE_INPUT, boost: true }, FIXED_DT, world, () => 1),
-    [{ type: "building-collision" }],
+    [{ type: "building-collision" }, firstImpact],
   );
   assert.ok(overdriveSpeed.vx < 0, "the overdrive rebound must point away from the facade");
   assert.equal(Boolean(taxiHitsBuilding(world, overdriveSpeed.x, overdriveSpeed.y, overdriveSpeed.heading)), false);
@@ -703,8 +704,12 @@ test("traffic separation cannot push the taxi through a neighboring building", (
     cooldown: 0,
   }];
 
-  stepGame(game, IDLE_INPUT, FIXED_DT, world, () => 1);
+  const events = stepGame(game, IDLE_INPUT, FIXED_DT, world, () => 1);
+  assert.equal(events.filter(event => event.type === "vehicle-damaged").length, 1);
+  assert.equal(game.damage.lossKmh, 1, "traffic contact damages the taxi even below the score-penalty threshold");
   assert.equal(game.x, 1.5);
+  stepGame(game, IDLE_INPUT, FIXED_DT, world, () => 1);
+  assert.equal(game.damage.lossKmh, 1, "the same overlapping car cannot charge again on the next tick");
   assert.equal(Boolean(taxiHitsBuilding(world, game.x, game.y, game.heading)), false);
 });
 

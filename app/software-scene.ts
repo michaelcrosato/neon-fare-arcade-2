@@ -42,7 +42,9 @@ export class SoftwareScene {
     const transparentActors = scene.actors.filter(shape => (shape.color[3] ?? 1) < 0.99);
     for (const shape of opaqueActors) box(shape);
     for (const shape of [...scene.focus, ...scene.navigation]) box(shape, true);
+    for (const surface of scene.focusSurfaces) face(surface, true);
     for (const shape of [...scene.focus, ...scene.navigation]) box(shape);
+    for (const surface of scene.focusSurfaces) face(surface);
     for (const shape of transparentActors) box(shape);
     return new ImageData(new Uint8ClampedArray(this.raster.pixels), width, height);
   }

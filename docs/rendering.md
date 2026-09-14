@@ -23,6 +23,7 @@ Hard budgets:
 - actors: 2,048;
 - navigation: 48;
 - ghost/occlusion pass: 96;
+- optional detailed player vehicle: 2,048 mesh faces in a separate dynamic buffer;
 - camera uniform: 24 floats / 96 bytes.
 
 ## Road, terrain, and architectural surfaces
@@ -43,6 +44,15 @@ The WebGPU road pipeline shares the scene's lighting, fog and depth buffer;
 static road vertices upload only when the streamed world key changes. Interior
 switches clear this buffer. Device loss and disposal release it with the other
 GPU resources.
+
+`game/render/detailed-vehicles.ts` caches local polygon models and transforms the
+selected car into the shared road/body frame each render. Classic remains the
+default. Detailed cars upload to a separate dynamic surface buffer; world keys,
+static surface uploads and existing box budgets stay unchanged. The surface
+pipeline and its occluded silhouette pass use the same 48-byte vertex layout.
+WebGPU, WebGL and the software rasterizer render these exact faces. Cargo and
+the on-foot avatar retain their existing box pass; cab view retains its cockpit.
+Destroying a renderer also releases the dynamic vehicle buffer.
 
 Pavement and lane strips use the same mitered cross sections as tire contact
 and traffic. Deck sidewalls, undersides, guardrails and supports are generated

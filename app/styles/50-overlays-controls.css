@@ -742,6 +742,24 @@
 .driving-stunt.is-complete { background: var(--paper); }
 .stunt-statistics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 14px 0; }
 .stunt-statistics > div { padding: 10px; border: 2px solid currentColor; text-align: left; }
+.vehicle-damage-status { position: absolute; left: 24px; bottom: 138px; z-index: 25; display: grid; gap: 3px; padding: 8px 10px; color: var(--paper); background: var(--ink); border-left: 4px solid var(--red); pointer-events: none; }
+.vehicle-damage-status b { font: 900 16px/1.1 "Barlow Condensed", sans-serif; }
+.vehicle-damage-status small { font: 800 8px/1.2 var(--font-geist-mono), monospace; }
+.comic-callout.is-damage { max-width: min(520px, 65vw); padding: 14px 20px; font-size: clamp(20px, 2.8vw, 38px); text-align: center; white-space: normal; }
+.vehicle-repair { position: absolute; z-index: 48; bottom: 26px; left: 50%; transform: translateX(-50%); width: min(430px, calc(100% - 32px)); padding: 18px; background: var(--paper); color: var(--ink); border: 4px solid var(--ink); box-shadow: 6px 6px 0 var(--yellow); pointer-events: auto; }
+.vehicle-repair > small, .vehicle-repair > span { display: block; font: 800 10px/1.4 var(--font-geist-mono), monospace; }
+.vehicle-repair h3 { margin: 6px 0; font: italic 900 38px/.95 "Barlow Condensed", sans-serif; }
+.vehicle-repair p { margin: 7px 0; font: 700 18px/1.15 "Barlow Condensed", sans-serif; }
+.vehicle-repair > strong { font: 900 30px/1 "Barlow Condensed", sans-serif; }
+.vehicle-repair > strong small { font-size: 11px; }
+.vehicle-repair > div { display: flex; gap: 8px; margin: 12px 0 8px; }
+.vehicle-repair button { flex: 1; padding: 10px 6px; border: 2px solid var(--ink); background: var(--yellow); color: var(--ink); font: 900 17px/1 "Barlow Condensed", sans-serif; cursor: pointer; }
+.vehicle-repair button + button { flex: .7; background: transparent; }
+.vehicle-repair button:disabled { opacity: .55; cursor: default; }
+.vehicle-repair button:focus-visible { outline: 3px solid var(--cyan); outline-offset: 3px; }
+.vehicle-repair kbd { margin-right: 4px; font: inherit; }
+.vehicle-repair.is-inline { position: static; transform: none; width: 100%; margin: 16px 0; box-shadow: none; }
+.vehicle-repair-receipt { padding: 16px; border: 3px solid var(--ink); background: var(--yellow); color: var(--ink); font-weight: 900; }
 .stunt-statistics dt, .stunt-statistics small { display: block; font: 800 9px/1.4 var(--font-geist-mono), monospace; }
 .stunt-statistics dd { font: italic 900 26px/1.1 Impact, sans-serif; margin: 3px 0 0; }
 .transmission-controls__recovery { display: block; max-width: 205px; margin: 4px 0 7px; color: var(--yellow); font-size: 10px; font-weight: 800; line-height: 1.3; }
