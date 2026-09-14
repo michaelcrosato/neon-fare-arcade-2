@@ -93,7 +93,8 @@ and care required than before. Straight-line Crown launch, reverse, boost
 limits, passenger scoring formulas and collision containment are retained.
 
 Both rendering paths consume the same coupe body, glass, wheels, winter tread,
-supplier plaques, wear marks and white cockpit hood. Classic actor geometry stays
+supplier plaques and wear marks in exterior views. Cab View is an unobstructed
+first-person camera with the normal HUD. Classic actor geometry stays
 inside the 96-instance ghost budget. Options → Graphics Engine offers separate
 Classic/Detailed choices for the Crown and Accord, saved on this device. Detailed
 models use sculpted mesh bodywork, tapered glasshouses, wheel arches, round tires

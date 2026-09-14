@@ -49,7 +49,7 @@ function draw(kind: "turn" | "uturn" | "tow", mode: CameraMode, age = .2) {
   const world = stream.update(game.x, game.y, mode === "fixed" ? 1 : 3);
   renderer.render(game, camera, 0, world, plan);
   const hud = makeHud(game, plan, world);
-  flushSync(() => root.render(<><GameStageHud mode="playing" hud={hud} cameraMode={mode} rendererKind={renderer.kind}
+  flushSync(() => root.render(<><GameStageHud mode="playing" hud={hud} cameraMode={mode}
     fareImpact={null} courierImpact={null} dockedFareCards={[]} onOpenFareDeck={noop} onOpenMap={noop}
     onCycleCamera={noop} onPulseInteraction={noop} onSetMode={noop} onTouch={noop}
     touchDriving={touchDriving} taxiExitRef={taxiExitRef} />

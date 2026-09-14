@@ -10,7 +10,8 @@ import { stepVehicleRoadContact } from "../../game/vehicle-road-contact";
 import { findTaxiExitPose, canEnterTaxi, stepWalkingActor } from "../../game/player";
 import { taxiHitsBuilding, circleHitsBuilding } from "../../game/collision";
 import type { WorldView } from "../../game/model";
-import { taxiBoxes, cabInteriorBoxes } from "../../game/render/scene";
+import { taxiBoxes } from "../../game/render/scene";
+import { cameraFraming } from "../../game/render/view-projection";
 import { advancePathTraffic } from "../../game/traffic";
 import { CityStream } from "../../game/world";
 import { ceilingHeightAt } from "../../game/collision";
@@ -101,7 +102,7 @@ test("real regional bridge approaches climb continuously and route at deck heigh
   }
 });
 
-test("bridge height is shared by taxi geometry, walking and re-entry", () => {
+test("bridge height is shared by taxi geometry, first-person camera, walking and re-entry", () => {
   const game = makeGame("street-ace", 7);
   const sample = bridgeSample();
   game.x = sample.point.x; game.y = sample.point.y; game.heading = sample.heading;
@@ -109,7 +110,8 @@ test("bridge height is shared by taxi geometry, walking and re-entry", () => {
   stepVehicleRoadContact(game, 1 / 60, game);
   const boxes = taxiBoxes(game, { includeGroundShadow: false });
   assert.ok(boxes.every((box) => box.z > 8.6));
-  assert.ok(cabInteriorBoxes(game).every((box) => box.z > 9.5), "the cockpit follows the same deck as its camera");
+  const camera = cameraFraming(game, { x: game.x, y: game.y, heading: game.heading, mode: "cab", zoom: 1, boom: 0, heightOffset: game.z });
+  assert.equal(camera.eye[2], game.z + 1.72, "the seated first-person eye follows the bridge deck");
   const actor = findTaxiExitPose(game, empty)!;
   assert.ok(actor);
   assert.ok((actor.elevation ?? 0) > 8.6);

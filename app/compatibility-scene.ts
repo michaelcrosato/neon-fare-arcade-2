@@ -1,11 +1,11 @@
 import type { Camera, Game, NavigationPlan, WorldView } from "@/game/model";
 import { isDriving, isInterior } from "@/game/player";
 import { shouldRenderPlayerAvatar, shouldRenderTaxi } from "@/game/render/camera";
-import { cabInteriorBoxes, dynamicBoxes, playerAvatarBoxes, taxiBoxes, taxiGroundShadow } from "@/game/render/scene";
+import { dynamicBoxes, playerAvatarBoxes, taxiBoxes, taxiGroundShadow } from "@/game/render/scene";
 import { navigationArrowBoxes } from "@/game/render/navigation-glyph";
 import { detailedTaxiSurfaces } from "@/game/render/detailed-vehicles";
 
-/** The fallback draws the same actors, cockpit, road pose and GPS as WebGPU. */
+/** The fallback draws the same actors, road pose and GPS as WebGPU. */
 export function compatibilityScene(game: Game, camera: Camera, seconds: number, world: WorldView, navigation: NavigationPlan) {
   const playerMode = isInterior(game) ? "interior" : isDriving(game) ? "driving" : "walking";
   const showTaxi = shouldRenderTaxi(playerMode, camera.mode);
@@ -13,7 +13,6 @@ export function compatibilityScene(game: Game, camera: Camera, seconds: number, 
   return {
     actors: [
       ...dynamicBoxes(game, seconds, navigation.route, world, { showPlayerAvatar: false }),
-      ...(playerMode === "driving" && camera.mode === "cab" ? cabInteriorBoxes(game) : []),
       ...(shadow ? [shadow] : []),
     ],
     focus: [

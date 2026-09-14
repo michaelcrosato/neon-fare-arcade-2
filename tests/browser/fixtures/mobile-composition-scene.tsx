@@ -67,7 +67,7 @@ async function render(mode: CameraMode, scale: 1 | 2 | 4 | 8, phase: "pickup" | 
     <div ref={badgeRef} className="navigation-distance"><span /><strong /><small /></div>
     {mobile ? <MobileGameHud mode="playing" hud={hud} fareImpact={card} fareImpactRef={fareRef} courierImpact={null} touchDriving={touch}
       onPulseInteraction={noop} onSetMode={noop} onTouch={noop} />
-      : <GameStageHud mode="playing" hud={hud} cameraMode={mode} rendererKind={backend} fareImpact={card}
+      : <GameStageHud mode="playing" hud={hud} cameraMode={mode} fareImpact={card}
         fareImpactRef={fareRef} courierImpact={null} dockedFareCards={[]} onOpenFareDeck={noop} onOpenMap={noop}
         onCycleCamera={noop} onPulseInteraction={noop} onSetMode={noop} onTouch={noop} touchDriving={touch} taxiExitRef={taxiExitRef} />}
   </section></main>));

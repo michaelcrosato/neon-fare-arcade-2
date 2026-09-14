@@ -19,7 +19,6 @@ import { TransmissionControls, type TransmissionInputHandler } from "./transmiss
 import { DrivingStuntFeedback } from "./driving-stunt-feedback";
 import { VehicleDamageFeedback } from "./vehicle-repair";
 import { FuelGauge } from "./fuel-services";
-import { vehicleDefinition } from "@/game/vehicles";
 import { CruiseControl } from "./cruise-control";
 import { useMobileLayout } from "./use-mobile-layout";
 import type { SteeringMode, TouchDriving } from "./runtime/touch-driving";
@@ -28,7 +27,6 @@ type GameStageHudProps = Readonly<{
   mode: Mode;
   hud: Hud;
   cameraMode: CameraMode;
-  rendererKind: string;
   fareImpact: FareImpact | null;
   fareImpactRef?: RefObject<HTMLDivElement | null>;
   courierImpact: CourierImpact | null;
@@ -50,7 +48,6 @@ export function GameStageHud({
   mode,
   hud,
   cameraMode,
-  rendererKind,
   fareImpact,
   fareImpactRef,
   courierImpact,
@@ -72,8 +69,6 @@ export function GameStageHud({
     touchDriving={touchDriving} steeringMode={steeringMode} onSetCruise={onSetCruise} taxiExitRef={taxiExitRef} onPulseInteraction={onPulseInteraction} onSetMode={onSetMode} onTouch={onTouch} onTransmissionInput={onTransmissionInput} />;
   const simulationDriving = hud.playerMode === "driving" && hud.drivingModel === "simulation";
   const simulationGear = (hud.vehicleId === "accord-v6" ? String(hud.transmission.gear === -1 ? "R" : hud.transmission.gear === 0 ? "N" : hud.transmission.gear) : simulationGearLabel(hud.simulationVehicle.gear));
-  const cabRollScale = 1 + Math.abs(Math.sin(hud.simulationVehicle.bodyRoll)) * 0.42;
-  const canvasCabRoll = simulationDriving && rendererKind !== "WEBGPU ACTIVE";
   return (
     <>
       {mode === "playing" && hud.playerMode === "driving" && <DrivingStuntFeedback stunts={hud.stunts} />}
@@ -83,26 +78,6 @@ export function GameStageHud({
       {mode === "playing" && hud.runKind === "free-run" && hud.playerMode === "driving" && onSetCruise
         && <CruiseControl hud={hud} onSetSpeed={onSetCruise} />}
       {courierImpact && <CourierImpactOverlay key={courierImpact.id} impact={courierImpact} />}
-      {mode !== "menu" && cameraMode === "cab" && hud.playerMode === "driving" && (
-        <div
-          className={`cab-frame ${simulationDriving ? "is-simulation" : ""}`}
-          style={canvasCabRoll ? {
-            transform: `rotate(${hud.simulationVehicle.bodyRoll}rad) scale(${cabRollScale})`,
-            transformOrigin: "50% 70%",
-          } : undefined}
-          aria-hidden="true"
-        >
-          <i className="cab-mirror" />
-          <span className="cab-pillars" />
-          <div className="cab-dashboard">
-            <small>{simulationDriving ? `${vehicleDefinition(hud.vehicleId).shortName} // ${simulationGear}` : vehicleDefinition(hud.vehicleId).shortName}</small>
-            <b>{hud.speed}</b>
-            <em>{simulationDriving ? `${Math.round(hud.simulationVehicle.engineRpm / 50) * 50} RPM` : "KM/H"}</em>
-          </div>
-          <i className="cab-wheel" />
-        </div>
-      )}
-
       {mode !== "menu" && (
         <>
           <div className="hud-top">

@@ -6,7 +6,7 @@ import { makeGame } from "../../game/state";
 import { stepGame } from "../../game/simulation";
 import { accordCoupledRpm, accordEngineIndicators, clutchConnected, stepManualTransmission } from "../../game/manual-transmission";
 import { ACCORD_V6_SPECS, CROWN_TAXI_SPECS, stepSimulationVehicle } from "../../game/simulation-vehicle";
-import { taxiBoxes, cabInteriorBoxes } from "../../game/render/scene";
+import { taxiBoxes } from "../../game/render/scene";
 import { makeTestWorld } from "./support/fixtures";
 
 const IDLE: InputState = { up: false, down: false, left: false, right: false, boost: false };
@@ -230,7 +230,7 @@ test("both renderer paths receive distinct finite coupe geometry inside the 96-i
     const boxes = taxiBoxes(accord);
     assert.notDeepEqual(boxes, taxiBoxes(crown));
     assert.ok(boxes.length < 96);
-    for (const box of [...boxes, ...cabInteriorBoxes(accord)]) for (const value of [box.x, box.y, box.z, box.sx, box.sy, box.sz]) assert.ok(Number.isFinite(value));
+    for (const box of boxes) for (const value of [box.x, box.y, box.z, box.sx, box.sy, box.sz]) assert.ok(Number.isFinite(value));
     accord.simulationVehicle.bodyRoll = Math.PI / 2;
     assert.ok(taxiBoxes(accord).every(box => Number.isFinite(box.z)));
   }

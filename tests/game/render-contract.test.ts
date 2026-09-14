@@ -35,7 +35,6 @@ import {
 } from "../../game/render/camera";
 import {
   boostTrailBoxes,
-  cabInteriorBoxes,
   crownVehiclePointPose,
   crownVehicleUpVector,
   farePresentationBoxes,
@@ -180,7 +179,7 @@ test("Cab View follows the walker after leaving a rolled simulation taxi", () =>
   assert.deepEqual(cabViewMatrix(game, camera), lookAt(
     [walkingEye.x, walkingEye.y, 1.72 + camera.heightOffset],
     [walkingTarget.x, walkingTarget.y, 1.35 + camera.heightOffset],
-  ), "the driving eye clears the dashboard");
+  ), "the driving eye retains its seated height");
 });
 
 test("one navigation glyph model fits every camera and budget", () => {
@@ -437,7 +436,7 @@ test("drift smoke particles produce finite renderer-neutral geometry", () => {
   )));
 });
 
-test("simulation taxi and 3D cab interior have distinct finite geometry within budget", () => {
+test("simulation taxi has distinct finite exterior geometry within budget", () => {
   const arcade = makeGame("street-ace", 0xaced, "free-run", "arcade");
   const simulation = makeGame("street-ace", 0xcab, "free-run", "simulation");
   simulation.simulationVehicle.steeringAngle = 0.22;
@@ -446,7 +445,6 @@ test("simulation taxi and 3D cab interior have distinct finite geometry within b
 
   const arcadeTaxi = taxiBoxes(arcade);
   const crownTaxi = taxiBoxes(simulation);
-  const cockpit = cabInteriorBoxes(simulation);
   assert.ok(crownTaxi.length > arcadeTaxi.length + 20);
   assert.ok(crownTaxi.length < GHOST_INSTANCE_CAPACITY);
   assert.ok(crownTaxi.every((box) => (
@@ -455,13 +453,6 @@ test("simulation taxi and 3D cab interior have distinct finite geometry within b
   assert.ok(crownTaxi.some((box) => Math.abs(box.yaw - simulation.heading) > 0.1));
   assert.ok(crownTaxi.some((box) => box.pitch === simulation.simulationVehicle.bodyRoll));
   assert.ok(crownTaxi.some((box) => box.tilt === simulation.simulationVehicle.bodyPitch));
-
-  assert.ok(cockpit.length >= 20);
-  assert.ok(cockpit.every((box) => box.material !== undefined));
-  assert.ok(cockpit.some((box) => Math.abs(box.pitch ?? 0) > 0.5));
-  assert.ok(cockpit.every((box) => (
-    (box.x - simulation.x) ** 2 + (box.y - simulation.y) ** 2 < 8
-  )));
 
   const actor = makeWalkingActor({
     x: simulation.x,
@@ -475,14 +466,13 @@ test("simulation taxi and 3D cab interior have distinct finite geometry within b
   assert.ok(taxiBoxes(simulation).length + playerAvatarBoxes(simulation, 0).length <= GHOST_INSTANCE_CAPACITY);
 });
 
-test("the Crown cab and cockpit rotate as one grounded body through side and roof rollover poses", () => {
+test("the Crown exterior and first-person camera follow side and roof rollover poses", () => {
   const simulation = makeGame("street-ace", 0xface, "free-run", "simulation");
   for (const roll of [Math.PI / 2, Math.PI]) {
     simulation.simulationVehicle.bodyRoll = roll;
     simulation.simulationVehicle.overturned = true;
     const exterior = taxiBoxes(simulation);
-    const cockpit = cabInteriorBoxes(simulation);
-    for (const box of [...exterior, ...cockpit]) {
+    for (const box of exterior) {
       assert.ok([
         box.x,
         box.y,
@@ -494,7 +484,6 @@ test("the Crown cab and cockpit rotate as one grounded body through side and roo
       assert.ok(box.z >= -0.02);
     }
     assert.ok(exterior.some((box) => Math.abs((box.pitch ?? 0) - roll) < 1e-9));
-    assert.ok(cockpit.some((box) => Math.abs((box.pitch ?? 0) - roll) < 1e-9));
 
     const eye = crownVehiclePointPose(simulation, 0.02, -0.46, 1.52);
     const target = crownVehiclePointPose(simulation, 26, -0.32, 1.15);

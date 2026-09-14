@@ -87,7 +87,7 @@ of blindly accepting them.
 Run `test:browser` for renderer, camera or input changes. The elevation fixture
 is bundled only by Playwright and imports the real world, vehicle and renderers;
 it adds no debug interface to production. Inspect ramp, bridge and underpass
-captures in WebGPU and Canvas, including the cockpit. Finish with `npm run check`.
+captures in WebGPU and Canvas, including first person. Finish with `npm run check`.
 
 Northstar's engine, gameplay, and driving tests cover both lane directions,
 terrain clearance, all named entrances, safe fare approaches, traffic, cable

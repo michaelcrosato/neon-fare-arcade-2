@@ -42,7 +42,7 @@ function draw(mode: Mode = "playing") {
   const plan = buildNavigationPlan(game, { x: 0, y: -216, z: 0 }, game.heading);
   renderer.render(game, camera, game.elapsed, world, plan);
   const hud = makeHud(game, plan, world);
-  flushSync(() => root.render(<><GameStageHud mode={mode} hud={hud} cameraMode="chase-high" rendererKind={renderer.kind}
+  flushSync(() => root.render(<><GameStageHud mode={mode} hud={hud} cameraMode="chase-high"
     fareImpact={null} courierImpact={null} dockedFareCards={[]} onOpenFareDeck={noop} onOpenMap={noop}
     onCycleCamera={noop} onPulseInteraction={noop} onSetMode={noop} onTouch={noop}
     touchDriving={touchDriving} taxiExitRef={taxiExitRef} />

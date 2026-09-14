@@ -38,7 +38,7 @@ function Overlay() {
   const [hud, setHud] = useState(() => makeHud(game));
   useEffect(() => { updateHud = setHud; return () => { updateHud = noop; }; }, []);
   return <VehicleRepairProvider gameRef={gameRef} hud={hud} mode="playing" modal={modal} setHud={setHud} checkpoint={noop}>
-    {showHud && (modal === "gas" ? <div style={{ position: "absolute", inset: 20, zIndex: 60, overflow: "auto", pointerEvents: "auto" }}><VehicleRepairOffer inline /></div> : <GameStageHud mode="playing" hud={hud} cameraMode="fixed" rendererKind={renderer.kind}
+    {showHud && (modal === "gas" ? <div style={{ position: "absolute", inset: 20, zIndex: 60, overflow: "auto", pointerEvents: "auto" }}><VehicleRepairOffer inline /></div> : <GameStageHud mode="playing" hud={hud} cameraMode="fixed"
       fareImpact={null} courierImpact={null} dockedFareCards={[]} onOpenFareDeck={noop} onOpenMap={noop}
       onCycleCamera={noop} onPulseInteraction={noop} onSetMode={noop} onTouch={noop} touchDriving={touchDriving} taxiExitRef={taxiExitRef} />)}
   </VehicleRepairProvider>;

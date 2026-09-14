@@ -71,8 +71,7 @@ export function fareImpactObstacles(game: Game, camera: Camera, seconds: number,
     return right > x && bottom > y ? [{ x, y, width: right - x, height: bottom - y }] : [];
   };
   const cab = camera.mode === "cab"
-    // The cab camera is inside the car: its dashboard occupies the lower view.
-    ? [{ x: 0, y: height * .76, width, height: height * .24 }]
+    ? []
     : bounds(taxiBoxes(game, { includeGroundShadow: false }));
   return [...cab, ...bounds(vehicleDepartureArrowBoxes(game, seconds, navigation, camera.mode))];
 }

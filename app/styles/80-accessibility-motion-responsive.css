@@ -201,7 +201,6 @@
     min-height: 540px;
   }
   .menu-screen { overflow-y: auto; }
-  .game-stage.camera-cab.player-driving { --fare-stack-bottom: max(104px, calc(22% + 10px)); }
   .hero-art {
     background-position: 67% center;
   }
@@ -291,16 +290,6 @@
   .fare-impact__fare-number { top: 10px; left: 9px; padding: 5px 6px; border-width: 3px; font-size: 0.47rem; }
   .fare-impact__verb { right: 4px; bottom: 12px; padding: 5px 8px; border-width: 3px; font-size: clamp(1rem, 4.7vw, 1.55rem); }
   .fare-impact__stamp { right: -3px; bottom: -8px; padding: 5px 9px; border-width: 3px; font-size: clamp(0.95rem, 4vw, 1.4rem); }
-  .cab-frame::before { inset: 0; border-width: 6px; border-bottom-width: 6px; }
-  .cab-pillars::before,
-  .cab-pillars::after { bottom: 16%; width: 14px; }
-  .cab-pillars::before { left: 5%; }
-  .cab-pillars::after { right: 5%; }
-  .cab-dashboard { height: auto; min-height: 58px; padding: 9px 12px 8px; border-top-width: 4px; }
-  .cab-dashboard small { display: block; font-size: 0.42rem; }
-  .cab-dashboard b { font-size: 2.5rem; }
-  .cab-dashboard em { margin-top: 0; }
-  .cab-wheel { bottom: -10%; left: 17%; width: 180px; border-width: 19px; }
   .speedometer {
     right: 12px;
     bottom: 104px;
@@ -428,7 +417,6 @@
     --fare-stack-bottom: 22px;
     --fare-stack-center-x: 300px;
   }
-  .game-stage.camera-cab.player-driving { --fare-stack-bottom: calc(21% + 12px); }
 }
 
 @media (pointer: coarse) {
@@ -820,7 +808,7 @@
 @media (prefers-reduced-motion: reduce) { .setup-screen { animation: none; } }
 /* Desktop navigation is one rail; the archive docks directly below the map. */
 @media (min-width: 821px) and (pointer: fine) {
-  .game-stage, .game-stage.camera-cab.player-driving { --minimap-width: min(calc(244px * var(--minimap-size, 1)), calc(100vw - 560px), 55.7dvh); --minimap-height: calc(var(--minimap-width) * .75409836); --fare-stack-left: 24px; --fare-stack-width: 244px; --fare-stack-center-x: 146px; --fare-stack-bottom: calc(100% - 40px - var(--minimap-height) - var(--fare-stack-height)); }
+  .game-stage { --minimap-width: min(calc(244px * var(--minimap-size, 1)), calc(100vw - 560px), 55.7dvh); --minimap-height: calc(var(--minimap-width) * .75409836); --fare-stack-left: 24px; --fare-stack-width: 244px; --fare-stack-center-x: 146px; --fare-stack-bottom: calc(100% - 40px - var(--minimap-height) - var(--fare-stack-height)); }
   .navigation-rail { position: absolute; z-index: 27; top: 22px; left: 24px; display: flex; flex-direction: column; gap: 18px; width: var(--minimap-width, 244px); }
   .navigation-rail > .gps-panel, .navigation-rail > .fare-card-stack, .navigation-rail > .camera-panel { position: relative; inset: auto; flex-shrink: 0; }
   .navigation-rail > .gps-panel { width: 100%; height: var(--minimap-height, 184px); }

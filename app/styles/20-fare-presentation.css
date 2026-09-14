@@ -510,10 +510,6 @@
 
 .fare-card-stack:hover { transform: translateY(-4px) rotate(-0.5deg); }
 
-.game-stage.camera-cab.player-driving {
-  --fare-stack-bottom: calc(21% + 12px);
-}
-
 .fare-deck-browser {
   min-width: 0;
   padding: 18px 20px 20px;

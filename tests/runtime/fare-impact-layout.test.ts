@@ -55,10 +55,10 @@ test("desktop cards shorten for a high arrow and use a centered gap below a firs
   const card = fitFareImpact(1280, 800, [arrow]);
   assert.deepEqual(card, { x: 320, y: 0, width: 640, height: 142 });
   const firstPerson = { ...arrow, y: -20, height: 240 };
-  const dashboard = { x: 0, y: 608, width: 1280, height: 192 };
-  const below = fitFareImpact(1280, 800, [firstPerson, dashboard]);
+  const lowerObstacle = { x: 0, y: 608, width: 1280, height: 192 };
+  const below = fitFareImpact(1280, 800, [firstPerson, lowerObstacle]);
   assert.equal(below.x, 320);
   assert.equal(below.width, 640);
   assert.ok(below.y >= firstPerson.y + firstPerson.height + FARE_CLEARANCE);
-  assert.ok(below.y + below.height <= dashboard.y - FARE_CLEARANCE);
+  assert.ok(below.y + below.height <= lowerObstacle.y - FARE_CLEARANCE);
 });

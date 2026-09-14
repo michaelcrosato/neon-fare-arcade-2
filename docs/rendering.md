@@ -51,7 +51,7 @@ default. Detailed cars upload to a separate dynamic surface buffer; world keys,
 static surface uploads and existing box budgets stay unchanged. The surface
 pipeline and its occluded silhouette pass use the same 48-byte vertex layout.
 WebGPU, WebGL and the software rasterizer render these exact faces. Cargo and
-the on-foot avatar retain their existing box pass; cab view retains its cockpit.
+the on-foot avatar retain their existing box pass; Cab View hides the player car.
 Destroying a renderer also releases the dynamic vehicle buffer.
 
 Pavement and lane strips use the same mitered cross sections as tire contact
@@ -68,7 +68,7 @@ If WebGL is unavailable or its context is lost,
 `app/software-scene.ts` clips faces in homogeneous coordinates and rasterizes
 their perspective depth using `app/terrain-raster.ts`. The software color/depth
 buffer is capped at 360,000 pixels; the HTML HUD stays at native resolution.
-Both compatibility paths draw the same cockpit, walking avatar, departing
+Both compatibility paths draw the same world, walking avatar, departing
 passengers, navigation glyphs and occlusion silhouettes. Perspective streaming
 uses the existing radius-three visual budget regardless of rendering backend.
 
@@ -200,22 +200,21 @@ crouch stance, gait, and landing recovery; chase cameras receive only a partial
 vertical lift. Camera boom collision uses the same height offset at both ray
 endpoints. Reduced motion suppresses cosmetic bob and landing displacement.
 
-While driving, Cab View places the eye on the left side of the cabin and draws
-a renderer-neutral 3D cockpit: dashboard, windshield frame, hood, gauge pod,
-mirror, door tops, and an articulated box-built steering wheel. WebGPU renders
-those pieces in world/cab space. Canvas draws a purpose-built 2D cockpit
-fallback with the same framing instead of pretending its top-down box projector
-is three-dimensional. The compact HTML instrument readout is telemetry only;
-it must not replace or obscure the rendered cockpit.
+While driving, Cab View retains the seated first-person eye on the driver's
+side and shows only the outside world and normal HUD. No renderer draws a
+cockpit, hood, windshield frame, steering wheel or mirror, and HTML supplies
+no cabin frame or duplicate instruments. This applies to both vehicles,
+driving models and graphics quality settings on desktop and mobile. Fare
+cards reserve space for the navigation arrow, without an imaginary dashboard.
 
 The simulation Crown cab's sprung pitch and total roll angle are shared scene
-state. Exterior and cockpit box centers rotate around one grounded longitudinal
+state. Exterior box centers rotate around one grounded longitudinal
 pivot, not independently in place. WebGPU orientation accepts the full
 side-to-roof range; Canvas projects the same rotated centers and collapsed
 footprint. Normal cornering remains a small suspension lean, while a tripped
-roll visibly carries the complete body, wheels, roof sign, and cockpit onto its
-side or roof. In Cab view, the WebGPU eye and up vector remain fixed to that
-rolling cockpit; Canvas rotates its cabin projection and HTML frame together.
+roll visibly carries the complete body, wheels and roof sign onto its
+side or roof. In Cab View, all renderers keep the first-person eye and up vector
+attached to the rolling vehicle, without drawing the cabin.
 Loaded courier cargo stays attached to the taxi body while driving or walking
 outside it.
 
@@ -243,10 +242,10 @@ No new shadow texture, material ID, instance field, or render pass is required.
 These are contact approximations, not scene-wide cast shadows; raised surfaces
 can still hide the ground plane in WebGPU.
 
-The shared road pose transforms the complete taxi, cockpit, wheels, loaded
+The shared road pose transforms the complete taxi, wheels, loaded
 cargo and boost trail. Arcade body load transfer composes with road pitch/bank;
 the simulation cab retains its existing rollover model. Cab View follows that
-same deck immediately and uses a 1.72-unit seated eye to clear the dashboard.
+same deck immediately and retains its 1.72-unit seated eye height.
 Chase and fixed cameras follow elevation with smoothing. Contact shadows remain
 on the supporting deck while an airborne taxi rises above them.
 
@@ -303,7 +302,7 @@ Generation is capped at two ten-box scenes per chunk.
 - taxi ghosting behind buildings;
 - Canvas fallback after disabling or rejecting WebGPU.
 - bridge approach ascent/descent, deck and the water beneath it in all four
-  cameras and both renderers; confirm cockpit and camera share the road pose;
+  cameras and both renderers; confirm the first-person camera follows the road pose;
 - simulation cab at normal roll, two-wheel lift, settled on either side, and on
   its roof in Chase High, Chase Low, Cab, and Canvas views;
 - exit/re-enter in every saved taxi camera, preserving the exterior view during

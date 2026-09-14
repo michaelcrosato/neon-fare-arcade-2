@@ -7,6 +7,9 @@ updates the arcade launch, steering, road elevation and contact rules below.
 ## Coordinates and roads
 
 - New browsers start in Chase Low; an explicitly saved camera selection wins.
+- Cab View is an unobstructed first-person perspective with the normal HUD.
+  It draws no dashboard, steering wheel, hood, windshield frame, mirror or
+  cabin overlay in either vehicle or driving model, on desktop or mobile.
 - Passenger reviews award 1–5 stars. Travel time divided by the route's par time
   earns 5 stars at ≤1.0, 4 at ≤1.35, 3 at ≤1.8, 2 at ≤2.4, and 1 above that.
   Review par time is `max(11, road distance / 17 + 6)` seconds, without the
@@ -34,8 +37,8 @@ updates the arcade launch, steering, road elevation and contact rules below.
   Mobile cards keep the largest readable top-anchored rectangle, capped at 64%
   of the playfield height. Placement follows the actual camera, zoom, road pose,
   viewport and safe areas, preserving 18 pixels of clearance. If a close
-  first-person arrow reaches the top edge, use the clear gap below it and above
-  the dashboard. Mobile distance labels share their projected placement with
+  first-person arrow reaches the top edge, use the clear gap below it.
+  Mobile distance labels share their projected placement with
   the fitter. Each card lasts three seconds total:
   180 ms entrance, 2400 ms hold and 420 ms exit. Desktop cards slide and shrink
   into the measured deck slot below the GPS; the first card reserves the same

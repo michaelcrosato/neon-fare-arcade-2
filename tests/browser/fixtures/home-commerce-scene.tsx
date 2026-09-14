@@ -52,7 +52,7 @@ function Overlay() {
     <VehicleRepairProvider gameRef={gameRef} hud={hud} mode="playing" modal={modal} setHud={setHud} checkpoint={renderScene}>
       {modal ? <div className="modal-backdrop"><section className="comic-modal" role="dialog" aria-label="Commerce fixture" style={{ width: "min(940px, calc(100vw - 24px))" }}>
         {modal === "shop" ? <ShoppingPanel onClose={close} /> : modal === "home" ? <><HomeFurnishings /><button className="primary-small" onClick={close}>BACK TO THE APARTMENT</button></> : <><VehicleRepairOffer inline /><button onClick={close}>BACK TO STREET</button></>}
-      </section></div> : showHud && <GameStageHud mode="playing" hud={hud} cameraMode={camera.mode} rendererKind={renderer.kind} fareImpact={null} courierImpact={null} dockedFareCards={[]}
+      </section></div> : showHud && <GameStageHud mode="playing" hud={hud} cameraMode={camera.mode} fareImpact={null} courierImpact={null} dockedFareCards={[]}
         onOpenFareDeck={noop} onOpenMap={noop} onCycleCamera={noop} onPulseInteraction={noop} onSetMode={noop} onTouch={noop} touchDriving={touchDriving} taxiExitRef={taxiExitRef} />}
     </VehicleRepairProvider>
   </GameCommerceProvider>;

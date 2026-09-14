@@ -913,7 +913,6 @@ export default function Home() {
           mode={mode}
           hud={hud}
           cameraMode={cameraMode}
-          rendererKind={rendererKind}
           fareImpact={fareImpact}
           fareImpactRef={fareImpactRef}
           courierImpact={courierImpact}

@@ -17,7 +17,6 @@ import type {
 } from "@/game/model";
 import { navigationArrowBoxes } from "@/game/render/navigation-glyph";
 import {
-  cabInteriorBoxes,
   dynamicBoxes,
   playerAvatarBoxes,
   taxiBoxes,
@@ -577,14 +576,11 @@ fn bloomColor(color: vec3<f32>) -> vec3<f32> {
       : [];
     const ghostActors = [...taxi, ...playerAvatar];
     const route = navigationPlan.route;
-    const cockpit = playerMode === "driving" && camera.mode === "cab"
-      ? cabInteriorBoxes(game)
-      : [];
     const allActors = [...dynamicBoxes(game, seconds, route, world, {
       // Draw the player with the taxi after their occlusion silhouettes. An
       // earlier avatar depth write makes its own rear faces appear occluded.
       showPlayerAvatar: false,
-    }), ...cockpit, ...(taxiShadow ? [taxiShadow] : [])];
+    }), ...(taxiShadow ? [taxiShadow] : [])];
     const opaqueActors: Box[] = [];
     const transparentActors: Box[] = [];
     for (const actor of allActors) {
