@@ -18,6 +18,7 @@ import { interactionPrompt } from "./interactions";
 import { accordCoupledRpm, makeManualTransmission } from "./manual-transmission";
 import { drivingStuntsHud, makeDrivingStunts } from "./driving-stunts";
 import { vehicleRepairQuote } from "./vehicle-damage";
+import { fuelHud, makeFuel } from "./fuel";
 import { distance } from "./math";
 import type { Game, Hud, NavigationPlan, WorldView } from "./model";
 import {
@@ -48,7 +49,9 @@ import { cruiseSpeedLimit } from "./cruise-control";
 import { navigationSettingsForGame } from "./development-settings";
 
 export const EMPTY_HUD: Hud = {
-  damage: { lossKmh: 0, cost: 0, shortfall: 0, eligible: false, station: "GO-GO GAS", showOffer: false, line: "", lastLoss: 0 },
+  venueBrand: null,
+  fuel: fuelHud({ fuel: makeFuel("crown-cab"), vehicleId: "crown-cab", vx: 0, vy: 0, boosting: false }),
+  damage: { lossKmh: 0, cost: 0, shortfall: 0, eligible: false, station: "GO-GO GAS", showOffer: false, serviceOffer: false, line: "", lastLoss: 0 },
   stunts: drivingStuntsHud(makeDrivingStunts(), 0),
   towCost: 0,
   towReceipt: null,
@@ -182,6 +185,8 @@ export function makeHud(game: Game, navigation?: NavigationPlan, world?: WorldVi
   return {
     stunts: drivingStuntsHud(game.stunts ?? makeDrivingStunts(), game.elapsed),
     damage: vehicleRepairQuote(game),
+    venueBrand: game.player.kind === "walking" && game.player.location.kind === "interior" ? game.player.location.venue.brand ?? null : null,
+    fuel: fuelHud(game),
     playtest: game.playtest ?? false,
     navigationDiagnostics: plan.diagnostics,
     runSeed: game.runSeed,
@@ -201,7 +206,7 @@ export function makeHud(game: Game, navigation?: NavigationPlan, world?: WorldVi
     vehicleId: game.vehicleId,
     transmissionMode: game.transmissionMode,
     transmission: { ...game.transmission },
-    vehicleRpm: game.drivingModel === "simulation" ? game.simulationVehicle.engineRpm : Math.max(750,
+    vehicleRpm: game.drivingModel === "simulation" ? game.simulationVehicle.engineRpm : Math.max(game.fuel.litres > 0 ? 750 : 0,
       accordCoupledRpm((game.vx * Math.cos(game.heading) + game.vy * Math.sin(game.heading)) * SPEED_KMH_PER_WORLD_UNIT / 3.6, game.transmission.gear)),
     simulationVehicle: { ...game.simulationVehicle },
     runKind: game.runKind,

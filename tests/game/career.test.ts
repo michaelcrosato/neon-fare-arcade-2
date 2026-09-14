@@ -27,6 +27,7 @@ test("career saves normalize malformed data and migrate legacy run fare", () => 
     lifetimeScore: Number.NaN,
     lifetimeDeliveries: 3.8,
   }), {
+    ...makeCareerState(),
     version: 1,
     bank: 42,
     owned: ["neon-loft", "boost-cooler", "boost-overdrive"],
@@ -39,9 +40,10 @@ test("career saves normalize malformed data and migrate legacy run fare", () => 
     { score: 1_000, fare: 48, deliveries: 1, rank: "C", date: "AUG 9" },
     { score: 2_500, fare: 112, deliveries: 2, rank: "B", date: "AUG 10" },
   ]), {
+    ...makeCareerState(),
     version: 1,
     bank: 160,
-    owned: [],
+    owned: ["neon-loft"],
     runsCompleted: 2,
     lifetimeFare: 160,
     lifetimeScore: 3_500,
@@ -52,21 +54,23 @@ test("career saves normalize malformed data and migrate legacy run fare", () => 
 test("run fare banks once per explicit result and purchases enforce prerequisites", () => {
   const banked = bankCareerRun(makeCareerState(), { fare: 180, score: 3_200, deliveries: 3 });
   assert.deepEqual(banked, {
+    ...makeCareerState(),
     version: 1,
     bank: 180,
-    owned: [],
+    owned: ["neon-loft"],
     runsCompleted: 1,
     lifetimeFare: 180,
     lifetimeScore: 3_200,
     lifetimeDeliveries: 3,
   });
-  assert.equal(purchaseCareerItem(banked, "garage-base").status, "locked");
+  assert.equal(purchaseCareerItem({ ...banked, owned: [] }, "garage-base").status, "locked");
+  assert.equal(purchaseCareerItem(banked, "garage-base").status, "insufficient");
   const loft = purchaseCareerItem(banked, "neon-loft");
-  assert.equal(loft.status, "purchased");
-  assert.equal(loft.state.bank, 30);
+  assert.equal(loft.status, "owned");
+  assert.equal(loft.state.bank, 180);
   assert.deepEqual(loft.state.owned, ["neon-loft"]);
   assert.equal(purchaseCareerItem(loft.state, "neon-loft").status, "owned");
-  assert.equal(purchaseCareerItem(loft.state, "dispatch-desk").status, "insufficient");
+  assert.equal(purchaseCareerItem(loft.state, "dispatch-desk").status, "purchased");
 });
 
 test("career upgrades affect only fresh runs and the home garage refills once", () => {

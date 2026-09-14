@@ -5,6 +5,7 @@ import {
   type CareerState,
 } from "@/game/career";
 import type { DrivingModel } from "@/game/model";
+import { HomeFurnishings } from "./shopping-panel";
 
 type HomeBasePanelProps = {
   career: CareerState;
@@ -40,7 +41,7 @@ export function HomeBasePanel({
     <div className="home-hub">
       <div className="home-hub__header">
         <div>
-          <p className="modal-kicker">NEON LOFTS // DEVICE-LOCAL CAREER</p>
+          <p className="modal-kicker">NEON LOFTS // HOME SWEET HOME</p>
           <h2 id="modal-title">{ownsLoft ? "YOUR HOME BASE" : "OPEN HOUSE"}</h2>
           <p>{ownsLoft
             ? "Your apartment, garage plans, shift prep, and career history—under one loud roof."
@@ -49,6 +50,7 @@ export function HomeBasePanel({
         <div className="home-wallet"><small>BANKED FARE</small><strong>${career.bank}</strong><span>{career.runsCompleted} RUNS SAVED</span></div>
       </div>
 
+      <HomeFurnishings />
       <div className="home-purchase-grid">
         {HOME_CAREER_ITEMS.map((item) => {
           const owned = careerOwns(career, item.id);
@@ -64,7 +66,7 @@ export function HomeBasePanel({
                 : `BUY · $${item.cost}`;
           return (
             <article key={item.id} className={`home-purchase ${owned ? "is-owned" : ""}`}>
-              <span>{item.category}</span><small className="home-purchase__price">${item.cost}</small>
+              <span>{item.category}</span><small className="home-purchase__price">{item.cost === 0 ? "INCLUDED" : `$${item.cost}`}</small>
               <h3>{item.name}</h3>
               <p>{item.description}</p>
               <b>{item.effect}</b>

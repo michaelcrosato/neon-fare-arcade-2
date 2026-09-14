@@ -63,9 +63,11 @@ for (const mobile of [false, true]) test.describe(mobile ? "touch repairs" : "ke
     await page.screenshot({ path: info.outputPath("repair-offer.png") });
     if (mobile) {
       await page.setViewportSize({ width: 844, height: 390 });
-      const badge = (await page.locator(".vehicle-damage-status").boundingBox())!;
-      const quip = (await page.locator(".mobile-notice").boundingBox())!;
-      expect(badge.y).toBeGreaterThanOrEqual(quip.y + quip.height);
+      await expect.poll(async () => {
+        const badge = (await page.locator(".vehicle-damage-status").boundingBox())!;
+        const quip = (await page.locator(".mobile-notice").boundingBox())!;
+        return badge.y >= quip.y + quip.height;
+      }).toBe(true);
       await page.screenshot({ path: info.outputPath("repair-landscape.png") });
       await page.setViewportSize({ width: 390, height: 844 });
     }

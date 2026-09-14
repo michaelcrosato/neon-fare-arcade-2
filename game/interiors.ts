@@ -20,10 +20,15 @@ import {
   YELLOW,
 } from "./config";
 import { venueHasCourierBoard, venueHasCourierCounter } from "./courier";
+import { addHomeFurnishings, furnishingModel } from "./render/furnishings";
+import { FURNISHINGS, type FurnishingId } from "./furnishing-catalog";
+import { BRANDS, isStoreId } from "./brands";
+import { brandSign } from "./render/brand-signs";
 import type {
   Box,
   Collider,
   Color,
+  MeshFace,
   VenueKind,
   VenueRef,
   VenueServiceId,
@@ -65,7 +70,7 @@ export const INTERIOR_DEFINITIONS: Record<VenueKind, InteriorDefinition> = {
   lobby: { primary: RED, accent: CYAN, fixture: BONE, layout: "lobby", services: [{ id: "front-desk", label: "TALK TO RECEPTION", x: 2.4, y: -3.7 }] },
   shop: { primary: RED, accent: CYAN, fixture: BONE, layout: "retail", services: [{ id: "retail-counter", label: "TALK TO CLERK", x: 2.4, y: -3.7 }] },
   diner: { primary: RED, accent: CYAN, fixture: BONE, layout: "food", services: [{ id: "food-counter", label: "ORDER AT COUNTER", x: 2.4, y: -3.7 }] },
-  gas: { primary: ORANGE, accent: RED, fixture: STEEL, layout: "garage", services: [{ id: "gas-counter", label: "BUY GAS + UPGRADES", x: 2.4, y: -3.7 }] },
+  gas: { primary: BRANDS["go-go-gas"].color, accent: BRANDS["go-go-gas"].accent, fixture: STEEL, layout: "garage", services: [{ id: "gas-counter", label: "FUEL, REPAIRS + UPGRADES", x: 2.4, y: -3.7 }] },
   market: { primary: PINK, accent: YELLOW, fixture: BRICK, layout: "retail", services: [{ id: "retail-counter", label: "TALK TO VENDOR", x: 2.4, y: -3.7 }] },
   arcade: { primary: PINK, accent: CYAN, fixture: BLUE, layout: "arcade", services: [{ id: "arcade-counter", label: "TALK TO ATTENDANT", x: 2.4, y: -3.7 }] },
   home: { primary: YELLOW, accent: CYAN, fixture: BONE, layout: "home", services: [{ id: "home-hub", label: "OPEN HOME HUB", x: 4.2, y: -3.7 }] },
@@ -88,12 +93,18 @@ export const INTERIOR_DEFINITIONS: Record<VenueKind, InteriorDefinition> = {
  * Data-driven pocket scene. It replaces the streamed city while occupied,
  * keeping every exterior building shell and collider deterministic.
  */
-export function interiorWorld(venue: VenueRef): WorldView {
-  const cached = interiorCache.get(venue.id);
+export function interiorWorld(venue: VenueRef, furnished: readonly FurnishingId[] = []): WorldView {
+  const furnitureKey = venue.kind === "home" ? FURNISHINGS.filter(item => furnished.includes(item.id)).map(item => item.id).join(",") : "";
+  const cacheKey = `${venue.id}:${furnitureKey}`;
+  const cached = interiorCache.get(cacheKey);
   if (cached) return cached;
   const boxes: Box[] = [];
   const colliders: Collider[] = [];
-  const definition = INTERIOR_DEFINITIONS[venue.kind];
+  const surfaces: MeshFace[] = [];
+  const store = isStoreId(venue.brand) ? venue.brand : null;
+  const baseDefinition = INTERIOR_DEFINITIONS[venue.kind];
+  const definition = store ? { ...baseDefinition, primary: BRANDS[store].color, accent: BRANDS[store].accent,
+    services: [{ id: "retail-counter" as const, label: "SHOP HOME GOODS", x: 2.4, y: -3.7 }] } : baseDefinition;
   boxes.push({ x: 0.45, y: 0.45, z: -0.1, sx: 30.9, sy: 25.9, sz: 0.8, yaw: 0, color: INK, material: MAT_GENERIC });
   boxes.push({ x: 0, y: 0, z: 0.34, sx: 30, sy: 25, sz: 0.24, yaw: 0, color: BONE, material: MAT_SIDEWALK });
   // Cutaway shell: back and side walls, with the camera-facing wall omitted.
@@ -106,7 +117,23 @@ export function interiorWorld(venue: VenueRef): WorldView {
   boxes.push({ x: 0, y: -11.65, z: 6.1, sx: 15, sy: 0.28, sz: 1.5, yaw: 0, color: INK, material: MAT_SIGN });
   boxes.push({ x: 0, y: -11.43, z: 6.15, sx: 14.2, sy: 0.12, sz: 1.12, yaw: 0, color: definition.primary, material: MAT_SIGN });
 
-  if (definition.layout === "retail") {
+  if (venue.brand) brandSign({ boxes, surfaces }, venue.brand, 0, -11.1, 5.7, 14.2, Math.PI / 2);
+
+  if (store) {
+    fixture(boxes, colliders, "counter", 4.2, -5.4, 13.5, 2.1, 1.45, definition.primary);
+    const spots = [[-9, -5], [-9, 2], [-2, 2], [8, 2]] as const;
+    FURNISHINGS.filter(item => item.store === store).forEach((item, index) => {
+      const [x, y] = spots[index], model = furnishingModel(item.id);
+      boxes.push(...model.map(box => ({ ...box, x: box.x + x, y: box.y + y })));
+      if (item.id === "microwave" || item.id === "coffee-maker") fixture(boxes, colliders, `display-${item.id}`, x, y, 2.4, 1.8, 1.55, STEEL);
+      else if (item.id !== "rug") {
+        const halfX = Math.max(...model.map(box => Math.abs(box.x) + box.sx / 2));
+        const halfY = Math.max(...model.map(box => Math.abs(box.y) + box.sy / 2));
+        solid(colliders, `display-${item.id}`, x, y, halfX * 2, halfY * 2, 4);
+      }
+    });
+    addPerson(boxes, 2.4, -7.1, definition.accent);
+  } else if (definition.layout === "retail") {
     fixture(boxes, colliders, "counter", 4.2, -5.4, 13.5, 2.1, 1.45, definition.primary);
     for (const x of [-9.5, -5.7, -1.9]) fixture(boxes, colliders, `shelf-${x}`, x, -1.2, 2.1, 8, 1.55, definition.fixture);
     for (const x of [-9.5, -5.7, -1.9]) {
@@ -202,16 +229,14 @@ export function interiorWorld(venue: VenueRef): WorldView {
     boxes.push({ x: 0, y: -11.05, z: 4.1, sx: 12, sy: 0.2, sz: 0.65, yaw: 0, color: PINK, material: MAT_SIGN });
     addPerson(boxes, 2.4, -7.1, definition.accent);
   } else {
-    // Home layout: sleeping/lounge zone, kitchenette, dispatch desk, trophy
-    // wall, and a garage bench. Ownership changes the hub, not this cached art.
+    // The included loft starts with a mattress, counter/sink, and a dispatch desk.
+    // Purchased furniture fills fixed safe slots, leaving the entry route clear.
     fixture(boxes, colliders, "home-bed", -9.4, -6.7, 5.3, 7.1, 0.8, PAPER);
     boxes.push({ x: -9.4, y: -6.1, z: 1.02, sx: 4.8, sy: 4.8, sz: 0.32, yaw: 0, color: definition.accent, material: MAT_SIGN });
-    fixture(boxes, colliders, "home-kitchen", 9.1, -8.5, 7.8, 2.2, 1.55, STEEL);
+    fixture(boxes, colliders, "home-kitchen", 7.2, -8.5, 5.2, 2.2, 1.55, STEEL);
     fixture(boxes, colliders, "home-desk", 4.2, -6.2, 6.8, 1.8, 1.3, definition.primary);
     boxes.push({ x: 4.2, y: -7.08, z: 2.35, sx: 4.7, sy: 0.2, sz: 1.55, yaw: 0, color: CYAN, material: MAT_SIGN });
-    fixture(boxes, colliders, "home-couch", -4.8, 2.8, 6.6, 2.6, 1.15, BRICK);
-    boxes.push({ x: -4.8, y: 1.75, z: 1.7, sx: 6.1, sy: 0.35, sz: 1.25, yaw: 0, color: RED, material: MAT_SIGN });
-    fixture(boxes, colliders, "home-workbench", 9.2, 4.6, 7.3, 2.1, 1.35, INK);
+    addHomeFurnishings(boxes, colliders, furnished);
     for (const x of [-2.3, 0, 2.3]) {
       boxes.push({ x, y: -11.28, z: 3.2 + Math.abs(x) * 0.14, sx: 1.4, sy: 0.22, sz: 2.2, yaw: 0, color: x === 0 ? YELLOW : PINK, material: MAT_SIGN });
     }
@@ -221,7 +246,7 @@ export function interiorWorld(venue: VenueRef): WorldView {
     fixture(boxes, colliders, "courier-counter", -6.2, 4.8, 5.2, 1.5, 1.25, ORANGE);
     boxes.push({ x: -6.2, y: 4.72, z: 2.02, sx: 2.1, sy: 1.05, sz: 1.15, yaw: Math.PI / 4, color: PINK, material: MAT_SIGN });
   }
-  for (const x of [-11, -7.8, 8.2, 11.1]) {
+  for (const x of venue.kind === "home" ? [] : [-11, -7.8, 8.2, 11.1]) {
     boxes.push({ x, y: 7.1, z: 0.9, sx: 2.2, sy: 2.2, sz: 1.05, yaw: 0, color: INK, material: MAT_GENERIC });
     boxes.push({ x, y: 7.1, z: 1.65, sx: 1.75, sy: 1.75, sz: 0.8, yaw: Math.PI / 4, color: LEAF, material: MAT_FOLIAGE });
   }
@@ -258,8 +283,9 @@ export function interiorWorld(venue: VenueRef): WorldView {
       venue,
     }] : []),
   ];
-  const world: WorldView = { key: `interior:${venue.id}`, boxes, colliders, chunks: [], interactions };
-  interiorCache.set(venue.id, world);
+  const world: WorldView = { key: `interior:${venue.id}${furnitureKey ? `:furnished:${furnitureKey}` : ""}`, boxes, surfaces, colliders, chunks: [], interactions };
+  if (interiorCache.size >= 128) interiorCache.delete(interiorCache.keys().next().value!);
+  interiorCache.set(cacheKey, world);
   return world;
 }
 

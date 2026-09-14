@@ -208,7 +208,9 @@ test("malformed career storage recovers to a normalized save", async ({ page }) 
   await expect.poll(async () => page.evaluate(() => JSON.parse(localStorage.getItem("neon-fare-career-v1") ?? "null"))).toEqual({
     version: 1,
     bank: 0,
-    owned: [],
+    owned: ["neon-loft"],
+    furnishings: { owned: [], placed: [] },
+    fuelTanks: { "crown-cab": 75.7, "accord-v6": 65 },
     runsCompleted: 0,
     lifetimeFare: 0,
     lifetimeScore: 0,

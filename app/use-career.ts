@@ -12,6 +12,9 @@ import {
   type CareerState,
 } from "@/game/career";
 import type { Game } from "@/game/model";
+import { purchaseFuel } from "@/game/fuel";
+import { placeFurnishing, purchaseFurnishing } from "@/game/furnishings";
+import type { FurnishingId } from "@/game/furnishing-catalog";
 import { normalizeRunRecords } from "./runtime/run-records";
 import {
   purchaseGasStationOffer,
@@ -45,6 +48,7 @@ export function useCareer() {
       const saved = localStorage.getItem(CAREER_STORAGE_KEY);
       if (saved) {
         next = normalizeCareerState(JSON.parse(saved));
+        shouldPersist = JSON.stringify(next) !== saved;
       } else {
         const legacy = normalizeRunRecords(JSON.parse(localStorage.getItem("neon-fare-runs") || "[]"));
         next = careerFromRunRecords(legacy);
@@ -62,8 +66,9 @@ export function useCareer() {
     return () => window.cancelAnimationFrame(frame);
   }, []);
 
-  const bankRun = useCallback((result: Pick<Game, "fare" | "score" | "deliveries" | "playtest">) => {
-    return commitCareer(bankCareerRun(careerRef.current, result));
+  const bankRun = useCallback((result: Game) => {
+    const next = bankCareerRun(careerRef.current, result);
+    return commitCareer(result.playtest ? next : { ...next, fuelTanks: { ...next.fuelTanks, [result.vehicleId]: result.fuel.litres } });
   }, [commitCareer]);
 
   const buyItem = useCallback((id: CareerItemId) => {
@@ -78,5 +83,24 @@ export function useCareer() {
     return result;
   }, [commitCareer]);
 
-  return { career, careerRef, ready, bankRun, buyItem, buyGasStationOffer };
+  const saveFuel = useCallback((game: Game) => {
+    if (game.playtest || careerRef.current.fuelTanks[game.vehicleId] === game.fuel.litres) return;
+    commitCareer({ ...careerRef.current, fuelTanks: { ...careerRef.current.fuelTanks, [game.vehicleId]: game.fuel.litres } });
+  }, [commitCareer]);
+  const buyFuel = useCallback((game: Game, litres: number) => {
+    const result = purchaseFuel(game, careerRef.current, litres);
+    if (result.status === "purchased") commitCareer(result.state);
+    return result;
+  }, [commitCareer]);
+  const buyFurnishing = useCallback((game: Game, id: FurnishingId) => {
+    const result = purchaseFurnishing(game, careerRef.current, id);
+    if (result.status === "purchased") commitCareer(result.state);
+    return result;
+  }, [commitCareer]);
+  const setFurnishing = useCallback((game: Game, id: FurnishingId, placed: boolean) => {
+    const result = placeFurnishing(game, careerRef.current, id, placed);
+    if (result.status === "placed") commitCareer(result.state);
+    return result;
+  }, [commitCareer]);
+  return { career, careerRef, ready, bankRun, buyItem, buyGasStationOffer, saveFuel, buyFuel, buyFurnishing, setFurnishing };
 }

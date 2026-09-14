@@ -43,6 +43,7 @@ import { ACCORD_V6_SPECS, accordManualAcceleration } from "./simulation-vehicle"
 import { stepOffroadSpeedLimit } from "./offroad-speed";
 import { stepDrivingStunts } from "./driving-stunts";
 import { damageSpeedLimit, recordVehicleContacts, stepRepairLot } from "./vehicle-damage";
+import { hasFuel, makeFuel, stepFuel, updateFuelRoadLimit } from "./fuel";
 import { drivingTraitPackage } from "./driving-traits";
 import {
   clamp,
@@ -79,6 +80,7 @@ import {
 export type RandomSource = () => number;
 
 export type SimulationEvent = ExplorationEvent
+  | { type: "fuel-warning"; level: "low" | "empty" }
   | { type: "vehicle-damaged"; line: string; lossKmh: number; totalLossKmh: number }
   | { type: "building-collision" }
   | { type: "traffic-collision" }
@@ -220,6 +222,8 @@ export function stepGame(
   random: RandomSource = Math.random,
 ): SimulationEvent[] {
   const events: SimulationEvent[] = [];
+  game.fuel ??= makeFuel(game.vehicleId);
+  if (!hasFuel(game)) cancelCruiseControl(game);
   const development = game.development?.enabled ? game.development : undefined;
   const infiniteBoost = development?.infiniteBoost && game.drivingModel === "arcade";
   if (infiniteBoost) game.boost = 100;
@@ -255,7 +259,9 @@ export function stepGame(
   let lastSafePose = taxiHitsBuilding(world, game.x, game.y, game.heading, game.z)
     ? null
     : { x: game.x, y: game.y, heading: game.heading };
+  const fuelStartX = game.x, fuelStartY = game.y;
   game.elapsed += dt;
+  updateFuelRoadLimit(game);
   game.collisionCooldown = Math.max(0, game.collisionCooldown - dt);
   game.brakeDriftCooldown = Math.max(0, game.brakeDriftCooldown - dt);
   game.brakeDriftKick = Math.sign(game.brakeDriftKick)
@@ -305,7 +311,7 @@ export function stepGame(
   const rightY = forwardX;
   let forwardSpeed = game.vx * forwardX + game.vy * forwardY;
   let lateralSpeed = game.vx * rightX + game.vy * rightY;
-  const throttle = controlInput.up ? 1 : game.cruiseControl ? cruisePedals?.throttle ?? 0 : 0;
+  const throttle = hasFuel(game) ? controlInput.up ? 1 : game.cruiseControl ? cruisePedals?.throttle ?? 0 : 0 : 0;
   const brake = controlInput.down ? 1 : game.cruiseControl ? cruisePedals?.brake ?? 0 : 0;
   const brakePressed = controlInput.down && !game.brakeInputHeld;
   game.brakeInputHeld = controlInput.down;
@@ -334,10 +340,11 @@ export function stepGame(
     if (manual || (accord && !connected)) forwardSpeed -= Math.sign(forwardSpeed) * Math.min(Math.abs(forwardSpeed), 34 * drivingTrait.brakingMultiplier * groundTraction * brake * dt);
     else if (forwardSpeed > 1) forwardSpeed -= 34 * drivingTrait.brakingMultiplier * groundTraction * brake * dt;
     else if (accord && gear !== -1) forwardSpeed = Math.max(0, forwardSpeed - 34 * groundTraction * brake * dt);
-    else if (connected) forwardSpeed -= (game.collisionCooldown > 0 ? 16 : 9) * brake * dt;
+    else if (connected && hasFuel(game)) forwardSpeed -= (game.collisionCooldown > 0 ? 16 : 9) * brake * dt;
+    else forwardSpeed -= Math.sign(forwardSpeed) * Math.min(Math.abs(forwardSpeed), 34 * brake * dt);
   }
 
-  game.boosting = controlInput.boost && connected && (!manual || gear > 0) && game.boost > 0 && forwardSpeed > 3;
+  game.boosting = hasFuel(game) && controlInput.boost && connected && (!manual || gear > 0) && game.boost > 0 && forwardSpeed > 3;
   if (game.boosting) {
     forwardSpeed += 24 * drivingTrait.boostAccelerationMultiplier * (manual ? clamp((ACCORD_V6_SPECS.redlineRpm - rpm) / 120, 0, 1) : 1) * (game.roadMotion.grounded ? 1 : 0.35) * dt;
     const coolerDrain = hasRunUpgrade(game, "boost-cooler") ? BOOST_COOLER_DRAIN_MULTIPLIER : 1;
@@ -841,6 +848,8 @@ export function stepGame(
 
   for (const hit of recordVehicleContacts(game, driving ? [...damageContacts] : [])) events.push({ type: "vehicle-damaged", ...hit });
   stepRepairLot(game, world, dt);
+  const fuelWarning = stepFuel(game, dt, Math.hypot(game.x - fuelStartX, game.y - fuelStartY));
+  if (fuelWarning) events.push({ type: "fuel-warning", level: fuelWarning });
   if (game.drivingModel === "arcade") stepArcadeChassis(game, previousVx, previousVy, dt);
   for (const particle of game.particles) {
     particle.z ??= game.z;

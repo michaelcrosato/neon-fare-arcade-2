@@ -270,8 +270,8 @@ test("store services use semantic events and on-foot actors cannot collect fares
   const gasRoom = interiorWorld(gasVenue);
   assert.equal(gasRoom.interactions.find((interaction) => interaction.kind === "service")?.serviceId, "gas-counter");
   assert.deepEqual(interactionPrompt(gasGame, gasRoom), {
-    label: "E · BUY GAS + UPGRADES",
-    detail: "TIME · BOOST · TUNING",
+    label: "E · FUEL, REPAIRS + UPGRADES",
+    detail: "FUEL · REPAIRS · UPGRADES",
   });
   assert.deepEqual(stepExploration(gasGame, { ...IDLE, interact: true }, 1 / 60, EMPTY_WORLD), [
     { type: "service-used", serviceId: "gas-counter", venue: gasVenue },

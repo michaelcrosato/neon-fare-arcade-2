@@ -31,6 +31,7 @@ import { DEFAULT_VEHICLE_ID } from "./vehicles";
 import { makeManualTransmission } from "./manual-transmission";
 import { makeDrivingStunts } from "./driving-stunts";
 import { makeVehicleDamage } from "./vehicle-damage";
+import { makeFuel } from "./fuel";
 import { makeSimulationVehicleState } from "./simulation-vehicle";
 import { sampleSpecialRoad, specialRoadLength } from "./road-network";
 import { containingRegionForPosition } from "./regions";
@@ -197,6 +198,8 @@ export function makeGame(
     offroadSpeedPenaltyKmh: 0,
     stunts: makeDrivingStunts(),
     damage: makeVehicleDamage(),
+    fuel: makeFuel(vehicleId),
+    homeFurnishings: [],
     lastBeep: 11,
     traffic: makeTraffic(),
     particles: [],

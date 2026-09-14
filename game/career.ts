@@ -1,5 +1,7 @@
 import type { Game, RunRecord, RunUpgradeId } from "./model";
 import { isTimedRun } from "./run-rules";
+import { emptyFurnishings, normalizeFurnishings, type HomeFurnishings } from "./furnishing-catalog";
+import { fullFuelTanks, normalizeFuelTanks, type FuelTanks } from "./fuel-specs";
 
 export const CAREER_STORAGE_KEY = "neon-fare-career-v1";
 
@@ -14,6 +16,8 @@ export type CareerState = {
   version: 1;
   bank: number;
   owned: CareerItemId[];
+  furnishings: HomeFurnishings;
+  fuelTanks: FuelTanks;
   runsCompleted: number;
   lifetimeFare: number;
   lifetimeScore: number;
@@ -36,8 +40,8 @@ export const CAREER_ITEMS = [
     id: "neon-loft",
     name: "STARTER LOFT",
     category: "PROPERTY",
-    cost: 150,
-    description: "Claim Neon Lofts as your permanent apartment and unlock its home-base upgrades.",
+    cost: 0,
+    description: "Your starter apartment is yours from day one. Furnish it at the city stores and make it feel like home.",
     effect: "APARTMENT OWNERSHIP · UPGRADE ACCESS",
     requires: [],
     vendor: "home",
@@ -123,7 +127,9 @@ export function makeCareerState(): CareerState {
   return {
     version: 1,
     bank: 0,
-    owned: [],
+    owned: ["neon-loft"],
+    furnishings: emptyFurnishings(),
+    fuelTanks: fullFuelTanks(),
     runsCompleted: 0,
     lifetimeFare: 0,
     lifetimeScore: 0,
@@ -146,7 +152,9 @@ export function normalizeCareerState(raw: unknown): CareerState {
   return {
     version: 1,
     bank: safeWholeNumber(candidate.bank),
-    owned: [...new Set(owned)],
+    owned: [...new Set<CareerItemId>(["neon-loft", ...owned])],
+    furnishings: normalizeFurnishings(candidate.furnishings),
+    fuelTanks: normalizeFuelTanks(candidate.fuelTanks),
     runsCompleted: safeWholeNumber(candidate.runsCompleted),
     lifetimeFare: safeWholeNumber(candidate.lifetimeFare),
     lifetimeScore: safeWholeNumber(candidate.lifetimeScore),
@@ -211,6 +219,8 @@ export function purchaseCareerItem(career: CareerState, id: CareerItemId): Caree
 
 /** Permanent career modifiers apply once, when a fresh run is created. */
 export function applyCareerRunBonuses(game: Game, career: CareerState) {
+  game.homeFurnishings = [...career.furnishings.placed];
+  game.fuel.litres = career.fuelTanks[game.vehicleId];
   if (game.drivingModel === "arcade" && careerOwns(career, "boost-locker")) {
     game.boost = Math.max(game.boost, 65);
   }

@@ -150,7 +150,7 @@ test("permanent station upgrades install once now and on every future run", () =
   const purchase = purchaseGasStationOffer(game, career, "boost-cooler");
   assert.equal(purchase.status, "purchased");
   assert.equal(purchase.state.bank, 320);
-  assert.deepEqual(purchase.state.owned, ["boost-cooler"]);
+  assert.deepEqual(purchase.state.owned, ["neon-loft", "boost-cooler"]);
   assert.deepEqual(game.installedUpgrades, ["boost-cooler"]);
 
   const repeat = purchaseGasStationOffer(game, purchase.state, "boost-cooler");
@@ -171,7 +171,7 @@ test("Boost Overdrive purchases once, activates now, and persists into future ru
   assert.equal(purchase.status, "purchased");
   assert.equal(purchase.cost, 260);
   assert.equal(purchase.state.bank, 240);
-  assert.deepEqual(purchase.state.owned, ["boost-overdrive"]);
+  assert.deepEqual(purchase.state.owned, ["neon-loft", "boost-overdrive"]);
   assert.deepEqual(game.installedUpgrades, ["boost-overdrive"]);
 
   const repeat = purchaseGasStationOffer(game, purchase.state, "boost-overdrive");

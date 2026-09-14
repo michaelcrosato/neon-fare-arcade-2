@@ -422,3 +422,50 @@
 }
 
 .gas-station__footer .primary-small { flex: 0 0 min(280px, 42%); }
+
+.brand-logo { display: block; width: min(100%, 280px); height: auto; border: 2px solid var(--ink); }
+.home-shop__header { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-bottom: 24px; }
+.home-shop__header h2 { margin: 12px 0 0; font-size: clamp(30px, 4vw, 52px); }
+.home-shop__header p { margin: 8px 0; font: 800 12px/1.3 var(--font-geist-mono), monospace; }
+.home-shop__footer { display: flex; gap: 20px; align-items: center; justify-content: space-between; margin-top: 20px; }
+.home-shop__footer p { max-width: 320px; font-weight: 700; }
+.furnishing-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.furnishing-card { display: flex; flex-direction: column; min-width: 0; padding: 14px; border: 3px solid var(--ink); background: #fff9e9; box-shadow: 4px 4px 0 var(--ink); }
+.furnishing-card.is-owned { background: #e3f1d3; }
+.furnishing-card__art { position: relative; display: grid; place-items: center; height: 152px; margin-bottom: 12px; background: radial-gradient(ellipse at center, #fff, #e6e0ce); border-bottom: 2px solid var(--ink); }
+.furnishing-thumbnail { display: block; width: 85%; height: 90%; }
+.furnishing-card__art > b { position: absolute; top: 8px; right: 8px; padding: 6px 10px; color: var(--ink); background: var(--yellow); border: 2px solid var(--ink); font: 900 24px/1 "Barlow Condensed", sans-serif; }
+.furnishing-card h3, .furnishing-card h4 { margin: 0 0 8px; font: 900 26px/1 "Barlow Condensed", sans-serif; }
+.furnishing-card p { margin: 0 0 16px; font: 600 16px/1.35 "Barlow Condensed", sans-serif; }
+.furnishing-card button { margin-top: auto; padding: 12px 8px; min-height: 44px; border: 2px solid var(--ink); color: var(--paper); background: var(--ink); font: 900 17px/1.1 "Barlow Condensed", sans-serif; cursor: pointer; }
+.furnishing-card button:disabled { color: #514e43; background: #d6d2c1; cursor: default; }
+.furnishing-card button[aria-pressed=true] { background: var(--cyan); color: var(--ink); }
+.furnishing-card button:focus-visible, .store-directory button:focus-visible { outline: 3px solid #b0215f; outline-offset: 3px; }
+.commerce-notice { padding: 12px 16px; margin: 20px 0 0; background: var(--yellow); border-left: 5px solid var(--ink); font-weight: 800; }
+.home-furnishings { margin: 24px 0 30px; padding-top: 20px; border-top: 4px solid var(--ink); }
+.home-furnishings > small, .store-directory small { font: 800 11px/1.3 var(--font-geist-mono), monospace; }
+.home-furnishings > h3, .store-directory h3 { margin: 8px 0; font: 900 32px/1 "Barlow Condensed", sans-serif; }
+.home-furnishings__empty { padding: 24px; border: 2px dashed #6a6253; background: #eee6d4; }
+.is-inventory { grid-template-columns: repeat(4, minmax(0, 1fr)); margin: 20px 0; }
+.is-inventory .furnishing-card { padding: 8px; }
+.is-inventory .furnishing-card__art { height: 100px; }
+.is-inventory h4 { font-size: 18px; }
+.is-inventory button { font-size: 13px; }
+.store-directory { margin: 24px 0; padding: 20px; color: var(--ink); background: #f2e6c8; border: 3px solid var(--ink); }
+.store-directory p { margin: 8px 0 16px; }
+.store-directory__links { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.store-directory__links button { display: flex; flex-direction: column; align-items: stretch; padding: 0; color: var(--ink); background: var(--paper); border: 2px solid var(--ink); text-align: left; cursor: pointer; }
+.store-directory__links .brand-logo { width: 100%; max-width: none; border: 0; }
+.store-directory__links span { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px; padding: 9px; font: 600 14px/1.2 "Barlow Condensed", sans-serif; }
+.store-directory__links b { font-weight: 900; }
+.store-directory__essentials { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+.store-directory__essentials button { flex: 1; min-height: 44px; padding: 10px; border: 2px solid var(--ink); color: var(--paper); background: var(--ink); font: 800 16px/1.1 "Barlow Condensed", sans-serif; cursor: pointer; }
+.map-shops { flex: 0 0 auto; max-height: 45dvh; overflow: auto; margin: 8px 0; border: 2px solid var(--ink); }
+.map-shops summary { padding: 10px; min-height: 44px; font-weight: 900; cursor: pointer; background: var(--yellow); }
+.map-shops .store-directory { margin: 0; border: 0; }
+.fuel-service .brand-logo { width: 170px; }
+.fuel-service--embedded { margin-top: 14px; padding-top: 12px; border-top: 2px dashed var(--ink); }
+.vehicle-repair .fuel-service--embedded h3 { font-size: 23px; }
+.fuel-service--embedded > div { display: flex; gap: 8px; margin: 12px 0 8px; }
+.fuel-service--embedded > small { display: block; font: 800 10px/1.3 var(--font-geist-mono), monospace; }
+.fuel-service__decline { width: 100%; margin-top: 10px; background: transparent !important; }

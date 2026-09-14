@@ -760,6 +760,18 @@
 .vehicle-repair kbd { margin-right: 4px; font: inherit; }
 .vehicle-repair.is-inline { position: static; transform: none; width: 100%; margin: 16px 0; box-shadow: none; }
 .vehicle-repair-receipt { padding: 16px; border: 3px solid var(--ink); background: var(--yellow); color: var(--ink); font-weight: 900; }
+
+.fuel-gauge { margin-top: 12px; padding-top: 8px; border-top: 2px solid currentColor; color: var(--ink); font: 800 11px/1.2 "Barlow Condensed", sans-serif; }
+.fuel-gauge > div { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.fuel-gauge meter { display: block; width: 100%; height: 10px; margin: 5px 0; accent-color: #1a7369; }
+.fuel-gauge meter::-webkit-meter-bar { background: #c5c3ac; border: 1px solid #161616; border-radius: 0; }
+.fuel-gauge meter::-webkit-meter-optimum-value { background: #1a7369; }
+.fuel-gauge meter::-webkit-meter-suboptimum-value, .fuel-gauge meter::-webkit-meter-even-less-good-value { background: #d73626; }
+.fuel-gauge.is-low { color: #aa241a; }
+.fuel-gauge .fuel-speed-limit { display: grid; place-items: center; width: 26px; height: 26px; flex-shrink: 0; border: 3px solid #d12d21; border-radius: 50%; color: #111; background: #fff; font-size: 12px; }
+.fuel-gauge > small { display: block; margin-top: 4px; color: #aa241a; font-size: 10px; }
+.vehicle-repair { max-height: calc(100% - 80px); overflow-y: auto; overscroll-behavior: contain; }
+.vehicle-repair.is-inline { max-height: none; overflow: visible; }
 .stunt-statistics dt, .stunt-statistics small { display: block; font: 800 9px/1.4 var(--font-geist-mono), monospace; }
 .stunt-statistics dd { font: italic 900 26px/1.1 Impact, sans-serif; margin: 3px 0 0; }
 .transmission-controls__recovery { display: block; max-width: 205px; margin: 4px 0 7px; color: var(--yellow); font-size: 10px; font-weight: 800; line-height: 1.3; }

@@ -18,6 +18,7 @@ import { MobileGameHud } from "./mobile-game-hud";
 import { TransmissionControls, type TransmissionInputHandler } from "./transmission-controls";
 import { DrivingStuntFeedback } from "./driving-stunt-feedback";
 import { VehicleDamageFeedback } from "./vehicle-repair";
+import { FuelGauge } from "./fuel-services";
 import { vehicleDefinition } from "@/game/vehicles";
 import { CruiseControl } from "./cruise-control";
 import { useMobileLayout } from "./use-mobile-layout";
@@ -205,6 +206,7 @@ export function GameStageHud({
                           : `${Math.round(hud.boost)}%`
                         : hud.placeName}</b></div>
             {hud.playerMode === "driving" && <div className={`boost-track ${simulationDriving ? "is-simulation" : ""}`}><i style={{ width: `${simulationDriving ? hud.simulationVehicle.throttle * 100 : hud.boost}%` }} /></div>}
+            <FuelGauge fuel={hud.fuel} />
           </div>
 
           {mode === "playing" && hud.playerMode !== "driving" && (

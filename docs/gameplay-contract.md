@@ -682,6 +682,19 @@ updates the arcade launch, steering, road elevation and contact rules below.
 - Detailed/Classic graphics choices are per-vehicle presentation preferences.
   They never affect simulation, collision or the authored driving characteristics.
 
+## Fuel and home ownership
+
+- Every career starts with Neon Lofts, including migrated saves. The four city
+  home stores sell sixteen visible furnishings; purchases use banked fare and
+  save ownership/placement. Home Hub can place or store owned items.
+- Every run mode uses each selected vehicle's persistent finite fuel tank.
+  Consumption follows resolved GPS distance and the vehicle's rated combined
+  consumption. Fuel, service prices, speed penalties, sources, and rescue
+  behavior are specified in [fuel.md](fuel.md).
+- Empty tanks cut propulsion and boost while preserving coasting, steering,
+  and braking. GO-GO GAS offers stopped-lot and indoor refueling. Fuel payments
+  use run fare first, then banked fare. Empty-tank tow assistance supplies 5 L.
+
 ## Free Run completion
 
 - Free Run never auto-finishes. The pause menu exposes an explicit end action

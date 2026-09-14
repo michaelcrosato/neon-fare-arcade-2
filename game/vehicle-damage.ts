@@ -99,6 +99,7 @@ export function vehicleRepairQuote(game: Game) {
   const eligible = onLot && stopped(game) && damage.stoppedFor >= REPAIR_STOP_SECONDS;
   const cost = damage.lossKmh * REPAIR_COST_PER_KMH;
   return { lossKmh: damage.lossKmh, cost, shortfall: Math.max(0, cost - game.fare), eligible,
+    serviceOffer: eligible && damage.declinedStation !== damage.station?.id,
     station: damage.station?.label ?? "GO-GO GAS", showOffer: eligible && damage.lossKmh > 0 && damage.declinedStation !== damage.station?.id,
     line: game.elapsed - damage.lastAt < 3 ? damage.lastLine : "", lastLoss: damage.lastLoss };
 }
@@ -117,6 +118,5 @@ export function repairVehicle(game: Game) {
   const cost = damage.lossKmh * REPAIR_COST_PER_KMH;
   if (game.fare < cost) return { status: "insufficient" as const, cost };
   game.fare -= cost; damage.lossKmh = 0; damage.lastLine = "";
-  damage.declinedStation = damage.station!.id;
   return { status: "repaired" as const, cost };
 }

@@ -12,6 +12,7 @@ import {
 } from "@/game/gas-station";
 import type { DrivingModel, RunKind } from "@/game/model";
 import { VehicleRepairOffer } from "./vehicle-repair";
+import { BrandLogo } from "./brand-logo";
 
 export function GasStationPanel({
   career,
@@ -64,7 +65,7 @@ export function GasStationPanel({
     <div className="gas-station">
       <header className="gas-station__header">
         <div>
-          <p className="modal-kicker">GO-GO GAS // SHIFT SERVICE</p>
+          <BrandLogo brand="go-go-gas" />
           <h2 id="modal-title">PIT STOP!</h2>
           <p id="gas-station-description">{simulation
             ? "Simulation uses its stock powertrain and has no arcade boost. Permanent upgrades can still be installed for arcade runs; Rally Tires continue to affect shared off-road drag."
@@ -89,7 +90,7 @@ export function GasStationPanel({
       <VehicleRepairOffer inline />
       <section className="gas-station__section" aria-labelledby="gas-time-title">
         <div className="gas-station__section-title">
-          <span>01</span><div><small>FUEL // BUY MORE CLOCK</small><h3 id="gas-time-title">TIME SPLASH</h3></div>
+          <span>01</span><div><small>ARCADE // BUY MORE CLOCK</small><h3 id="gas-time-title">TIME SPLASH</h3></div>
         </div>
         <article className="gas-time-card">
           <div className="gas-time-card__pump" aria-hidden="true"><i /><b>+</b></div>
@@ -144,7 +145,7 @@ export function GasStationPanel({
       </section>
 
       <footer className="gas-station__footer">
-        <p role="status" aria-live="polite">{notice || "REPAIRS USE RUN FARE. CLOCK SERVICE AND UPGRADES USE BANKED FARE."}</p>
+        <p role="status" aria-live="polite">{notice || "FUEL USES RUN FARE, THEN YOUR BANK. REPAIRS USE RUN FARE. UPGRADES USE BANKED FARE."}</p>
         <button className="primary-small" onClick={onClose}>BACK TO GO-GO GAS</button>
       </footer>
     </div>

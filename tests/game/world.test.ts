@@ -63,9 +63,9 @@ test("every deterministic city chunk stays inside its rendering budgets", () => 
 
   assert.deepEqual(maxBoxes, { count: 287, at: "5,4" });
   assert.deepEqual(maxColliders, { count: 72, at: "-3,0" });
-  // Rebuilt hill districts, grounded architecture and continuous campus grounds.
-  assert.equal(totalBoxes, 22386);
-  assert.equal(totalColliders, 5964);
+  // Four big-box stores replace strip shops; gas lots gain shared brand signs.
+  assert.equal(totalBoxes, 22507);
+  assert.equal(totalColliders, 5948);
 });
 
 test("representative chunk output is byte-for-byte deterministic", () => {
@@ -144,13 +144,13 @@ test("streaming changes draw radius without expanding collision radius", () => {
   const near = stream.update(0, 0, 1);
   assert.deepEqual(
     { chunks: near.chunks.length, boxes: near.boxes.length, surfaces: near.surfaces?.length, colliders: near.colliders.length },
-    { chunks: 9, boxes: 1685, surfaces: 7513, colliders: 462 },
+    { chunks: 9, boxes: 1698, surfaces: 7875, colliders: 458 },
   );
 
   const distant = stream.update(0, 0, 3);
   assert.deepEqual(
     { chunks: distant.chunks.length, boxes: distant.boxes.length, surfaces: distant.surfaces?.length, colliders: distant.colliders.length },
-    { chunks: 49, boxes: 9739, surfaces: 57023, colliders: 462 },
+    { chunks: 49, boxes: 9801, surfaces: 58829, colliders: 458 },
   );
   assert.ok(distant.boxes.length <= MAX_STREAM_BOXES);
   assert.ok(distant.colliders.length <= MAX_STREAM_COLLIDERS);
@@ -185,10 +185,10 @@ test("every city center preserves collision radius and worst-case stream budgets
     }
   }
 
-  assert.deepEqual(maxNearBoxes, { count: 2476, at: "4,5" });
-  assert.deepEqual(maxFarBoxes, { count: 11354, at: "5,-2" });
+  assert.deepEqual(maxNearBoxes, { count: 2478, at: "4,5" });
+  assert.deepEqual(maxFarBoxes, { count: 11387, at: "5,-2" });
   assert.deepEqual(maxColliders, { count: 510, at: "-5,0" });
-  assert.deepEqual(maxSurfaces, { count: 63056, at: "1,1" });
+  assert.deepEqual(maxSurfaces, { count: 64249, at: "0,1" });
 });
 
 test("the expanded lot catalog appears throughout the world with four orientations", () => {

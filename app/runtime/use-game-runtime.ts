@@ -436,7 +436,7 @@ export function useGameRuntime(options: GameRuntimeOptions) {
             game.drivingModel === "simulation" ? 0.065 : boostVisualActive ? 0.025 : 0.045,
           );
           engine.gain.gain.setTargetAtTime(
-            currentMode === "playing" && isDriving(game) && !mutedRef.current
+            currentMode === "playing" && isDriving(game) && game.fuel.litres > 0 && !mutedRef.current
               ? game.drivingModel === "simulation"
                 ? 0.024 + game.simulationVehicle.throttle * 0.018 + Math.min(0.018, game.speed * 0.0006)
                 : 0.028 + game.speed * 0.0015 + (boostVisualActive ? 0.016 : 0)

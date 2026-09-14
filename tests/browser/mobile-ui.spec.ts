@@ -32,7 +32,7 @@ async function startFreeRun(page: Page, checkCountdown?: () => Promise<void>) {
 async function copyTrace(page: Page): Promise<DiagnosticsSnapshot> {
   await page.getByRole("button", { name: "Pause game" }).click();
   await page.getByRole("button", { name: "COPY DIAGNOSTICS" }).click();
-  await expect(page.getByRole("status")).toContainText("DIAGNOSTICS COPIED");
+  await expect(page.getByRole("region", { name: "Game paused" }).getByRole("status")).toContainText("DIAGNOSTICS COPIED");
   return JSON.parse(await page.evaluate(() => navigator.clipboard.readText()));
 }
 

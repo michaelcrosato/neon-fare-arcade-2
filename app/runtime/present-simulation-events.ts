@@ -1,5 +1,6 @@
 import type { Game, Hud, Modal } from "@/game/model";
 import type { SimulationEvent } from "@/game/simulation";
+import { isStoreId } from "@/game/brands";
 import {
   makeDropoffFareImpact,
   makePickupFareImpact,
@@ -48,6 +49,11 @@ export function presentSimulationEvents(
 
   for (const event of events) {
     switch (event.type) {
+      case "fuel-warning":
+        announce(event.level === "empty" ? "Out of fuel. Coast to a stop. Call fuel assist from the pause menu."
+          : "Low fuel. Stop at GO-GO GAS to fill up.");
+        tone(event.level === "empty" ? 130 : 260, .18, "square", 110);
+        break;
       case "vehicle-damaged":
         announce(`${event.line} ${event.lossKmh > 0 ? "One kilometre per hour of top speed lost." : "At the ten kilometre per hour limp-home limit."}`);
         break;
@@ -200,9 +206,13 @@ export function presentSimulationEvents(
           announce("Courier board open. Review the available indoor pickup and delivery contracts.");
           openModal("courier");
           tone(620, 0.09, "square", 920);
+        } else if (event.serviceId === "retail-counter" && isStoreId(event.venue.brand)) {
+          announce(`${event.venue.label}. Shop for your apartment. Delivery is included.`);
+          openModal("shop");
+          tone(680, .09, "square", 880);
         } else if (event.serviceId === "gas-counter") {
           setGasNotice("");
-          announce("GO-GO GAS pit stop open. Bodywork repairs use run fare. Clock service and permanent upgrades use banked fare.");
+          announce("GO-GO GAS pit stop open. Fill the fuel tank, repair bodywork, or buy upgrades. Repairs use run fare.");
           openModal("gas");
           tone(620, 0.09, "square", 980);
         } else {

@@ -71,10 +71,10 @@ export function nearestInteraction(game: Game, world?: WorldView): InteractionCa
         ? interaction.serviceId === "home-hub"
           ? "PROPERTY · GARAGE · CAREER"
           : interaction.serviceId === "gas-counter"
-            ? "TIME · BOOST · TUNING"
+            ? "FUEL · REPAIRS · UPGRADES"
             : "SEE WHAT'S ON OFFER"
         : interaction.kind === "venue-entrance" && interaction.venue.kind === "gas"
-          ? "TIME · BOOST · TUNING"
+          ? "FUEL · REPAIRS · UPGRADES"
           : "OPEN DOOR"),
       distance: interactionDistance,
       priority: courierPrompt?.priority ?? (interaction.kind === "interior-exit" ? 3 : 2),

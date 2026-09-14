@@ -1,12 +1,16 @@
 import type { DistrictKind, LotContext, LotKind } from "./model";
 import { MAT_BUILDING, MAT_LAMP, MAT_ROAD, MAT_SIGN, MAT_TIMBER, MAT_WATER, MAT_WINDOW } from "./config";
 import { cityGreenAt } from "./city-layout";
+import { storeForBlock } from "./brands";
+import { buildBigBoxStore } from "./city-stores";
 import { cityBench, cityBox, cityCanopy, cityGable, cityHipRoof, cityLight, cityParkedCar,
   citySawtoothRoof, cityShell, citySign, citySolid, cityTree, cityWindows,
   CITY_BRICK, CITY_CORAL, CITY_CREAM, CITY_GLASS, CITY_GOLD, CITY_INK, CITY_STONE, CITY_TEAL } from "./city-assets";
 
 /** City frontages retain their semantic door positions while the architecture changes. */
 export function buildCityLot(ctx: LotContext, lot: LotKind, district: DistrictKind) {
+  const store = storeForBlock(ctx.blockX, ctx.blockY);
+  if (store) { buildBigBoxStore(ctx, store.id); return; }
   const x = ctx.centerX, y = ctx.centerY;
   const facade = district === "market" || district === "townhomes" ? CITY_BRICK
     : district === "industrial" ? CITY_STONE : ctx.random() > .5 ? CITY_CREAM : CITY_TEAL;

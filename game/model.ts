@@ -1,7 +1,7 @@
 import type { WorldRegionId } from "./region-types";
 
 export type Mode = "menu" | "countdown" | "playing" | "paused" | "ended";
-export type Modal = "vehicles" | "traits" | "steering" | "how" | "scores" | "map" | "home" | "courier" | "gas" | "options" | null;
+export type Modal = "vehicles" | "traits" | "steering" | "how" | "scores" | "map" | "home" | "courier" | "gas" | "shop" | "options" | null;
 export type CameraMode = "fixed" | "chase-high" | "chase-low" | "cab";
 export type DrivingTraitId = "street-ace" | "drift-demon" | "redline-rush";
 export type RunKind = "timed" | "free-run";
@@ -138,6 +138,7 @@ export type WalkingActor = ActorPose & Partial<{
 export type VenueRef = {
   id: string;
   kind: VenueKind;
+  brand?: import("./brands").BrandId;
   label: string;
 };
 
@@ -744,6 +745,8 @@ export type Game = {
   offroadSpeedPenaltyKmh: number;
   stunts: DrivingStunts;
   damage: import("./vehicle-damage").VehicleDamageState;
+  fuel: import("./fuel").FuelState;
+  homeFurnishings: import("./furnishing-catalog").FurnishingId[];
   lastBeep: number;
   traffic: TrafficCar[];
   particles: Particle[];
@@ -780,6 +783,8 @@ export type CourierMapMarker = {
 };
 
 export type Hud = {
+  venueBrand: import("./brands").BrandId | null;
+  fuel: import("./fuel").FuelHud;
   damage: import("./vehicle-damage").VehicleDamageHud;
   stunts: DrivingStuntsHud;
   playtest?: boolean;

@@ -31,6 +31,7 @@ import type { SteeringMode, WheelRange } from "./runtime/touch-driving";
 import { GasStationPanel } from "./gas-station-panel";
 import { GpsMap } from "./gps-map";
 import { HomeBasePanel } from "./home-base-panel";
+import { ShoppingPanel, StoreDirectory } from "./shopping-panel";
 import type { DevelopmentPanelProps } from "./development-panel";
 import { GameOptionsPanel } from "./game-options-panel";
 import { DEFAULT_CAMERA_DISTANCE_SCALE, type CameraDistanceScale } from "@/game/config";
@@ -195,7 +196,10 @@ export function GameModalHost({
               <span><kbd>P</kbd> PAUSE</span>
               <span><kbd>G</kbd> FULL GPS MAP</span>
               <span><kbd>M</kbd> MUTE</span>
+              <span><kbd>F</kbd> FILL TANK AT GAS STATION</span>
             </div>
+            <p>Both cars use real tank capacities and fuel consumption ratings in every mode. Speeding raises fuel use, reaching double at 50% over the posted limit. Stop at GO-GO GAS for fuel; an empty tank can get a 5 L assist through the pause menu tow service. Your fuel level stays with each car between runs.</p>
+            <p>Your apartment at Neon Lofts is included. Bank your fare, visit the four home stores from the GPS shopping directory, and furnish your place. Manage owned items at the apartment&apos;s home hub.</p>
             <button className="primary-small" onClick={onClose}>{mode === "menu" ? "BACK TO MODE SELECT" : "BACK TO THE CITY"}</button>
           </>
         ) : modal === "map" ? (
@@ -226,6 +230,7 @@ export function GameModalHost({
               </div>
             </div>
             <p className="full-map-status" role="status" aria-label="GPS pin status" aria-live="polite">{mapNotice}</p>
+            <details className="map-shops"><summary>STORES, HOME + FUEL ↗</summary><StoreDirectory /></details>
             <div className="full-map-actions">
               {hud.customDestination && <button onClick={onRemoveDestination}>{hud.fareDispatchEnabled ? "RETURN TO JOB ROUTE" : "CLEAR GPS ROUTE"}</button>}
               {hud.runKind === "free-run" && <button
@@ -257,6 +262,8 @@ export function GameModalHost({
             onOpenCourier={() => onOpenHomeSubview("courier")}
             onClose={onClose}
           />
+        ) : modal === "shop" ? (
+          <ShoppingPanel onClose={onClose} />
         ) : modal === "gas" ? (
           <GasStationPanel
             career={career}

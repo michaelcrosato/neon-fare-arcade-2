@@ -166,6 +166,9 @@ import {
   coastalPortalSpecs, COAST_SAND, COAST_STUCCO, COAST_CORAL, COAST_MINT,
 } from "./coastal";
 
+import { BRANDS, storeForBlock } from "./brands";
+import { brandSign } from "./render/brand-signs";
+
 export function districtForBlock(blockX: number, blockY: number): DistrictKind {
   if (regionForBlock(blockX, blockY)?.id === "ironwake-works") return "ironworks";
   if (regionForBlock(blockX, blockY)?.id === "cedar-vale") return "residential";
@@ -297,6 +300,9 @@ function portalSpecsForLot(
     return [{ suffix: "home", kind: "home", label: "NEON LOFTS", x: centerX - 2.2, y: centerY - 8.95 }];
   }
   if (lot === "tower") return [{ suffix: "lobby", kind: "lobby", label: "NEON MART", x: centerX - 2.2, y: centerY - 8.95 }];
+  const store = storeForBlock(blockX, blockY);
+  if (store) return [-7.1, 0, 7.1].map((offset, index) => ({ suffix: ["left", "center", "right"][index],
+    kind: "shop" as const, label: BRANDS[store.id].name, x: centerX + offset, y: centerY - 2.35 }));
   if (lot === "shops") return [
     { suffix: "left", kind: "shop", label: "INK & THREAD", x: centerX - 7.1, y: centerY + 1.15 },
     { suffix: "center", kind: "shop", label: "QUICKBYTE", x: centerX, y: centerY + 1.15 },
@@ -359,7 +365,8 @@ function addLotInteractions(
       y: pose.y,
       heading: pose.heading,
       radius: 2.35,
-      venue: { id, kind: spec.kind, label: spec.label },
+      venue: { id, kind: spec.kind, label: spec.label,
+        ...(spec.kind === "gas" ? { brand: "go-go-gas" as const } : storeForBlock(blockX, blockY) ? { brand: storeForBlock(blockX, blockY)!.id } : {}) },
       ...(spec.kind === "gas" ? { serviceLot: { x: centerX, y: centerY, halfX: 11.25 * contentScale, halfY: 11.25 * contentScale } } : {}),
     });
   }
@@ -1844,8 +1851,16 @@ function addLandmarkLot(ctx: LotContext, landmark: LandmarkTile) {
   }
 }
 
+function addGasBranding(ctx: LotContext, lot: LotKind) {
+  for (const spec of portalSpecsForLot(lot, ctx.centerX, ctx.centerY, ctx.blockX, ctx.blockY)) {
+    if (spec.kind !== "gas") continue;
+    const heading = spec.heading ?? -Math.PI / 2;
+    brandSign(ctx, "go-go-gas", spec.x - Math.cos(heading) * .7, spec.y - Math.sin(heading) * .7, 5.2, 6.6, heading);
+  }
+}
+
 function buildLot(ctx: LotContext, district: DistrictKind, lot: LotKind) {
-  if (district === "ironworks") { buildIndustrialLot(ctx, lot); return; }
+  if (district === "ironworks") { buildIndustrialLot(ctx, lot); addGasBranding(ctx, lot); return; }
   const lotBoxes: Box[] = [];
   const lotColliders: Collider[] = [];
   const lotSurfaces: MeshFace[] = [];
@@ -2002,6 +2017,7 @@ function buildLot(ctx: LotContext, district: DistrictKind, lot: LotKind) {
   }
   if (!inCityTerrain(ctx.centerX, ctx.centerY) && !landmark && !residentialAnchor && !mountainAnchor && !desertAnchor && !wetlandAnchor && district !== "mountain" && district !== "desert" && district !== "wetland" && district !== "coastal" && district !== "residential") addCornerKit(lotCtx, district);
 
+  addGasBranding(lotCtx, lot);
   const fixedCoastal = district === "coastal" && (ctx.blockX < -56 || coastalAnchorForBlock(ctx.blockX, ctx.blockY) || coastCanalBlock(ctx.blockX, ctx.blockY));
   const orientation = landmark?.definition.orientation ?? (residentialAnchor || mountainAnchor || desertAnchor || wetlandAnchor || fixedCoastal || district === "residential" ? 0 : district === "wetland" ? wetlandLotOrientation(ctx.blockX, ctx.blockY) : lotOrientationForBlock(ctx.blockX, ctx.blockY));
   const contentScale = landmark || residentialAnchor || mountainAnchor || desertAnchor || wetlandAnchor || district === "coastal" || district === "residential" || district === "wetland" ? 1 : GENERIC_LOT_CONTENT_SCALE;

@@ -72,7 +72,7 @@ export function PauseMenu({ hud, hasRun, view, onChangeView, cameraMode, cameraD
           </>}
           <StuntStatistics stunts={hud.stunts} />
           <button className="pause-recovery" onClick={onRecover} disabled={Boolean(hud.towReceipt)} aria-label="Get unstuck. Tow to the nearest clear road">
-            <strong>GET UNSTUCK · CALL A TOW</strong>
+            <strong>{hud.fuel.empty ? "CALL A TOW + 5 L FUEL ASSIST" : "GET UNSTUCK · CALL A TOW"}</strong>
             <small>{hud.towReceipt ? "TOW COMPLETE · RESUME TO DRIVE" : hud.towCost ? `$${hud.towCost} FROM RUN FARE · NEAREST CLEAR ROAD` : "FREE RESCUE · UNDER $100? ON THE HOUSE"}</small>
           </button>
         </section>}

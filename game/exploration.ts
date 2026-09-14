@@ -45,7 +45,7 @@ export type ExplorationEvent = CourierCounterEvent
 
 export function sceneWorld(game: Game, cityWorld: WorldView) {
   if (game.player.kind === "walking" && game.player.location.kind === "interior") {
-    return interiorWorld(game.player.location.venue);
+    return interiorWorld(game.player.location.venue, game.homeFurnishings);
   }
   return cityWorld;
 }
@@ -105,7 +105,7 @@ export function stepExploration(
   }
 
   const currentWorld = game.player.location.kind === "interior"
-    ? interiorWorld(game.player.location.venue)
+    ? interiorWorld(game.player.location.venue, game.homeFurnishings)
     : cityWorld;
   const walkingStep = stepWalkingActor(game.player.actor, input, dt, currentWorld);
   if (walkingStep.jumped) events.push({ type: "player-jumped" });

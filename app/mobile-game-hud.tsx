@@ -7,6 +7,7 @@ import { MobileDriveControls } from "./mobile-drive-controls";
 import { TransmissionControls, type TransmissionInputHandler } from "./transmission-controls";
 import { DrivingStuntFeedback } from "./driving-stunt-feedback";
 import { VehicleDamageFeedback } from "./vehicle-repair";
+import { FuelGauge } from "./fuel-services";
 import { CruiseControl } from "./cruise-control";
 import type { SteeringMode, TouchDriving } from "./runtime/touch-driving";
 
@@ -84,6 +85,7 @@ export function MobileGameHud({ mode, hud, fareImpact, fareImpactRef, courierImp
 
     {driving && <div className="speedometer mobile-speed"><strong>{hud.speed}</strong><small>KM/H</small>
       {simulation && hud.vehicleId !== "accord-v6" && <b>{simulationGearLabel(hud.simulationVehicle.gear)}</b>}</div>}
+    <FuelGauge fuel={hud.fuel} />
 
     {mode === "playing" && (hud.damage.line || event || hud.message) && <div className={`mobile-notice ${event ? "is-event" : ""}`} aria-hidden="true">
       <strong>{hud.damage.line || event?.title || hud.message}</strong>{event && !hud.damage.line && <span>{event.detail}</span>}

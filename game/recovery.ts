@@ -93,8 +93,10 @@ export function recoverToRoad(game: Game, worldAt?: (point: WorldPoint) => World
   if (game.activeCourier?.stage === "dropoff") game.activeCourier.loadedInTaxi = true;
   game.particles = [];
   game.fare -= cost;
+  const emergencyFuel = game.fuel.litres <= 0;
+  if (emergencyFuel) { game.fuel.litres = 5; game.fuel.emptyWarned = false; }
   game.towRecovery = { startedAt: game.elapsed, cost, path };
-  game.message = "BACK ON THE ROAD!";
+  game.message = emergencyFuel ? "5 L RESCUE FUEL · HEAD TO GO-GO GAS!" : "BACK ON THE ROAD!";
   game.messageUntil = game.elapsed + 1.2;
   return game.towRecovery;
 }

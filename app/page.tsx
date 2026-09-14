@@ -88,6 +88,7 @@ import { presentSimulationEvents } from "./runtime/present-simulation-events";
 import { reportRuntimeError } from "./runtime/runtime-errors";
 import { useGameRuntime } from "./runtime/use-game-runtime";
 import { VehicleRepairProvider } from "./vehicle-repair";
+import { GameCommerceProvider } from "./game-commerce";
 import { copyText } from "./runtime/copy-text";
 import { recoverToRoad } from "@/game/recovery";
 
@@ -168,7 +169,8 @@ export default function Home() {
   const [diagnosticsActive] = useState(() => diagnosticsEnabled());
   const [diagnosticsNotice, setDiagnosticsNotice] = useState("");
   const [developmentNotice, setDevelopmentNotice] = useState("");
-  const { career, careerRef, ready: careerReady, bankRun, buyItem, buyGasStationOffer } = useCareer();
+  const careerApi = useCareer();
+  const { career, careerRef, ready: careerReady, bankRun, buyItem, buyGasStationOffer, saveFuel } = careerApi;
   const {
     history: fareCards,
     docked: dockedFareCards,
@@ -492,6 +494,7 @@ export default function Home() {
     uTurnActiveRef.current = false;
     const runKind = pendingRunKind;
     const drivingModel = pendingDrivingModel;
+    if (modeRef.current !== "menu") saveFuel(gameRef.current);
     const game = makeGame(drivingTraitId, freshRunSeed(), runKind, drivingModel, pendingVehicleId, pendingTransmissionMode);
     applyDevelopmentSettings(game, developmentRef.current);
     warmPassengerArt(game.fareJobs);
@@ -512,7 +515,7 @@ export default function Home() {
       ? `Simulation ready. ${pendingVehicleId === "accord-v6" ? "Accord V6" : "Crown Cab"}, ${game.transmissionMode} shifting. Three, two, one.`
       : `${drivingTraitPackage(drivingTraitId).name} locked in. ${runKind === "free-run" ? "Free Run" : "Arcade shift"} starting. Three, two, one.`);
     tone(420, 0.08, "square", 350);
-  }, [careerRef, clearInput, developmentRef, diagnostics, ensureAudio, isMobile, pendingDrivingModel, pendingVehicleId, pendingTransmissionMode, pendingRunKind, persistSteeringMode, resetFareCards, setMode, steeringMode, tone, touchDriving, wheelRange]);
+  }, [careerRef, clearInput, developmentRef, diagnostics, ensureAudio, isMobile, pendingDrivingModel, pendingVehicleId, pendingTransmissionMode, pendingRunKind, persistSteeringMode, resetFareCards, saveFuel, setMode, steeringMode, tone, touchDriving, wheelRange]);
 
   const confirmVehicle = useCallback(() => {
     if (pendingDrivingModel === "simulation") setPendingDrivingTrait("street-ace");
@@ -860,6 +863,7 @@ export default function Home() {
   }, [mode, setMode]);
 
   return (
+    <GameCommerceProvider api={careerApi} gameRef={gameRef} hud={hud} mode={mode} modal={modal} setHud={setHud} checkpoint={checkpointExternalGameChange} onNavigate={selectCustomDestination} onClose={closeModal}>
     <VehicleRepairProvider gameRef={gameRef} hud={hud} mode={mode} modal={modal} setHud={setHud} checkpoint={checkpointExternalGameChange}><main className={`arcade-shell mode-${mode}`}>
       <header className="topbar" inert={modal ? true : undefined} aria-hidden={modal ? true : undefined}>
         <button className="brand" onClick={returnHome} aria-label="Neon Fare home" disabled={!careerReady}>
@@ -986,6 +990,6 @@ export default function Home() {
       />
 
       <div className="sr-only" aria-live="polite" aria-atomic="true">{audioAnnouncement}</div>
-    </main></VehicleRepairProvider>
+    </main></VehicleRepairProvider></GameCommerceProvider>
   );
 }

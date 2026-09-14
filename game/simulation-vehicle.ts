@@ -2,6 +2,7 @@ import { accordCoupledRpm, clutchConnected, stepManualTransmission } from "./man
 import { stepOffroadSpeedLimit } from "./offroad-speed";
 import { ACCORD_GEARS, ACCORD_FINAL_DRIVE, ACCORD_WHEEL_RADIUS_M, ACCORD_REDLINE_RPM, VEHICLE_GOVERNED_SPEED_KMH } from "./vehicles";
 import { damageSpeedLimit } from "./vehicle-damage";
+import { hasFuel } from "./fuel";
 import { SPEED_KMH_PER_WORLD_UNIT } from "./config";
 import { steeringInput } from "./input";
 import { clamp, normalizeAngle } from "./math";
@@ -507,7 +508,8 @@ function stepSimulationSubstep(
     brakeTarget = 1;
   }
   state.shiftCooldown = Math.max(0, state.shiftCooldown - dt);
-  state.throttle = smooth(state.throttle, throttleTarget, throttleTarget > state.throttle ? 5.2 : 8.5, dt);
+  if (!hasFuel(game)) throttleTarget = 0;
+  state.throttle = hasFuel(game) ? smooth(state.throttle, throttleTarget, throttleTarget > state.throttle ? 5.2 : 8.5, dt) : 0;
   state.brake = smooth(state.brake, brakeTarget, brakeTarget > state.brake ? 11 : 15, dt);
   state.parkingBrake = smooth(
     state.parkingBrake,
@@ -533,7 +535,7 @@ function stepSimulationSubstep(
     specs.idleRpm,
     specs.redlineRpm,
   );
-  state.engineRpm = smooth(state.engineRpm, targetRpm, state.shiftCooldown > 0 ? 14 : 8, dt);
+  state.engineRpm = hasFuel(game) ? smooth(state.engineRpm, targetRpm, state.shiftCooldown > 0 ? 14 : 8, dt) : coupledRpm;
 
   const rallyTires = game.installedUpgrades.includes("rally-tires");
   const friction = !grounded ? 0 : onRoad
@@ -682,7 +684,7 @@ function stepSimulationSubstep(
     lateral *= Math.exp(-(1 - lowSpeedBlend) * 8 * dt);
   }
 
-  if (grounded && state.brake > 0.05 && throttleTarget === 0 && Math.sign(previousLongitudinal) !== Math.sign(longitudinal)) {
+  if (grounded && (state.brake > 0.05 || state.parkingBrake > 0.05) && throttleTarget === 0 && Math.sign(previousLongitudinal) !== Math.sign(longitudinal)) {
     longitudinal = 0;
   }
   // The governor limits engine force, not collision or spin momentum.
