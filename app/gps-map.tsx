@@ -57,6 +57,15 @@ type GpsMapProps = {
   onReturn?: () => void;
 };
 
+// Immutable authored geometry stays in world coordinates. Each HUD update only
+// moves the map's transform and excludes roads outside the compact viewport.
+const specialRoadPolylines = SPECIAL_ROADS.map(road => {
+  const points = road.closed ? [...road.points, road.points[0]] : road.points;
+  return { road, points: points.map(point => `${point.x},${point.y}`).join(" "),
+    minX: Math.min(...points.map(point => point.x)), maxX: Math.max(...points.map(point => point.x)),
+    minY: Math.min(...points.map(point => point.y)), maxY: Math.max(...points.map(point => point.y)) };
+});
+
 export function GpsMap({
   hud,
   full = false,
@@ -120,13 +129,10 @@ export function GpsMap({
   const displayedRouteType = hud.objectiveType;
   const showNavigationTarget = displayedRouteType !== "roam";
   const routePoints = displayedRoute.map(pointFor).map((point) => `${point.x},${point.y}`).join(" ");
-  const specialRoadPolylines = SPECIAL_ROADS.map((road) => {
-    const points = road.closed ? [...road.points, road.points[0]] : road.points;
-    return {
-      road,
-      points: points.map(pointFor).map((point) => `${point.x},${point.y}`).join(" "),
-    };
-  });
+  const roadRadius = compactProjection.radiusMetres + 12 / compactProjection.pixelsPerMetre;
+  const visibleSpecialRoads = full ? specialRoadPolylines : specialRoadPolylines.filter(road =>
+    road.maxX >= hud.player.x - roadRadius && road.minX <= hud.player.x + roadRadius
+    && road.maxY >= hud.player.y - roadRadius && road.minY <= hud.player.y + roadRadius);
   const roadLines: Array<{ a: Vec2; b: Vec2; key: string }> = [];
   const mappedRegions = useMemo(() => full
     ? ACTIVE_WORLD_REGIONS.map((region) => ({ region, bounds: regionRoadBounds(region) }))
@@ -470,8 +476,8 @@ export function GpsMap({
             return <line key={line.key} x1={a.x} y1={a.y} x2={b.x} y2={b.y} />;
           })}
         </g>}
-        <g className="gps-special-roads" aria-hidden="true">
-          {specialRoadPolylines.map(({ road, points }) => (
+        <g className="gps-special-roads" aria-hidden="true" transform={terrainTransform}>
+          {visibleSpecialRoads.map(({ road, points }) => (
             <polyline
               key={road.id}
               className={`gps-special-road gps-special-road--${road.kind}`}

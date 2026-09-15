@@ -699,6 +699,8 @@ export type Game = {
   fareStreamRevision: number;
   /** Simulation time of the next permitted rolling-market audit. */
   fareStreamCheckAt: number;
+  /** Fixed-step scan state is serialized with replays; it never uses wall time. */
+  fareTargetScan?: { at: number; x: number; y: number; key: string };
   /** Region that owns ordinary fare markets until a transfer arrives elsewhere. */
   fareServiceRegionId: WorldRegionId;
   /** Per-service-region rider cooldown windows for the 50% no-repeat rule. */

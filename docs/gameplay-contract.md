@@ -418,6 +418,9 @@ updates the arcade launch, steering, road elevation and contact rules below.
   cost. Arrival direction is part of the search state, so sample vertices cannot
   manufacture U-turns. Height remains attached to route points through both GPS
   maps, the controller and world-space route markers.
+- Guidance uses weighted A* (1.25) over reusable landmark lower bounds to favor
+  a good route quickly. Fare quotes and placement retain exact routing costs.
+  The index is bounded to eight tables per immutable road graph.
 
 ## Roadside recovery
 
@@ -633,7 +636,10 @@ updates the arcade launch, steering, road elevation and contact rules below.
   available runtime assignment and must never fall back to landmark geometry or
   the authored campus registry. Its normal half-block anti-flicker margin is
   overridden when the selected pickup exceeds 5,000 displayed meters: the
-  absolute nearest available fare takes guidance immediately.
+  absolute nearest available fare takes guidance on the next scan. Moving
+  taxis scan at most every 0.25 simulation seconds; changed curbs, availability,
+  explicit relocations and movements of a full block invalidate that interval.
+  Entering any visible pickup ring still selects it immediately.
 - Pickup requires remaining within the objective radius at low speed for 0.18s.
 - Dropoff uses route distance, elapsed leg time, collision cleanliness, and the
   current multiplier.

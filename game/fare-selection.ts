@@ -7,6 +7,7 @@ import {
   FARE_STREAM_MIN_TRAVEL,
   FARE_STREAM_NEARBY_TARGET,
   FARE_TARGET_SWITCH_MARGIN,
+  ROAD_SPACING,
 } from "./config";
 import { createFareMarket, createFareStreamMarket } from "./fare-market";
 import { distance } from "./math";
@@ -141,6 +142,12 @@ export function syncNearestFareTarget(game: Game, force = false) {
   }
   const player = { x: game.x, y: game.y };
   const currentIndex = game.jobIndex % game.fareJobs.length;
+  const targetKey = `${game.availableFareMask}:${currentIndex}:${game.navigationRevision ?? 0}:`
+    + game.fareJobs.map(job => `${job.pickupApproach.x},${job.pickupApproach.y},${job.pickupApproach.z ?? "ground"}`).join(";");
+  const previousScan = game.fareTargetScan;
+  if (!force && previousScan?.key === targetKey && game.elapsed >= previousScan.at
+    && game.elapsed < previousScan.at + .25 && distance(player, previousScan) < ROAD_SPACING) return currentIndex;
+  game.fareTargetScan = { at: game.elapsed, ...player, key: targetKey };
   const nearestIndex = nearestAvailableFareIndex(game);
   if (nearestIndex < 0) return currentIndex;
   if (force || !isFareAvailable(game, currentIndex) || nearestIndex === currentIndex) {

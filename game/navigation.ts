@@ -81,9 +81,7 @@ export function buildNavigationPlan(start: WorldPoint, target: WorldPoint, headi
     normalizeNavigationSettings(settings).uTurnSavingsMeters / NAVIGATION_METERS_PER_WORLD_UNIT);
   const chosen = reverseIsWorthIt ? reverse : forward || reverse;
   if (!chosen) {
-    const networkFallback = routeRoadNetwork(start, target, heading, 1)
-      ?? routeRoadNetwork(start, target, heading, -1);
-    const route = networkFallback?.route ?? buildGpsRoute(start, target);
+    const route = buildGpsRoute(start, target);
     const departureYaw = routeDepartureYaw(route, heading);
     return makeNavigationPlan({
       route,

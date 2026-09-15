@@ -41,6 +41,8 @@ import { ACTOR_INSTANCE_CAPACITY } from "../../game/render/packing";
 import { ambientPeopleBoxes, dynamicBoxes, farePresentationBoxes } from "../../game/render/scene";
 import { stepGame } from "../../game/simulation";
 import { makeGame } from "../../game/state";
+import { performDevelopmentAction } from "../../game/development-actions";
+import { applyDevelopmentSettings } from "../../game/development-settings";
 
 const IDLE_INPUT: InputState = {
   up: false,
@@ -86,6 +88,42 @@ test("fare targeting has a half-block hysteresis margin", () => {
   assert.equal(FARE_TARGET_SWITCH_MARGIN, 18);
   assert.equal(shouldSwitchFareTarget(100, 82.1), false);
   assert.equal(shouldSwitchFareTarget(100, 81.9), true);
+});
+
+test("moving fare selection keeps a short stable scan interval and invalidates changed targets", () => {
+  const game = makeGame("street-ace", 91, "free-run");
+  game.x = 0; game.y = 0; game.elapsed = 1; game.jobIndex = 0; game.availableFareMask = 3;
+  game.fareJobs = game.fareJobs.map((job, index) => ({ ...job, regionalTransfer: null,
+    pickupApproach: index === 0 ? { x: 0, y: 72 } : { x: 72, y: 0 } }));
+  syncNearestFareTarget(game, true);
+  assert.equal(game.jobIndex, 0);
+  game.x = 18; game.elapsed += .1;
+  syncNearestFareTarget(game);
+  assert.equal(game.jobIndex, 0, "small movements do not rebuild every fare route every tick");
+  game.elapsed += .2;
+  syncNearestFareTarget(game);
+  assert.equal(game.jobIndex, 1, "a meaningfully closer fare becomes selected within a quarter second");
+  game.fareJobs[0] = { ...game.fareJobs[0], pickupApproach: { x: 18, y: 1 } };
+  syncNearestFareTarget(game);
+  assert.equal(game.jobIndex, 0, "changed curb coordinates invalidate the previous scan immediately");
+  game.availableFareMask = 2;
+  syncNearestFareTarget(game);
+  assert.equal(game.jobIndex, 1, "an unavailable selected fare is never kept until the next scan");
+});
+
+test("the profiled stadium handoff retains its seeded six-slot curb assignments", () => {
+  const game = makeGame("street-ace", 91, "free-run");
+  game.traffic = []; applyDevelopmentSettings(game, { enabled: true });
+  assert.equal(performDevelopmentAction(game, { kind: "load-fare", placeId: "pulse-stadium", occasion: 1 }).ok, true);
+  assert.equal(performDevelopmentAction(game, { kind: "teleport-dropoff" }).ok, true);
+  game.elapsed = 7; game.onboard = false;
+  assert.equal(maintainFareStream(game), true);
+  assert.equal(game.availableFareMask, 0b111110);
+  assert.deepEqual(game.fareJobs.map(job => [job.pickupStopId, job.dropoffStopId]), [
+    ["curb:-1:-1:e:1", "curb:-16:-1:e:2"], ["curb:-15:3:n:2", "curb:-13:-15:w:0"],
+    ["curb:-13:-1:w:2", "curb:-2:-18:s:2"], ["curb:-17:-2:e:2", "curb:14:3:n:0"],
+    ["curb:-15:6:e:2", "curb:-5:-7:e:1"], ["curb:-10:7:n:2", "curb:9:15:s:2"],
+  ]);
 });
 
 test("GPS drops a stale fare beyond 5000m even when the nearer fare saves less than hysteresis", () => {

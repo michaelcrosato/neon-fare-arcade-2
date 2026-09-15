@@ -1,11 +1,52 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { RoadGraph, type RoadGraphSegment } from "../../game/roads/graph";
+import { RoadGraph, type RoadGraphSegment, type RouteSearchStats } from "../../game/roads/graph";
 import { roadDistance, type RoadControlPoint } from "../../game/roads/geometry";
 
 function span(id: string, a: RoadControlPoint, b: RoadControlPoint, options: Partial<RoadGraphSegment> = {}): RoadGraphSegment {
   return { id, pathId: id, kind: "street", halfWidth: 6, travelWeight: 1, a, b, allowAB: true, allowBA: true, ...options };
 }
+
+test("landmark bounds preserve exact directed, elevated route costs and reduce search work", () => {
+  const roads: RoadGraphSegment[] = [];
+  for (let x = 0; x <= 28; x++) for (let y = 0; y <= 28; y++) {
+    const a = { x: x * 10, y: y * 10, z: x > 14 ? 8 : 0 };
+    if (x < 28) roads.push(span(`h${x}:${y}`, a, { ...a, x: a.x + 10, z: x >= 14 ? 8 : 0 }, { allowBA: y % 3 !== 0 }));
+    if (y < 28) roads.push(span(`v${x}:${y}`, a, { ...a, y: a.y + 10 }, { travelWeight: x % 7 === 0 ? .8 : 1 }));
+  }
+  const oracle = new RoadGraph(roads, 0), indexed = new RoadGraph(roads);
+  let originalWork = 0, indexedWork = 0, guidanceWork = 0;
+  for (const [start, end] of [[{ x: 5, y: 10 }, { x: 275, y: 270, z: 8 }],
+    [{ x: 275, y: 270, z: 8 }, { x: 5, y: 10 }], [{ x: 135, y: 20 }, { x: 145, y: 230, z: 8 }]]) {
+    for (const direction of [1, -1] as const) {
+      const baseline: RouteSearchStats = { expanded: 0, queued: 0 };
+      const exact: RouteSearchStats = { expanded: 0, queued: 0 };
+      const quick: RouteSearchStats = { expanded: 0, queued: 0 };
+      const expected = oracle.route(start, end, 0, direction, 4, { stats: baseline })!;
+      const actual = indexed.route(start, end, 0, direction, 4, { stats: exact })!;
+      const guidance = indexed.route(start, end, 0, direction, 4, { heuristicWeight: 1.25, stats: quick })!;
+      if (!expected) { assert.equal(actual, null); assert.equal(guidance, null); continue; }
+      assert.ok(Math.abs(actual.cost - expected.cost) < 1e-7);
+      assert.ok(guidance.cost <= expected.cost * 1.25 + 1e-7);
+      assert.deepEqual(guidance.route[0], start);
+      assert.deepEqual(guidance.route.at(-1), end);
+      assert.equal(guidance.departureYaw, actual.departureYaw);
+      originalWork += baseline.expanded; indexedWork += exact.expanded; guidanceWork += quick.expanded;
+    }
+  }
+  assert.ok(indexedWork < originalWork * .65, `${indexedWork} vs ${originalWork} expanded states`);
+  assert.ok(guidanceWork < indexedWork * .65, `${guidanceWork} vs ${indexedWork} expanded states`);
+});
+
+test("guidance retains one-way loops and never joins disconnected decks", () => {
+  const a = { x: 0, y: 0 }, b = { x: 100, y: 0 }, c = { x: 100, y: 100 }, d = { x: 0, y: 100 };
+  const graph = new RoadGraph([span("a", a, b, { allowBA: false }), span("b", b, c, { allowBA: false }),
+    span("c", c, d, { allowBA: false }), span("d", d, a, { allowBA: false }),
+    span("deck", { ...a, z: 12 }, { ...b, z: 12 })], 4);
+  const quick = { heuristicWeight: 1.25 };
+  assert.equal(graph.route({ x: 30, y: 0 }, { x: 20, y: 0 }, undefined, 1, 0, quick)!.cost, 390);
+  assert.equal(graph.route(a, { ...a, z: 12 }, undefined, 1, 0, quick), null);
+});
 
 test("virtual endpoints give a direct route within one span, including a legal reverse", () => {
   const graph = new RoadGraph([span("street", { x: 0, y: 0 }, { x: 100, y: 0 })]);

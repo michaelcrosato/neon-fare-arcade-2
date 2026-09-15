@@ -423,7 +423,7 @@ export function routeCrossesRoundaboutIsland(route: readonly WorldPoint[]) {
 
 export function routeRoadNetwork(start: WorldPoint, target: WorldPoint, heading: number, direction: 1 | -1): NetworkRouteCandidate | null {
   return roadGraph.route(start.z === undefined ? atRoadElevation(start) : start,
-    target.z === undefined ? atRoadElevation(target) : target, heading, direction, 4);
+    target.z === undefined ? atRoadElevation(target) : target, heading, direction, 4, { heuristicWeight: 1.25 });
 }
 
 /** Heading-neutral physical route for fare economy and route planning. */

@@ -67,10 +67,7 @@ import {
   type CareerItemId,
 } from "@/game/career";
 import { gasStationOfferName, type GasStationOfferId } from "@/game/gas-station";
-import {
-  fareArtAsset,
-  fareArtFrame,
-} from "@/game/fare-presentation";
+import { warmPassengerArt } from "./runtime/fare-art";
 import type { CourierImpact } from "./courier-impact-overlay";
 import { useCareer } from "./use-career";
 import { normalizeRunRecords } from "./runtime/run-records";
@@ -101,16 +98,6 @@ function freshRunSeed() {
     return values[0];
   }
   return (Date.now() ^ Math.floor(performance.now() * 1000)) >>> 0;
-}
-
-/** Warm only the portrait sheets represented by the active six-fare market. */
-function warmPassengerArt(jobs: Game["fareJobs"]) {
-  if (typeof window === "undefined") return;
-  const sheets = new Set(jobs.map((job) => fareArtFrame(job.passengerArtCell).sheet));
-  for (const sheet of sheets) {
-    const image = new window.Image();
-    image.src = fareArtAsset("pickup", sheet);
-  }
 }
 
 export default function Home() {

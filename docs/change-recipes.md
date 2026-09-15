@@ -61,6 +61,34 @@
    scoring and time bonuses.
 5. Test starting aligned, perpendicular, and opposite the route.
 
+### Verify fare handoff performance
+
+- Run `tests/game/road-graph.test.ts` for exact-cost equivalence, directed/deck
+  safety, guidance cost bounds and deterministic search-work reduction.
+- Run `tests/game/fare-selection.test.ts` and `tests/game/fare-market.test.ts`
+  for scan invalidation, the seeded stadium handoff, curb safety and fare quotes.
+- In a fresh desktop browser, start Arcade Free Run with seed 91, clear traffic
+  in Dev Mode, load Pulse Stadium / Stadium Concert, let the pickup card dock,
+  then jump to the dropoff and resume. Profile the handoff and four seconds
+  afterward in both WebGPU and Canvas. Also run `fare-banners.spec.ts` and
+  `minimap-settings.spec.ts` for card timing, map zoom and mobile layouts.
+- Keep profiling separate from builds and other CPU-heavy checks. Browser
+  timings vary with hardware, caches and rendering mode; they are measurements,
+  not fixed frame-time guarantees.
+
+September 2026 local measurements for this scenario:
+
+| Measurement | Before | After |
+| --- | ---: | ---: |
+| Cross-region navigation, mean over 126 plans | 71.5 ms | 2.3 ms |
+| Cross-region navigation, p95 | 158.6 ms | 5.3 ms |
+| Empty-taxi fixed step, mean over 120 ticks | 2.30 ms | 0.28 ms |
+| Longest handoff frame, WebGPU | 2,001 ms | 403 ms |
+| Longest handoff frame, Canvas | 1,861 ms | 497 ms |
+
+The remaining cold handoff can still pause briefly while validating new curbs.
+Do not trade away safe placement or change fare rewards to improve this number.
+
 ## Change procedural passenger-stop placement
 
 1. Change candidate geometry or validation in `game/fare-placement.ts`; do not

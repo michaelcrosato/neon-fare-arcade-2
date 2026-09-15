@@ -11,7 +11,9 @@ export type RoadGraphSegment = {
   allowAB: boolean;
   allowBA: boolean;
 };
-type Edge = { to: string; segment: RoadGraphSegment; cost: number };
+type Edge = { id: number; to: string; segment: RoadGraphSegment; cost: number; yaw: number };
+export type RouteSearchStats = { expanded: number; queued: number };
+type RouteSearchOptions = { heuristicWeight?: number; stats?: RouteSearchStats };
 export type GraphProjection = {
   segment: RoadGraphSegment;
   point: RoadControlPoint;
@@ -135,8 +137,10 @@ export class RoadGraph {
   private readonly tree: Tree;
   private readonly minWeight: number;
   private readonly segmentOrder = new Map<RoadGraphSegment, number>();
+  private readonly nodeOrder = new Map<string, number>();
+  private readonly landmarks: Float64Array[] = [];
 
-  constructor(readonly segments: readonly RoadGraphSegment[]) {
+  constructor(readonly segments: readonly RoadGraphSegment[], landmarkCount = segments.length >= 512 ? 8 : 0) {
     if (!segments.length) throw new Error("Road graph requires connected spans");
     let minWeight = Infinity;
     for (const [index, segment] of segments.entries()) {
@@ -154,14 +158,54 @@ export class RoadGraph {
         if (!this.neighbors.has(id)) this.neighbors.set(id, new Set());
       }
       const cost = roadDistance(segment.a, segment.b) * segment.travelWeight;
-      if (segment.allowAB) this.edges.get(a)!.push({ to: b, cost, segment });
-      if (segment.allowBA) this.edges.get(b)!.push({ to: a, cost, segment });
+      const first = this.nodes.get(a)!, second = this.nodes.get(b)!;
+      if (segment.allowAB) this.edges.get(a)!.push({ id: index * 2, to: b, cost, segment,
+        yaw: Math.atan2(second.y - first.y, second.x - first.x) });
+      if (segment.allowBA) this.edges.get(b)!.push({ id: index * 2 + 1, to: a, cost, segment,
+        yaw: Math.atan2(first.y - second.y, first.x - second.x) });
       this.neighbors.get(a)!.add(b);
       this.neighbors.get(b)!.add(a);
       minWeight = Math.min(minWeight, segment.travelWeight);
     }
     this.minWeight = minWeight;
     this.tree = buildTree([...segments]);
+    for (const node of this.nodes.keys()) this.nodeOrder.set(node, this.nodeOrder.size);
+    this.prepareLandmarks(landmarkCount);
+  }
+
+  /** Once per immutable graph: relaxed, undirected distances are lower bounds
+   * even with one-way roads, arrival directions and maneuver penalties. */
+  private prepareLandmarks(count: number) {
+    if (count <= 0) return;
+    const adjacency: { to: number; cost: number }[][] = Array.from(this.nodes, () => []);
+    for (const segment of this.segments) {
+      const a = this.nodeOrder.get(roadNodeKey(segment.a))!, b = this.nodeOrder.get(roadNodeKey(segment.b))!;
+      const cost = roadDistance(segment.a, segment.b) * segment.travelWeight;
+      adjacency[a].push({ to: b, cost }); adjacency[b].push({ to: a, cost });
+    }
+    const nearestLandmark = new Float64Array(adjacency.length).fill(Infinity);
+    let origin = 0;
+    for (let index = 0; index < Math.min(8, count, adjacency.length); index++) {
+      const distances = new Float64Array(adjacency.length).fill(Infinity);
+      distances[origin] = 0;
+      const queue = new MinQueue<number>(); queue.push(origin, 0);
+      while (queue.length) {
+        const { value: node, priority: cost } = queue.pop();
+        if (cost !== distances[node]) continue;
+        for (const edge of adjacency[node]) {
+          const next = cost + edge.cost;
+          if (next >= distances[edge.to]) continue;
+          distances[edge.to] = next; queue.push(edge.to, next);
+        }
+      }
+      this.landmarks.push(distances);
+      let farthest = -1;
+      for (let node = 0; node < adjacency.length; node++) {
+        nearestLandmark[node] = Math.min(nearestLandmark[node], distances[node]);
+        if (nearestLandmark[node] > farthest) { farthest = nearestLandmark[node]; origin = node; }
+      }
+      if (farthest === 0) break;
+    }
   }
 
   nearest(point: RoadControlPoint, heading?: number): GraphProjection {
@@ -199,8 +243,13 @@ export class RoadGraph {
     ));
   }
 
-  route(start: RoadControlPoint, target: RoadControlPoint, heading?: number, direction: 1 | -1 = 1, maneuverCost = 0): GraphRoute | null {
+  route(start: RoadControlPoint, target: RoadControlPoint, heading?: number, direction: 1 | -1 = 1, maneuverCost = 0,
+    options: RouteSearchOptions = {}): GraphRoute | null {
     if (!Number.isFinite(maneuverCost) || maneuverCost < 0) throw new Error("Invalid maneuver cost");
+    const weight = options.heuristicWeight ?? 1;
+    if (!Number.isFinite(weight) || weight < 1) throw new Error("Invalid heuristic weight");
+    const stats = options.stats;
+    if (stats) { stats.expanded = 0; stats.queued = 0; }
     const from = this.nearest(start, heading);
     const to = this.nearest(target);
     const allowedYaw = (yaw: number) => heading === undefined || (
@@ -232,16 +281,33 @@ export class RoadGraph {
     const targetCosts = new Map(arrivals.map(({ point }) => [roadNodeKey(point), roadDistance(point, to.point) * to.segment.travelWeight + tailCost]));
     // Arrival direction is part of a search state. A node-only search can
     // manufacture a U-turn at the next tessellation sample on a long curve.
-    type SearchState = { id: string; node: string; yaw: number; cost: number };
-    const states = new Map<string, SearchState>();
-    const distances = new Map<string, number>();
-    const previous = new Map<string, { state: string; edge: Edge }>();
-    const origins = new Map<string, number>();
+    type SearchState = { id: number; node: string; yaw: number; cost: number };
+    const states = new Map<number, SearchState>();
+    const distances = new Map<number, number>();
+    const previous = new Map<number, { state: number; edge: Edge }>();
+    const origins = new Map<number, number>();
     const queue = new MinQueue<SearchState>();
-    const heuristic = (id: string) => roadDistance(this.nodes.get(id)!, to.point) * this.minWeight + tailCost;
-    for (const departure of departures) {
+    const targetA = this.nodeOrder.get(roadNodeKey(to.segment.a))!, targetB = this.nodeOrder.get(roadNodeKey(to.segment.b))!;
+    const partialA = roadDistance(to.segment.a, to.point) * to.segment.travelWeight;
+    const partialB = roadDistance(to.segment.b, to.point) * to.segment.travelWeight;
+    const landmarkTargets = this.landmarks.map(distances => Math.min(distances[targetA] + partialA, distances[targetB] + partialB));
+    const estimates = new Map<string, number>();
+    const heuristic = (id: string) => {
+      const cached = estimates.get(id);
+      if (cached !== undefined) return cached;
+      let bound = roadDistance(this.nodes.get(id)!, to.point) * this.minWeight;
+      const node = this.nodeOrder.get(id)!;
+      for (let index = 0; index < this.landmarks.length; index++) {
+        const delta = Math.abs(this.landmarks[index][node] - landmarkTargets[index]);
+        if (Number.isFinite(delta)) bound = Math.max(bound, delta);
+      }
+      const estimate = (bound + tailCost) * weight;
+      estimates.set(id, estimate);
+      return estimate;
+    };
+    for (const [index, departure] of departures.entries()) {
       const node = roadNodeKey(departure.point);
-      const id = `${node}|start:${departure.yaw}`;
+      const id = -index - 1;
       const cost = leadCost + roadDistance(from.point, departure.point) * from.segment.travelWeight;
       if (cost >= (distances.get(id) ?? Infinity)) continue;
       distances.set(id, cost);
@@ -252,25 +318,27 @@ export class RoadGraph {
       const state = { id, node, yaw, cost };
       states.set(id, state);
       queue.push(state, cost + heuristic(node));
+      if (stats) stats.queued++;
     }
-    let bestEnd: string | null = null;
+    let bestEnd: number | null = null;
     let bestCost = best?.cost ?? Infinity;
     while (queue.length) {
       const current = queue.pop();
       if (current.priority > bestCost + 1e-8) break;
       const { id, node, yaw, cost } = current.value;
       if (cost !== distances.get(id)) continue;
-      const nodePoint = this.nodes.get(node)!;
-      const arrivalYaw = Math.atan2(to.point.y - nodePoint.y, to.point.x - nodePoint.x);
-      const arrivalTurnAllowed = roadDistance(nodePoint, to.point) < 0.01 || Math.cos(arrivalYaw - yaw) > -0.98;
+      if (stats) stats.expanded++;
       const arrivalCost = targetCosts.get(node);
-      if (arrivalCost !== undefined && arrivalTurnAllowed && cost + arrivalCost < bestCost) {
-        bestCost = cost + arrivalCost;
-        bestEnd = id;
+      if (arrivalCost !== undefined && cost + arrivalCost < bestCost) {
+        const nodePoint = this.nodes.get(node)!;
+        const arrivalYaw = Math.atan2(to.point.y - nodePoint.y, to.point.x - nodePoint.x);
+        if (roadDistance(nodePoint, to.point) < 0.01 || Math.cos(arrivalYaw - yaw) > -0.98) {
+          bestCost = cost + arrivalCost;
+          bestEnd = id;
+        }
       }
       for (const edge of this.edges.get(node) ?? []) {
-        const nextPoint = this.nodes.get(edge.to)!;
-        const nextYaw = Math.atan2(nextPoint.y - nodePoint.y, nextPoint.x - nodePoint.x);
+        const nextYaw = edge.yaw;
         const reverses = Math.cos(nextYaw - yaw) < -0.98;
         if (reverses && (this.neighbors.get(node)?.size ?? 0) > 1) continue;
         const incoming = previous.get(id)?.edge.segment ?? from.segment;
@@ -279,7 +347,7 @@ export class RoadGraph {
           && (incoming.kind !== "street" || edge.segment.kind !== "street");
         const nextCost = cost + edge.cost + (reverses ? 18 : 0)
           + (turns ? maneuverCost * (changesCorridor ? 2 : 1) : 0);
-        const nextId = `${edge.to}|${this.segmentOrder.get(edge.segment)}`;
+        const nextId = edge.id;
         if (nextCost + 1e-8 >= (distances.get(nextId) ?? Infinity)) continue;
         const state = { id: nextId, node: edge.to, yaw: nextYaw, cost: nextCost };
         states.set(nextId, state);
@@ -287,6 +355,7 @@ export class RoadGraph {
         previous.set(nextId, { state: id, edge });
         origins.set(nextId, Number.isFinite(yaw) ? origins.get(id)! : nextYaw);
         queue.push(state, nextCost + heuristic(edge.to));
+        if (stats) stats.queued++;
       }
     }
     if (bestEnd !== null) {

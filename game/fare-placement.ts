@@ -112,7 +112,7 @@ const SIDES: readonly CurbSide[] = ["north", "east", "south", "west"];
 const ALONG_SLOTS = [-FARE_STOP_RULES.alongLimit, 0, FARE_STOP_RULES.alongLimit] as const;
 const CURB_INSET = FARE_DROPOFF_RADIUS * 0.3;
 const placementChunkCache = new Map<string, CityChunk>();
-const placementReportCache = new Map<string, FareStopPlacementReport>();
+const placementReportCache = new Map<string, FareStopPlacementReport | null>();
 
 function stableHash(value: string, seed = 0x811c9dc5) {
   let hash = seed >>> 0;
@@ -141,10 +141,10 @@ function chunkForBlock(blockX: number, blockY: number) {
 }
 
 function pointInCollider(point: WorldPoint, collider: Collider) {
-  if (!overlapsHeight(collider, point.z ?? terrainHeightAt(point.x, point.y), 2.4, point.x, point.y)) return false;
   const dx = point.x - collider.x, dy = point.y - collider.y;
   const c = Math.cos(collider.yaw ?? 0), s = Math.sin(collider.yaw ?? 0);
-  return Math.abs(c * dx + s * dy) <= collider.halfX && Math.abs(-s * dx + c * dy) <= collider.halfY;
+  if (Math.abs(c * dx + s * dy) > collider.halfX || Math.abs(-s * dx + c * dy) > collider.halfY) return false;
+  return overlapsHeight(collider, point.z ?? terrainHeightAt(point.x, point.y), 2.4, point.x, point.y);
 }
 
 export function pointInSurfaceRegion(point: Vec2, region: SurfaceRegion) {
@@ -237,6 +237,10 @@ export function analyzeFareStopPlacement(
   zone: WorldPoint,
   radius = FARE_DROPOFF_RADIUS,
 ): FareStopPlacementReport {
+  return inspectFareStopPlacement(zone, radius, false)!;
+}
+
+function inspectFareStopPlacement(zone: WorldPoint, radius: number, safeOnly: boolean): FareStopPlacementReport | null {
   zone = atTerrainElevation(zone);
   const blockX = Math.floor(zone.x / ROAD_SPACING);
   const blockY = Math.floor(zone.y / ROAD_SPACING);
@@ -245,13 +249,6 @@ export function analyzeFareStopPlacement(
   const waterRegions = chunk.surfaceRegions;
   const inCollider = (point: Vec2) => chunk.colliders.some((collider) => pointInCollider(point, collider));
   const inWater = (point: Vec2) => waterRegions.some((region) => pointInSurfaceRegion(point, region));
-  const {
-    roadOverlap,
-    colliderOverlap,
-    waterOverlap,
-    blockedOverlap,
-    openGround,
-  } = samplePlacementDisk(zone, radius, inCollider, inWater);
   const projection = nearestRoadProjection(zone);
   const deltaX = zone.x - projection.point.x;
   const deltaY = zone.y - projection.point.y;
@@ -310,23 +307,28 @@ export function analyzeFareStopPlacement(
   const terrainAccessible = !inElevatedTerrain(zone.x, zone.y)
     || (Math.abs((zone.z ?? 0) - (approach.z ?? 0)) < 1.5
       && terrainSupport(zone).normal.z > 0.8);
-  const safe = withinWorld
+  const clear = withinWorld
     && terrainAccessible
     && !centerOnRoad
     && !centerInCollider
     && !centerInWater
-    && roadOverlap >= FARE_STOP_RULES.minRoadOverlap
-    && roadOverlap <= FARE_STOP_RULES.maxRoadOverlap
-    && colliderOverlap < FARE_STOP_RULES.maxColliderOverlap
-    && waterOverlap < FARE_STOP_RULES.maxWaterOverlap
-    && blockedOverlap < FARE_STOP_RULES.maxBlockedOverlap
-    && openGround >= FARE_STOP_RULES.minOpenGround
     && venueClear
     && junctionClear
     && passengerClear
     && approachOnRoad
     && approachClear
     && approachDistance <= radius - 0.35;
+  // Generation only needs safe curbs. Keep exhaustive reporting available to
+  // diagnostics/tests, but do not sample an already rejected objective disk.
+  if (safeOnly && !clear) return null;
+  const { roadOverlap, colliderOverlap, waterOverlap, blockedOverlap, openGround } = samplePlacementDisk(zone, radius, inCollider, inWater);
+  const safe = clear
+    && roadOverlap >= FARE_STOP_RULES.minRoadOverlap
+    && roadOverlap <= FARE_STOP_RULES.maxRoadOverlap
+    && colliderOverlap < FARE_STOP_RULES.maxColliderOverlap
+    && waterOverlap < FARE_STOP_RULES.maxWaterOverlap
+    && blockedOverlap < FARE_STOP_RULES.maxBlockedOverlap
+    && openGround >= FARE_STOP_RULES.minOpenGround;
 
   return {
     safe,
@@ -518,11 +520,11 @@ function stopCode(blockX: number, blockY: number, side: CurbSide, slot: number) 
 function asPlacement(candidate: CurbCandidate, radius: number): FareStopPlacement | null {
   const cacheKey = `${candidate.id}:${radius}`;
   let report = placementReportCache.get(cacheKey);
-  if (!report) {
-    report = analyzeFareStopPlacement(candidate.zone, radius);
+  if (report === undefined) {
+    report = inspectFareStopPlacement(candidate.zone, radius, true);
     placementReportCache.set(cacheKey, report);
   }
-  if (!report.safe) return null;
+  if (!report?.safe) return null;
   const district = districtForPosition(candidate.zone.x, candidate.zone.y);
   const code = stopCode(candidate.blockX, candidate.blockY, candidate.side, candidate.slot);
   return {
@@ -800,11 +802,14 @@ function selectDestinationStops(
     !pickupIds.has(stop.id)
     && (!localRegion || stopBelongsToRegion(stop, localRegion))
     && avoidsPreviousStops(stop, previousIds, previousPoints)
-    && pickups.every((pickup) => {
+    && output.every((selected) => distance(selected.zone, stop.zone) >= ROAD_SPACING)
+    // Test the most distant pickup first: a rejected destination need not run
+    // five successful route searches before discovering its one overlong leg.
+    && [...pickups].sort((a, b) => distance(b.approach, stop.approach) - distance(a.approach, stop.approach)).every((pickup) => {
+      if (distance(pickup.approach, stop.approach) > MAX_FARE_TRIP_DISTANCE) return false;
       const routeDistance = streetRouteDistance(pickup.approach, stop.approach);
       return routeDistance >= MIN_FARE_HANDOFF_DISTANCE && routeDistance <= MAX_FARE_TRIP_DISTANCE;
     })
-    && output.every((selected) => distance(selected.zone, stop.zone) >= ROAD_SPACING)
   );
   const popularCount = targetCount === 1 ? (seed % 4 === 0 ? 0 : 1) : Math.round(targetCount * 0.7);
   addRankedDestinations(output, rankedLandmarkCandidates(seed, localRegion), seed, accept, popularCount);
