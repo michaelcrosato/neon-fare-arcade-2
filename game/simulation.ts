@@ -1,4 +1,5 @@
 import { passengerComment, passengerRating, passengerRatingParSeconds, passengerTip, type PassengerStars } from "./passenger-rating";
+import { beginAccordTrip, stepAccordEvents, type StoryCard } from "./accord-events";
 import { findTaxiExitPose } from "./player";
 import { steeringInput } from "./input";
 import { cancelCruiseControl, stepCruiseControl } from "./cruise-control";
@@ -37,9 +38,9 @@ import {
 import { passengerDistanceQuote } from "./fare-market";
 import { scheduleSixthFareTransfer } from "./regional-fares";
 import { SPEED_KMH_PER_WORLD_UNIT } from "./config";
-import { vehicleDefinition } from "./vehicles";
+import { vehicleDefinition, VEHICLE_GOVERNED_SPEED_KMH } from "./vehicles";
 import { accordCoupledRpm, accordGearSpeedLimitMps, clutchConnected, stepManualTransmission } from "./manual-transmission";
-import { ACCORD_V6_SPECS, accordManualAcceleration, accordUnboostedSpeedLimitMps } from "./simulation-vehicle";
+import { ACCORD_V6_SPECS, GTR_R35_SPECS, stepGtrAutomatic, accordManualAcceleration, accordUnboostedSpeedLimitMps } from "./simulation-vehicle";
 import { stepOffroadSpeedLimit } from "./offroad-speed";
 import { stepDrivingStunts } from "./driving-stunts";
 import { damageSpeedLimit, recordVehicleContacts, stepRepairLot } from "./vehicle-damage";
@@ -80,6 +81,7 @@ import {
 export type RandomSource = () => number;
 
 export type SimulationEvent = ExplorationEvent
+  | { type: "story-card"; card: StoryCard }
   | { type: "fuel-warning"; level: "low" | "empty" }
   | { type: "vehicle-damaged"; line: string; lossKmh: number; totalLossKmh: number }
   | { type: "building-collision" }
@@ -311,6 +313,16 @@ export function stepGame(
   const rightY = forwardX;
   let forwardSpeed = game.vx * forwardX + game.vy * forwardY;
   let lateralSpeed = game.vx * rightX + game.vy * rightY;
+  if (game.vehicleId === "gtr-r35") {
+    const state = game.simulationVehicle;
+    state.throttle = controlInput.up ? 1 : 0;
+    state.shiftCooldown = Math.max(0, state.shiftCooldown - dt);
+    state.gear = forwardSpeed < -.1 ? -1 : state.gear < 1 ? 1 : state.gear;
+    stepGtrAutomatic(state, Math.abs(forwardSpeed) * SPEED_KMH_PER_WORLD_UNIT / 3.6);
+    state.engineRpm = Math.max(hasFuel(game) ? GTR_R35_SPECS.idleRpm : 0, Math.abs(forwardSpeed) * SPEED_KMH_PER_WORLD_UNIT / 3.6
+      / GTR_R35_SPECS.wheelRadiusM * 60 / (2 * Math.PI) * GTR_R35_SPECS.finalDriveRatio
+      * (state.gear < 0 ? GTR_R35_SPECS.reverseGearRatio : GTR_R35_SPECS.forwardGearRatios[state.gear]));
+  }
   const throttle = hasFuel(game) ? controlInput.up ? 1 : game.cruiseControl ? cruisePedals?.throttle ?? 0 : 0 : 0;
   const brake = controlInput.down ? 1 : game.cruiseControl ? cruisePedals?.brake ?? 0 : 0;
   const brakePressed = controlInput.down && !game.brakeInputHeld;
@@ -528,7 +540,8 @@ export function stepGame(
   const penalizedTopGear = accord && gear >= 5 && !game.boosting
     && (game.damage.lossKmh > 0 || game.roadMotion.grounded && game.offroadSpeedPenaltyKmh > 0);
   const accordSpeedLimit = penalizedTopGear ? accordUnboostedSpeedLimitMps(gear) : ACCORD_V6_SPECS.governedTopSpeedMps;
-  const vehicleSpeedLimit = (accord ? accordSpeedLimit * 3.6 / SPEED_KMH_PER_WORLD_UNIT : Math.min(
+  const vehicleSpeedLimit = (accord ? accordSpeedLimit * 3.6 / SPEED_KMH_PER_WORLD_UNIT : game.vehicleId === "gtr-r35"
+    ? (game.boosting ? VEHICLE_GOVERNED_SPEED_KMH["gtr-r35"] : 285) / SPEED_KMH_PER_WORLD_UNIT : Math.min(
     overdriveActive ? BOOST_OVERDRIVE_TOP_SPEED_WORLD_UNITS : TAXI_TOP_SPEED_WORLD_UNITS,
     requestedMaxSpeed,
   )) - (game.roadMotion.grounded ? game.offroadSpeedPenaltyKmh / SPEED_KMH_PER_WORLD_UNIT : 0);
@@ -924,6 +937,7 @@ export function stepGame(
         game.onboard = true;
         markFarePickedUp(game, game.jobIndex);
         game.jobStartedAt = game.elapsed;
+        beginAccordTrip(game, job);
         game.tripHadCollision = false;
         game.passengerReview = null;
         game.score += 50;
@@ -1043,5 +1057,7 @@ export function stepGame(
     }
   }
   if (infiniteBoost) game.boost = 100;
+  const storyCard = stepAccordEvents(game);
+  if (storyCard) events.push({ type: "story-card", card: storyCard });
   return events;
 }

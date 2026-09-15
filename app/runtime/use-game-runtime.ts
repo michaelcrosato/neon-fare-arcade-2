@@ -58,6 +58,7 @@ import { presentClutchWarning } from "./clutch-warning";
 import { presentFareImpact } from "./fare-impact-layout";
 import { MOBILE_QUERY } from "../use-mobile-layout";
 import { protectGameGestures } from "./game-display";
+import { connectedGamepads, GamepadInput, mergeGamepadInput, type GamepadActions } from "./gamepad-input";
 
 type RefBox<T> = { current: T };
 
@@ -91,6 +92,7 @@ export type GameRuntimeOptions = Readonly<{
   setAudioAnnouncement: (message: string) => void;
   tone: (frequency: number, duration: number, type?: OscillatorType, endFrequency?: number) => void;
   onSimulationEvents: (events: readonly SimulationEvent[]) => void;
+  onGamepadActions: (actions: GamepadActions) => void;
 }>;
 
 /** Owns the browser clock, world streaming, renderer fallback, and fixed-step loop. */
@@ -125,6 +127,7 @@ export function useGameRuntime(options: GameRuntimeOptions) {
     setAudioAnnouncement,
     tone,
     onSimulationEvents,
+    onGamepadActions,
   } = options;
 
   useEffect(() => {
@@ -142,6 +145,7 @@ export function useGameRuntime(options: GameRuntimeOptions) {
     let activeRenderer: Renderer | null = null;
     const cityStream = new CityStream();
     const navigationController = new NavigationController();
+    const gamepad = new GamepadInput();
     const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
     const mobileLayout = window.matchMedia(MOBILE_QUERY);
     const stage = canvas2d.closest<HTMLElement>(".game-stage");
@@ -230,6 +234,11 @@ export function useGameRuntime(options: GameRuntimeOptions) {
         const elapsed = Math.min(0.05, wallElapsed);
         last = now;
         const game = gameRef.current;
+        const pad = gamepad.sample(connectedGamepads(), modeRef.current === "playing", !isDriving(game));
+        // Keep edge actions until a fixed tick consumes them, even above 60 Hz.
+        if (pad.input.interact) interactionPulseRef.current = true;
+        if (pad.input.jump) jumpPulseRef.current = true;
+        if (pad.actions.pause || pad.actions.confirm || pad.actions.camera) onGamepadActions(pad.actions);
         accumulator += elapsed * developmentTimeScale(game);
         const currentMode = modeRef.current;
         const preStepFocus = controlledPose(game);
@@ -256,9 +265,10 @@ export function useGameRuntime(options: GameRuntimeOptions) {
         if (currentMode === "playing") {
           while (accumulator >= FIXED_DT && modeRef.current === "playing") {
             touchDriving.tick(FIXED_DT, game.speed);
-            const input = isDriving(game)
+            const baseInput = isDriving(game)
               ? mergeDrivingInput(inputRef.current, touchDriving.input(game.drivingModel === "simulation"))
               : inputRef.current;
+            const input = mergeGamepadInput(baseInput, pad.input);
             const tickInput = interactionPulseRef.current || jumpPulseRef.current
               ? {
                   ...input,
@@ -300,6 +310,8 @@ export function useGameRuntime(options: GameRuntimeOptions) {
               throw error;
             }
             onSimulationEvents(events);
+            pad.input.interact = false;
+            pad.input.jump = false;
             interactionPulseRef.current = false;
             jumpPulseRef.current = false;
             accumulator -= FIXED_DT;
@@ -579,6 +591,7 @@ export function useGameRuntime(options: GameRuntimeOptions) {
     modeRef,
     onSimulationEvents,
     setAudioAnnouncement,
+    onGamepadActions,
     setHud,
     setMode,
     setRendererKind,

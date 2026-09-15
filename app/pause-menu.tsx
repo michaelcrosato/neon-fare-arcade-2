@@ -2,6 +2,7 @@ import { useRef, type KeyboardEvent } from "react";
 import { CAMERA_DISTANCE_SCALES, CAMERA_OPTIONS, type CameraDistanceScale } from "@/game/config";
 import type { CameraMode, FareImpact, Hud } from "@/game/model";
 import { vehicleDefinition } from "@/game/vehicles";
+import { FullscreenControl } from "./fullscreen-control";
 import { StuntStatistics } from "./driving-stunt-feedback";
 import { FareCardBrowser } from "./fare-card-deck";
 import { PauseOverlay } from "./pause-overlay";
@@ -78,6 +79,7 @@ export function PauseMenu({ hud, hasRun, view, onChangeView, cameraMode, cameraD
         </section>}
         <section className="pause-menu__tools" aria-label="Game tools">
           <h3>MAKE YOURSELF AT HOME</h3>
+          <FullscreenControl />
           <div className="pause-menu__shortcuts">
             {hasRun && <button onClick={onOpenMap}>MAP <span aria-hidden="true">↗</span></button>}
             <button onClick={onToggleMute} aria-pressed={!muted}>{muted ? "AUDIO OFF" : "AUDIO ON"}<span aria-hidden="true">{muted ? "○" : "●"}</span></button>

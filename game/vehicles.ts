@@ -16,6 +16,13 @@ export const VEHICLES = [
     details: ["154,298 km · still going strong", "Winter tires · still being financed", "K&N · Brembo · Injen stickers", "Clutch sticks sometimes · pump 3 times"],
     arcade: { acceleration: 1.14, steering: 1.09, powerSlide: 0.82, liftSlide: 1.35, brakeSlide: 0, slideGrip: 0.9, yawRecovery: 1.15 },
   },
+  {
+    id: "gtr-r35", name: "2012 Nissan GT-R", shortName: "GT-R", number: "03",
+    layout: "AWD", transmission: "6-speed dual-clutch automatic", power: "3.8L twin-turbo V6 · 530 hp",
+    description: "Black paint. Four driven wheels. A very different kind of night shift.",
+    details: ["North American R35 · Jet Black", "Automatic only · six forward gears", "Twin turbos · planted AWD launch"],
+    arcade: { acceleration: 1.5, steering: 1.02, powerSlide: 0.32, liftSlide: 0.75, brakeSlide: 1.8, slideGrip: 1.12, yawRecovery: 1.2 },
+  },
 ] as const;
 
 export function vehicleDefinition(id: VehicleId) {
@@ -32,6 +39,7 @@ export const ACCORD_REDLINE_RPM = 6_800;
 // The custom coupe has no shared taxi governor: sixth's redline is the outer
 // ceiling. Engine power and aero drag determine its lower unboosted top speed.
 export const VEHICLE_GOVERNED_SPEED_KMH: Record<VehicleId, number> = {
+  "gtr-r35": 315,
   "crown-cab": 53 * 3.6,
   "accord-v6": ACCORD_REDLINE_RPM * 2 * Math.PI * ACCORD_WHEEL_RADIUS_M * 3.6
     / (60 * ACCORD_GEARS[6] * ACCORD_FINAL_DRIVE),

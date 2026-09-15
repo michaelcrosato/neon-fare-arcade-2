@@ -1,6 +1,6 @@
 # Fuel, stores, and the included apartment
 
-Both vehicles have a finite petrol tank in Arcade Shift, arcade Free Run, and
+All three vehicles have a finite petrol tank in Arcade Shift, arcade Free Run, and
 simulation Free Run. Fuel follows the selected vehicle between sessions; a new
 run does not give a free tank. Existing careers receive full tanks once when
 their save is migrated. Each vehicle retains its own level.
@@ -11,6 +11,13 @@ their save is migrated. Each vehicle retains its own level.
 | --- | ---: | ---: | ---: |
 | 1996 Ford Crown Victoria 4.6 V8, 4-speed automatic | 75.7 L (20 US gal) | 18 US mpg, converted to 13.067 L/100 km | about 579 km |
 | 2015 Honda Accord Coupe V6, 6-speed manual | 65 L | 10.9 L/100 km | about 596 km |
+| 2012 Nissan GT-R, 6-speed dual clutch | 73.8 L (19.5 US gal) | 19 US mpg, converted to 12.380 L/100 km | about 596 km |
+
+The GT-R tank and 16 city / 23 highway consumption come from the
+[Nissan North America MY2012 brochure](https://www.guide-autosport.com/wp-content/uploads/2014/01/Nissan_US-GT-R_2012.pdf).
+The game uses a 19 US mpg combined reference. Its idle consumption is authored
+game tuning, as with the other cars. Existing two-car saves receive its full
+tank without changing their retained Crown or Accord fuel.
 
 The ranges are calculated as `tank litres / combined L/100 km × 100`, not
 manufacturer promises. The Accord's automatic-shifting assist still uses its

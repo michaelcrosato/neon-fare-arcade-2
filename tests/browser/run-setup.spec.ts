@@ -28,7 +28,7 @@ for (const mobile of [false, true]) test.describe(mobile ? "phone setup" : "desk
     await expect(accordCard.locator(":scope > p")).toHaveText("Secret special edition. Same streets. Just goes faster.");
     await expect(accordCard.locator(":scope > ul")).toHaveCount(0);
     await expect(accordCard.getByRole("button", { name: /^READ THE ACCORD/ })).toBeVisible();
-    await expect(garage.getByRole("button", { name: /^Lock in / })).toHaveCount(2);
+    await expect(garage.getByRole("button", { name: /^Lock in / })).toHaveCount(3);
     await expect(accordCard.getByRole("button", { name: "Lock in ACCORD V6" })).toHaveClass("driver-trait__pick");
     if (kind === "free") {
       await accordCard.getByRole("button", { name: /^READ THE ACCORD/ }).click();

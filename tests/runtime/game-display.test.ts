@@ -11,10 +11,10 @@ test("fullscreen uses the document root and hides navigation without blocking un
   assert.deepEqual(calls, [{ navigationUI: "hide" }]);
   await requestGameFullscreen({ ...doc, fullscreenElement: {} } as unknown as Document);
   assert.equal(calls.length, 1);
-  await assert.doesNotReject(requestGameFullscreen({ documentElement: {} } as Document));
-  await assert.doesNotReject(requestGameFullscreen({ documentElement: {
+  assert.equal(await requestGameFullscreen({ documentElement: {} } as Document), "unsupported");
+  assert.equal(await requestGameFullscreen({ documentElement: {
     requestFullscreen: () => Promise.reject(new Error("Not supported")),
-  } } as unknown as Document));
+  } } as unknown as Document), "blocked");
   let webkitCalls = 0;
   await requestGameFullscreen({ documentElement: { webkitRequestFullscreen() { webkitCalls++; } } } as unknown as Document);
   assert.equal(webkitCalls, 1);

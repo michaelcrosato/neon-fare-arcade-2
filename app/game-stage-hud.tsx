@@ -170,7 +170,7 @@ export function GameStageHud({
                 ? hud.simulationVehicle.parkingBrake > 0.05 ? `PARK BRAKE · SLIP ${hud.driftAngle}°`
                   : hud.simulationVehicle.brake > 0.05 ? "SERVICE BRAKE"
                     : hud.simulationVehicle.throttle > 0.05 ? "THROTTLE"
-                      : hud.vehicleId === "accord-v6" ? `6-SPEED ${hud.transmissionMode === "manual" ? "MANUAL" : "AUTO SHIFT"} · ${simulationGear}` : `4-SPEED AUTO · ${simulationGear}`
+                      : hud.vehicleId === "accord-v6" ? `6-SPEED ${hud.transmissionMode === "manual" ? "MANUAL" : "AUTO SHIFT"} · ${simulationGear}` : `${hud.vehicleId === "gtr-r35" ? "6-SPEED DCT" : "4-SPEED AUTO"} · ${simulationGear}`
                 : hud.brakeDriftKick > 0.05 ? `BRAKE KICK ${hud.driftAngle}°` : hud.boosting ? "BOOSTING" : hud.drifting ? `DRIFT ${hud.driftAngle}°` : "BOOST"
               : hud.onFootAction === "run" ? "RUNNING · SHIFT"
                 : hud.onFootAction === "crouch" ? "CROUCHED · C / CTRL"

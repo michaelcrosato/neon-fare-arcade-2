@@ -37,7 +37,7 @@ export function damageSpeedLimit(game: Partial<Pick<Game, "damage">>, healthyKmh
 }
 function maximumLoss(game: Game) {
   const overdrive = game.installedUpgrades.includes("boost-overdrive");
-  const top = game.drivingModel === "simulation" || game.vehicleId === "accord-v6"
+  const top = game.drivingModel === "simulation" || game.vehicleId !== "crown-cab"
     ? VEHICLE_GOVERNED_SPEED_KMH[game.vehicleId]
     : Math.min(overdrive ? BOOST_OVERDRIVE_TOP_SPEED_KMH : TAXI_TOP_SPEED_KMH,
       drivingTraitPackage(game.drivingTraitId).modifiers.maxBoostSpeed * SPEED_KMH_PER_WORLD_UNIT + (overdrive ? BOOST_OVERDRIVE_BONUS_KMH : 0));

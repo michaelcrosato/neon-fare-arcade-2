@@ -5,6 +5,7 @@ import { roadPosePoint } from "./road-pose";
 import { taxiRoadPose } from "./scene";
 import { boxSurfaceFaces } from "./surfaces";
 import { accordBalancedModel, type VehicleSurfaceModel } from "./accord";
+import { gtrModel } from "./gtr";
 
 /** A separate, bounded dynamic mesh; never charged to world or box-instance budgets. */
 export const MAX_VEHICLE_SURFACE_FACES = 2_048;
@@ -17,7 +18,7 @@ const RED: Color = [.94, .085, .045, 1];
 const LAMP: Color = [1, .94, .69, 1];
 const cache = new Map<VehicleId, VehicleSurfaceModel>();
 export function usesVehicleMesh(game: Game, camera: Camera) {
-  return game.vehicleId === "accord-v6" || camera.vehicleDetail === "detailed";
+  return game.vehicleId !== "crown-cab" || camera.vehicleDetail === "detailed";
 }
 const point = (x: number, y: number, z: number): Vec3 => ({ x, y, z });
 const face = (corners: MeshFace["corners"], color: Color): MeshFace => ({ corners, color, material: MAT_VEHICLE, kind: "architecture" });
@@ -153,7 +154,7 @@ function buildCrownModel(): VehicleSurfaceModel {
 }
 
 export function detailedVehicleModel(id: VehicleId) {
-  if (!cache.has(id)) cache.set(id, id === "accord-v6" ? accordBalancedModel() : buildCrownModel());
+  if (!cache.has(id)) cache.set(id, id === "accord-v6" ? accordBalancedModel() : id === "gtr-r35" ? gtrModel() : buildCrownModel());
   return cache.get(id)!;
 }
 

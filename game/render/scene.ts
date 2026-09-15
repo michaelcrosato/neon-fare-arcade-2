@@ -293,7 +293,7 @@ export function taxiBoxes(game: Game, options: { includeGroundShadow?: boolean; 
   const boxes: Box[] = [];
   if (options.includeGroundShadow !== false) boxes.push(taxiGroundShadow(game)!);
   const vehicleStart = boxes.length;
-  if (options.includeBody !== false && game.vehicleId !== "accord-v6") {
+  if (options.includeBody !== false && game.vehicleId === "crown-cab") {
     if (game.drivingModel === "simulation") addCrownTaxiBoxes(boxes, game);
     else addCarBoxes(boxes, game.x, game.y, game.heading, YELLOW, true, false, game.steering);
   }

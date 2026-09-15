@@ -4,13 +4,7 @@ import { applyKeyboardInput } from "./runtime/keyboard-input";
 import { useMinimapSettings } from "./minimap-settings";
 import { stuntRunRecord } from "@/game/driving-stunts";
 
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  type CSSProperties,
-} from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import {
   CAMERA_DISTANCE_STORAGE_KEY,
   CAMERA_OPTIONS,
@@ -47,6 +41,7 @@ import type {
   WorldPoint,
 } from "@/game/model";
 import { drivingTraitPackage } from "@/game/driving-traits";
+import { vehicleDefinition } from "@/game/vehicles";
 import { regionalPlaceName } from "@/game/regions";
 import { makeGame } from "@/game/state";
 import { applyDevelopmentSettings } from "@/game/development-settings";
@@ -92,6 +87,8 @@ import { VehicleRepairProvider } from "./vehicle-repair";
 import { GameCommerceProvider } from "./game-commerce";
 import { copyText } from "./runtime/copy-text";
 import { recoverToRoad } from "@/game/recovery";
+import { StoryCard } from "./story-card";
+import { useDriveEvents } from "./use-drive-events";
 
 
 function freshRunSeed() {
@@ -509,7 +506,7 @@ export default function Home() {
     setModal(null);
     setMode("countdown");
     setAudioAnnouncement(drivingModel === "simulation"
-      ? `Simulation ready. ${pendingVehicleId === "accord-v6" ? "Accord V6" : "Crown Cab"}, ${game.transmissionMode} shifting. Three, two, one.`
+      ? `Simulation ready. ${vehicleDefinition(pendingVehicleId).shortName}, ${game.transmissionMode} shifting. Three, two, one.`
       : `${drivingTraitPackage(drivingTraitId).name} locked in. ${runKind === "free-run" ? "Free Run" : "Arcade shift"} starting. Three, two, one.`);
     tone(420, 0.08, "square", 350);
   }, [careerRef, clearInput, developmentRef, diagnostics, ensureAudio, isMobile, pendingDrivingModel, pendingVehicleId, pendingTransmissionMode, pendingRunKind, persistSteeringMode, resetFareCards, saveFuel, setMode, steeringMode, tone, touchDriving, wheelRange]);
@@ -558,8 +555,8 @@ export default function Home() {
     }
     setMode("ended");
     setAudioAnnouncement(game.playtest ? "Playtest complete. Earnings and scores were not saved." : game.runKind === "free-run"
-      ? `Free Run parked. Score ${game.score}. ${game.fare} dollars banked. Career balance ${nextCareer.bank} dollars.`
-      : `Run over. Rank ${rank}. Score ${game.score}. ${game.fare} dollars banked. Career balance ${nextCareer.bank} dollars.`);
+      ? `Free Run parked. Score ${game.score}. ${Math.max(0, game.fare)} dollars banked. Career balance ${nextCareer.bank} dollars.`
+      : `Run over. Rank ${rank}. Score ${game.score}. ${Math.max(0, game.fare)} dollars banked. Career balance ${nextCareer.bank} dollars.`);
     tone(520, 0.45, "sawtooth", 90);
   }, [bankRun, setMode, tone]);
 
@@ -692,6 +689,10 @@ export default function Home() {
     } catch {}
   }, []);
 
+  const { storyCard, storyCardRef, dismissStoryCard, showStoryCard, onGamepadActions } = useDriveEvents({
+    gameRef, modeRef, modalDialogRef, clearInput, setHud, setMode, togglePause, resumeFromPause, cycleCamera,
+  });
+
   const onSimulationEvents = useCallback((events: Parameters<typeof presentSimulationEvents>[0]) => {
     presentSimulationEvents(events, {
       game: () => gameRef.current,
@@ -700,13 +701,14 @@ export default function Home() {
       warmPassengerArt,
       triggerFareImpact,
       triggerCourierImpact,
+      showStoryCard,
       setHomeNotice,
       setCourierNotice,
       setGasNotice,
       setHud,
       openModal,
     });
-  }, [openModal, tone, triggerCourierImpact, triggerFareImpact]);
+  }, [openModal, tone, triggerCourierImpact, triggerFareImpact, showStoryCard]);
 
   const runDevelopmentAction = useCallback((action: DevelopmentAction) => {
     presentDevelopmentCommand(action, { gameRef, cameraRef, modeRef, careerRef, runResultBankedRef, diagnostics,
@@ -718,7 +720,7 @@ export default function Home() {
     passengerReviewRef, navigationDistanceRef, clutchWarningRef, fareImpactRef, taxiExitRef, canvas2dRef, webGpuCanvasRef,
     gameRef, cameraRef, cameraModeRef, inputRef, touchDriving, interactionPulseRef, jumpPulseRef, modeRef,
     audioRef, ensureAudio, engineRef, boostAudioActiveRef, diagnostics, diagnosticsActive,
-    clearInput, finishRun, setMode, setHud, setRendererKind, setAudioAnnouncement, tone, onSimulationEvents,
+    clearInput, finishRun, setMode, setHud, setRendererKind, setAudioAnnouncement, tone, onSimulationEvents, onGamepadActions,
   });
 
   const copyDiagnostics = useCallback(async () => {
@@ -805,7 +807,7 @@ export default function Home() {
   useEffect(() => {
     const keyFor = (event: KeyboardEvent, pressed: boolean) => {
       const key = event.key.toLowerCase();
-      if (modal !== null) return;
+      if (modal !== null || storyCardRef.current) return;
       if (pressed && event.target instanceof Element
         && (event.target.closest("input, select, textarea, [contenteditable=true]")
           || (key === " " && event.target.closest("button")))) return;
@@ -828,7 +830,7 @@ export default function Home() {
       window.removeEventListener("keydown", down);
       window.removeEventListener("keyup", up);
     };
-  }, [cycleCamera, modal, openModal, togglePause]);
+  }, [cycleCamera, modal, openModal, togglePause, storyCardRef]);
 
   const handleTouch = useCallback((event: React.PointerEvent<HTMLButtonElement>) => {
     event.preventDefault();
@@ -939,7 +941,7 @@ export default function Home() {
         )}
         </div>
 
-        <GameSessionOverlays
+        {!storyCard && <GameSessionOverlays
           mode={mode}
           menuOptionsOpen={menuOptionsOpen} pauseView={pauseView} onChangePauseView={setPauseView} onResume={resumeFromPause}
           hud={hud}
@@ -952,9 +954,10 @@ export default function Home() {
           onOpenHow={() => openModal("how")} onOpenOptions={openOptions} onFinishRun={finishRun}
           onToggleFareDispatch={toggleFareDispatch} onRequestStartRun={requestStartRun}
           onOpenScores={() => openModal("scores")} onCopyDiagnostics={copyDiagnostics} onRecover={getUnstuck}
-        />
+        />}
       </section>
 
+      {storyCard && <StoryCard card={storyCard} onDismiss={dismissStoryCard} />}
       <GameModalHost
         modal={modal}
         modalParent={modalParent}

@@ -9,7 +9,7 @@ test("run log rejects malformed rows without discarding valid saved runs", () =>
   for (const input of [null, {}, 7, "[]"]) assert.deepEqual(normalizeRunRecords(input), []);
   const raw: unknown = [
     null, {}, [], "bad", { ...VALID, score: "1000" },
-    { ...VALID, fare: -1 }, { ...VALID, score: Infinity },
+    { ...VALID, fare: -1001 }, { ...VALID, score: Infinity },
     { ...VALID, deliveries: NaN }, { ...VALID, rank: {} },
     { ...VALID, date: null }, VALID,
   ];
@@ -28,6 +28,12 @@ test("run log keeps five valid rows in stored order and copies only known fields
   assert.deepEqual(records, Array.from({ length: 5 }, (_, index) => ({ ...VALID, score: 7 - index })));
   records[0].score = 0;
   assert.equal(raw[0].score, 7);
+});
+
+test("unfinished Accord debt remains visible in run history without reducing career money", () => {
+  const records = normalizeRunRecords([{ ...VALID, fare: -830 }]);
+  assert.equal(records[0].fare, -830);
+  assert.equal(careerFromRunRecords(records).bank, 0);
 });
 
 test("run log preserves measured distances, isolates copies and tolerates old or malformed stunt data", () => {

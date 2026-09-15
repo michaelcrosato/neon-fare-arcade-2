@@ -1,5 +1,6 @@
 import type { Game, Hud, Modal } from "@/game/model";
 import type { SimulationEvent } from "@/game/simulation";
+import type { StoryCard } from "@/game/accord-events";
 import { isStoreId } from "@/game/brands";
 import {
   makeDropoffFareImpact,
@@ -16,6 +17,7 @@ export type SimulationEventPresentation = Readonly<{
   warmPassengerArt: (jobs: Game["fareJobs"]) => void;
   triggerFareImpact: (impact: FareImpact) => void;
   triggerCourierImpact: (impact: Omit<CourierImpact, "id">) => void;
+  showStoryCard?: (card: StoryCard) => void;
   setHomeNotice: (message: string) => void;
   setCourierNotice: (message: string) => void;
   setGasNotice: (message: string) => void;
@@ -49,6 +51,10 @@ export function presentSimulationEvents(
 
   for (const event of events) {
     switch (event.type) {
+      case "story-card":
+        presentation.showStoryCard?.(event.card);
+        announce(event.card.kind === "quantum" ? "Game paused. The Accord driver has a quantum physics fact to share." : "Game paused. Congratulations! Your winter tires are paid off.");
+        break;
       case "fuel-warning":
         announce(event.level === "empty" ? "Out of fuel. Coast to a stop. Call fuel assist from the pause menu."
           : "Low fuel. Stop at GO-GO GAS to fill up.");

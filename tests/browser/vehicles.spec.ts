@@ -97,8 +97,7 @@ async function start(page: Page, renderer: string, model: string, manual: boolea
   await page.clock.pauseAt(new Date("2026-09-13T01:00:00Z"));
   await expect(page.locator(".vehicle-card")).toHaveCount(3);
   await expect(page.getByRole("button", { name: "Select Crown Cab ’96", exact: true })).toHaveAttribute("aria-pressed", "true");
-  const empty = page.getByRole("article", { name: "Vehicle slot 3. Empty." });
-  await expect(empty.locator("button, input")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Select 2012 Nissan GT-R", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Select 2015 Honda Accord Coupe V6", exact: true }).click();
   await expect(page.getByRole("radio", { name: "Automatic", exact: true })).toBeChecked();
   if (manual) await page.getByRole("radio", { name: "Manual", exact: true }).check();

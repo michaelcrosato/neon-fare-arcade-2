@@ -75,6 +75,22 @@ export const ACCORD_V6_SPECS: VehicleSpecs = {
   roadFriction: 0.78, offroadFriction: 0.6, rallyOffroadFriction: 0.68,
 };
 
+/** North American MY2012 R35. Tire response and loaded chassis are authored game tuning. */
+export const GTR_R35_SPECS: VehicleSpecs = {
+  ...CROWN_TAXI_SPECS,
+  massKg: 1_815, yawInertiaKgM2: 3_150, rollInertiaKgM2: 570,
+  wheelbaseM: 2.78, cgToFrontAxleM: 1.28, cgToRearAxleM: 1.5,
+  cgHeightM: .47, frontTrackM: 1.59, rearTrackM: 1.60,
+  wheelRadiusM: .355, finalDriveRatio: 3.70,
+  forwardGearRatios: [0, 4.056, 2.301, 1.595, 1.248, 1.001, .796], reverseGearRatio: 3.383,
+  drivelineEfficiency: .86, idleRpm: 850, redlineRpm: 7_000,
+  governedTopSpeedMps: VEHICLE_GOVERNED_SPEED_KMH["gtr-r35"] / 3.6,
+  serviceBrakeForceN: 21_500, parkingBrakeForceN: 8_000,
+  frontCorneringStiffnessNPerRad: 90_000, rearCorneringStiffnessNPerRad: 98_000,
+  dragCoefficient: .26, frontalAreaM2: 2.25, rollingResistance: .015,
+  roadFriction: 1.08, offroadFriction: .57, rallyOffroadFriction: .68,
+};
+
 function chassisSpecs(specs: VehicleSpecs) {
   const averageTrackM = (specs.frontTrackM + specs.rearTrackM) / 2;
   const halfTrackM = averageTrackM / 2;
@@ -84,8 +100,9 @@ function chassisSpecs(specs: VehicleSpecs) {
 }
 const CROWN_CHASSIS = chassisSpecs(CROWN_TAXI_SPECS);
 const ACCORD_CHASSIS = chassisSpecs(ACCORD_V6_SPECS);
+const GTR_CHASSIS = chassisSpecs(GTR_R35_SPECS);
 export function simulationVehicleSpecs(id: VehicleId) {
-  return id === "accord-v6" ? ACCORD_CHASSIS : CROWN_CHASSIS;
+  return id === "accord-v6" ? ACCORD_CHASSIS : id === "gtr-r35" ? GTR_CHASSIS : CROWN_CHASSIS;
 }
 const SIDE_REST_ANGLE = Math.PI / 2;
 const ROOF_REST_ANGLE = Math.PI;
@@ -191,11 +208,13 @@ export function applySimulationGroundImpulse(
   game.simulationVehicle.rollRate = clamp(game.simulationVehicle.rollRate, -7.5, 7.5);
 }
 
-function engineTorqueNm(rpm: number, accord: boolean, gear: SimulationGear) {
+function engineTorqueNm(rpm: number, accord: boolean, gear: SimulationGear, gtr = false) {
   // Fifth/sixth roll-on calibration: C/D's 2016 V6 6MT measured about 8 s
   // for both 30–50 and 50–70 mph in sixth (sources in docs/vehicles.md).
   // Preserve first–fourth's existing tune and the custom 300 hp power peak.
-  const points = accord ? gear >= 5 ? [
+  const points = gtr ? [
+    [850, 230], [1_800, 400], [3_200, 607], [6_000, 607], [6_400, 590], [7_000, 470],
+  ] : accord ? gear >= 5 ? [
     [750, 175], [1_000, 290], [1_500, 310], [3_000, 350], [4_900, 365], [6_200, 344.6], [6_800, 285],
   ] : [
     [750, 175], [1_500, 245], [3_000, 310], [4_900, 365], [6_200, 344.6], [6_800, 285],
@@ -266,6 +285,19 @@ function automaticGear(state: SimulationVehicleState, speedMps: number) {
     state.gear = next;
     state.shiftCooldown = 0.24;
   }
+}
+
+/** The R35 uses a six-speed dual clutch, with no Crown torque converter or Accord clutch fault. */
+export function stepGtrAutomatic(state: SimulationVehicleState, speedMps: number) {
+  if (state.gear < 1 || state.shiftCooldown > 0) return;
+  const specs = GTR_R35_SPECS;
+  const wheelRpm = Math.abs(speedMps) / specs.wheelRadiusM * 60 / (Math.PI * 2) * specs.finalDriveRatio;
+  const rpm = wheelRpm * specs.forwardGearRatios[state.gear];
+  let next = state.gear;
+  if (state.gear < 6 && rpm > (state.throttle > .72 ? 6_500 : 3_700)) next = (state.gear + 1) as SimulationGear;
+  else if (state.gear > 1 && rpm < (state.throttle > .72 ? 2_700 : 1_600)
+    && wheelRpm * specs.forwardGearRatios[state.gear - 1] < 5_800) next = (state.gear - 1) as SimulationGear;
+  if (next !== state.gear) { state.gear = next; state.shiftCooldown = .18; }
 }
 
 function smooth(current: number, target: number, response: number, dt: number) {
@@ -545,7 +577,10 @@ function stepSimulationSubstep(
   const steeringRate = steerInput === 0 ? 1.35 : 0.94;
   state.steeringAngle = moveToward(state.steeringAngle, steerTarget, steeringRate * dt);
 
-  if (!accord && state.gear > 0 && !state.overturned) automaticGear(state, Math.max(0, longitudinal));
+  if (!accord && state.gear > 0 && !state.overturned) {
+    if (game.vehicleId === "gtr-r35") stepGtrAutomatic(state, Math.max(0, longitudinal));
+    else automaticGear(state, Math.max(0, longitudinal));
+  }
   const gearRatio = state.gear === -1
     ? specs.reverseGearRatio
     : specs.forwardGearRatios[state.gear];
@@ -604,10 +639,10 @@ function stepSimulationSubstep(
     : forwardSpeedLimit - (grounded ? game.offroadSpeedPenaltyKmh / 3.6 : 0);
   const damagedSpeedLimit = damageSpeedLimit(game, speedLimit * 3.6) / 3.6;
   const governor = clamp((damagedSpeedLimit - speedInDriveDirection) / Math.min(GOVERNOR_TAPER_MPS, damagedSpeedLimit * .5), 0, 1);
-  const converterMultiplication = !accord && state.gear === 1
+  const converterMultiplication = game.vehicleId === "crown-cab" && state.gear === 1
     ? 1 + 0.62 * (1 - clamp(Math.abs(longitudinal) / 8.5, 0, 1))
     : 1;
-  const driveDemand = state.overturned || !connected ? 0 : engineTorqueNm(state.engineRpm, accord, state.gear)
+  const driveDemand = state.overturned || !connected ? 0 : engineTorqueNm(state.engineRpm, accord, state.gear, game.vehicleId === "gtr-r35")
     * gearRatio
     * specs.finalDriveRatio
     * specs.drivelineEfficiency
@@ -621,12 +656,14 @@ function stepSimulationSubstep(
       : clamp((specs.redlineRpm + 100 - coupledRpm) / 250, 0, 1) : 1);
   const speedSign = Math.abs(longitudinal) > 0.08 ? Math.sign(longitudinal) : driveDirection;
   const serviceBrakeDemand = specs.serviceBrakeForceN * state.brake;
+  // Rear-biased AWD shares propulsion across both finite tire friction circles.
+  const frontDriveShare = accord ? 1 : game.vehicleId === "gtr-r35" ? .4 : 0;
   const frontLongitudinalForce = state.overturned ? 0 : signedClamp(
-    (accord ? driveDemand : 0) - speedSign * serviceBrakeDemand * 0.7,
+    driveDemand * frontDriveShare - speedSign * serviceBrakeDemand * 0.7,
     frontCapacity,
   );
   const rearLongitudinalForce = state.overturned ? 0 : signedClamp(
-    (accord ? 0 : driveDemand)
+    driveDemand * (1 - frontDriveShare)
       - speedSign * serviceBrakeDemand * 0.3
       - speedSign * specs.parkingBrakeForceN * state.parkingBrake,
     rearCapacity,

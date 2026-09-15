@@ -16,6 +16,7 @@ const previewImage = {
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://neon-fare-arcade-2.vercel.app"),
+  appleWebApp: { capable: true, title: "Neon Fare", statusBarStyle: "black-translucent" },
   title,
   description,
   openGraph: {

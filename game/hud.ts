@@ -206,7 +206,7 @@ export function makeHud(game: Game, navigation?: NavigationPlan, world?: WorldVi
     vehicleId: game.vehicleId,
     transmissionMode: game.transmissionMode,
     transmission: { ...game.transmission },
-    vehicleRpm: game.drivingModel === "simulation" ? game.simulationVehicle.engineRpm : Math.max(game.fuel.litres > 0 ? 750 : 0,
+    vehicleRpm: game.drivingModel === "simulation" || game.vehicleId === "gtr-r35" ? game.simulationVehicle.engineRpm : Math.max(game.fuel.litres > 0 ? 750 : 0,
       accordCoupledRpm((game.vx * Math.cos(game.heading) + game.vy * Math.sin(game.heading)) * SPEED_KMH_PER_WORLD_UNIT / 3.6, game.transmission.gear)),
     simulationVehicle: { ...game.simulationVehicle },
     runKind: game.runKind,

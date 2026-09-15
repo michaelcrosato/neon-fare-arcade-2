@@ -204,7 +204,7 @@ endpoints. Reduced motion suppresses cosmetic bob and landing displacement.
 While driving, Cab View retains the seated first-person eye on the driver's
 side and shows only the outside world and normal HUD. No renderer draws a
 cockpit, hood, windshield frame, steering wheel or mirror, and HTML supplies
-no cabin frame or duplicate instruments. This applies to both vehicles,
+no cabin frame or duplicate instruments. This applies to all three vehicles,
 driving models and graphics quality settings on desktop and mobile. Fare
 cards reserve space for the navigation arrow, without an imaginary dashboard.
 

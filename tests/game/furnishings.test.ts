@@ -12,7 +12,7 @@ test("new and migrated careers own the apartment; inventory and tanks normalize 
   const saved = normalizeCareerState({ bank: 23, owned: [], furnishings: { owned: ["sofa", "sofa", "bad"], placed: ["sofa", "fridge", "bad"] }, fuelTanks: { "accord-v6": 12, "crown-cab": -5 } });
   assert.equal(saved.bank, 23); assert.deepEqual(saved.owned, ["neon-loft"]);
   assert.deepEqual(saved.furnishings, { owned: ["sofa"], placed: ["sofa"] });
-  assert.deepEqual(saved.fuelTanks, { "accord-v6": 12, "crown-cab": 0 });
+  assert.deepEqual(saved.fuelTanks, { "accord-v6": 12, "crown-cab": 0, "gtr-r35": 73.8 });
   const game = makeGame("street-ace", 931, "free-run", "arcade", "accord-v6");
   applyCareerRunBonuses(game, saved);
   assert.equal(game.fuel.litres, 12); assert.deepEqual(game.homeFurnishings, ["sofa"]);

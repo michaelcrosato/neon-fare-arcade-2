@@ -106,7 +106,7 @@ export function GameSessionOverlays({
               <span><small>BEST MULTI</small><b>{hud.bestMultiplier.toFixed(1)}×</b></span>
               <span><small>CRASHES</small><b>{hud.collisions}</b></span>
             </div>
-            <p className="banked-callout">{hud.playtest ? "PLAYTEST EARNINGS AND SCORES ARE NOT SAVED" : `FARE BANKED +$${hud.fare} · CAREER TOTAL $${careerBank} · NEON LOFTS IS NEAR THE STARTING BLOCK`}</p>
+            <p className="banked-callout">{hud.playtest ? "PLAYTEST EARNINGS AND SCORES ARE NOT SAVED" : `FARE BANKED +$${Math.max(0, hud.fare)} · CAREER TOTAL $${careerBank}${hud.fare < 0 ? " · WINTER TIRES STILL OWING THIS RUN" : " · NEON LOFTS IS NEAR THE STARTING BLOCK"}`}</p>
             <button className="primary-small" onClick={() => onRequestStartRun(hud.runKind, hud.drivingModel)}>{hud.drivingModel === "simulation" ? "SIMULATION AGAIN" : hud.runKind === "free-run" ? "FREE RUN AGAIN" : "RUN IT BACK"}</button>
             {hud.runKind === "timed"
               ? <><button onClick={onOpenScores}>VIEW RUN LOG</button>{mobile && <button onClick={() => onSetMode("menu")}>RETURN TO MENU</button>}</>

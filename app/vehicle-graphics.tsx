@@ -7,7 +7,7 @@ import { VEHICLES } from "@/game/vehicles";
 type Detail = "classic" | "detailed";
 type Settings = Record<VehicleId, Detail>;
 const KEY = "neon-fare-vehicle-graphics-v1";
-const DEFAULTS: Settings = { "crown-cab": "classic", "accord-v6": "classic" };
+const DEFAULTS: Settings = { "crown-cab": "classic", "accord-v6": "classic", "gtr-r35": "detailed" };
 let settings = DEFAULTS, loaded = false;
 const listeners = new Set<() => void>();
 
@@ -17,7 +17,7 @@ function readSettings() {
     try {
       const stored = JSON.parse(window.localStorage.getItem(KEY) ?? "null");
       settings = { "crown-cab": stored?.["crown-cab"] === "detailed" ? "detailed" : "classic",
-        "accord-v6": stored?.["accord-v6"] === "detailed" ? "detailed" : "classic" };
+        "accord-v6": stored?.["accord-v6"] === "detailed" ? "detailed" : "classic", "gtr-r35": "detailed" };
     } catch { settings = DEFAULTS; }
   }
   return settings;
@@ -34,9 +34,9 @@ function setDetail(id: VehicleId, detail: Detail) {
 export function VehicleGraphicsOptions() {
   const choices = useSyncExternalStore(subscribe, readSettings, () => DEFAULTS);
   return <div className="vehicle-graphics">
-    <h3>VEHICLE MODELS</h3><p>Choose the Crown Cab’s body style. The Accord uses the Balanced coupe model.</p>
+    <h3>VEHICLE MODELS</h3><p>Choose the Crown Cab’s body style. The Accord and GT-R have their own coupe models.</p>
     {VEHICLES.map(vehicle => <label key={vehicle.id}><b>{vehicle.shortName}</b>
-      {vehicle.id === "accord-v6" ? <output aria-label="Accord model">Balanced coupe</output> : <select aria-label={`${vehicle.shortName} model quality`} value={choices[vehicle.id]} onChange={event => setDetail(vehicle.id, event.target.value as Detail)}>
+      {vehicle.id !== "crown-cab" ? <output aria-label={`${vehicle.shortName} model`}>{vehicle.id === "accord-v6" ? "Balanced coupe" : "Black R35 coupe"}</output> : <select aria-label={`${vehicle.shortName} model quality`} value={choices[vehicle.id]} onChange={event => setDetail(vehicle.id, event.target.value as Detail)}>
         <option value="classic">Classic</option><option value="detailed">Detailed</option>
       </select>}</label>)}
     <small>Applies immediately and is saved on this device. The Detailed Crown uses more graphics power.</small>

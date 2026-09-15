@@ -7,7 +7,7 @@ export type DrivingTraitId = "street-ace" | "drift-demon" | "redline-rush";
 export type RunKind = "timed" | "free-run";
 /** Arcade handling remains the default. Simulation is intentionally Free Run-only. */
 export type DrivingModel = "arcade" | "simulation";
-export type VehicleId = "crown-cab" | "accord-v6";
+export type VehicleId = "crown-cab" | "accord-v6" | "gtr-r35";
 export type TransmissionMode = "automatic" | "manual";
 export type SimulationGear = -1 | 0 | 1 | 2 | 3 | 4 | 5 | 6;
 export type ManualTransmissionState = {
@@ -680,6 +680,9 @@ export type Game = {
   timeLeft: number;
   score: number;
   fare: number;
+  /** Run-scoped Accord story state, serialized with deterministic replays. */
+  winterTiresPaid?: boolean;
+  accordTrip?: import("./accord-events").AccordTrip;
   boost: number;
   combo: number;
   deliveries: number;

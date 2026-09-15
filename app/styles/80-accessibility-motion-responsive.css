@@ -725,20 +725,31 @@
 }
 
 @media (max-width: 900px), (pointer: coarse) {
-  .tow-receipt { top: 96px; left: 18px; width: min(244px, calc(100% - 36px)); padding: 0 12px 9px; transform: rotate(-2deg); }
-  .tow-receipt__stripe { margin-inline: -12px; font-size: 8px; }
-  .tow-receipt__truck { width: 91px; height: 58px; }
-  .tow-receipt__amount { font-size: 40px; }
-  .tow-receipt > b { font-size: 25px; }
-  .tow-receipt > p { font-size: 8px; margin-block: 7px; }
+  .tow-receipt { top: 96px; width: min(410px, calc(100% - 36px)); }
+  .tow-receipt__stripe { font-size: 8px; padding: 8px; }
+  .tow-receipt__copy { padding: 10px; }
+  .tow-receipt__copy > b { font-size: 30px; }
+  .tow-receipt__amount { font-size: 30px; }
+  .tow-receipt__art > span { font-size: 7px; }
+  .tow-receipt__footer { font-size: 7px; }
+  .story-card { width: calc(100vw - 36px); max-height: 82dvh; }
+  .story-card__masthead { padding: 10px; font-size: 8px; }
+  .story-card__body { grid-template-columns: 1fr; gap: 14px; padding: 20px; }
+  .story-card__emblem { display: none; }
+  .story-card__copy h2 { font-size: 32px; }
+  .story-card__copy > p:not(.story-card__eyebrow) { font-size: 16px; }
+  .story-card footer { padding: 0 16px 12px; }
+  .story-card__reply { gap: 10px; padding: 10px; }
+  .story-card__reply strong { font-size: 14px; }
+  .story-card__portrait { flex-basis: 44px; height: 44px; }
   .pause-recovery strong { font-size: 19px; }
   .navigation-distance { min-width: 92px; }
   .navigation-distance strong { font-size: 28px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .tow-receipt { animation: none; transition: opacity .01s; transform: none; }
-  .tow-receipt.is-leaving { transform: none; }
+  .tow-receipt { animation: none; transition: opacity .01s; transform: translateX(-50%); }
+  .tow-receipt.is-leaving { transform: translateX(-50%); }
   *,
   *::before,
   *::after {
@@ -795,7 +806,7 @@
   .mobile-hud .driving-stunt > small, .mobile-hud .driving-stunt > span:not(.sr-only) { font-size: 8px; }
 }
 @media (max-height: 520px) and (orientation: landscape) and (pointer: coarse) {
-  .vehicle-garage__grid { grid-template-columns: 1fr 1fr .5fr; }
+  .vehicle-garage__grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .vehicle-card--empty { flex-direction: column; justify-content: center; }
   .vehicle-card__select > strong { font-size: 23px; }
   .vehicle-card__top { align-items: flex-start; flex-direction: column; }

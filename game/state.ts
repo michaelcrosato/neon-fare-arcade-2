@@ -1,3 +1,4 @@
+import { WINTER_TIRE_FINANCING } from "./accord-events";
 import {
   BLUE,
   BONE,
@@ -154,7 +155,8 @@ export function makeGame(
     cruiseControl: null,
     timeLeft: RUN_TIME,
     score: 0,
-    fare: 0,
+    fare: vehicleId === "accord-v6" ? -WINTER_TIRE_FINANCING : 0,
+    winterTiresPaid: false,
     boost: drivingModel === "simulation" ? 0 : drivingTrait.modifiers.initialBoost,
     combo: 1,
     deliveries: 0,

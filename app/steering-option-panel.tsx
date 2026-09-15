@@ -5,6 +5,7 @@ import type { SteeringMode, WheelRange } from "./runtime/touch-driving";
 import { RunSetupProgress } from "./run-setup-progress";
 import { useMobileLayout } from "./use-mobile-layout";
 import { SteeringWheelRange } from "./steering-wheel-range";
+import { DesktopControls } from "./desktop-controls";
 
 export type SteeringOption = {
   id: SteeringMode;
@@ -116,10 +117,10 @@ export function SteeringOptionPanel({ currentMode, wheelRange, onSetWheelRange, 
         onSelect("default");
       } else if (event.key === "2") {
         event.preventDefault();
-        onSelect("joystick");
+        onSelect(mobile ? "joystick" : "default");
       } else if (event.key === "3") {
         event.preventDefault();
-        onSelect("wheel");
+        if (mobile) onSelect("wheel");
       } else if (event.key === "Escape") {
         event.preventDefault();
         onBack();
@@ -127,7 +128,7 @@ export function SteeringOptionPanel({ currentMode, wheelRange, onSetWheelRange, 
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onSelect, onBack]);
+  }, [onSelect, onBack, mobile]);
 
   return (
     <div className="driver-traits steering-options setup-screen">
@@ -135,10 +136,10 @@ export function SteeringOptionPanel({ currentMode, wheelRange, onSetWheelRange, 
       <p className="modal-kicker">FINAL STEP · CHOOSE STEERING</p>
       <h2 id="modal-title">STEERING SYSTEM</h2>
       <p className="driver-traits__intro" id="steering-modal-description">
-        {mobile ? "Choose your touch steering. Lock it in to start the countdown." : "WASD and arrow keys work with every option. Choose your touch steering for a touchscreen, then lock in to start."}
+        {mobile ? "Choose your touch steering. Lock it in to start the countdown." : "Choose how you want to drive. Keyboard and gamepad work together; lock in to start the countdown."}
       </p>
 
-      <div className="driver-traits__grid steering-options__grid" role="list" aria-label="Steering options">
+      {!mobile ? <DesktopControls onStart={() => onSelect("default")} /> : <div className="driver-traits__grid steering-options__grid" role="list" aria-label="Steering options">
         {STEERING_OPTIONS.map((option) => {
           const isSelected = option.id === currentMode;
           return (
@@ -170,7 +171,7 @@ export function SteeringOptionPanel({ currentMode, wheelRange, onSetWheelRange, 
             </article>
           );
         })}
-      </div>
+      </div>}
 
       <div className="steering-options__footer">
         <button

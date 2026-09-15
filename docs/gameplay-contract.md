@@ -34,7 +34,9 @@ updates the arcade launch, steering, road elevation and contact rules below.
   allows menu music while the automatically paused game is in the background.
   Browser/OS audio suspension can still apply.
 - Starting a mobile run requests fullscreen from the start gesture when the
-  browser supports it. The full dynamic viewport, safe-area padding, and active
+  browser supports it. Pause and Game Options also expose Enter Fullscreen for
+  re-entry after leaving it. Unsupported browsers show actionable home-screen
+  guidance. The full dynamic viewport, safe-area padding, and active
   playfield gesture protection prevent document scrolling, pull-to-refresh,
   pinch zoom, and long-press menus during driving. Paused menus remain scrollable.
 - Pickup and dropoff cards use the same compact, top-centered horizontal frame
@@ -143,7 +145,8 @@ updates the arcade launch, steering, road elevation and contact rules below.
 
 - The menu offers Arcade Shift, Arcade Free Run, and Simulation Free Run.
   Every mode offers the RWD Crown Cab, the white FWD 2015 Accord Coupe V6,
-  and an empty third garage bay. Arcade modes also offer the same three-package
+  and the black AWD North American 2012 Nissan GT-R with automatic-only shifting.
+  Arcade modes also offer the same three-package
   driver draft; Simulation never exposes arcade traits. The Accord defaults to
   automatic shifting in every mode, with Manual selectable on its card. See
   `docs/vehicles.md` for six-speed, winter-tire and sticky-clutch contracts.
@@ -164,6 +167,16 @@ updates the arcade launch, steering, road elevation and contact rules below.
   Simulation retains its physics and uses Vehicle → Steering. Only locking
   steering starts the countdown; Back and Escape preserve the draft vehicle
   and transmission while returning one screen.
+  Desktop steering setup presents Keyboard & Mouse, a PS5-style standard-mapped
+  Gamepad, and a disabled physical Steering Wheel placeholder for later development.
+  Both supported inputs work together. Gamepad left stick steers, R2/L2 drive and
+  brake, Cross/A boosts or applies the Simulation parking brake, Square/X interacts,
+  Triangle/Y cycles cameras and Options/Start pauses. L1 operates the Accord clutch
+  and D-pad left/right shifts. On foot, the stick walks, Cross jumps, L3 sprints
+  and Circle crouches. Menus remain operable with keyboard/mouse/touch; Cross can
+  resume the pause menu or a story card. Unknown hardware mappings are not guessed.
+  Pause, blur and disconnect clear gamepad input; held driving controls must be
+  released before resuming. Touch setup and its three modes are unchanged.
   Run kind and driving model are orthogonal, run-scoped selections, but the
   simulation model is authoritatively normalized back to arcade for timed runs.
 - Street Ace uses the shared responsive arcade launch, braking, steering and
@@ -438,6 +451,15 @@ updates the arcade launch, steering, road elevation and contact rules below.
 - Guidance uses weighted A* (1.25) over reusable landmark lower bounds to favor
   a good route quickly. Fare quotes and placement retain exact routing costs.
   The index is bounded to eight tables per immutable road graph.
+
+## Accord story events
+
+- The Accord starts each fresh run at −$1,000 for winter tires and celebrates
+  once when its run fare becomes positive. Its occupied passenger trips pause
+  once around the canonical route midpoint for a quantum fact and passenger
+  reply. Cards preserve visible game margins and freeze all simulation and trip
+  time until a fresh tap, click, key or gamepad Cross. Full rules and sources:
+  [accord-events.md](accord-events.md).
 
 ## Roadside recovery
 

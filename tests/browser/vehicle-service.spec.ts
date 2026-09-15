@@ -15,7 +15,7 @@ test.beforeAll(async () => {
 });
 
 for (const backend of ["WebGPU", "WebGL", "software"] as const) {
-  test(`${backend}: both sculpted cars render from front and rear, with a working classic switch`, async ({ page }, info) => {
+  test(`${backend}: all three sculpted cars render from front and rear, with a working Crown classic switch`, async ({ page }, info) => {
     const errors: string[] = [];
     page.on("pageerror", error => errors.push(error.message));
     page.on("console", message => { if (message.type() === "error") errors.push(message.text()); });
@@ -29,13 +29,13 @@ for (const backend of ["WebGPU", "WebGL", "software"] as const) {
     });
     await openScenePage(page, bundle);
     await page.evaluate(backend => window.vehicleServiceScene.mount(backend === "WebGPU" ? "WebGPU" : "Canvas 2D"), backend);
-    for (const id of ["accord-v6", "crown-cab"] as const) {
+    for (const id of ["accord-v6", "crown-cab", "gtr-r35"] as const) {
       await page.evaluate(id => window.vehicleServiceScene.model(id, "classic"), id);
       const classic = await page.locator("canvas").screenshot();
       await page.evaluate(id => window.vehicleServiceScene.model(id, "detailed"), id);
       await expect(page.locator("canvas")).toHaveAttribute("data-vehicle-detail", "detailed");
       const detailed = await page.locator("canvas").screenshot({ path: info.outputPath(`${id}-front.png`) });
-      expect(detailed.equals(classic)).toBe(false);
+      expect(detailed.equals(classic)).toBe(id !== "crown-cab");
       await page.evaluate(id => window.vehicleServiceScene.model(id, "detailed", Math.PI), id);
       await page.locator("canvas").screenshot({ path: info.outputPath(`${id}-rear.png`) });
     }
@@ -121,11 +121,11 @@ for (const mobile of [false, true]) test.describe(mobile ? "phone garage" : "des
     await expect(page.locator(".arcade-shell.mode-playing")).toBeVisible({ timeout: 30_000 });
     await page.getByRole("button", { name: "Pause game", exact: true }).click();
     await page.getByRole("button", { name: /^GAME OPTIONS/ }).click();
-    const accord = page.getByRole("combobox", { name: "ACCORD V6 model quality" });
+    const accord = page.getByLabel("ACCORD V6 model", { exact: true });
     const crown = page.getByRole("combobox", { name: "CROWN CAB model quality" });
-    await accord.selectOption("detailed");
+    await expect(accord).toHaveText("Balanced coupe");
     await expect(crown).toHaveValue("classic");
-    await expect(page.locator(".game-canvas.is-active")).toHaveAttribute("data-vehicle-detail", "detailed");
+    await expect(page.getByLabel("GT-R model", { exact: true })).toHaveText("Black R35 coupe");
     await expect(page.locator(".game-canvas").nth(mobile ? 0 : 1)).toHaveClass(/is-active/);
     await crown.selectOption("detailed");
     await accord.scrollIntoViewIfNeeded();
@@ -133,7 +133,7 @@ for (const mobile of [false, true]) test.describe(mobile ? "phone garage" : "des
     await page.reload();
     await page.getByRole("button", { name: "OPTIONS", exact: true }).first().click();
     await page.getByRole("button", { name: /^GAME OPTIONS/ }).click();
-    await expect(accord).toHaveValue("detailed");
+    await expect(accord).toHaveText("Balanced coupe");
     await expect(crown).toHaveValue("detailed");
     expect(errors).toEqual([]);
   });

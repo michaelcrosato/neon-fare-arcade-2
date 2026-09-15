@@ -88,7 +88,7 @@ export function recoverToRoad(game: Game, worldAt?: (point: WorldPoint) => World
     collisionCooldown: Math.max(game.collisionCooldown, 1), interactionHeld: false });
   game.roadMotion = { ...makeVehicleRoadMotion(), roadId: pose.roadId, pitch: pose.pitch, roll: pose.roll };
   game.arcadeVehicle = makeArcadeVehicleState();
-  game.simulationVehicle = makeSimulationVehicleState();
+  game.simulationVehicle = makeSimulationVehicleState(game.vehicleId);
   game.player = { kind: "driving" };
   if (game.activeCourier?.stage === "dropoff") game.activeCourier.loadedInTaxi = true;
   game.particles = [];

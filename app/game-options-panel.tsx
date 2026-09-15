@@ -14,6 +14,8 @@ import type { SteeringMode, WheelRange } from "./runtime/touch-driving";
 import { SteeringWheelRange } from "./steering-wheel-range";
 import { useMobileLayout } from "./use-mobile-layout";
 import { AudioOptions } from "./audio-options";
+import { FullscreenControl } from "./fullscreen-control";
+import { DesktopControls } from "./desktop-controls";
 
 export type GameOptionsPanelProps = {
   tab: "game" | "dev";
@@ -81,7 +83,9 @@ export function GameOptionsPanel({
 
       {tab === "game" ? (
         <div className="game-settings-content">
+          <FullscreenControl />
           <AudioOptions />
+          {!isMobile && <DesktopControls />}
 
           {isMobile && (
           <fieldset className="game-options-section">

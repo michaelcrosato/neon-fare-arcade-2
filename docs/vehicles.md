@@ -1,10 +1,10 @@
 # Garage and driving
 
 The garage has three bays: the original yellow Crown Cab, a white 2015 Honda
-Accord Coupe V6, and one empty bay. Vehicle choice is run-scoped and separate
-from Street Ace, Drift Demon and Redline Rush. Both vehicles work in Arcade
+Accord Coupe V6, and a black North American 2012 Nissan GT-R. Vehicle choice is run-scoped and separate
+from Street Ace, Drift Demon and Redline Rush. All three vehicles work in Arcade
 Shift, Arcade Free Run and Simulation Free Run. Shifting defaults to Automatic
-in every mode. The Accord card also offers Manual in every mode.
+in every mode. The Accord card also offers Manual in every mode. The GT-R is automatic only.
 
 Each setup stage is its own screen: Arcade Shift and Free Run use Vehicle →
 Edge → Steering; Simulation keeps its physical chassis and uses Vehicle →
@@ -27,8 +27,10 @@ without repeated tail rebounds. Both Arcade run kinds share this handling.
 The Accord is a cared-for, lightly worn ninth-generation two-door coupe with
 154,298 km, a 3.5L V6 that feels closer to 300 hp, and a six-speed
 manual gearbox driving the front axle. Its winter tires have softer dry-road
-grip and carry the owner's “still being financed” description. Financing is
-vehicle backstory. K&N, Brembo and Injen stickers are cosmetic; they do not
+grip and begin each run with $1,000 of financing in the run balance. A paused
+event card celebrates the first positive balance. Its driver also shares a
+quantum fact halfway through each passenger trip; see [accord-events.md](accord-events.md).
+K&N, Brembo and Injen stickers are cosmetic; they do not
 claim a specific fitted parts list or individually add power.
 
 The garage's **Read the Accord's Story** opens the comic poster at
@@ -56,6 +58,25 @@ provides the gearbox ratios. That download includes later model equipment;
 the modeled body uses the 2015 pre-facelift coupe shape.
 
 ## Clutch and shifting
+
+The GT-R uses a dedicated six-speed automatic dual-clutch model and rear-biased
+AWD drive forces in Simulation. Its North American model-year 2012 reference
+has a 3.8L twin-turbo V6, 530 hp and 448 lb-ft, as described in the
+[Nissan North America brochure](https://www.guide-autosport.com/wp-content/uploads/2014/01/Nissan_US-GT-R_2012.pdf).
+Loaded mass, tire response, torque interpolation, shifts and a 315 km/h outer
+ceiling are authored game approximations. The AWD split applies drive demand
+to both finite axle friction circles. It has no Accord clutch fault or manual
+selector. Arcade uses its own stronger launch and planted handling, with a
+285 km/h ordinary ceiling and 315 km/h boost ceiling. Damage, fuel and shoulder
+penalties still apply. Cruise follows the corresponding ordinary limit.
+
+The renderer-neutral black R35 model includes a coupe glasshouse, bonnet vents,
+four circular rear lamps, stock wing and four steering/road-attached wheels.
+Both detail settings use it, inside the existing 2,048-face vehicle mesh budget.
+WebGPU, WebGL and software Canvas share that geometry. No taxi roof sign or
+checker stripe is added. Existing saves initialize its own full fuel tank.
+
+### Accord clutch and shifting
 
 - Automatic assists the same six-speed gearbox. Gas selects forward drive;
   hold brake through a stop to reverse. It shifts up and down on its own.

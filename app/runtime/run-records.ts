@@ -12,7 +12,7 @@ export function normalizeRunRecords(raw: unknown): RunRecord[] {
     if (!entry || typeof entry !== "object") continue;
     const row = entry as Partial<RunRecord>;
     if (!isNonnegativeNumber(row.score)
-      || !isNonnegativeNumber(row.fare)
+      || typeof row.fare !== "number" || !Number.isFinite(row.fare) || row.fare < -1_000
       || !isNonnegativeNumber(row.deliveries)
       || typeof row.rank !== "string"
       || typeof row.date !== "string") continue;
