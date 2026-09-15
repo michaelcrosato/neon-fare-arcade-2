@@ -144,9 +144,16 @@ updates the arcade launch, steering, road elevation and contact rules below.
   Manual Accord acceleration in both driving models depends on engine torque,
   selected ratio, final drive, loaded mass and winter-tire traction. Arcade
   retains its steering and slides; its manual coupe uses physical longitudinal
-  force and the coupe's 223 km/h governor. Each gear's 6800 RPM limiter also
-  limits boost, so first/second reach approximately 61/97 km/h. Automatic
-  Arcade handling and the Crown's existing speed ceilings are unchanged.
+  force. First through fourth retain their existing acceleration; Automatic
+  Arcade adopts the same physical longitudinal model in fifth/sixth, with
+  roughly eight-second sixth-gear passing acceleration (see `docs/vehicles.md`).
+  The coupe's 6800 RPM ratio ceilings are approximately 61/97/142/193/247/313
+  km/h in either shifting mode, including boost. It has no shared taxi speed
+  cap; unboosted high-speed pull tapers with aero drag. Automatic shifts from
+  fifth to sixth at 6200 RPM under full throttle. Cruise uses the coupe's
+  attainable unboosted sixth-gear speed. Top-gear shoulder/damage penalties use attainable
+  torque/drag equilibrium as their reference. Arcade handling and the Crown's existing
+  speed ceilings are unchanged.
   Setup uses separate Vehicle → Edge → Steering screens on desktop and mobile.
   Simulation retains its physics and uses Vehicle → Steering. Only locking
   steering starts the countdown; Back and Escape preserve the draft vehicle

@@ -52,6 +52,7 @@ export const CROWN_TAXI_SPECS = {
 
 const GRAVITY = 9.81;
 const AIR_DENSITY = 1.225;
+const GOVERNOR_TAPER_MPS = 3.2;
 const WORLD_SPEED_TO_MPS = SPEED_KMH_PER_WORLD_UNIT / 3.6;
 const MPS_TO_WORLD_SPEED = 1 / WORLD_SPEED_TO_MPS;
 const MAX_STEER_RADIANS = 0.56;
@@ -190,8 +191,13 @@ export function applySimulationGroundImpulse(
   game.simulationVehicle.rollRate = clamp(game.simulationVehicle.rollRate, -7.5, 7.5);
 }
 
-function engineTorqueNm(rpm: number, accord: boolean) {
-  const points = accord ? [
+function engineTorqueNm(rpm: number, accord: boolean, gear: SimulationGear) {
+  // Fifth/sixth roll-on calibration: C/D's 2016 V6 6MT measured about 8 s
+  // for both 30–50 and 50–70 mph in sixth (sources in docs/vehicles.md).
+  // Preserve first–fourth's existing tune and the custom 300 hp power peak.
+  const points = accord ? gear >= 5 ? [
+    [750, 175], [1_000, 290], [1_500, 310], [3_000, 350], [4_900, 365], [6_200, 344.6], [6_800, 285],
+  ] : [
     [750, 175], [1_500, 245], [3_000, 310], [4_900, 365], [6_200, 344.6], [6_800, 285],
   ] : [
     [650, 235],
@@ -212,14 +218,14 @@ function engineTorqueNm(rpm: number, accord: boolean) {
   return points.at(-1)![1];
 }
 
-/** SI longitudinal force for the manual coupe in Arcade; steering stays arcade. */
+/** SI force for the manual coupe and automatic fifth/sixth; steering stays arcade. */
 export function accordManualAcceleration(speedMps: number, gear: SimulationGear, throttle: number, connected: boolean, onRoad: boolean) {
   const specs = ACCORD_V6_SPECS;
   const ratio = gear === -1 ? specs.reverseGearRatio : specs.forwardGearRatios[gear];
   const coupledRpm = accordCoupledRpm(speedMps, gear);
   const rpm = Math.max(specs.idleRpm, coupledRpm, Math.abs(speedMps) < 1.2 ? specs.idleRpm + throttle * 1_450 : 0);
   const limiter = clamp((specs.redlineRpm - coupledRpm) / 120, 0, 1);
-  const drive = connected ? engineTorqueNm(rpm, true) * ratio * specs.finalDriveRatio
+  const drive = connected ? engineTorqueNm(rpm, true, gear) * ratio * specs.finalDriveRatio
     * specs.drivelineEfficiency / specs.wheelRadiusM * throttle * limiter : 0;
   const friction = onRoad ? specs.roadFriction : specs.offroadFriction;
   // Solve front-axle grip with longitudinal load transfer (FWD, winter tires).
@@ -229,6 +235,22 @@ export function accordManualAcceleration(speedMps: number, gear: SimulationGear,
   const aero = 0.5 * AIR_DENSITY * specs.dragCoefficient * specs.frontalAreaM2 * speedMps ** 2;
   const engineBrake = connected && throttle === 0 && Math.abs(speedMps) > 0.35 ? 180 * ratio : 0;
   return (Math.sign(gear) * Math.min(drive, traction) - Math.sign(speedMps) * (rolling + aero + engineBrake)) / specs.massKg;
+}
+
+// Solve once, without simulation state: penalties must lower attainable road
+// speed, not a redline ceiling the unboosted car cannot reach against air drag.
+const ACCORD_TOP_GEAR_ROAD_SPEEDS = ([5, 6] as const).map(gear => {
+  let low = 0, high = ACCORD_V6_SPECS.governedTopSpeedMps;
+  for (let step = 0; step < 40; step++) {
+    const speed = (low + high) / 2;
+    if (accordManualAcceleration(speed, gear, 1, true, true) > 0) low = speed;
+    else high = speed;
+  }
+  return (low + high) / 2;
+});
+
+export function accordUnboostedSpeedLimitMps(gear: SimulationGear) {
+  return gear >= 5 ? ACCORD_TOP_GEAR_ROAD_SPEEDS[gear - 5] : ACCORD_V6_SPECS.governedTopSpeedMps;
 }
 
 function automaticGear(state: SimulationVehicleState, speedMps: number) {
@@ -572,15 +594,20 @@ function stepSimulationSubstep(
 
   const driveDirection = state.gear === -1 ? -1 : 1;
   const speedInDriveDirection = longitudinal * driveDirection;
+  const penalizedTopGear = accord && state.gear >= 5
+    && (game.damage.lossKmh > 0 || grounded && game.offroadSpeedPenaltyKmh > 0);
+  // Keep the usual force-governor taper above the attainable speed reference.
+  const forwardSpeedLimit = penalizedTopGear
+    ? accordUnboostedSpeedLimitMps(state.gear) + GOVERNOR_TAPER_MPS : specs.governedTopSpeedMps;
   const speedLimit = state.gear === -1
     ? specs.governedReverseSpeedMps
-    : specs.governedTopSpeedMps - (grounded ? game.offroadSpeedPenaltyKmh / 3.6 : 0);
+    : forwardSpeedLimit - (grounded ? game.offroadSpeedPenaltyKmh / 3.6 : 0);
   const damagedSpeedLimit = damageSpeedLimit(game, speedLimit * 3.6) / 3.6;
-  const governor = clamp((damagedSpeedLimit - speedInDriveDirection) / Math.min(3.2, damagedSpeedLimit * .5), 0, 1);
+  const governor = clamp((damagedSpeedLimit - speedInDriveDirection) / Math.min(GOVERNOR_TAPER_MPS, damagedSpeedLimit * .5), 0, 1);
   const converterMultiplication = !accord && state.gear === 1
     ? 1 + 0.62 * (1 - clamp(Math.abs(longitudinal) / 8.5, 0, 1))
     : 1;
-  const driveDemand = state.overturned || !connected ? 0 : engineTorqueNm(state.engineRpm, accord)
+  const driveDemand = state.overturned || !connected ? 0 : engineTorqueNm(state.engineRpm, accord, state.gear)
     * gearRatio
     * specs.finalDriveRatio
     * specs.drivelineEfficiency
@@ -690,8 +717,9 @@ function stepSimulationSubstep(
   // The governor limits engine force, not collision or spin momentum.
   // In particular, sliding backward in Drive must not hit the reverse cap.
   const totalPlanarSpeed = Math.hypot(longitudinal, lateral);
-  if (totalPlanarSpeed > 65) {
-    const safetyScale = 65 / totalPlanarSpeed;
+  const safetySpeedMps = Math.max(65, specs.governedTopSpeedMps * 1.2);
+  if (totalPlanarSpeed > safetySpeedMps) {
+    const safetyScale = safetySpeedMps / totalPlanarSpeed;
     longitudinal *= safetyScale;
     lateral *= safetyScale;
   }

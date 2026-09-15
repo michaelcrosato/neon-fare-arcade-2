@@ -8,12 +8,12 @@ import { stepGame } from "../../game/simulation";
 import { makeTestWorld, TEST_IDLE_INPUT } from "./support/fixtures";
 
 const world = makeTestWorld();
-test("the manual coupe's cruise range follows its physical governor in both models", () => {
-  for (const model of ["arcade", "simulation"] as const) {
-    const game = makeGame("street-ace", 42, "free-run", model, "accord-v6", "manual");
-    assert.equal(cruiseSpeedLimit(game), 223);
-    setCruiseControl(game, 300);
-    assert.equal(Math.round(game.cruiseControl!.speed * SPEED_KMH_PER_WORLD_UNIT), 223);
+test("the coupe's cruise range follows attainable unboosted speed in both models and shifting modes", () => {
+  for (const model of ["arcade", "simulation"] as const) for (const mode of ["automatic", "manual"] as const) {
+    const game = makeGame("street-ace", 42, "free-run", model, "accord-v6", mode);
+    assert.equal(cruiseSpeedLimit(game), 267);
+    setCruiseControl(game, 400);
+    assert.equal(Math.round(game.cruiseControl!.speed * SPEED_KMH_PER_WORLD_UNIT), 267);
   }
 });
 function cab(model: DrivingModel = "arcade") {

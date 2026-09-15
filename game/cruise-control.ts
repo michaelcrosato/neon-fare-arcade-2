@@ -2,13 +2,14 @@ import { SPEED_KMH_PER_WORLD_UNIT } from "./config";
 import { drivingTraitPackage } from "./driving-traits";
 import { clamp } from "./math";
 import type { CruisePedals, Game, InputState } from "./model";
-import { simulationVehicleSpecs } from "./simulation-vehicle";
+import { accordUnboostedSpeedLimitMps, simulationVehicleSpecs } from "./simulation-vehicle";
 import { damageSpeedLimit } from "./vehicle-damage";
 
 export const MIN_CRUISE_KMH = 10;
 
 export function cruiseSpeedLimit(game: Pick<Game, "drivingModel" | "drivingTraitId" | "vehicleId" | "transmissionMode"> & Partial<Pick<Game, "damage">>) {
-  return Math.floor(damageSpeedLimit(game, game.drivingModel === "simulation" || game.vehicleId === "accord-v6" && game.transmissionMode === "manual"
+  return Math.floor(damageSpeedLimit(game, game.vehicleId === "accord-v6"
+    ? accordUnboostedSpeedLimitMps(6) * 3.6 : game.drivingModel === "simulation"
     ? simulationVehicleSpecs(game.vehicleId).governedTopSpeedMps * 3.6
     : drivingTraitPackage(game.drivingTraitId).modifiers.maxForwardSpeed * SPEED_KMH_PER_WORLD_UNIT));
 }

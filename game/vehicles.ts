@@ -1,7 +1,6 @@
 import type { VehicleId } from "./model";
 
 export const DEFAULT_VEHICLE_ID: VehicleId = "crown-cab";
-export const VEHICLE_GOVERNED_SPEED_KMH: Record<VehicleId, number> = { "crown-cab": 53 * 3.6, "accord-v6": 62 * 3.6 };
 export const VEHICLES = [
   {
     id: "crown-cab", name: "Crown Cab ’96", shortName: "CROWN CAB", number: "01",
@@ -29,3 +28,11 @@ export const ACCORD_GEARS = [0, 3.933, 2.478, 1.7, 1.25, 0.976, 0.771] as const;
 export const ACCORD_FINAL_DRIVE = 3.55;
 export const ACCORD_WHEEL_RADIUS_M = 0.334;
 export const ACCORD_REDLINE_RPM = 6_800;
+
+// The custom coupe has no shared taxi governor: sixth's redline is the outer
+// ceiling. Engine power and aero drag determine its lower unboosted top speed.
+export const VEHICLE_GOVERNED_SPEED_KMH: Record<VehicleId, number> = {
+  "crown-cab": 53 * 3.6,
+  "accord-v6": ACCORD_REDLINE_RPM * 2 * Math.PI * ACCORD_WHEEL_RADIUS_M * 3.6
+    / (60 * ACCORD_GEARS[6] * ACCORD_FINAL_DRIVE),
+};

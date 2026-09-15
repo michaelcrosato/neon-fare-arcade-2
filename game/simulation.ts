@@ -39,7 +39,7 @@ import { scheduleSixthFareTransfer } from "./regional-fares";
 import { SPEED_KMH_PER_WORLD_UNIT } from "./config";
 import { vehicleDefinition } from "./vehicles";
 import { accordCoupledRpm, accordGearSpeedLimitMps, clutchConnected, stepManualTransmission } from "./manual-transmission";
-import { ACCORD_V6_SPECS, accordManualAcceleration } from "./simulation-vehicle";
+import { ACCORD_V6_SPECS, accordManualAcceleration, accordUnboostedSpeedLimitMps } from "./simulation-vehicle";
 import { stepOffroadSpeedLimit } from "./offroad-speed";
 import { stepDrivingStunts } from "./driving-stunts";
 import { damageSpeedLimit, recordVehicleContacts, stepRepairLot } from "./vehicle-damage";
@@ -330,8 +330,9 @@ export function stepGame(
   const groundTraction = game.roadMotion.grounded ? 1 : 0.08;
   const launchAcceleration = 20 + 3.5 * (1 - clamp(Math.abs(forwardSpeed) / 24, 0, 1));
   const gear = game.transmission.gear;
+  const physicalAcceleration = manual || accord && gear >= 5;
   const rpm = accordCoupledRpm(forwardSpeed * SPEED_KMH_PER_WORLD_UNIT / 3.6, gear);
-  if (manual) forwardSpeed += accordManualAcceleration(forwardSpeed * SPEED_KMH_PER_WORLD_UNIT / 3.6,
+  if (physicalAcceleration) forwardSpeed += accordManualAcceleration(forwardSpeed * SPEED_KMH_PER_WORLD_UNIT / 3.6,
     gear, throttle, connected, isRoadSurface(game)) * 3.6 / SPEED_KMH_PER_WORLD_UNIT * groundTraction * dt;
   else if (throttle && connected && !(accord && gear < 0)) forwardSpeed += launchAcceleration * drivingTrait.throttleMultiplier
     * vehicle.acceleration * groundTraction * throttle * dt;
@@ -346,7 +347,7 @@ export function stepGame(
 
   game.boosting = hasFuel(game) && controlInput.boost && connected && (!manual || gear > 0) && game.boost > 0 && forwardSpeed > 3;
   if (game.boosting) {
-    forwardSpeed += 24 * drivingTrait.boostAccelerationMultiplier * (manual ? clamp((ACCORD_V6_SPECS.redlineRpm - rpm) / 120, 0, 1) : 1) * (game.roadMotion.grounded ? 1 : 0.35) * dt;
+    forwardSpeed += 24 * drivingTrait.boostAccelerationMultiplier * (accord ? clamp((ACCORD_V6_SPECS.redlineRpm - rpm) / 120, 0, 1) : 1) * (game.roadMotion.grounded ? 1 : 0.35) * dt;
     const coolerDrain = hasRunUpgrade(game, "boost-cooler") ? BOOST_COOLER_DRAIN_MULTIPLIER : 1;
     game.boost = Math.max(0, game.boost - 30 * drivingTrait.boostDrainMultiplier * coolerDrain * dt);
   }
@@ -509,18 +510,21 @@ export function stepGame(
     lateralSpeed,
     Math.max(1, Math.abs(forwardSpeed)),
   );
-  const drag = (manual ? 0 : 1.55 + Math.abs(forwardSpeed) * 0.022) + Math.abs(game.brakeDriftKick) * 3.5;
+  const drag = (physicalAcceleration ? 0 : 1.55 + Math.abs(forwardSpeed) * 0.022) + Math.abs(game.brakeDriftKick) * 3.5;
   forwardSpeed -= Math.sign(forwardSpeed) * Math.min(Math.abs(forwardSpeed), drag * dt);
   const overdriveActive = game.boosting && hasRunUpgrade(game, "boost-overdrive");
   const requestedMaxSpeed = overdriveActive
     ? drivingTrait.maxBoostSpeed + BOOST_OVERDRIVE_BONUS_WORLD_UNITS
     : (game.boosting ? drivingTrait.maxBoostSpeed : drivingTrait.maxForwardSpeed);
-  const vehicleSpeedLimit = (manual ? ACCORD_V6_SPECS.governedTopSpeedMps * 3.6 / SPEED_KMH_PER_WORLD_UNIT : Math.min(
+  const penalizedTopGear = accord && gear >= 5 && !game.boosting
+    && (game.damage.lossKmh > 0 || game.roadMotion.grounded && game.offroadSpeedPenaltyKmh > 0);
+  const accordSpeedLimit = penalizedTopGear ? accordUnboostedSpeedLimitMps(gear) : ACCORD_V6_SPECS.governedTopSpeedMps;
+  const vehicleSpeedLimit = (accord ? accordSpeedLimit * 3.6 / SPEED_KMH_PER_WORLD_UNIT : Math.min(
     overdriveActive ? BOOST_OVERDRIVE_TOP_SPEED_WORLD_UNITS : TAXI_TOP_SPEED_WORLD_UNITS,
     requestedMaxSpeed,
   )) - (game.roadMotion.grounded ? game.offroadSpeedPenaltyKmh / SPEED_KMH_PER_WORLD_UNIT : 0);
   const damagedLimit = damageSpeedLimit(game, vehicleSpeedLimit * SPEED_KMH_PER_WORLD_UNIT) / SPEED_KMH_PER_WORLD_UNIT;
-  const maxSpeed = manual && connected && gear > 0
+  const maxSpeed = accord && connected && gear > 0
     ? Math.min(damagedLimit, accordGearSpeedLimitMps(gear) * 3.6 / SPEED_KMH_PER_WORLD_UNIT)
     : damagedLimit;
   forwardSpeed = clamp(forwardSpeed, -damageSpeedLimit(game, 7 * SPEED_KMH_PER_WORLD_UNIT) / SPEED_KMH_PER_WORLD_UNIT, maxSpeed);

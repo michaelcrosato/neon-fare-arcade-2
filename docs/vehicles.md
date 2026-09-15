@@ -55,9 +55,28 @@ the modeled body uses the 2015 pre-facelift coupe shape.
   its steering/slides but replaces the generic arcade acceleration and drag
   with SI drive force and road/aero resistance. First/second reach roughly
   61/97 km/h at 6800 RPM; third/fourth have ratio ceilings near 142/193 km/h.
-  Fifth/sixth are also subject to the authored 223 km/h vehicle governor and
-  drag, not a promise of reaching their theoretical redline speeds. Boost
-  cannot bypass a gear's limiter. Automatic Arcade and Crown tuning is retained.
+  Fifth/sixth have ratio ceilings near 247/313 km/h. The coupe no longer uses
+  the shared Arcade taxi cap or its former 223 km/h governor. Aero drag and
+  available engine torque determine its lower unboosted top speed; sixth's
+  redline is the outer ceiling, not a promised flat-road speed. Boost cannot
+  bypass any gear's limiter, including with automatic shifting.
+- First through fourth retain their previous acceleration in each driving and
+  shifting mode. Automatic Arcade keeps its quick lower gears, then uses the
+  same SI engine/road resistance model as Manual in fifth and sixth. The
+  automatic full-throttle fifth-to-sixth shift now occurs at 6200 RPM, near
+  225 km/h, instead of the old early shift near 204 km/h.
+- Fifth/sixth's low- and mid-RPM torque is calibrated against the same-generation
+  [Car and Driver V6 six-speed manual test](https://www.caranddriver.com/reviews/a15103674/2016-honda-accord-coupe-v-6-manual-test-review/):
+  sixth takes about eight seconds for both 30–50 and 50–70 mph (48–80 and
+  80–113 km/h), without downshifting. Fifth's roughly 5–6-second 50–70 mph
+  target is derived from the shared torque and its shorter ratio; it is not a
+  separate published measurement. The high-RPM custom 300 hp peak is retained.
+  These are unboosted, healthy-car, flat-road targets. The source car's factory
+  governor is not applied to this custom game car. Crown tuning stays unchanged.
+  In unboosted fifth/sixth, shoulder and damage penalties lower the attainable
+  speed calculated from that torque/drag balance, so they remain effective
+  below the theoretical redline ceiling. Simulation retains its gradual
+  drive-force governor rather than clipping slide momentum.
 - The shift lamp lights at 6200 RPM when a forward upshift is available.
   VTEC lights under throttle from 4900 RPM with the clutch connected. This
   crossover is an authored approximation for the custom tune, not a factory

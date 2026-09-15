@@ -229,7 +229,9 @@ test("simulation uses the same gradual shoulder ceiling for both cars", () => {
   for (const id of ["crown-cab", "accord-v6"] as const) {
     const game = makeGame("street-ace", 91, "free-run", "simulation", id);
     const drive = (onRoad: boolean) => {
-      for (let i = 0; i < 3600; i++) stepSimulationVehicle(game,
+      // The coupe's taller sixth needs a longer pull to reach aero equilibrium.
+      const seconds = id === "accord-v6" ? 240 : 60;
+      for (let i = 0; i < seconds / FIXED_DT; i++) stepSimulationVehicle(game,
         { ...IDLE, up: true, clutch: game.transmission.stuck && i % 2 === 0 }, FIXED_DT, onRoad);
     };
     drive(true);

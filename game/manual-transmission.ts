@@ -88,7 +88,7 @@ export function stepManualTransmission(game: Game, input: Readonly<InputState>, 
     else if (state.gear < 1) next = state.gear;
     else {
       const rpm = accordCoupledRpm(forwardSpeed, state.gear);
-      const shiftRpm = input.up ? (state.gear === 5 ? 5_600 : 6_200) : 3_600;
+      const shiftRpm = input.up ? 6_200 : 3_600;
       if (rpm > shiftRpm && state.gear < 6) next = (state.gear + 1) as SimulationGear;
       else if (rpm < (input.up ? 2_300 : 1_600) && state.gear > 1) next = (state.gear - 1) as SimulationGear;
     }
