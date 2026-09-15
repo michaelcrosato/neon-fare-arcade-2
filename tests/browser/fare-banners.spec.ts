@@ -59,15 +59,16 @@ async function checkBanner(page: Page, card: Locator) {
   await expect(sequence).toHaveCSS("animation-name", "none");
   await expect(sequence).toBeInViewport({ ratio: 1 });
   const box = (await sequence.boundingBox())!;
-  expect(box.width * box.height).toBeGreaterThan(stage.width * stage.height * .13);
+  expect(box.width * box.height).toBeGreaterThan(stage.width * stage.height * (desktop ? .09 : .2));
   if (desktop) {
     expect(box.width).toBeCloseTo((stage.width - 24) / 2, 0);
     expect(box.x + box.width / 2).toBeCloseTo(stage.x + stage.width / 2, 0);
-    expect(box.height).toBeLessThanOrEqual((stage.height - 16) * .38);
+    expect(box.height).toBeLessThanOrEqual((stage.height - 16) * .24);
   }
   await expect(card.locator(".fare-impact__copy > strong")).toBeVisible();
   const art = (await card.locator(".fare-impact__art").boundingBox())!;
   expect(art.width).toBeGreaterThan(120);
+  return box;
 }
 
 for (const renderer of ["WebGPU", "Canvas"]) for (const mobile of [false, true]) {
@@ -99,7 +100,7 @@ for (const renderer of ["WebGPU", "Canvas"]) for (const mobile of [false, true])
       await page.clock.runFor(32);
       const pickup = page.locator(".fare-impact--pickup");
       await expect(pickup.locator(".fare-impact__sprite")).toHaveCSS("background-image", /fare-passengers/);
-      await checkBanner(page, pickup);
+      const pickupFrame = await checkBanner(page, pickup);
       await page.screenshot({ path: info.outputPath("passenger-banner.png") });
       if (mobile) {
         await page.setViewportSize({ width: 844, height: 390 });
@@ -128,7 +129,7 @@ for (const renderer of ["WebGPU", "Canvas"]) for (const mobile of [false, true])
       await presentUntilVisible(page, dropoff.locator(".fare-card-occasion"));
       await expect(dropoff).toContainText("STADIUM CONCERT");
       await expect(dropoff.locator(".fare-impact__sprite")).toHaveCSS("background-image", /fare-destinations-7/);
-      await checkBanner(page, dropoff);
+      expect(await checkBanner(page, dropoff)).toEqual(pickupFrame);
       await page.screenshot({ path: info.outputPath("destination-banner.png") });
       // The normal fixed-step dwell can create the card within the last 100 ms frame.
       await page.clock.fastForward(2700);

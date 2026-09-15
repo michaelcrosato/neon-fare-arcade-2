@@ -73,7 +73,9 @@ async function start(page: Page, renderer: string, model: string, manual: boolea
   await page.clock.fastForward(3500);
   await page.clock.runFor(100);
   await expect(page.locator(".arcade-shell.mode-playing")).toBeVisible({ timeout: SCENE_START_TIMEOUT });
-  await expect(page.getByLabel("Accord transmission", { exact: true })).toBeVisible();
+  if (manual || !await page.evaluate(() => matchMedia("(max-width: 820px), (pointer: coarse)").matches)) {
+    await expect(page.getByLabel("Accord transmission", { exact: true })).toBeVisible();
+  } else await expect(page.getByLabel("Accord transmission", { exact: true })).toHaveCount(0);
 }
 
 async function currentGame(page: Page): Promise<Game> {
@@ -138,29 +140,32 @@ for (const renderer of ["WebGPU", "Canvas"]) for (const model of ["arcade", "sim
       await start(page, renderer, model, false);
       const cdp = await context.newCDPSession(page);
       const clutch = page.getByRole("button", { name: /^Clutch\. Hold Shift/ });
-      const status = page.locator(".transmission-controls__status");
-      async function pump(gas = false) {
-        const box = (await (gas ? page.getByRole("button", { name: "Accelerate", exact: true }) : clutch).boundingBox())!;
+      const notice = page.locator(".mobile-notice");
+      async function pumpGas() {
+        const box = (await page.getByRole("button", { name: "Accelerate", exact: true }).boundingBox())!;
         await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: box.x + box.width / 2, y: box.y + box.height / 2, id: 1 }] });
         await advance(page, 100);
         await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
         await advance(page, 100);
       }
-      await expect(status).toContainText("AUTO SHIFT");
+      await expect(clutch).toHaveCount(0);
       await expect(page.getByRole("button", { name: /Shift up\. X key/ })).toHaveCount(0);
-      await pump();
-      await expect(status).toContainText("CLUTCH STUCK · 3 PUMPS");
-      await page.screenshot({ path: test.info().outputPath("clutch-stuck.png") });
+      // Force the deterministic first engagement, then recover using only the phone's gas pedal.
+      await page.keyboard.down("Shift"); await advance(page, 100);
+      await page.keyboard.up("Shift"); await advance(page, 100);
+      await expect(notice).toContainText("CLUTCH STUCK · TAP GAS 3 MORE");
+      await expect(clutch).toHaveCount(0);
+      await page.screenshot({ path: test.info().outputPath("automatic-gas-recovery.png") });
       for (let left = 2; left >= 0; left--) {
-        await pump(true);
-        if (left) await expect(status).toContainText(`CLUTCH STUCK · ${left} PUMPS`);
+        await pumpGas();
+        if (left) await expect(notice).toContainText("CLUTCH STUCK · TAP GAS " + left + " MORE");
       }
-      await expect(status).toContainText("ACCORD V6");
+      await expect(notice).not.toContainText("CLUTCH STUCK");
       await page.setViewportSize({ width: 844, height: 390 });
       await advance(page, 150);
-      await expect(clutch).toBeInViewport({ ratio: 1 });
-      const clutchBox = (await clutch.boundingBox())!, pedals = (await page.locator(".mobile-pedals").boundingBox())!;
-      expect(clutchBox.x + clutchBox.width).toBeLessThan(pedals.x);
+      await expect(clutch).toHaveCount(0);
+      await expect(page.getByLabel("Accord transmission", { exact: true })).toHaveCount(0);
+      await expect(page.getByRole("button", { name: "Accelerate", exact: true })).toBeInViewport({ ratio: 1 });
       await page.screenshot({ path: test.info().outputPath("accord-landscape.png") });
       const game = await currentGame(page);
       expect(game.vehicleId).toBe("accord-v6");

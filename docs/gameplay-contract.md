@@ -31,15 +31,13 @@ updates the arcade launch, steering, road elevation and contact rules below.
   browser supports it. The full dynamic viewport, safe-area padding, and active
   playfield gesture protection prevent document scrolling, pull-to-refresh,
   pinch zoom, and long-press menus during driving. Paused menus remain scrollable.
-- Desktop pickup and dropoff cards share a horizontally centered banner at half
-  the safe playfield width, capped at 38% of its height. They shorten to clear
-  the projected cab and departure/arrival arrow instead of moving to the side.
-  Mobile cards keep the largest readable top-anchored rectangle, capped at 64%
-  of the playfield height. Placement follows the actual camera, zoom, road pose,
-  viewport and safe areas, preserving 18 pixels of clearance. If a close
-  first-person arrow reaches the top edge, use the clear gap below it.
-  Mobile distance labels share their projected placement with
-  the fitter. Each card lasts three seconds total:
+- Pickup and dropoff cards use the same compact, top-centered horizontal frame
+  for a given safe viewport. Desktop uses half the width and at most 24% of
+  the height. Mobile portrait uses the safe width; landscape uses 60%; both
+  cap height at 30% and keep a minimum 1.8:1 width/height ratio. Only resizing,
+  rotation or safe-area changes can alter that frame. Camera, zoom, road pose,
+  moving arrows, labels and card content never reflow or reposition it.
+  Each card lasts three seconds total:
   180 ms entrance, 2400 ms hold and 420 ms exit. Desktop cards slide and shrink
   into the measured deck slot below the GPS; the first card reserves the same
   landing slot. Mobile cards fade upward. Pausing freezes both the animation

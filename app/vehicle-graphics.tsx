@@ -34,11 +34,11 @@ function setDetail(id: VehicleId, detail: Detail) {
 export function VehicleGraphicsOptions() {
   const choices = useSyncExternalStore(subscribe, readSettings, () => DEFAULTS);
   return <div className="vehicle-graphics">
-    <h3>VEHICLE MODELS</h3><p>Keep the original blocky look, or choose sculpted bodywork, curved glass and round wheels in the same comic style.</p>
+    <h3>VEHICLE MODELS</h3><p>Choose the Crown Cab’s body style. The Accord uses the Balanced coupe model.</p>
     {VEHICLES.map(vehicle => <label key={vehicle.id}><b>{vehicle.shortName}</b>
-      <select aria-label={`${vehicle.shortName} model quality`} value={choices[vehicle.id]} onChange={event => setDetail(vehicle.id, event.target.value as Detail)}>
+      {vehicle.id === "accord-v6" ? <output aria-label="Accord model">Balanced coupe</output> : <select aria-label={`${vehicle.shortName} model quality`} value={choices[vehicle.id]} onChange={event => setDetail(vehicle.id, event.target.value as Detail)}>
         <option value="classic">Classic</option><option value="detailed">Detailed</option>
-      </select></label>)}
-    <small>Applies immediately. Saved for each car on this device. Detailed models use more graphics power.</small>
+      </select>}</label>)}
+    <small>Applies immediately and is saved on this device. The Detailed Crown uses more graphics power.</small>
   </div>;
 }

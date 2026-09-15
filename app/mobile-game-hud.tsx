@@ -67,7 +67,7 @@ export function MobileGameHud({ mode, hud, fareImpact, fareImpactRef, courierImp
     {mode === "playing" && hud.runKind === "free-run" && driving && onSetCruise
       && <CruiseControl hud={hud} onSetSpeed={onSetCruise} joystick={(steeringMode ?? touchDriving.getMode()) === "joystick"} />}
     {fareImpact && <FareImpactOverlay key={fareImpact.id} impact={fareImpact} overlayRef={fareImpactRef} />}
-    <TransmissionControls hud={hud} enabled={mode === "playing"} onTouch={onTouch} onInput={onTransmissionInput} />
+    {hud.transmissionMode === "manual" && <TransmissionControls hud={hud} enabled={mode === "playing"} onTouch={onTouch} onInput={onTransmissionInput} />}
     {driving && <MobileDriveControls key={steeringMode ?? touchDriving.getMode()} controller={touchDriving} enabled={mode === "playing"}
       boost={hud.boost} boosting={hud.boosting} simulation={simulation} manual={hud.vehicleId === "accord-v6" && hud.transmissionMode === "manual"} />}
     <div className="mobile-statusbar">

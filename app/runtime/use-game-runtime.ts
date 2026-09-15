@@ -52,7 +52,7 @@ import { mergeDrivingInput, type TouchDriving } from "./touch-driving";
 import { presentPassengerReview } from "./passenger-review";
 import { presentTaxiExitAction } from "./taxi-exit-action";
 import { presentNavigationDistance } from "./navigation-distance";
-import { presentFareImpact, type FareRect } from "./fare-impact-layout";
+import { presentFareImpact } from "./fare-impact-layout";
 import { MOBILE_QUERY } from "../use-mobile-layout";
 import { protectGameGestures } from "./game-display";
 
@@ -395,18 +395,16 @@ export function useGameRuntime(options: GameRuntimeOptions) {
         currentNavigation = navigationController.update(game, navigationSettingsForGame(game));
         music.update(game, modeRef.current, mutedRef.current);
         renderFrame(game, now, currentWorld, currentNavigation);
-        let navigationBadge: FareRect | undefined;
         if (navigationDistanceRef.current) {
           if (currentMode !== "playing") navigationDistanceRef.current.hidden = true;
           else {
             const bounds = canvas2d.getBoundingClientRect();
-            navigationBadge = presentNavigationDistance(navigationDistanceRef.current, game, camera, reducedMotion ? 0 : now / 1000,
+            presentNavigationDistance(navigationDistanceRef.current, game, camera, reducedMotion ? 0 : now / 1000,
               currentNavigation, bounds.width, bounds.height);
           }
         }
         if (fareImpactRef.current) {
-          presentFareImpact(fareImpactRef.current, canvas2d, game, camera, reducedMotion ? 0 : now / 1000,
-            currentNavigation, navigationBadge);
+          presentFareImpact(fareImpactRef.current, Boolean(camera.mobile));
         }
         if (taxiExitRef.current) {
           const bounds = canvas2d.getBoundingClientRect();

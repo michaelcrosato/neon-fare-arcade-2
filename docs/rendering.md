@@ -23,7 +23,7 @@ Hard budgets:
 - actors: 2,048;
 - navigation: 48;
 - ghost/occlusion pass: 96;
-- optional detailed player vehicle: 2,048 mesh faces in a separate dynamic buffer;
+- player vehicle meshes: 2,048 faces in a separate dynamic buffer;
 - camera uniform: 24 floats / 96 bytes.
 
 ## Road, terrain, and architectural surfaces
@@ -46,8 +46,9 @@ switches clear this buffer. Device loss and disposal release it with the other
 GPU resources.
 
 `game/render/detailed-vehicles.ts` caches local polygon models and transforms the
-selected car into the shared road/body frame each render. Classic remains the
-default. Detailed cars upload to a separate dynamic surface buffer; world keys,
+selected car into the shared road/body frame each render. The Accord always uses
+the supplied Balanced study (372 triangles), including when Classic is saved;
+the Crown keeps its Classic/Detailed choice. Meshes upload to a separate dynamic surface buffer; world keys,
 static surface uploads and existing box budgets stay unchanged. The surface
 pipeline and its occluded silhouette pass use the same 48-byte vertex layout.
 WebGPU, WebGL and the software rasterizer render these exact faces. Cargo and

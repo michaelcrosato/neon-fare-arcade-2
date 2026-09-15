@@ -6,7 +6,7 @@ import { GameStageHud } from "../../../app/game-stage-hud";
 import { Canvas2DRenderer } from "../../../app/canvas2d-renderer";
 import { createWebGPURenderer } from "../../../app/webgpu-renderer";
 import { presentNavigationDistance } from "../../../app/runtime/navigation-distance";
-import { fareImpactObstacles, presentFareImpact } from "../../../app/runtime/fare-impact-layout";
+import { presentFareImpact } from "../../../app/runtime/fare-impact-layout";
 import { TouchDriving } from "../../../app/runtime/touch-driving";
 import { defaultCameraBoom, MAT_MARKER } from "../../../game/config";
 import { makePickupFareImpact, makeDropoffFareImpact } from "../../../game/fare-presentation";
@@ -91,8 +91,8 @@ async function render(mode: CameraMode, scale: 1 | 2 | 4 | 8, phase: "pickup" | 
     renderer.resize();
     renderer.render(game, camera, 0, world, plan);
     ({ width, height } = canvasRef.current!.getBoundingClientRect());
-    const navigationBadge = presentNavigationDistance(badgeRef.current!, game, camera, 0, plan, width, height);
-    presentFareImpact(fareRef.current!, canvasRef.current!, game, camera, 0, plan, navigationBadge);
+    presentNavigationDistance(badgeRef.current!, game, camera, 0, plan, width, height);
+    presentFareImpact(fareRef.current!, mobile);
   }
   const cab = projectWorldPoint(viewProjection(game, camera, width / height, 1400), game.x, game.y, game.z + 1, width, height);
   const markerBoxes = farePresentationBoxes(game, 0).filter(box => box.material === MAT_MARKER);
@@ -107,7 +107,7 @@ async function render(mode: CameraMode, scale: 1 | 2 | 4 | 8, phase: "pickup" | 
     arrowPoints, cabPoints,
     layout: { css: fareRef.current!.style.cssText, badge: badgeRef.current!.getBoundingClientRect().toJSON(),
       badgeHidden: badgeRef.current!.hidden, area: fareRef.current!.getBoundingClientRect().toJSON(),
-      obstacles: fareImpactObstacles(game, camera, 0, plan, width, height), mode, scale, phase },
+      mode, scale, phase },
     centerBeacons: markerBoxes.filter(box => Math.hypot(box.x - (game.onboard ? job.dropoff.x : job.pickup.x), box.y - (game.onboard ? job.dropoff.y : job.pickup.y)) < 1).length };
 }
 

@@ -72,6 +72,9 @@ the modeled body uses the 2015 pre-facelift coupe shape.
   the clutch is an engagement. A stuck clutch interrupts drive and arcade
   boost, cancels cruise, and shows a persistent recovery counter.
 - In Automatic, three new complete gas taps or clutch pumps restore drive.
+  Mobile Automatic omits the entire clutch/gear control panel to free screen
+  space; the normal notice still shows the gas-tap recovery counter. Manual
+  retains its clutch and shift controls in both phone orientations.
   A gas key already held when the fault occurs does not count when released.
   Manual still requires three actual clutch pumps. Holding either control does
   not count repeatedly, and simultaneous gas/clutch releases count once.
@@ -92,17 +95,20 @@ car settles. Countersteering still catches the initial slide, with more time
 and care required than before. Straight-line Crown launch, reverse, boost
 limits, passenger scoring formulas and collision containment are retained.
 
-Both rendering paths consume the same coupe body, glass, wheels, winter tread,
-supplier plaques and wear marks in exterior views. Cab View is an unobstructed
-first-person camera with the normal HUD. Classic actor geometry stays
-inside the 96-instance ghost budget. Options → Graphics Engine offers separate
-Classic/Detailed choices for the Crown and Accord, saved on this device. Detailed
-models use sculpted mesh bodywork, tapered glasshouses, wheel arches, round tires
-and rims, lights and trim, with the original comic colors. The Crown retains a
-long sedan silhouette and taxi equipment; the Accord is a lower two-door coupe.
+The Accord uses the owner's **B · Accord coupe / Balanced** study from
+`accord-coupe-review.html` in both Classic and Detailed settings. The selected
+56 parts and 372 triangles are preserved in `game/render/accord-balanced.json`,
+including source SHA-256, exact vertices, winding, colors and four wheel pivots.
+It has the supplied low roof, long doors, rear quarter glass, trim and eight-sided
+wheels. Front wheels steer at their original pivots. The JSON is native Z-up
+geometry; no GLB axis conversion, new engine or runtime asset download is needed.
+Cab View remains an unobstructed first-person camera with the normal HUD.
+The Crown retains its Classic/Detailed selection, sedan shape and taxi equipment.
+Classic actor geometry stays inside the 96-instance ghost budget.
 The mesh has its own 2,048-face budget, shared by WebGPU, WebGL and software
 Canvas. Wheels steer and the body follows road pitch, jumps and rollover pose.
-Physics, collision footprints, passengers and cargo do not depend on detail.
+Physics, collision footprints, winter-tire behavior, passengers and cargo do not
+depend on detail or the replacement Accord mesh.
 The garage and clutch/gear controls are
 keyboard-accessible, fit phone rotation, and follow the game's input reset
 rules. Diagnostic input masks include clutch and both shift directions.

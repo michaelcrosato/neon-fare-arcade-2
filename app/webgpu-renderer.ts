@@ -23,7 +23,7 @@ import {
   taxiGroundShadow,
 } from "@/game/render/scene";
 import { renderTargetSize } from "@/game/render/resolution";
-import { detailedTaxiSurfaces, MAX_VEHICLE_SURFACE_FACES } from "@/game/render/detailed-vehicles";
+import { detailedTaxiSurfaces, MAX_VEHICLE_SURFACE_FACES, usesVehicleMesh } from "@/game/render/detailed-vehicles";
 import {
   MAX_STREAM_SURFACE_QUADS, SURFACE_VERTEX_BYTES, SURFACE_VERTICES_PER_QUAD, packSurfaceQuads,
 } from "@/game/render/surfaces";
@@ -565,12 +565,13 @@ fn bloomColor(color: vec3<f32>) -> vec3<f32> {
     }
     const playerMode = isInterior(game) ? "interior" : isDriving(game) ? "driving" : "walking";
     const showTaxi = shouldRenderTaxi(playerMode, camera.mode);
-    const taxi = showTaxi ? taxiBoxes(game, { includeGroundShadow: false, includeBody: camera.vehicleDetail !== "detailed" }) : [];
-    const vehicleVertices = packSurfaceQuads(showTaxi && camera.vehicleDetail === "detailed" ? detailedTaxiSurfaces(game) : []);
+    const mesh = usesVehicleMesh(game, camera);
+    const taxi = showTaxi ? taxiBoxes(game, { includeGroundShadow: false, includeBody: !mesh }) : [];
+    const vehicleVertices = packSurfaceQuads(showTaxi && mesh ? detailedTaxiSurfaces(game) : []);
     const vehicleVertexCount = vehicleVertices.byteLength / SURFACE_VERTEX_BYTES;
     if (vehicleVertexCount) this.device.queue.writeBuffer(this.vehicleSurfaceBuffer, 0, vehicleVertices);
     this.canvas.dataset.vehicleDetail = camera.vehicleDetail ?? "classic";
-    const taxiShadow = showTaxi ? taxiGroundShadow(game, camera.vehicleDetail === "detailed") : null;
+    const taxiShadow = showTaxi ? taxiGroundShadow(game, mesh) : null;
     const playerAvatar = shouldRenderPlayerAvatar(playerMode, camera.mode)
       ? playerAvatarBoxes(game, seconds)
       : [];

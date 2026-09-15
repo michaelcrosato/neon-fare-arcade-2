@@ -223,7 +223,7 @@ test("RWD power slides are wider than FWD and arcade fishtailing rebounds before
   }
 });
 
-test("both renderer paths receive distinct finite coupe geometry inside the 96-instance ghost budget", () => {
+test("Accord cargo/shadow boxes and Crown body boxes remain inside the 96-instance ghost budget", () => {
   for (const model of ["arcade", "simulation"] as const) {
     const accord = makeGame("street-ace", 91, "free-run", model, "accord-v6");
     const crown = makeGame("street-ace", 91, "free-run", model, "crown-cab");

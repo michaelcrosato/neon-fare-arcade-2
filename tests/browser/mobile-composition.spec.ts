@@ -15,31 +15,15 @@ test.beforeAll(async () => {
 async function checkImpact(page: Page, result: Awaited<ReturnType<Window["mobileComposition"]["render"]>>) {
   const stage = (await page.locator(".game-canvas").boundingBox())!;
   const card = (await page.locator(".fare-impact__sequence").boundingBox())!;
-  if (result.layout.mode !== "cab") expect(card.y).toBeCloseTo(stage.y + 8, 0);
-  else expect(card.y).toBeGreaterThanOrEqual(stage.y + 8);
+  expect(card.y).toBeCloseTo(stage.y + 8, 0);
+  expect(card.x + card.width / 2).toBeCloseTo(stage.x + stage.width / 2, 0);
   expect(card.x).toBeGreaterThanOrEqual(stage.x + 11);
   expect(card.x + card.width).toBeLessThanOrEqual(stage.x + stage.width - 11);
+  expect(card.height).toBeGreaterThan(80);
+  expect(card.height).toBeLessThanOrEqual((stage.height - 16) * .3);
+  await expect(page.locator(".fare-impact")).toHaveAttribute("data-layout", "wide");
   if (!await page.evaluate(() => matchMedia("(max-width: 820px), (pointer: coarse)").matches)) {
-    expect(card.x + card.width / 2).toBeCloseTo(stage.x + stage.width / 2, 0);
     expect(card.width).toBeCloseTo((stage.width - 24) / 2, 0);
-    expect(card.height).toBeLessThanOrEqual((stage.height - 16) * .38);
-  }
-  expect(card.height, JSON.stringify(result.layout)).toBeGreaterThan(48);
-  for (const points of [result.cabPoints, result.arrowPoints]) {
-    if (!points.length) continue;
-    const left = Math.max(0, Math.min(...points.map(point => point.x))) + stage.x;
-    const top = Math.max(0, Math.min(...points.map(point => point.y))) + stage.y;
-    const right = Math.min(stage.width, Math.max(...points.map(point => point.x))) + stage.x;
-    const bottom = Math.min(stage.height, Math.max(...points.map(point => point.y))) + stage.y;
-    if (right <= left || bottom <= top) continue;
-    expect(card.x + card.width <= left - 16 || card.x >= right + 16 || card.y + card.height <= top - 16 || card.y >= bottom + 16,
-      `card ${JSON.stringify(card)} must clear cab/arrow ${JSON.stringify({ left, top, right, bottom })}; ${JSON.stringify(result.layout)}`).toBe(true);
-  }
-  const badge = page.locator(".navigation-distance");
-  if (await badge.isVisible()) {
-    const label = (await badge.boundingBox())!;
-    expect(card.x + card.width <= label.x - 16 || card.x >= label.x + label.width + 16 || card.y + card.height <= label.y - 16 || card.y >= label.y + label.height + 28,
-      `card ${JSON.stringify(card)} must clear label ${JSON.stringify(label)}; ${JSON.stringify(result.layout)}`).toBe(true);
   }
   await expect(page.locator(".fare-impact__copy > strong")).toBeVisible();
   const overflow = await page.locator(".fare-impact__copy").evaluate(element => element.scrollHeight > element.clientHeight + 2);
@@ -72,12 +56,13 @@ for (const backend of ["WebGPU", "Canvas 2D"] as const) {
     const mobile = viewport.width < 1000;
     test.describe(backend + " " + viewport.width + "x" + viewport.height, () => {
       test.use({ viewport, contextOptions: { hasTouch: mobile, isMobile: mobile, reducedMotion: "reduce" } });
-      test("every camera zoom gives fare cards impact while keeping the cab and arrow clear", async ({ page }, info) => {
+      test("fare card frame stays fixed across cameras, zoom, headings and pickup/dropoff", async ({ page }, info) => {
         const errors: string[] = [];
         page.on("pageerror", error => errors.push(error.message));
         page.on("console", message => { if (message.type() === "error") errors.push(message.text()); });
         if (backend === "Canvas 2D") await page.addInitScript(() => Object.defineProperty(navigator, "gpu", { value: undefined, configurable: true }));
         await openScenePage(page, bundle);
+        let stableCard: { x: number; y: number; width: number; height: number } | undefined;
         for (const mode of ["chase-low", "chase-high", "fixed", "cab"] as const) {
           for (const scale of [1, 2, 4, 8] as const) {
             if (mode === "cab" && scale !== 1) continue;
@@ -90,7 +75,8 @@ for (const backend of ["WebGPU", "Canvas 2D"] as const) {
               if (mode !== "cab") expect(result.cab).not.toBeNull();
               if (mobile && mode.startsWith("chase")) expect(result.cab!.y / result.height).toBeCloseTo(.75, 4);
               const card = await checkImpact(page, result);
-              if (mode === "chase-low" && scale === 1) expect(card.width * card.height).toBeGreaterThan(viewport.width * result.height * .12);
+              stableCard ??= card;
+              expect(card).toEqual(stableCard);
               expect(result.arrowPoints.length).toBeGreaterThan(0);
               if (phase === "dropoff") await page.screenshot({ path: info.outputPath(mode + "-" + scale + "x.png") });
             }
@@ -103,7 +89,7 @@ for (const backend of ["WebGPU", "Canvas 2D"] as const) {
             expect(result.cab).not.toBeNull();
             const offset = Math.max(Math.abs(result.cab!.x / result.width - .5), Math.abs(result.cab!.y / result.height - .5));
             if (mobile) expect(offset).toBeCloseTo(.25, 4);
-            await checkImpact(page, result);
+            expect(await checkImpact(page, result)).toEqual(stableCard);
             if (scale === 4) await page.screenshot({ path: info.outputPath("fixed-heading-" + heading.toFixed(2) + ".png") });
           }
         }

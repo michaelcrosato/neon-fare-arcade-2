@@ -1,9 +1,10 @@
 import { MAT_VEHICLE } from "../config";
-import type { Color, Game, MeshFace, Vec3, VehicleId } from "../model";
+import type { Camera, Color, Game, MeshFace, Vec3, VehicleId } from "../model";
 import { isInterior } from "../player";
 import { roadPosePoint } from "./road-pose";
 import { taxiRoadPose } from "./scene";
 import { boxSurfaceFaces } from "./surfaces";
+import { accordBalancedModel, type VehicleSurfaceModel } from "./accord";
 
 /** A separate, bounded dynamic mesh; never charged to world or box-instance budgets. */
 export const MAX_VEHICLE_SURFACE_FACES = 2_048;
@@ -14,8 +15,10 @@ const CHROME: Color = [.67, .74, .76, 1];
 const WHITE: Color = [.94, .95, .9, 1];
 const RED: Color = [.94, .085, .045, 1];
 const LAMP: Color = [1, .94, .69, 1];
-type Model = { body: MeshFace[]; wheel: MeshFace[]; axles: number[]; track: number };
-const cache = new Map<VehicleId, Model>();
+const cache = new Map<VehicleId, VehicleSurfaceModel>();
+export function usesVehicleMesh(game: Game, camera: Camera) {
+  return game.vehicleId === "accord-v6" || camera.vehicleDetail === "detailed";
+}
 const point = (x: number, y: number, z: number): Vec3 => ({ x, y, z });
 const face = (corners: MeshFace["corners"], color: Color): MeshFace => ({ corners, color, material: MAT_VEHICLE, kind: "architecture" });
 function mapCorners(c: MeshFace["corners"], transform: (p: Vec3) => Vec3): MeshFace["corners"] {
@@ -49,15 +52,15 @@ function wheelModel(): MeshFace[] {
   return out;
 }
 
-function buildModel(id: VehicleId): Model {
-  const coupe = id === "accord-v6", body: MeshFace[] = [];
-  const paint: Color = coupe ? WHITE : [1, .78, .015, 1];
-  const shade: Color = coupe ? [.72, .77, .77, 1] : [.86, .5, .018, 1];
-  const length = coupe ? 4.96 : 5.5, halfWidth = coupe ? 1.01 : 1.12;
-  const axles = coupe ? [-1.46, 1.43] : [-1.62, 1.53];
-  const rear = coupe ? -1.48 : -1.55, front = coupe ? 1.12 : 1.17;
-  const roofRear = coupe ? -.73 : -1.03, roofFront = coupe ? .38 : .68;
-  const roofHeight = coupe ? 1.89 : 2.03, roofWidth = halfWidth * .78;
+function buildCrownModel(): VehicleSurfaceModel {
+  const body: MeshFace[] = [];
+  const paint: Color = [1, .78, .015, 1];
+  const shade: Color = [.86, .5, .018, 1];
+  const length = 5.5, halfWidth = 1.12;
+  const axles = [-1.62, 1.53];
+  const rear = -1.55, front = 1.17;
+  const roofRear = -1.03, roofFront = .68;
+  const roofHeight = 2.03, roofWidth = halfWidth * .78;
   const waist = 1.19;
   const widthAt = (x: number) => halfWidth * (1 - .16 * Math.pow(Math.abs(x) / (length / 2), 4));
   const archAt = (x: number) => Math.max(.36, ...axles.map(axle => Math.abs(x - axle) <= .54 ? .49 + Math.sqrt(Math.max(0, .54 ** 2 - (x - axle) ** 2)) : .36));
@@ -78,15 +81,10 @@ function buildModel(id: VehicleId): Model {
     body.push(face([point(x, -w, .36), point(x, w, .36), point(x, w, 1.08), point(x, -w, 1.08)], paint));
     body.push(face([point(x, -w, 1.08), point(x, w, 1.08), point(x, w * .93, waist), point(x, -w * .93, waist)], paint));
     box(body, x + end * .01, 0, .49, .06, w * 1.94, .07, INK);
-    box(body, x + end * .02, 0, .76, .05, coupe ? 1.02 : 1.18, .27, INK);
+    box(body, x + end * .02, 0, .76, .05, 1.18, .27, INK);
     box(body, x + end * .052, 0, .76, .015, .39, .14, WHITE);
     if (end > 0) {
-      for (let slat = 0; slat < 4; slat++) box(body, x + .04, 0, .87 + slat * .055, .04, coupe ? .85 : 1.25, .018, CHROME);
-      if (coupe) {
-        box(body, x + .07, -.055, .956, .025, .015, .10, CHROME);
-        box(body, x + .07, .055, .956, .025, .015, .10, CHROME);
-        box(body, x + .07, 0, .956, .025, .12, .015, CHROME);
-      }
+      for (let slat = 0; slat < 4; slat++) box(body, x + .04, 0, .87 + slat * .055, .04, 1.25, .018, CHROME);
     }
     for (const side of [-1, 1]) {
       const inner = side * w * .6, outer = side * w * .95;
@@ -107,19 +105,19 @@ function buildModel(id: VehicleId): Model {
       body.push(face(mapCorners(corners, p => ({ ...p, y: p.y + side * .012 })), color));
     };
     pillar(front, roofFront, .065, paint);
-    pillar(rear + (coupe ? .24 : .15), roofRear + .09, coupe ? .24 : .15, paint);
-    pillar(coupe ? -.60 : -.12, coupe ? -.48 : -.11, .055, INK);
+    pillar(rear + .15, roofRear + .09, .15, paint);
+    pillar(-.12, -.11, .055, INK);
     box(body, (front + rear) / 2, side * halfWidth * .93, waist, front - rear, .045, .035, CHROME);
-    const doorRear = coupe ? -.66 : -.21;
-    for (const edge of (coupe ? [doorRear, .94] : [-1.23, doorRear, .94])) {
+    const doorRear = -.21;
+    for (const edge of [-1.23, doorRear, .94]) {
       box(body, edge, side * (widthAt(edge) + .006), .77, .014, .012, .55, shade);
     }
-    for (const handle of (coupe ? [-.46] : [-1.04, .06])) box(body, handle, side * (widthAt(handle) + .014), 1.018, .2, .055, .028, CHROME);
+    for (const handle of [-1.04, .06]) box(body, handle, side * (widthAt(handle) + .014), 1.018, .2, .055, .028, CHROME);
     box(body, .87, side * 1.03, 1.24, .11, .28, .065, INK);
     box(body, .86, side * 1.14, 1.32, .24, .22, .13, paint);
     box(body, .733, side * 1.14, 1.33, .009, .18, .08, CHROME);
     box(body, -.1, side * halfWidth, .38, 1.54, .06, .10, shade);
-    if (!coupe) for (let tile = 0; tile < 12; tile++) box(body, -1.25 + tile * .2, side * (widthAt(-1.25 + tile * .2) + .014), .91 + tile % 2 * .07, .19, .018, .065, INK);
+    for (let tile = 0; tile < 12; tile++) box(body, -1.25 + tile * .2, side * (widthAt(-1.25 + tile * .2) + .014), .91 + tile % 2 * .07, .19, .018, .065, INK);
   }
   for (const [lowX, highX, isFront] of [[front, roofFront, true], [rear, roofRear, false]] as const) {
     body.push(face([point(lowX, -halfWidth * .925, waist), point(lowX, halfWidth * .925, waist), point(highX, roofWidth, roofHeight), point(highX, -roofWidth, roofHeight)], GLASS));
@@ -137,7 +135,7 @@ function buildModel(id: VehicleId): Model {
   // Bonnet creases, trunk lip and roof equipment give each silhouette its own character.
   for (const side of [-1, 1]) body.push(face([point(front + .05, side * .61, waist + .008), point(length / 2 - .22, side * .49, waist + .008), point(length / 2 - .22, side * .51, waist + .008), point(front + .05, side * .65, waist + .008)], shade));
   box(body, -length / 2 + .28, 0, 1.21, .14, halfWidth * 1.70, .055, paint);
-  if (!coupe) {
+  {
     box(body, -.08, 0, roofHeight + .10, .58, .9, .065, INK);
     box(body, -.08, 0, roofHeight + .23, .46, .78, .21, LAMP);
     const letters = ["111010010010010", "010101111101101", "101101010101101", "111010010010111"];
@@ -147,14 +145,15 @@ function buildModel(id: VehicleId): Model {
       const x = -.08 + side * .232;
       body.push(face([point(x, y, z), point(x, y - side * .028, z), point(x, y - side * .028, z - .023), point(x, y, z - .023)], INK));
     }
-  } else {
-    box(body, -.62, 0, roofHeight + .075, .17, .07, .075, INK);
   }
-  return { body, wheel: wheelModel(), axles, track: halfWidth - .04 };
+  const wheel = wheelModel();
+  return { body, wheels: axles.flatMap(axle => [-1, 1].map(side => ({
+    pivot: point(axle, side * (halfWidth - .04), .49), steers: axle > 0, faces: wheel,
+  }))) };
 }
 
 export function detailedVehicleModel(id: VehicleId) {
-  if (!cache.has(id)) cache.set(id, buildModel(id));
+  if (!cache.has(id)) cache.set(id, id === "accord-v6" ? accordBalancedModel() : buildCrownModel());
   return cache.get(id)!;
 }
 
@@ -175,10 +174,10 @@ export function detailedTaxiSurfaces(game: Game): MeshFace[] {
     return roadPosePoint(pose, { x: game.x + c * x - s * y, y: game.y + s * x + c * y, z: height });
   };
   const out = model.body.map(f => ({ ...f, corners: mapCorners(f.corners, transform) }));
-  for (const axle of model.axles) for (const side of [-1, 1]) {
-    const steer = axle > 0 ? game.steering * .48 : 0, cs = Math.cos(steer), ss = Math.sin(steer);
-    for (const f of model.wheel) out.push({ ...f, corners: mapCorners(f.corners, p => transform({
-      x: axle + p.x * cs - p.y * ss, y: side * model.track + p.x * ss + p.y * cs, z: .49 + p.z,
+  for (const wheel of model.wheels) {
+    const steer = wheel.steers ? game.steering * .48 : 0, cs = Math.cos(steer), ss = Math.sin(steer);
+    for (const f of wheel.faces) out.push({ ...f, corners: mapCorners(f.corners, p => transform({
+      x: wheel.pivot.x + p.x * cs - p.y * ss, y: wheel.pivot.y + p.x * ss + p.y * cs, z: wheel.pivot.z + p.z,
     })) });
   }
   if (out.length > MAX_VEHICLE_SURFACE_FACES) throw new Error("Detailed vehicle surface budget exceeded");
