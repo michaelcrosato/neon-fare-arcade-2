@@ -31,7 +31,9 @@
 ## Tune driving
 
 1. Add or modify a replay fixture in `tests/game/simulation.test.ts`.
-2. Change only `game/simulation.ts` and named tuning in `game/config.ts`.
+2. Change the owning handling module (`simulation.ts`, `arcade-handling.ts`, or
+   `simulation-vehicle.ts`) and the relevant tuning in `config.ts`, `vehicles.ts`,
+   or `driving-traits.ts`. Keep Arcade-only tuning out of Simulation physics.
 3. Verify forward, reverse, steering, drift, boost, collision, and fare dwell.
 4. Keep browser/audio effects in the simulation-event handler, not the step.
 

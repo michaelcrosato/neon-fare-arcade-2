@@ -86,9 +86,9 @@ test("Street Ace has the responsive arcade launch with progressive steering", ()
   approximate(boosted.boost, 19);
 });
 
-test("Drift Demon holds a larger slip angle and converts it into more charge and score", () => {
+test("Drift Demon holds a larger braking slide and converts it into more charge and score", () => {
   const runSlide = (drivingTraitId: DrivingTraitId) => {
-    const game = makeGame(drivingTraitId);
+    const game = makeGame(drivingTraitId, 23);
     game.traffic = [];
     game.x = -40;
     game.y = 0;
@@ -98,7 +98,7 @@ test("Drift Demon holds a larger slip angle and converts it into more charge and
     for (let tick = 0; tick < 24; tick += 1) {
       stepGame(
         game,
-        { ...IDLE_INPUT, up: true, right: true },
+        { ...IDLE_INPUT, down: true, right: true },
         FIXED_DT,
         EMPTY_WORLD,
         () => 1,
@@ -111,9 +111,8 @@ test("Drift Demon holds a larger slip angle and converts it into more charge and
   const streetAngleDegrees = Math.abs(street.driftAngle) * 180 / Math.PI;
   const driftAngleDegrees = Math.abs(drift.driftAngle) * 180 / Math.PI;
 
-  // The vehicle update deliberately opens the former 10–12° Street Ace slide.
-  assert.ok(streetAngleDegrees > 24 && streetAngleDegrees < 29);
-  assert.ok(driftAngleDegrees > 30 && driftAngleDegrees < 35);
+  assert.ok(streetAngleDegrees > 20 && streetAngleDegrees < 60);
+  assert.ok(driftAngleDegrees > streetAngleDegrees && driftAngleDegrees < 75);
   assert.ok(Math.abs(drift.driftAngle) > Math.abs(street.driftAngle) * 1.15);
   assert.ok(drift.boost > street.boost);
   assert.ok(drift.driftBank > street.driftBank * 1.4);

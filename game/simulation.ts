@@ -339,6 +339,8 @@ export function stepGame(
   if (accord && !manual && gear < 0 && throttle) forwardSpeed = Math.min(0, forwardSpeed + 34 * groundTraction * throttle * dt);
   if (brake) {
     if (manual || (accord && !connected)) forwardSpeed -= Math.sign(forwardSpeed) * Math.min(Math.abs(forwardSpeed), 34 * drivingTrait.brakingMultiplier * groundTraction * brake * dt);
+    // Finish a sideways stop before the Crown's held brake starts reversing.
+    else if (!accord && forwardSpeed >= 0 && Math.abs(lateralSpeed) > 1) forwardSpeed = Math.max(0, forwardSpeed - 34 * drivingTrait.brakingMultiplier * groundTraction * brake * dt);
     else if (forwardSpeed > 1) forwardSpeed -= 34 * drivingTrait.brakingMultiplier * groundTraction * brake * dt;
     else if (accord && gear !== -1) forwardSpeed = Math.max(0, forwardSpeed - 34 * groundTraction * brake * dt);
     else if (connected && hasFuel(game)) forwardSpeed -= (game.collisionCooldown > 0 ? 16 : 9) * brake * dt;
@@ -364,7 +366,9 @@ export function stepGame(
     && Math.sign(steer) === Math.sign(lateralSpeed);
   const brakeKickCounterSteering = Math.abs(lateralSpeed) > 0.2
     && Math.sign(steerInput || steer) === Math.sign(lateralSpeed);
-  const brakeKickSteerFactor = clamp((Math.abs(previousSteering) - 0.18) / 0.82, 0, 1);
+  // A deliberate brake + steer press can start a Crown slide on the same tick;
+  // it must not depend on having already wound up the smoothed wheel angle.
+  const brakeKickSteerFactor = clamp((Math.abs(accord ? previousSteering : steerInput) - 0.18) / 0.82, 0, 1);
   const canInitiateBrakeKick = game.drifting
     || (driftSpeedFactor > 0.25 && brakeKickSteerFactor > 0.55);
   let brakeKickTriggered = false;
@@ -380,12 +384,17 @@ export function stepGame(
     const brakeKickStrength = driftSpeedFactor
       * (0.45 + brakeKickSteerFactor * 0.55)
       * (0.85 + game.driftIntensity * 0.15);
-    game.brakeDriftKick = Math.sign(steer) * brakeKickStrength;
+    game.brakeDriftKick = Math.sign(accord ? steer : steerInput) * brakeKickStrength;
     game.brakeDriftCooldown = 0.35;
     forwardSpeed *= 1 - Math.abs(game.brakeDriftKick) * 0.015;
     brakeKickTriggered = true;
   }
-  const driftIntent = clamp((throttle * vehicle.powerSlide + (1 - throttle) * vehicle.liftSlide * Math.max(game.driftIntensity, brake * 0.8))
+  const brakingSlide = controlInput.down && brakeKickSteerFactor > 0.55
+    && (Math.abs(game.brakeDriftKick) > 0 || game.drifting);
+  const driftIntent = clamp(Math.max(
+    throttle * vehicle.powerSlide + (1 - throttle) * vehicle.liftSlide * Math.max(game.driftIntensity, brake * 0.8),
+    brakingSlide ? vehicle.brakeSlide : 0,
+  )
     * steeringCommitment
     * driftSpeedFactor
     * (counterSteering ? 0.3 : 1), 0, 1);

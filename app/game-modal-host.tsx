@@ -198,6 +198,7 @@ export function GameModalHost({
               <span><kbd>M</kbd> MUTE</span>
               <span><kbd>F</kbd> FILL TANK AT GAS STATION</span>
             </div>
+            <p><b>CROWN CAB · ARCADE DRIFT</b> For a sideways stop, approach at about 90–120 KM/H, release the gas, then steer and brake together. Hold the brake to slow through the slide. Center or countersteer to catch it, and release the brake at rest to avoid reversing. Use S or ↓ on keyboard, or BRAKE with your steering thumb on touch.</p>
             <p>Both cars use real tank capacities and fuel consumption ratings in every mode. Speeding raises fuel use, reaching double at 50% over the posted limit. Stop at GO-GO GAS for fuel; an empty tank can get a 5 L assist through the pause menu tow service. Your fuel level stays with each car between runs.</p>
             <p>Your apartment at Neon Lofts is included. Bank your fare, visit the four home stores from the GPS shopping directory, and furnish your place. Manage owned items at the apartment&apos;s home hub.</p>
             <button className="primary-small" onClick={onClose}>{mode === "menu" ? "BACK TO MODE SELECT" : "BACK TO THE CITY"}</button>

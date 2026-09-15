@@ -203,21 +203,19 @@ test("the lighter FWD coupe has faster simulation acceleration and automatic use
   assert.ok(results[1].speed > results[0].speed + 20);
 });
 
-test("RWD power slides are wider than FWD and arcade fishtailing rebounds before settling in either run kind", () => {
+test("Crown throttle recovery stays composed while Accord retains its separate arcade handling", () => {
   for (const kind of ["timed", "free-run"] as const) {
     const crown = slide("crown-cab", kind), accord = slide("accord-v6", kind);
-    assert.ok(Math.abs(crown.driftAngle) > 0.4, "Crown holds over 23 degrees");
-    assert.ok(Math.abs(crown.driftAngle) > Math.abs(accord.driftAngle) * 1.4);
+    assert.ok(Math.abs(crown.driftAngle) < 0.15, "ordinary Crown power turns retain grip");
+    assert.ok(Math.abs(accord.driftAngle) > 0.15 && Math.abs(accord.driftAngle) < 0.17, "coupe power slip is unchanged");
     const counter = structuredClone(crown);
-    let rebound = 0, secondSwing = 0;
+    let rebound = 0;
     for (let t = 0; t < 120; t++) {
       arcadeStep(crown, { up: true });
-      if (t < 35) rebound = Math.max(rebound, crown.driftAngle);
-      if (t > 35 && t < 60) secondSwing = Math.min(secondSwing, crown.driftAngle);
+      rebound = Math.max(rebound, crown.driftAngle);
       if (t < 16) arcadeStep(counter, { up: true, left: true });
     }
-    assert.ok(rebound > 0.04, `opposite tail rebound ${rebound}`);
-    assert.ok(secondSwing < -0.02, `second tail swing ${secondSwing}`);
+    assert.ok(rebound < 0.005, `no opposite tail rebound ${rebound}`);
     assert.ok(Math.abs(crown.driftAngle) < 0.01, "eventually settles");
     assert.ok(Math.abs(counter.driftAngle) < 0.2, "early countersteering still catches the initial slide");
   }

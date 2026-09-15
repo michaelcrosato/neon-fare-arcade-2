@@ -218,10 +218,12 @@ updates the arcade launch, steering, road elevation and contact rules below.
   controllable signed slip angle rather than a binary grip swap. Slide intensity,
   yaw, tire grip, smoke, drift charge, and drift score scale with that angle and
   speed. Releasing steering restores grip; countersteering restores it faster
-  and pulls the taxi back into line. The vehicle update deliberately reduces
-  yaw damping: rotation carries through a correction and produces alternating
-  tail swings before settling. The RWD cab opens wider power slides; the FWD
-  Accord pulls wide on throttle and rotates on lift-off or braking.
+  and pulls the taxi back into line. In Arcade Shift and Arcade Free Run, the
+  Crown retains grip under throttle and follows a damped yaw response without
+  alternating tail swings. Even a sustained full-steering power turn stays
+  below 15° slip across its three packages; centering settles slip below 1°
+  within half a second. Deliberate brake turns open its wider slides. The FWD
+  Accord retains its separate power, lift-off, braking and yaw behavior.
 - A 50 ms steering tap reaches about half lock; a 300 ms hold reaches full lock.
   Rotation follows a damped yaw rate, while countersteer responds faster than
   ordinary steering. Acceleration/braking and lateral load drive bounded body
@@ -268,6 +270,15 @@ updates the arcade launch, steering, road elevation and contact rules below.
   Holding brake continues normal deceleration but never retriggers the pulse;
   release and tap again after the cooldown to rotate again. Countersteering and
   collision-clipped turns suppress the effect.
+  The Arcade Crown accepts steering and braking on the same fixed step, using
+  the requested steering angle for brake intent. From a straight approach,
+  committed steering can initiate a slide above roughly 50 km/h; 90–120 km/h
+  produces a pronounced sideways stop. Hold the brake and turn to continue the
+  slide while slowing; center or countersteer to catch it. Gentle steering,
+  low-speed braking and automatic cruise braking do not initiate this effect.
+  At the end of a forward slide, held braking waits for lateral speed to settle
+  before reverse begins. Straight acceleration, boost, braking and reverse
+  tuning, the Accord, and Simulation physics retain their previous behavior.
 - Standard packages cap at 160 displayed km/h and 320 km/h under boost;
   Redline Rush reaches 165 km/h normally and 330 km/h under boost. Boost doubles
   the selected package's normal cap, and the normal starting reserve can reach

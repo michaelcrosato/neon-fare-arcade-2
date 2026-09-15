@@ -9,10 +9,13 @@ export function makeArcadeVehicleState(): ArcadeVehicleState {
 export function arcadeHeadingDelta(game: Game, requestedDelta: number, dt: number, counterSteering: boolean) {
   const state = game.arcadeVehicle ??= makeArcadeVehicleState();
   const grounded = game.roadMotion?.grounded !== false;
+  const crown = game.vehicleId === "crown-cab";
   const sliding = game.driftIntensity > 0.15 && game.speed > 10;
-  const response = counterSteering ? 10 : Math.abs(game.steering) < 0.05 ? (sliding ? 4.2 : 22) : 16;
+  const response = counterSteering ? (crown ? 24 : 10) : Math.abs(game.steering) < 0.05 ? (sliding && !crown ? 4.2 : 22) : 16;
   const target = requestedDelta / Math.max(1e-6, dt) * (grounded ? 1 : 0.12);
-  if (sliding && grounded) {
+  // The Crown follows steering without a spring rebound when the driver centers
+  // or catches a slide. Keep the coupe's separate momentum-heavy yaw response.
+  if (sliding && grounded && !crown) {
     state.yawAcceleration = clamp((state.yawAcceleration ?? 0)
       + ((target - state.yawRate) * 95 - (state.yawAcceleration ?? 0) * (counterSteering ? 11 : 4.5)) * dt, -40, 40);
     state.yawRate += state.yawAcceleration * dt;

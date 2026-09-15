@@ -70,7 +70,7 @@ test("fixed-step arcade replay has a stronger launch and preserves reverse while
   assert.ok(steering.speed > 16);
   assert.ok(steering.boost > 45);
   assert.equal(steering.drifting, true);
-  assert.ok(steering.driftIntensity > 0.3 && steering.driftIntensity < 0.65);
+  assert.ok(steering.driftIntensity > 0.1 && steering.driftIntensity < 0.3);
   assert.ok(Math.abs(steering.driftAngle) > 0);
   assert.ok(steering.driftBank > 0);
 
@@ -222,7 +222,7 @@ test("a brake tap adds one short rotation kick while holding brake cannot retrig
   assert.equal(holdEvents.filter((event) => event.type === "brake-drift-kick").length, 1);
   assert.equal(held.brakeDriftKick, 0);
   assert.ok(held.speed < tapped.speed, "holding brake should keep slowing the taxi");
-  assert.ok(held.heading < tapped.heading, "holding brake should not refresh the rotation pulse");
+  assert.equal(tapped.brakeDriftKick, 0, "both rotation pulses expire while the held brake continues the slide");
 
   stepGame(held, { ...IDLE_INPUT, right: true }, FIXED_DT, EMPTY_WORLD, () => 1);
   const rearmed = stepGame(held, brakeRight, FIXED_DT, EMPTY_WORLD, () => 1);
@@ -244,7 +244,7 @@ test("brake-kick rotation scales with speed and steering angle, then mirrors dir
     game.brakeInputHeld = !armed;
     const events = stepGame(
       game,
-      { ...IDLE_INPUT, down: true, left: direction < 0, right: direction > 0 },
+      { ...IDLE_INPUT, down: true, steer: direction * commitment },
       FIXED_DT,
       EMPTY_WORLD,
       () => 1,

@@ -15,8 +15,10 @@ in [garage-art.md](garage-art.md).
 
 The Crown Cab retains its established 1990s Ford Crown Victoria–inspired V8,
 four-speed automatic and 1,900 kg loaded simulation chassis. Its arcade
-character now emphasizes rear-drive power slides and a tail that rebounds
-after a sudden release or correction.
+character favors steady acceleration, composed power turns and easy braking
+slides. At roughly 90–120 km/h, lift off the gas and steer while braking to
+slide into a stop. Center or countersteer to catch the rear; the cab settles
+without repeated tail rebounds. Both Arcade run kinds share this handling.
 
 The Accord is a cared-for, lightly worn ninth-generation two-door coupe with
 154,298 km, a 3.5L V6 that feels closer to 300 hp, and a six-speed
@@ -104,15 +106,15 @@ the modeled body uses the 2015 pre-facelift coupe shape.
 
 ## Arcade characterization
 
-The same deliberate drift increase applies in both arcade run kinds. In the
-0.4-second, 40-world-unit/s Street Ace turn, the Crown now reaches approximately
-27 degrees of slip, versus approximately 16 for the FWD Accord. Drift Demon
-opens the cab's slide to about 32 degrees. FWD throttle widens the turning
-line; lift-off and trail braking encourage rotation. Lower yaw damping retains
-rotation during a correction and permits alternating tail swings before the
-car settles. Countersteering still catches the initial slide, with more time
-and care required than before. Straight-line Crown launch, reverse, boost
-limits, passenger scoring formulas and collision containment are retained.
+Both Arcade run kinds use the same Crown handling. On flat pavement, a
+0.4-second Street Ace power turn from 120 km/h reaches about 6° slip, down
+from 27°. Centering the steering under throttle settles the rear without an
+opposite tail swing. A deliberate brake-and-steer stop from 90–120 km/h builds
+roughly 20–60° peak slip; Drift Demon makes that braking slide wider and more
+rewarding. Countersteering catches it faster than centering alone. The FWD
+Accord retains its own throttle, lift-off, braking and yaw behavior.
+Straight-line Crown launch, reverse, boost limits, passenger scoring formulas
+and collision containment are retained.
 
 The Accord uses the owner's **B · Accord coupe / Balanced** study from
 `accord-coupe-review.html` in both Classic and Detailed settings. The selected

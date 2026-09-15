@@ -629,7 +629,7 @@ export type VehicleRoadMotion = {
 
 export type ArcadeVehicleState = {
   yawRate: number;
-  /** Stored tire/chassis rotation response; low damping permits a tail rebound. */
+  /** Coupe spring response; the Crown follows a damped yaw rate directly. */
   yawAcceleration: number;
   bodyPitch: number;
   pitchRate: number;
