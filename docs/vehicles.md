@@ -88,13 +88,16 @@ the modeled body uses the 2015 pre-facelift coupe shape.
   to reverse in R; brake always brakes. Launch assistance prevents stalling.
 - Reverse is blocked while moving; downshifts that would exceed redline are
   rejected. Holding a shift key cannot skip through gears.
-- In either setting, each clutch engagement has a seeded 5% chance to stick
+- In either setting, each clutch engagement has a seeded 2.5% chance to stick
   disengaged. An automatic gear change is an engagement; in Manual, releasing
   the clutch is an engagement. A stuck clutch interrupts drive and arcade
-  boost, cancels cruise, and shows a persistent recovery counter.
+  boost, cancels cruise, and shows a persistent red warning immediately above
+  the vehicle direction arrow's projected position, even when that arrow is
+  temporarily absent. The warning follows every camera, stays inside the screen,
+  and counts down recovery taps/pumps without flashing.
 - In Automatic, three new complete gas taps or clutch pumps restore drive.
   Mobile Automatic omits the entire clutch/gear control panel to free screen
-  space; the normal notice still shows the gas-tap recovery counter. Manual
+  space; the warning above the car shows the gas-tap recovery counter. Manual
   retains its clutch and shift controls in both phone orientations.
   A gas key already held when the fault occurs does not count when released.
   Manual still requires three actual clutch pumps. Holding either control does

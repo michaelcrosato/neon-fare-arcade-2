@@ -65,6 +65,7 @@ export function GameStageHud({
   taxiExitRef,
 }: GameStageHudProps) {
   const mobile = useMobileLayout();
+  const message = hud.vehicleId === "accord-v6" && hud.playerMode === "driving" && hud.transmission.stuck ? "" : hud.message;
   if (mobile) return <MobileGameHud mode={mode} hud={hud} fareImpact={fareImpact} fareImpactRef={fareImpactRef} courierImpact={courierImpact}
     touchDriving={touchDriving} steeringMode={steeringMode} onSetCruise={onSetCruise} taxiExitRef={taxiExitRef} onPulseInteraction={onPulseInteraction} onSetMode={onSetMode} onTouch={onTouch} onTransmissionInput={onTransmissionInput} />;
   const simulationDriving = hud.playerMode === "driving" && hud.drivingModel === "simulation";
@@ -205,7 +206,7 @@ export function GameStageHud({
             </button>
           )}
 
-          {(hud.damage.line || hud.message) && <div className={`comic-callout ${hud.damage.line ? "is-damage" : ""}`} key={hud.damage.line || hud.message}>{hud.damage.line || hud.message}</div>}
+          {(hud.damage.line || message) && <div className={`comic-callout ${hud.damage.line ? "is-damage" : ""}`} key={hud.damage.line || message}>{hud.damage.line || message}</div>}
 
           {mode === "playing" && <div className={`touch-controls ${hud.playerMode === "driving" ? "is-driving" : "is-on-foot"}`} aria-label={hud.playerMode === "driving" ? "Touch driving controls" : "Touch walking controls"}>
             <div className="touch-steer">

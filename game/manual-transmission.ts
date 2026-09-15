@@ -3,7 +3,7 @@ import type { Game, InputState, ManualTransmissionState, SimulationGear } from "
 import { mulberry32 } from "./random";
 import { ACCORD_FINAL_DRIVE, ACCORD_GEARS, ACCORD_REDLINE_RPM, ACCORD_WHEEL_RADIUS_M } from "./vehicles";
 
-export const CLUTCH_STICK_CHANCE = 0.05;
+export const CLUTCH_STICK_CHANCE = 0.025;
 export const CLUTCH_RECOVERY_PUMPS = 3;
 
 export function makeManualTransmission(): ManualTransmissionState {

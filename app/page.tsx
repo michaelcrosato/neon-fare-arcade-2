@@ -78,6 +78,7 @@ import { usePauseNavigation } from "./use-pause-navigation";
 import { GameModeMenu } from "./game-mode-menu";
 import { GameSessionOverlays } from "./game-session-overlays";
 import { GameStageHud } from "./game-stage-hud";
+import { ClutchWarning } from "./clutch-warning";
 import {
   DiagnosticsRecorder,
   diagnosticsEnabled,
@@ -107,6 +108,7 @@ export default function Home() {
   const webGpuCanvasRef = useRef<HTMLCanvasElement>(null);
   const passengerReviewRef = useRef<HTMLDivElement>(null);
   const navigationDistanceRef = useRef<HTMLDivElement>(null);
+  const clutchWarningRef = useRef<HTMLDivElement>(null);
   const fareImpactRef = useRef<HTMLDivElement>(null);
   const taxiExitRef = useRef<HTMLButtonElement>(null);
   const [initialGame] = useState(() => makeGame());
@@ -706,7 +708,7 @@ export default function Home() {
   }, [careerRef, checkpointExternalGameChange, clearInput, diagnostics, onSimulationEvents, resetFareCards, triggerFareImpact]);
 
   useGameRuntime({
-    passengerReviewRef, navigationDistanceRef, fareImpactRef, taxiExitRef, canvas2dRef, webGpuCanvasRef,
+    passengerReviewRef, navigationDistanceRef, clutchWarningRef, fareImpactRef, taxiExitRef, canvas2dRef, webGpuCanvasRef,
     gameRef, cameraRef, cameraModeRef, inputRef, touchDriving, interactionPulseRef, jumpPulseRef, modeRef,
     mutedRef, audioRef, ensureAudio, engineRef, boostAudioActiveRef, diagnostics, diagnosticsActive,
     clearInput, finishRun, setMode, setHud, setRendererKind, setAudioAnnouncement, tone, onSimulationEvents,
@@ -887,6 +889,7 @@ export default function Home() {
         <div ref={navigationDistanceRef} className="navigation-distance" role="img" aria-label="Road guidance" hidden>
           <span /><strong /><small />
         </div>
+        <ClutchWarning hud={hud} mode={mode} warningRef={clutchWarningRef} />
         <div className="speed-fx" aria-hidden="true">
           <i /><i /><i /><i /><i /><i /><i /><i />
           <i /><i /><i /><i /><i /><i /><i /><i />

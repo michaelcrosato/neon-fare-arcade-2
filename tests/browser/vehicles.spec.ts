@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { SCENE_START_TIMEOUT, SCENE_TEST_TIMEOUT, WEBGPU_TEST_OPTIONS } from "./browser-options";
-import { confirmVehicle, lockSteeringIfPrompted } from "./start-helpers";
+import { confirmVehicle, lockSteeringIfPrompted, presentUntilVisible } from "./start-helpers";
 import type { Game } from "../../game/model";
 
 test.use(WEBGPU_TEST_OPTIONS);
@@ -8,6 +8,42 @@ test.setTimeout(Math.max(120_000, SCENE_TEST_TIMEOUT * 4));
 
 async function advance(page: Page, ms: number) {
   for (let t = 0; t < ms; t += 50) await page.clock.fastForward(50);
+}
+
+async function checkClutchWarning(page: Page, pumps = 3) {
+  const warning = page.locator(".clutch-warning");
+  await presentUntilVisible(page, warning, 1000);
+  await expect(warning).toHaveAttribute("role", "alert");
+  await expect(warning).toContainText("CLUTCH STUCK");
+  await expect(warning.locator(".clutch-warning__copy > span")).toContainText(`×${pumps}`);
+  await expect(warning.locator(".is-done")).toHaveCount(3 - pumps);
+  await expect(warning).toBeInViewport({ ratio: 1 });
+  await expect(page.locator(".comic-callout, .mobile-notice").filter({ hasText: "CLUTCH STUCK" })).toHaveCount(0);
+  const box = (await warning.boundingBox())!, stage = (await page.locator(".game-stage").boundingBox())!;
+  expect(box.width).toBeLessThanOrEqual(260);
+  expect(box.height).toBeLessThan(110);
+  expect(box.y).toBeGreaterThanOrEqual(stage.y);
+  expect(box.y + box.height).toBeLessThan(stage.y + stage.height - 10);
+  expect(await warning.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
+  const exit = await page.getByRole("button", { name: /^E · EXIT TAXI/ }).boundingBox();
+  if (exit) expect(box.x >= exit.x + exit.width || box.x + box.width <= exit.x
+    || box.y >= exit.y + exit.height || box.y + box.height <= exit.y,
+  JSON.stringify({ warning: box, exit })).toBe(true);
+}
+
+async function checkWarningCameras(page: Page) {
+  for (const camera of ["FIXED", "HIGH", "CAB", "LOW"]) {
+    await page.getByRole("button", { name: "Pause game", exact: true }).click();
+    await expect(page.locator(".clutch-warning")).toHaveCount(0);
+    await page.getByRole("group", { name: "Camera view" }).getByRole("button", { name: camera, exact: true }).click();
+    await page.getByRole("button", { name: "RESUME FREE RUN", exact: true }).click();
+    await advance(page, 100);
+    await checkClutchWarning(page);
+    await page.screenshot({ path: test.info().outputPath(`clutch-${camera.toLowerCase()}.png`) });
+  }
+  // Recovery guidance outlives the temporary navigation prompt.
+  await advance(page, 4000);
+  await checkClutchWarning(page);
 }
 
 test.describe("two-finger manual controls", () => {
@@ -33,6 +69,7 @@ test.describe("two-finger manual controls", () => {
       await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
       await advance(page, 100);
       await expect(page.locator(".transmission-controls__status")).toContainText("CLUTCH STUCK · 3 PUMPS");
+      await checkClutchWarning(page);
       await expect(page.locator(".mobile-pedal--brake")).toContainText("SERVICE");
       await page.screenshot({ path: test.info().outputPath("manual-landscape.png") });
       const game = await currentGame(page);
@@ -109,6 +146,8 @@ for (const renderer of ["WebGPU", "Canvas"]) for (const model of ["arcade", "sim
     }
     await page.keyboard.up("Shift"); await advance(page, 100);
     await expect(status).toContainText("CLUTCH STUCK · 3 PUMPS");
+    await checkWarningCameras(page);
+    await expect(page.locator(".clutch-warning")).toContainText("PUMP CLUTCH");
     for (let tap = 0; tap < 3; tap++) {
       await page.keyboard.down("w"); await advance(page, 100);
       await page.keyboard.up("w"); await advance(page, 100);
@@ -118,9 +157,10 @@ for (const renderer of ["WebGPU", "Canvas"]) for (const model of ["arcade", "sim
       await page.keyboard.down("Shift"); await advance(page, 100);
       await expect(status).toContainText(`CLUTCH STUCK · ${left + 1} PUMPS`);
       await page.keyboard.up("Shift"); await advance(page, 100);
-      if (left) await expect(status).toContainText(`CLUTCH STUCK · ${left} PUMPS`);
+      if (left) { await expect(status).toContainText(`CLUTCH STUCK · ${left} PUMPS`); await checkClutchWarning(page, left); }
     }
     await expect(status).toContainText("ACCORD V6");
+    await expect(page.locator(".clutch-warning")).toHaveCount(0);
     await page.keyboard.down("w"); await advance(page, 500); await page.keyboard.up("w");
     await page.screenshot({ path: test.info().outputPath("accord-driving.png") });
     const game = await currentGame(page);
@@ -140,7 +180,7 @@ for (const renderer of ["WebGPU", "Canvas"]) for (const model of ["arcade", "sim
       await start(page, renderer, model, false);
       const cdp = await context.newCDPSession(page);
       const clutch = page.getByRole("button", { name: /^Clutch\. Hold Shift/ });
-      const notice = page.locator(".mobile-notice");
+      const notice = page.locator(".clutch-warning");
       async function pumpGas() {
         const box = (await page.getByRole("button", { name: "Accelerate", exact: true }).boundingBox())!;
         await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: box.x + box.width / 2, y: box.y + box.height / 2, id: 1 }] });
@@ -153,16 +193,19 @@ for (const renderer of ["WebGPU", "Canvas"]) for (const model of ["arcade", "sim
       // Force the deterministic first engagement, then recover using only the phone's gas pedal.
       await page.keyboard.down("Shift"); await advance(page, 100);
       await page.keyboard.up("Shift"); await advance(page, 100);
-      await expect(notice).toContainText("CLUTCH STUCK · TAP GAS 3 MORE");
+      await checkWarningCameras(page);
+      await expect(notice).toContainText("TAP GAS ×3");
       await expect(clutch).toHaveCount(0);
       await page.screenshot({ path: test.info().outputPath("automatic-gas-recovery.png") });
-      for (let left = 2; left >= 0; left--) {
-        await pumpGas();
-        if (left) await expect(notice).toContainText("CLUTCH STUCK · TAP GAS " + left + " MORE");
-      }
-      await expect(notice).not.toContainText("CLUTCH STUCK");
       await page.setViewportSize({ width: 844, height: 390 });
       await advance(page, 150);
+      await checkClutchWarning(page);
+      await page.screenshot({ path: test.info().outputPath("clutch-landscape.png") });
+      for (let left = 2; left >= 0; left--) {
+        await pumpGas();
+        if (left) await checkClutchWarning(page, left);
+      }
+      await expect(notice).toHaveCount(0);
       await expect(clutch).toHaveCount(0);
       await expect(page.getByLabel("Accord transmission", { exact: true })).toHaveCount(0);
       await expect(page.getByRole("button", { name: "Accelerate", exact: true })).toBeInViewport({ ratio: 1 });
@@ -182,14 +225,17 @@ for (const renderer of ["WebGPU", "Canvas"]) for (const model of ["arcade", "sim
     await page.keyboard.down("Shift"); await advance(page, 100);
     await page.keyboard.up("Shift"); await advance(page, 100);
     await expect(status).toContainText("CLUTCH STUCK · 3 PUMPS");
+    await checkClutchWarning(page);
+    await expect(page.locator(".clutch-warning")).toContainText("TAP GAS ×3");
     for (let left = 2; left >= 0; left--) {
       await page.keyboard.down("w"); await advance(page, 350);
       await page.keyboard.down("w"); await advance(page, 100);
       await expect(status).toContainText(`CLUTCH STUCK · ${left + 1} PUMPS`);
       await page.keyboard.up("w"); await advance(page, 100);
-      if (left) await expect(status).toContainText(`CLUTCH STUCK · ${left} PUMPS`);
+      if (left) { await expect(status).toContainText(`CLUTCH STUCK · ${left} PUMPS`); await checkClutchWarning(page, left); }
     }
     await expect(status).toContainText("ACCORD V6");
+    await expect(page.locator(".clutch-warning")).toHaveCount(0);
     await page.keyboard.down("w"); await advance(page, 500); await page.keyboard.up("w");
     const game = await currentGame(page);
     expect(game.transmissionMode).toBe("automatic");

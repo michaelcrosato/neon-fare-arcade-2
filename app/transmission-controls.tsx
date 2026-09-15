@@ -18,7 +18,7 @@ export function TransmissionControls({ hud, enabled, onTouch, onInput }: { hud: 
     onBlur={() => onInput?.(input, false)}
   >{content}</button>;
   return <div className={`transmission-controls ${state.stuck ? "is-stuck" : ""}`} aria-label="Accord transmission">
-    <div className="transmission-controls__status"><b>{gear}</b><span>{manual ? "6MT" : "6MT · AUTO SHIFT"} · {Math.round(hud.vehicleRpm / 100) * 100} RPM<small role="status">{state.stuck ? `CLUTCH STUCK · ${state.pumpsRemaining} PUMPS` : state.clutchHeld ? "CLUTCH DOWN" : "ACCORD V6"}</small></span></div>
+    <div className="transmission-controls__status"><b>{gear}</b><span>{manual ? "6MT" : "6MT · AUTO SHIFT"} · {Math.round(hud.vehicleRpm / 100) * 100} RPM<small role={state.stuck ? undefined : "status"}>{state.stuck ? `CLUTCH STUCK · ${state.pumpsRemaining} PUMPS` : state.clutchHeld ? "CLUTCH DOWN" : "ACCORD V6"}</small></span></div>
     {manual && <div className="transmission-controls__lights">
       <span className={indicators.shift ? "is-lit shift-light" : "shift-light"} aria-label={indicators.shift ? "Shift up recommended" : "Shift light standby"}>SHIFT ↑</span>
       <span className={indicators.vtec ? "is-lit vtec-light" : "vtec-light"} aria-label={indicators.vtec ? "VTEC active" : "VTEC standby"}>VTEC</span>

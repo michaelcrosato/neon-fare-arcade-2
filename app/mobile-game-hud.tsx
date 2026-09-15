@@ -50,6 +50,7 @@ function walkingDestination(hud: Hud) {
 
 /** Mobile has its own information hierarchy; no mini-map or desktop card stack. */
 export function MobileGameHud({ mode, hud, fareImpact, fareImpactRef, courierImpact, touchDriving, steeringMode, onSetCruise, taxiExitRef, onPulseInteraction, onSetMode, onTouch, onTransmissionInput }: Props) {
+  const message = hud.vehicleId === "accord-v6" && hud.playerMode === "driving" && hud.transmission.stuck ? "" : hud.message;
   if (mode !== "playing" && mode !== "countdown") return null;
   const driving = hud.playerMode === "driving";
   const simulation = driving && hud.drivingModel === "simulation";
@@ -87,8 +88,8 @@ export function MobileGameHud({ mode, hud, fareImpact, fareImpactRef, courierImp
       {simulation && hud.vehicleId !== "accord-v6" && <b>{simulationGearLabel(hud.simulationVehicle.gear)}</b>}</div>}
     <FuelGauge fuel={hud.fuel} />
 
-    {mode === "playing" && (hud.damage.line || event || hud.message) && <div className={`mobile-notice ${event ? "is-event" : ""}`} aria-hidden="true">
-      <strong>{hud.damage.line || event?.title || hud.message}</strong>{event && !hud.damage.line && <span>{event.detail}</span>}
+    {mode === "playing" && (hud.damage.line || event || message) && <div className={`mobile-notice ${event ? "is-event" : ""}`} aria-hidden="true">
+      <strong>{hud.damage.line || event?.title || message}</strong>{event && !hud.damage.line && <span>{event.detail}</span>}
     </div>}
 
     {mode === "playing" && driving && hud.interactionPrompt && <button type="button" ref={taxiExitRef}

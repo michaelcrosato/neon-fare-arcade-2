@@ -33,4 +33,5 @@ export function presentTaxiExitAction(element: HTMLButtonElement, game: Game, ca
     ? `clamp(136px, ${top}px, calc(100% - ${element.offsetHeight + 116}px))`
     : `${top}px`;
   element.style.visibility = "visible";
+  return { x: left, y: top, width: element.offsetWidth, height: element.offsetHeight };
 }

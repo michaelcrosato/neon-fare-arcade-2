@@ -468,6 +468,10 @@
   .topbar nav { gap: 9px; }
   .topbar nav button, .topbar nav button:nth-of-type(2) { display: block; min-height: 44px; padding: 4px 0; font-size: 12px; }
 
+  .clutch-warning { width: 218px; gap: 9px; padding: 9px 12px 10px; }
+  .clutch-warning__copy > strong { font-size: 25px; }
+  .clutch-warning__copy > span { font-size: 15px; }
+  .clutch-warning__icon { flex-basis: 28px; width: 28px; height: 28px; }
   .mobile-hud {
     --mobile-left: max(12px, env(safe-area-inset-left));
     --mobile-right: max(12px, env(safe-area-inset-right));

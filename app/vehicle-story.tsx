@@ -31,7 +31,7 @@ export function AccordStory() {
         <p className="vehicle-story__tagline">SAME STREETS. JUST GOES FASTER.</p>
         <p>It looks normal. Until you drive it. This one&apos;s special. An understated white coupe with subtle upgrades and a much bigger story.</p>
         <dl><div><dt>THE V6</dt><dd>The poster calls it an untuned V6 that feels closer to 300 horsepower. Familiar on the outside; eager when you put your foot down.</dd></div>
-          <div><dt>THE CLUTCH</dt><dd>Works about 95% of the time. Sometimes it needs a few pumps. In the game, pump the clutch three times to get it going again. Automatic shifting also accepts three gas taps.</dd></div>
+          <div><dt>THE CLUTCH</dt><dd>The poster jokes that it works about 95% of the time. In the game, it sticks on 2.5% of engagements. Three complete clutch pumps restore drive; Automatic also accepts three gas taps.</dd></div>
           <div><dt>THE WINTER TIRES</dt><dd>Still being financed. Because sometimes you just don&apos;t have the cash. They are part of this car&apos;s particular grip and playful feel.</dd></div>
           <div><dt>154,298 KM AND COUNTING</dt><dd>Pretty good condition. Still going strong, minus the clutch. K&amp;N, Brembo and Injen stickers, a V6 THO plate, and a lot more driving left.</dd></div></dl>
         <p>More power in a familiar package. Subtle upgrades. A bigger story.</p>

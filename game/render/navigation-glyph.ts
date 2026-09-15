@@ -124,6 +124,18 @@ export function vehicleDepartureArrowBoxes(
 
   const remaining = (navigation.departurePromptUntil ?? 0) - game.elapsed;
   const fade = arrivalActive ? 1 : clamp(remaining / 0.3, 0, 1);
+  return vehicleDirectionArrowGeometry(game, seconds, navigation, cameraMode, fade);
+}
+
+/** Canonical geometry also anchors warnings while the temporary arrow is absent. */
+export function vehicleDirectionArrowGeometry(
+  game: Game,
+  seconds: number,
+  navigation: NavigationPlan,
+  cameraMode: CameraMode,
+  fade = 1,
+): Box[] {
+  const arrivalActive = Boolean(navigation.arrivalPromptActive);
   const scale = (0.72 + Math.sin(seconds * 7) * 0.03) * (0.8 + 0.2 * fade);
   const hover = (game.z ?? 0) + (cameraMode === "cab" ? 2.6 : 3.8) + Math.sin(seconds * 5) * 0.15;
   const origin = cameraMode === "cab"

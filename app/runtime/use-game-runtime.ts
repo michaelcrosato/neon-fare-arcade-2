@@ -52,6 +52,7 @@ import { mergeDrivingInput, type TouchDriving } from "./touch-driving";
 import { presentPassengerReview } from "./passenger-review";
 import { presentTaxiExitAction } from "./taxi-exit-action";
 import { presentNavigationDistance } from "./navigation-distance";
+import { presentClutchWarning } from "./clutch-warning";
 import { presentFareImpact } from "./fare-impact-layout";
 import { MOBILE_QUERY } from "../use-mobile-layout";
 import { protectGameGestures } from "./game-display";
@@ -61,6 +62,7 @@ type RefBox<T> = { current: T };
 export type GameRuntimeOptions = Readonly<{
   passengerReviewRef: RefBox<HTMLDivElement | null>;
   navigationDistanceRef: RefBox<HTMLDivElement | null>;
+  clutchWarningRef: RefBox<HTMLDivElement | null>;
   fareImpactRef: RefBox<HTMLDivElement | null>;
   taxiExitRef: RefBox<HTMLButtonElement | null>;
   canvas2dRef: RefBox<HTMLCanvasElement | null>;
@@ -95,6 +97,7 @@ export function useGameRuntime(options: GameRuntimeOptions) {
   const {
     passengerReviewRef,
     navigationDistanceRef,
+    clutchWarningRef,
     fareImpactRef,
     taxiExitRef,
     canvas2dRef,
@@ -406,9 +409,18 @@ export function useGameRuntime(options: GameRuntimeOptions) {
         if (fareImpactRef.current) {
           presentFareImpact(fareImpactRef.current, Boolean(camera.mobile));
         }
+        let taxiExitBounds: ReturnType<typeof presentTaxiExitAction>;
         if (taxiExitRef.current) {
           const bounds = canvas2d.getBoundingClientRect();
-          presentTaxiExitAction(taxiExitRef.current, game, camera, bounds.width, bounds.height);
+          taxiExitBounds = presentTaxiExitAction(taxiExitRef.current, game, camera, bounds.width, bounds.height);
+        }
+        if (clutchWarningRef.current) {
+          if (currentMode !== "playing") clutchWarningRef.current.hidden = true;
+          else {
+            const bounds = canvas2d.getBoundingClientRect();
+            presentClutchWarning(clutchWarningRef.current, game, camera, reducedMotion ? 0 : now / 1000,
+              currentNavigation, bounds.width, bounds.height, taxiExitBounds);
+          }
         }
         if (passengerReviewRef.current) {
           if (modeRef.current === "menu" || modeRef.current === "ended" || modeRef.current === "countdown") {
@@ -545,6 +557,7 @@ export function useGameRuntime(options: GameRuntimeOptions) {
     boostAudioActiveRef,
     passengerReviewRef,
     navigationDistanceRef,
+    clutchWarningRef,
     fareImpactRef,
     taxiExitRef,
     cameraModeRef,

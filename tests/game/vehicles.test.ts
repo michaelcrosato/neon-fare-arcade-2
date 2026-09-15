@@ -115,7 +115,7 @@ test("manual gears require the clutch, reject unsafe reverse and over-rev, and i
   }
 });
 
-test("clutch failure is deterministic at about 5% per engagement and takes three complete pumps", () => {
+test("clutch failure is deterministic at about 2.5% per engagement and takes three complete pumps", () => {
   const a = makeGame("street-ace", 918, "free-run", "simulation", "accord-v6", "manual");
   const b = structuredClone(a);
   let faults = 0;
@@ -138,7 +138,7 @@ test("clutch failure is deterministic at about 5% per engagement and takes three
     assert.equal(a.transmission.engagements, attempts, "recovery does not reroll the fault");
     assert.equal(clutchConnected(a), true);
   }
-  assert.ok(faults > 430 && faults < 570, `faults: ${faults}/10000`);
+  assert.ok(faults > 200 && faults < 300, `faults: ${faults}/10000`);
 });
 
 test("a stuck clutch removes propulsion and boost in both models without removing the brakes", () => {
