@@ -778,9 +778,6 @@
   .vehicle-card--empty > span { font-size: 46px; }
   .vehicle-card--empty i { width: 44px; height: 30px; }
   .vehicle-card--empty small { display: none; }
-  .vehicle-screen__continue { bottom: -16px; padding: 10px; gap: 8px; }
-  .vehicle-screen__continue > span { font-size: 18px; }
-  .vehicle-screen__continue .primary-small { font-size: 16px; min-height: 48px; padding: 10px; }
   .mobile-hud .transmission-controls { left: max(12px, env(safe-area-inset-left)); bottom: max(16px, env(safe-area-inset-bottom)); transform: none; padding: 6px; max-width: calc(100vw - 138px); }
   .mobile-hud .transmission-controls__keys { display: none; }
   .mobile-hud .transmission-controls__status > b { font-size: 24px; }

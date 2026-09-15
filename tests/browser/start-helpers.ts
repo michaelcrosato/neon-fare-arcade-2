@@ -13,7 +13,7 @@ export async function presentUntilVisible(page: Page, target: Locator, maxMillis
 export async function confirmVehicle(page: Page) {
   const garage = page.getByRole("dialog", { name: "SELECT YOUR VEHICLE", exact: true });
   await expect(garage).toBeVisible();
-  await garage.getByRole("button", { name: /^Continue to (Edge|Steering) selection$/ }).click();
+  await garage.locator(".vehicle-card.is-selected").getByRole("button", { name: /^Lock in / }).click();
 }
 
 /** Both desktop and mobile lock steering after Arcade's Edge or Simulation's Vehicle. */

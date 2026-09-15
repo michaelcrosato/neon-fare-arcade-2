@@ -24,6 +24,22 @@ for (const mobile of [false, true]) test.describe(mobile ? "phone setup" : "desk
     await page.getByRole("button", { name: "Select 2015 Honda Accord Coupe V6", exact: true }).click();
     await expect(page.getByRole("radio", { name: "Automatic", exact: true })).toBeChecked();
     await page.getByRole("radio", { name: "Manual", exact: true }).check();
+    const accordCard = garage.locator(".vehicle-card.is-selected");
+    await expect(accordCard.locator(":scope > p")).toHaveText("Secret special edition. Same streets. Just goes faster.");
+    await expect(accordCard.locator(":scope > ul")).toHaveCount(0);
+    await expect(accordCard.getByRole("button", { name: /^READ THE ACCORD/ })).toBeVisible();
+    await expect(garage.getByRole("button", { name: /^Lock in / })).toHaveCount(2);
+    await expect(accordCard.getByRole("button", { name: "Lock in ACCORD V6" })).toHaveClass("driver-trait__pick");
+    if (kind === "free") {
+      await accordCard.getByRole("button", { name: /^READ THE ACCORD/ }).click();
+      const story = page.getByRole("dialog", { name: "SECRET SPECIAL EDITION", exact: true });
+      await expect(story).toBeVisible();
+      await expect(story).toContainText("It sticks sometimes.");
+      await expect(story).not.toContainText("%");
+      await expect.poll(() => story.locator("img").evaluate((image: HTMLImageElement) => image.naturalWidth)).toBe(1536);
+      await page.keyboard.press("Escape");
+      await expect(story).toHaveCount(0);
+    }
     await page.screenshot({ path: info.outputPath("vehicle.png") });
     await confirmVehicle(page);
     if (kind !== "simulation") {
@@ -44,11 +60,19 @@ for (const mobile of [false, true]) test.describe(mobile ? "phone setup" : "desk
     await expect(garage).toBeVisible();
     await expect(page.getByRole("button", { name: "Select 2015 Honda Accord Coupe V6", exact: true })).toHaveAttribute("aria-pressed", "true");
     await expect(page.getByRole("radio", { name: "Manual", exact: true })).toBeChecked();
+    // A card's lock button commits that vehicle even if the other card was highlighted.
+    await garage.getByRole("button", { name: "Lock in CROWN CAB", exact: true }).click();
+    await page.keyboard.press("Escape");
+    await expect(garage.getByRole("button", { name: /^Select Crown Cab/ })).toHaveAttribute("aria-pressed", "true");
+    await garage.getByRole("button", { name: "Select 2015 Honda Accord Coupe V6", exact: true }).click();
     if (mobile) {
       await page.setViewportSize({ width: 844, height: 390 });
       await page.getByRole("radio", { name: "Automatic", exact: true }).check();
       await page.getByRole("radio", { name: "Manual", exact: true }).check();
-      await expect(page.getByRole("button", { name: /^Continue to/ })).toBeInViewport({ ratio: 1 });
+      const lock = page.getByRole("button", { name: "Lock in ACCORD V6" });
+      await lock.scrollIntoViewIfNeeded();
+      // Rotated layouts can round the last fraction of a CSS pixel at the viewport edge.
+      await expect(lock).toBeInViewport({ ratio: .999 });
       await page.screenshot({ path: info.outputPath("vehicle-landscape.png") });
     }
     await confirmVehicle(page);

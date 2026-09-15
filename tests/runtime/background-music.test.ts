@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { BackgroundMusic, MUSIC_TRACKS, shuffledMusicTracks } from "../../app/runtime/background-music";
+import { BackgroundMusic, MENU_MUSIC_TRACK, MUSIC_TRACKS, shuffledMusicTracks } from "../../app/runtime/background-music";
+import { DEFAULT_AUDIO_SETTINGS as defaults } from "../../app/runtime/audio-settings";
 import { makeGame } from "../../game/state";
-import type { Mode } from "../../game/model";
 
 class FakeAudio extends EventTarget {
   volume = 1; preload = ""; src = ""; loop = false; muted = false; currentTime = 0; paused = true;
@@ -13,132 +13,130 @@ class FakeAudio extends EventTarget {
   load() {}
 }
 const settled = () => new Promise(resolve => setImmediate(resolve));
+function setup(random = () => .3, context: () => AudioContext | null = () => null) {
+  const audio = new FakeAudio(), menu = new FakeAudio();
+  const music = new BackgroundMusic(audio as unknown as HTMLAudioElement, random, context, menu as unknown as HTMLAudioElement);
+  return { audio, menu, music };
+}
 
-test("all bundled songs shuffle once per run and loop in that order on natural endings", async () => {
-  const audio = new FakeAudio();
+test("menus use a separate theme and each driving playlist shuffles once then repeats on natural endings", async () => {
   let randomCalls = 0;
-  const music = new BackgroundMusic(audio as unknown as HTMLAudioElement, () => { randomCalls++; return .3; });
+  const { audio, menu, music } = setup(() => { randomCalls++; return .3; });
   const game = makeGame("street-ace", 123, "free-run");
-  music.update(game, "menu", false);
-  music.unlock();
-  await settled();
-  assert.equal(audio.plays, 0, "opening menus must not start music");
-  music.update(game, "countdown", false);
-  await settled();
+  music.update(game, "menu"); music.unlock(); await settled();
+  assert.equal(audio.plays, 0);
+  assert.equal(menu.src, `/music/bgm_0${MENU_MUSIC_TRACK}.mp3`);
+  assert.equal(menu.loop, true);
+  assert.equal(menu.paused, false);
+  music.update(game, "countdown"); await settled();
+  assert.equal(menu.paused, true);
   const order = shuffledMusicTracks(() => .3);
   assert.deepEqual([...order].sort(), [...MUSIC_TRACKS]);
+  assert.equal(order.includes(MENU_MUSIC_TRACK), false);
   assert.notDeepEqual(order, shuffledMusicTracks(() => .8));
   for (let index = 0; index < order.length * 2; index++) {
     assert.equal(audio.src, "/music/bgm_" + String(order[index % order.length]).padStart(2, "0") + ".mp3");
-    assert.equal(audio.loop, false, "the whole playlist repeats, not one song");
-    audio.currentTime = 120;
-    audio.paused = true;
-    audio.dispatchEvent(new Event("ended"));
-    await settled();
-    assert.equal(audio.currentTime, 0);
-    assert.equal(audio.paused, false);
-    music.update(game, "playing", false);
+    assert.equal(audio.loop, false);
+    audio.currentTime = 120; audio.paused = true;
+    audio.dispatchEvent(new Event("ended")); await settled();
+    assert.equal(audio.currentTime, 0); assert.equal(audio.paused, false);
+    music.update(game, "playing");
   }
   assert.equal(randomCalls, MUSIC_TRACKS.length - 1);
   music.destroy();
-  assert.equal(audio.src, "");
-  assert.equal(audio.paused, true);
+  assert.equal(audio.src, ""); assert.equal(menu.src, "");
+  assert.equal(audio.paused, true); assert.equal(menu.paused, true);
 });
 
-test("pickup, dropoff, idle time, venues, pause, results and menus never interrupt or replace the song", async () => {
-  const audio = new FakeAudio();
-  const music = new BackgroundMusic(audio as unknown as HTMLAudioElement, () => .3);
-  const game = makeGame("street-ace", 987, "free-run");
-  music.update(game, "countdown", false);
-  await settled();
-  const firstSong = audio.src;
-  audio.currentTime = 19;
-  const check = async (mode: Mode = "playing", muted = false) => {
-    music.update(game, mode, muted);
-    await settled();
-    assert.equal(audio.src, firstSong);
-    assert.equal(audio.currentTime, 19);
-    assert.equal(audio.paused, false);
-    assert.equal(audio.volume, .38);
-    assert.equal(audio.muted, muted);
-  };
-  game.elapsed = 31.5; await check();
-  game.elapsed = 600; await check();
-  game.onboard = true; await check();
-  game.onboard = false; await check();
-  game.player = { kind: "walking", actor: { x: 0, y: 0, vx: 0, vy: 0, heading: 0, speed: 0 },
-    location: { kind: "interior", venue: { id: "test", kind: "diner", label: "DINER" }, returnPose: { x: 0, y: 0, heading: 0 } } };
-  await check();
-  game.player = { kind: "driving" }; await check();
-  for (const mode of ["paused", "playing", "ended", "menu"] as const) await check(mode);
-  await check("paused", true);
-  await check("playing", false);
-  assert.equal(audio.plays, 1);
-  assert.equal(audio.pauses, 0);
-  const nextGame = makeGame("street-ace", 456, "free-run");
-  music.update(nextGame, "countdown", false);
-  assert.equal(audio.currentTime, 0, "a new run restarts its shuffled playlist even if the first song is the same");
+test("pausing saves the driving song position while only menu music plays; resume never reshuffles", async () => {
+  const { audio, menu, music } = setup();
+  const game = makeGame("street-ace", 917, "free-run");
+  music.update(game, "playing"); await settled();
+  audio.currentTime = 37; const song = audio.src;
+  game.elapsed = 600; game.onboard = true;
+  music.update(game, "playing"); assert.equal(audio.currentTime, 37);
+  game.onboard = false;
+  for (const mode of ["paused", "ended", "menu"] as const) {
+    music.update(game, mode); await settled();
+    assert.equal(audio.paused, true, "pause must stop the driving song");
+    assert.equal(menu.paused, false);
+    assert.equal(audio.src, song); assert.equal(audio.currentTime, 37);
+    music.update(game, "playing"); await settled();
+    assert.equal(menu.paused, true); assert.equal(audio.paused, false);
+    assert.equal(audio.currentTime, 37); assert.equal(audio.src, song);
+  }
+  music.update(makeGame("street-ace", 918, "free-run"), "countdown");
+  assert.equal(audio.currentTime, 0, "only a fresh run resets its playlist");
   music.destroy();
 });
 
-test("mobile music uses the shared unlocked Web Audio gain at a constant volume", async () => {
-  const audio = new FakeAudio();
-  Object.defineProperty(audio, "volume", { get: () => 1, set: () => {} });
+test("music volume, master and mute affect both transports without changing their positions", async () => {
+  const { audio, menu, music } = setup();
+  const game = makeGame("street-ace", 345);
+  const settings = { ...defaults, masterVolume: .5, musicVolume: .6 };
+  music.update(game, "playing", settings); await settled();
+  assert.ok(Math.abs(audio.volume - .114) < 1e-9); assert.ok(Math.abs(menu.volume - .114) < 1e-9);
+  audio.currentTime = 17;
+  music.update(game, "paused", { ...settings, muted: true }); await settled();
+  assert.equal(audio.muted, true); assert.equal(menu.muted, true);
+  assert.equal(audio.volume, 0); assert.equal(menu.volume, 0);
+  music.update(game, "playing", settings); await settled();
+  assert.equal(audio.currentTime, 17); assert.ok(Math.abs(audio.volume - .114) < 1e-9);
+  assert.equal(audio.muted, false); assert.equal(menu.muted, false);
+  music.destroy();
+});
+
+test("mobile media uses adjustable Web Audio gains even when native volume is ignored", async () => {
+  const gains: { gain: { value: number }; connect(): void; disconnect(): void }[] = [];
   let connected = 0, disconnected = 0, resumed = 0;
-  const gain = { gain: { value: 1 }, connect() { connected++; }, disconnect() { disconnected++; } };
-  const source = { connect() { connected++; }, disconnect() { disconnected++; } };
-  const context = { state: "suspended", destination: {}, createGain: () => gain, createMediaElementSource: () => source,
+  const context = { state: "suspended", destination: {},
+    createGain() { const gain = { gain: { value: 1 }, connect() { connected++; }, disconnect() { disconnected++; } }; gains.push(gain); return gain; },
+    createMediaElementSource: () => ({ connect() { connected++; }, disconnect() { disconnected++; } }),
     resume() { resumed++; this.state = "running"; return Promise.resolve(); } };
   let unlocked: AudioContext | null = null;
-  const music = new BackgroundMusic(audio as unknown as HTMLAudioElement, () => .3, () => unlocked);
+  const { audio, music } = setup(() => .3, () => unlocked);
+  Object.defineProperty(audio, "volume", { get: () => 1, set: () => {} });
   const game = makeGame("street-ace", 227, "free-run");
   unlocked = context as unknown as AudioContext;
   music.unlock(); await settled(); assert.equal(resumed, 1);
-  music.update(game, "playing", false); await settled();
-  game.elapsed = 600; music.update(game, "playing", false);
-  assert.equal(gain.gain.value, .38);
-  assert.equal(audio.paused, false);
-  music.unlock(); assert.equal(connected, 2);
-  music.destroy(); assert.equal(disconnected, 2);
-  assert.equal(context.state, "running", "the shared context remains owned by the game");
+  music.update(game, "playing", { ...defaults, musicVolume: .5 }); await settled();
+  assert.deepEqual(gains.map(gain => gain.gain.value), [.19, .19]);
+  music.update(game, "paused", { ...defaults, masterVolume: .5, musicVolume: .5 });
+  assert.deepEqual(gains.map(gain => gain.gain.value), [.095, .095]);
+  music.unlock(); assert.equal(connected, 4);
+  music.destroy(); assert.equal(disconnected, 4);
+  assert.equal(context.state, "running");
 });
 
-test("blocked autoplay retries within a later user gesture and cleanup prevents further playback", async () => {
-  const audio = new FakeAudio();
-  let blocked = true;
-  audio.play = () => {
-    audio.plays++;
-    if (blocked) return Promise.reject(new DOMException("Gesture required", "NotAllowedError"));
-    audio.paused = false;
-    return Promise.resolve();
-  };
-  const music = new BackgroundMusic(audio as unknown as HTMLAudioElement, () => .3);
-  const game = makeGame("street-ace", 912);
-  music.update(game, "countdown", false); await settled();
-  assert.equal(audio.paused, true);
-  music.update(game, "playing", false); await settled();
-  assert.equal(audio.plays, 1, "do not retry a rejected autoplay on every frame");
-  blocked = false;
-  music.unlock(); await settled();
-  assert.equal(audio.paused, false);
+test("hidden-tab preference pauses both transports and can be disabled without changing mute or mix", async () => {
+  const { audio, menu, music } = setup();
+  const game = makeGame("street-ace", 456);
+  music.update(game, "playing"); await settled(); audio.currentTime = 29;
+  music.update(game, "paused", defaults, true); await settled();
+  assert.equal(audio.paused, true); assert.equal(menu.paused, true);
+  assert.equal(audio.volume, 0); assert.equal(menu.volume, 0);
+  music.update(game, "paused", { ...defaults, muteWhenHidden: false }, true); await settled();
+  assert.equal(menu.paused, false); assert.equal(menu.volume, .38);
+  music.update(game, "playing", defaults, false); await settled();
+  assert.equal(audio.currentTime, 29); assert.equal(menu.paused, true);
   music.destroy();
-  music.unlock();
-  music.update(game, "playing", false);
-  audio.dispatchEvent(new Event("ended"));
-  assert.equal(audio.plays, 2);
 });
 
-test("adopts the document audio element without autoplaying the menu", () => {
-  const audio = new FakeAudio();
-  (globalThis as unknown as Record<string, unknown>).document = {
-    getElementById: (id: string) => id === "neon-fare-bgm" ? audio : null,
+test("blocked autoplay retries inside a gesture and cleanup prevents further playback", async () => {
+  const { audio, menu, music } = setup();
+  let blocked = true;
+  for (const channel of [audio, menu]) channel.play = () => {
+    channel.plays++;
+    if (blocked) return Promise.reject(new DOMException("Gesture required", "NotAllowedError"));
+    channel.paused = false; return Promise.resolve();
   };
-  try {
-    const music = new BackgroundMusic(undefined, () => .3);
-    assert.equal(audio.preload, "auto");
-    assert.equal(audio.plays, 0);
-    music.destroy();
-  } finally {
-    delete (globalThis as unknown as Record<string, unknown>).document;
-  }
+  const game = makeGame("street-ace", 912);
+  music.update(game, "menu"); await settled();
+  music.update(game, "menu"); await settled(); assert.equal(menu.plays, 1);
+  music.update(game, "countdown"); await settled();
+  music.update(game, "playing"); await settled(); assert.equal(audio.plays, 1);
+  blocked = false; music.unlock(); await settled();
+  assert.equal(audio.paused, false); assert.equal(menu.paused, true);
+  music.destroy(); music.unlock(); music.update(game, "playing");
+  audio.dispatchEvent(new Event("ended")); assert.equal(audio.plays, 2);
 });

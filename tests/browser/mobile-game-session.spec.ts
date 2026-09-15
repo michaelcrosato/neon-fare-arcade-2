@@ -7,7 +7,7 @@ test.use({ viewport: { width: 390, height: 844 },
   contextOptions: { hasTouch: true, isMobile: true, reducedMotion: "reduce" } });
 test.setTimeout(Math.max(60_000, SCENE_TEST_TIMEOUT * 2));
 
-test("mobile start enters fullscreen, protects gestures and keeps music looping through pauses", async ({ page, context }, info) => {
+test("mobile start enters fullscreen, protects gestures and switches to menu music during pause", async ({ page, context }, info) => {
   const errors: string[] = [];
   page.on("pageerror", error => errors.push(error.message));
   page.on("console", message => { if (message.type() === "error") errors.push(message.text()); });
@@ -18,6 +18,7 @@ test("mobile start enters fullscreen, protects gestures and keeps music looping 
   await installMediaRanges(page);
   await page.goto("/");
   const audio = page.locator("#neon-fare-bgm");
+  const menu = page.locator("#neon-fare-menu-bgm");
   expect(await audio.evaluate((element: HTMLAudioElement) => element.paused)).toBe(true);
   await page.getByRole("button", { name: /Start Free Run with arcade/ }).tap();
   await confirmVehicle(page);
@@ -36,19 +37,28 @@ test("mobile start enters fullscreen, protects gestures and keeps music looping 
   await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
   expect(await page.evaluate(() => [scrollX, scrollY])).toEqual([0, 0]);
   await page.getByRole("button", { name: "Pause game" }).tap();
+  await expect.poll(() => audio.evaluate((element: HTMLAudioElement) => element.paused)).toBe(true);
   const pausedTime = await audio.evaluate((element: HTMLAudioElement) => element.currentTime);
-  await expect.poll(() => audio.evaluate((element: HTMLAudioElement) => element.currentTime)).toBeGreaterThan(pausedTime + .15);
+  const menuTime = await menu.evaluate((element: HTMLAudioElement) => element.currentTime);
+  await expect.poll(() => menu.evaluate((element: HTMLAudioElement) => element.currentTime)).toBeGreaterThan(menuTime + .15);
+  expect(await audio.evaluate((element: HTMLAudioElement) => element.currentTime)).toBeCloseTo(pausedTime, 2);
   expect(await audio.getAttribute("src")).toBe(originalTrack);
+  expect(await menu.getAttribute("src")).toBe("/music/bgm_01.mp3");
   await page.getByRole("button", { name: "AUDIO ON", exact: true }).tap();
   await expect.poll(() => audio.evaluate((element: HTMLAudioElement) => element.muted)).toBe(true);
+  await expect.poll(() => menu.evaluate((element: HTMLAudioElement) => element.muted)).toBe(true);
   await page.getByRole("button", { name: "AUDIO OFF", exact: true }).tap();
   await expect.poll(() => audio.evaluate((element: HTMLAudioElement) => element.muted)).toBe(false);
+  await expect.poll(() => menu.evaluate((element: HTMLAudioElement) => element.muted)).toBe(false);
+  await page.getByRole("button", { name: "RESUME FREE RUN" }).tap();
+  await expect(page.locator(".arcade-shell")).toHaveClass(/mode-playing/);
+  await expect.poll(() => menu.evaluate((element: HTMLAudioElement) => element.paused)).toBe(true);
+  await expect.poll(() => audio.evaluate((element: HTMLAudioElement) => element.currentTime)).toBeGreaterThan(pausedTime + .15);
+  expect(await audio.getAttribute("src")).toBe(originalTrack);
   await expect.poll(() => audio.evaluate((element: HTMLAudioElement) => Number.isFinite(element.duration))).toBe(true);
   await audio.evaluate((element: HTMLAudioElement) => { element.currentTime = element.duration - .1; });
   await expect.poll(() => audio.getAttribute("src"), { timeout: SCENE_START_TIMEOUT }).not.toBe(originalTrack);
   await expect.poll(() => audio.evaluate((element: HTMLAudioElement) => !element.paused && element.currentTime > 0)).toBe(true);
-  await page.getByRole("button", { name: "RESUME FREE RUN" }).tap();
-  await expect(page.locator(".arcade-shell")).toHaveClass(/mode-playing/);
   await page.screenshot({ path: info.outputPath("mobile-running.png") });
   expect(errors).toEqual([]);
 });

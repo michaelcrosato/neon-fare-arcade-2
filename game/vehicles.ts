@@ -12,8 +12,8 @@ export const VEHICLES = [
   {
     id: "accord-v6", name: "2015 Honda Accord Coupe V6", shortName: "ACCORD V6", number: "02",
     layout: "FWD", transmission: "6-speed manual", power: "3.5L V6 · feels closer to 300 hp",
-    description: "Secret special edition. Same streets, just goes faster. An understated white coupe with subtle upgrades, a temperamental clutch, and a lot more driving left.",
-    details: ["154,298 km · still going strong", "Winter tires · still being financed", "K&N · Brembo · Injen stickers", "Clutch sticks on 2.5% of engagements · pump 3 times"],
+    description: "Secret special edition. Same streets. Just goes faster.",
+    details: ["154,298 km · still going strong", "Winter tires · still being financed", "K&N · Brembo · Injen stickers", "Clutch sticks sometimes · pump 3 times"],
     arcade: { acceleration: 1.14, steering: 1.09, powerSlide: 0.82, liftSlide: 1.35, brakeSlide: 0, slideGrip: 0.9, yawRecovery: 1.15 },
   },
 ] as const;

@@ -115,7 +115,7 @@ test("manual gears require the clutch, reject unsafe reverse and over-rev, and i
   }
 });
 
-test("clutch failure is deterministic at about 2.5% per engagement and takes three complete pumps", () => {
+test("clutch failures stay deterministic within their engagement budget and take three complete pumps", () => {
   const a = makeGame("street-ace", 918, "free-run", "simulation", "accord-v6", "manual");
   const b = structuredClone(a);
   let faults = 0;

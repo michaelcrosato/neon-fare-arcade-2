@@ -13,12 +13,11 @@ import { DevelopmentPanel, type DevelopmentPanelProps } from "./development-pane
 import type { SteeringMode, WheelRange } from "./runtime/touch-driving";
 import { SteeringWheelRange } from "./steering-wheel-range";
 import { useMobileLayout } from "./use-mobile-layout";
+import { AudioOptions } from "./audio-options";
 
 export type GameOptionsPanelProps = {
   tab: "game" | "dev";
   onSelectTab: (tab: "game" | "dev") => void;
-  muted: boolean;
-  onToggleMute: () => void;
   cameraMode: CameraMode;
   onSetCameraMode: (mode: CameraMode) => void;
   cameraDistanceScale: CameraDistanceScale;
@@ -38,8 +37,6 @@ export type GameOptionsPanelProps = {
 export function GameOptionsPanel({
   tab,
   onSelectTab,
-  muted,
-  onToggleMute,
   cameraMode,
   onSetCameraMode,
   cameraDistanceScale,
@@ -84,24 +81,7 @@ export function GameOptionsPanel({
 
       {tab === "game" ? (
         <div className="game-settings-content">
-          <fieldset className="game-options-section">
-            <legend>AUDIO &amp; SOUND</legend>
-            <div className="game-options-row">
-              <button
-                type="button"
-                className={`game-options-toggle ${muted ? "is-off" : "is-on"}`}
-                onClick={onToggleMute}
-                aria-label={muted ? "Audio muted. Click to unmute." : "Audio active. Click to mute."}
-              >
-                <span>{muted ? "🔇" : "🔊"}</span>
-                <div>
-                  <strong>{muted ? "AUDIO MUTED" : "AUDIO ON"}</strong>
-                  <small>{muted ? "Sound effects and background music disabled" : "Looping shuffled music, engine sound and arcade SFX active"}</small>
-                </div>
-              </button>
-            </div>
-            <p className="options-hint">Quick shortcut: Press <kbd>M</kbd> at any time during gameplay to toggle audio.</p>
-          </fieldset>
+          <AudioOptions />
 
           {isMobile && (
           <fieldset className="game-options-section">

@@ -60,7 +60,7 @@ test("a service pause stops catch-up ticks and discards paused frame time", (con
     cameraRef: ref({ x: 0, y: 0, heading: 0, mode: "fixed", zoom: 1, heightOffset: 0 }),
     cameraModeRef: ref("fixed"), inputRef: ref({}), touchDriving: new TouchDriving(),
     interactionPulseRef: ref(false), jumpPulseRef: ref(false), modeRef: mode,
-    mutedRef: ref(false), audioRef: ref(null), engineRef: ref(null), boostAudioActiveRef: ref(false),
+    audioRef: ref(null), engineRef: ref(null), boostAudioActiveRef: ref(false),
     diagnostics: {}, diagnosticsActive: false,
     clearInput() {}, finishRun() {}, setHud() {}, setRendererKind() {}, setAudioAnnouncement() {}, tone() {},
     setMode: (next: Mode) => { mode.current = next; },

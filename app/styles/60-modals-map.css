@@ -127,6 +127,22 @@
   margin-top: 8px;
 }
 
+.audio-options__sliders { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); gap: 18px 24px; margin: 24px 0 16px; }
+.audio-options__channel { display: block; min-width: 0; }
+.audio-options__channel > span { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font: 900 18px "Barlow Condensed", sans-serif; }
+.audio-options__channel output { font: 800 12px var(--font-geist-mono), monospace; }
+.audio-options__channel > small { display: block; min-height: 28px; margin-top: 3px; font-size: 12px; }
+.audio-options__channel input { display: block; width: 100%; height: 32px; margin: 0; accent-color: var(--ink); cursor: pointer; }
+.audio-options__channel input:focus-visible { outline: 3px solid var(--cyan); outline-offset: 3px; }
+.audio-options__background { display: flex; align-items: center; gap: 12px; min-height: 48px; padding-block: 10px; cursor: pointer; border-top: 2px solid var(--ink); }
+.audio-options__background input { width: 22px; height: 22px; flex-shrink: 0; accent-color: var(--ink); }
+.audio-options__background strong, .audio-options__background small { display: block; }
+.audio-options__background strong { font: 900 16px "Barlow Condensed", sans-serif; }
+.audio-options__background small { margin-top: 3px; font-size: 12px; }
+.audio-options__footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.audio-options__footer > small { font: 800 10px var(--font-geist-mono), monospace; }
+.audio-options__footer button { min-height: 44px; padding: 8px 12px; border: 2px solid var(--ink); color: var(--ink); background: var(--paper); font: 900 15px "Barlow Condensed", sans-serif; cursor: pointer; }
+
 .camera-grid {
   grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
 }
@@ -1140,12 +1156,11 @@
 .run-setup-progress li > * { transform: skewX(8deg); }
 .run-setup-progress li[aria-current] { background: var(--ink); color: var(--yellow); box-shadow: 3px 3px 0 var(--red); }
 .run-setup-progress b { font: italic 900 20px Impact, sans-serif; }
-.vehicle-modal { scroll-padding-bottom: 130px; }
-.vehicle-transmission { scroll-margin-bottom: 130px; }
 .vehicle-screen > h2 { font-size: clamp(38px, 5.5vw, 72px); line-height: 1; margin-bottom: 14px; }
 .vehicle-garage { margin: 20px 0; }
 .vehicle-garage__grid { display: grid; grid-template-columns: 1fr 1fr .55fr; gap: 14px; align-items: stretch; }
-.vehicle-card { min-width: 0; border: 3px solid var(--ink); background: var(--paper); color: var(--ink); box-shadow: 5px 5px 0 #19191933; }
+.vehicle-card { display: flex; flex-direction: column; min-width: 0; border: 3px solid var(--ink); background: var(--paper); color: var(--ink); box-shadow: 5px 5px 0 #19191933; }
+.vehicle-card__lock { margin-top: auto; padding: 0 12px 16px; }
 .vehicle-card.is-selected { outline: 4px solid var(--yellow); box-shadow: 6px 6px 0 var(--ink); }
 .vehicle-card__select { display: flex; flex-direction: column; width: 100%; text-align: left; cursor: pointer; color: inherit; border: 0; padding: 0 0 10px; background: transparent; }
 .vehicle-card__select:focus-visible { outline: 4px solid var(--cyan); outline-offset: 4px; }
@@ -1191,7 +1206,3 @@
 .vehicle-card--empty b { font: italic 900 25px Impact, sans-serif; }
 .vehicle-card--empty i { display: block; width: 80%; height: 80px; border: 2px dashed #878577; transform: skewY(-8deg); }
 .vehicle-card--empty small { font: 800 9px var(--font-geist-mono), monospace; }
-.vehicle-screen__continue { position: sticky; bottom: -24px; z-index: 2; display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 12px 16px; background: var(--ink); color: var(--paper); border-top: 4px solid var(--yellow); box-shadow: 0 -6px 0 var(--paper); }
-.vehicle-screen__continue > span { font: italic 900 23px Impact, sans-serif; }
-.vehicle-screen__continue small { display: block; font: 700 10px var(--font-geist-mono), monospace; margin-top: 4px; color: var(--yellow); }
-.vehicle-screen__continue .primary-small { margin: 0; min-height: 48px; background: var(--yellow); color: var(--ink); }

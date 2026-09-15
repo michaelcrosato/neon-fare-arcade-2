@@ -1,5 +1,17 @@
 # Garage illustrations
 
+## Accord story caption edit
+
+The built-in imagegen editor updated the clutch caption in
+`public/art/vehicle-stories/accord-backstory.png` (1536 × 1024). The artwork now
+uses descriptive wording, so future clutch tuning does not require copy edits.
+
+Exact edit prompt:
+
+Use case: text-localization. Edit target: the provided 1536x1024 Accord comic poster. Make one precise typography-only edit in the small black clutch/shifter caption near the bottom center. Replace 'CLUTCH WORKS... 95% OF THE TIME.' with exactly 'CLUTCH STICKS SOMETIMES.' in the same white condensed uppercase comic type. Keep the red underline and the existing 'SOMETIMES IT NEEDS A FEW PUMPS.' below it. Preserve every other part of the image: exact layout, cars, all logos, colors, textures, other words and numbers, borders, framing, and 1536x1024 resolution. No percentage should remain in the clutch caption. Do not redesign the poster.
+
+## Vehicle selection artwork
+
 Generated with the built-in imagegen tool, using `public/comic-hero.webp` as a
 style reference. The selected originals remain in Codex's generated-images
 folder. The app uses WebP encodings at the same 1536 × 1024 resolution:

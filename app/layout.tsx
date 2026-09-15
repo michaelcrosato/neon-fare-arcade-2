@@ -58,6 +58,7 @@ export default function RootLayout({
       </head>
       <body className="antialiased">
         <audio id="neon-fare-bgm" preload="auto" playsInline />
+        <audio id="neon-fare-menu-bgm" preload="auto" playsInline />
         {children}
       </body>
     </html>

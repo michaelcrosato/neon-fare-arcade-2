@@ -20,13 +20,19 @@ updates the arcade launch, steering, road elevation and contact rules below.
   driving model and run kind; Free Run's score still has no quick-time bonus.
   The departing passenger and their unique review remain at the destination for
   eight simulation seconds (or until the next pickup), with a head-anchored bubble.
-- Music starts with a run's countdown. Each run shuffles all seven bundled
-  tracks (01, 02, 04–08) once, then repeats that order on natural song endings.
-  Pickups, dropoffs, idle time, walking, venues, pause, results, and menus never
-  change the track, rewind it, fade it, or stop playback. A new run starts a new
-  shuffled playlist. The audio toggle still mutes music and sound effects
-  together. Blocked autoplay retries on a user gesture; the browser/OS may
-  independently suspend background audio.
+- Main menus, pause and results use the looping menu theme (track 01). A run's
+  countdown starts its shuffled driving playlist (02, 04–08), which repeats on
+  natural endings. Pickups, dropoffs, idle time, walking and venues retain the
+  current song. Pause stops the driving song and plays only the menu theme;
+  Resume continues the same driving song at its saved position. A fresh run
+  starts a new playlist. Blocked autoplay retries on a user gesture.
+- Audio options save master, music, sound-effects and engine levels on the
+  device. Master and Mute apply to every channel; music includes the menu theme.
+  At 100%, the sliders preserve the authored mix. M and the pause hub share the
+  mute setting without losing slider values. Reset restores the default mix.
+  Mute in Background is on by default and silences hidden tabs; disabling it
+  allows menu music while the automatically paused game is in the background.
+  Browser/OS audio suspension can still apply.
 - Starting a mobile run requests fullscreen from the start gesture when the
   browser supports it. The full dynamic viewport, safe-area padding, and active
   playfield gesture protection prevent document scrolling, pull-to-refresh,

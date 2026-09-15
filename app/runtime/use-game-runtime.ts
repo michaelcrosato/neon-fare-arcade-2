@@ -48,6 +48,8 @@ import {
 import type { DiagnosticsRecorder } from "./diagnostics";
 import { reportRuntimeError } from "./runtime-errors";
 import { BackgroundMusic } from "./background-music";
+import { getAudioSettings } from "../audio-settings";
+import { audioMix } from "./audio-settings";
 import { mergeDrivingInput, type TouchDriving } from "./touch-driving";
 import { presentPassengerReview } from "./passenger-review";
 import { presentTaxiExitAction } from "./taxi-exit-action";
@@ -75,7 +77,6 @@ export type GameRuntimeOptions = Readonly<{
   interactionPulseRef: RefBox<boolean>;
   jumpPulseRef: RefBox<boolean>;
   modeRef: RefBox<Mode>;
-  mutedRef: RefBox<boolean>;
   audioRef: RefBox<AudioContext | null>;
   ensureAudio?: () => void;
   engineRef: RefBox<{ osc: OscillatorNode; gain: GainNode } | null>;
@@ -110,7 +111,6 @@ export function useGameRuntime(options: GameRuntimeOptions) {
     interactionPulseRef,
     jumpPulseRef,
     modeRef,
-    mutedRef,
     audioRef,
     ensureAudio,
     engineRef,
@@ -153,10 +153,11 @@ export function useGameRuntime(options: GameRuntimeOptions) {
     let wasInterior = isInterior(gameRef.current);
     let previousEffectiveCameraMode = cameraRef.current.mode;
     const music = new BackgroundMusic(undefined, Math.random, () => audioRef.current);
-    music.update(gameRef.current, modeRef.current, mutedRef.current);
+    const syncMusic = () => music.update(gameRef.current, modeRef.current, getAudioSettings(), document.hidden);
+    syncMusic();
     const unlockAudio = () => {
       ensureAudio?.();
-      music.update(gameRef.current, modeRef.current, mutedRef.current);
+      syncMusic();
       music.unlock();
     };
     const audioUnlockEvents = ["pointerdown", "touchstart", "mousedown", "keydown", "click"] as const;
@@ -396,7 +397,7 @@ export function useGameRuntime(options: GameRuntimeOptions) {
           camera.boom = 0;
         }
         currentNavigation = navigationController.update(game, navigationSettingsForGame(game));
-        music.update(game, modeRef.current, mutedRef.current);
+        syncMusic();
         renderFrame(game, now, currentWorld, currentNavigation);
         if (navigationDistanceRef.current) {
           if (currentMode !== "playing") navigationDistanceRef.current.hidden = true;
@@ -446,11 +447,11 @@ export function useGameRuntime(options: GameRuntimeOptions) {
             game.drivingModel === "simulation" ? 0.065 : boostVisualActive ? 0.025 : 0.045,
           );
           engine.gain.gain.setTargetAtTime(
-            currentMode === "playing" && isDriving(game) && game.fuel.litres > 0 && !mutedRef.current
-              ? game.drivingModel === "simulation"
+            currentMode === "playing" && isDriving(game) && game.fuel.litres > 0
+              ? (game.drivingModel === "simulation"
                 ? 0.024 + game.simulationVehicle.throttle * 0.018 + Math.min(0.018, game.speed * 0.0006)
-                : 0.028 + game.speed * 0.0015 + (boostVisualActive ? 0.016 : 0)
-              : 0.0001,
+                : 0.028 + game.speed * 0.0015 + (boostVisualActive ? 0.016 : 0)) * audioMix(getAudioSettings(), document.hidden).engine
+              : 0,
             audioRef.current.currentTime,
             0.04,
           );
@@ -523,6 +524,7 @@ export function useGameRuntime(options: GameRuntimeOptions) {
         setMode("paused");
         setAudioAnnouncement("Game paused.");
       }
+      syncMusic();
     };
     const onBlur = () => {
       clearInput();
@@ -575,7 +577,6 @@ export function useGameRuntime(options: GameRuntimeOptions) {
     interactionPulseRef,
     jumpPulseRef,
     modeRef,
-    mutedRef,
     onSimulationEvents,
     setAudioAnnouncement,
     setHud,

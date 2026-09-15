@@ -79,6 +79,8 @@ import { GameModeMenu } from "./game-mode-menu";
 import { GameSessionOverlays } from "./game-session-overlays";
 import { GameStageHud } from "./game-stage-hud";
 import { ClutchWarning } from "./clutch-warning";
+import { getAudioSettings, toggleAudioMute as toggleMute, useAudioSettings } from "./audio-settings";
+import { audioMix } from "./runtime/audio-settings";
 import {
   DiagnosticsRecorder,
   diagnosticsEnabled,
@@ -121,9 +123,8 @@ export default function Home() {
   const [touchDriving] = useState(() => new TouchDriving());
   const jumpPulseRef = useRef(false);
   const modeRef = useRef<Mode>("menu");
-  const mutedRef = useRef(false);
   const audioRef = useRef<AudioContext | null>(null);
-  const masterRef = useRef<GainNode | null>(null);
+  const effectsGainRef = useRef<GainNode | null>(null);
   const engineRef = useRef<{ osc: OscillatorNode; gain: GainNode } | null>(null);
   const boostAudioActiveRef = useRef(false);
   const uTurnActiveRef = useRef(false);
@@ -143,7 +144,8 @@ export default function Home() {
   const [modal, setModal] = useState<Modal>(null);
   const [optionsTab, setOptionsTab] = useState<"game" | "dev">("game");
   const [modalParent, setModalParent] = useState<"home" | null>(null);
-  const [muted, setMuted] = useState(false);
+  const audioSettings = useAudioSettings();
+  const muted = audioSettings.muted;
   const [cameraMode, setCameraModeState] = useState<CameraMode>(DEFAULT_CAMERA_MODE);
   const [cameraDistance, setCameraDistanceState] = useState<CameraDistanceScale>(DEFAULT_CAMERA_DISTANCE_SCALE);
   const [hud, setHud] = useState<Hud>(EMPTY_HUD);
@@ -254,7 +256,7 @@ export default function Home() {
   }, [setCameraMode]);
 
   const tone = useCallback((frequency: number, duration: number, type: OscillatorType = "square", endFrequency = frequency) => {
-    if (mutedRef.current || !audioRef.current || !masterRef.current) return;
+    if (!audioRef.current || !effectsGainRef.current || audioMix(getAudioSettings(), document.hidden).effects === 0) return;
     const context = audioRef.current;
     const osc = context.createOscillator();
     const gain = context.createGain();
@@ -264,7 +266,7 @@ export default function Home() {
     gain.gain.setValueAtTime(0.0001, context.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.13, context.currentTime + 0.012);
     gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + duration);
-    osc.connect(gain).connect(masterRef.current);
+    osc.connect(gain).connect(effectsGainRef.current);
     osc.start();
     osc.stop(context.currentTime + duration + 0.02);
   }, []);
@@ -278,36 +280,40 @@ export default function Home() {
     uTurnActiveRef.current = hud.needsUTurn;
   }, [hud.needsUTurn, mode, tone]);
 
+  const syncAudioSettings = useCallback(() => {
+    const context = audioRef.current;
+    if (!context) return;
+    const mix = audioMix(getAudioSettings(), document.hidden);
+    effectsGainRef.current?.gain.setTargetAtTime(mix.effects, context.currentTime, .03);
+    if (mix.engine === 0) engineRef.current?.gain.gain.setValueAtTime(0, context.currentTime);
+  }, []);
+  useEffect(() => { syncAudioSettings(); }, [audioSettings, syncAudioSettings]);
+  useEffect(() => {
+    document.addEventListener("visibilitychange", syncAudioSettings);
+    return () => document.removeEventListener("visibilitychange", syncAudioSettings);
+  }, [syncAudioSettings]);
+
   const ensureAudio = useCallback(() => {
     if (audioRef.current) {
-      void audioRef.current.resume();
+      void audioRef.current.resume().catch(() => {});
       return;
     }
     const AudioCtor = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!AudioCtor) return;
     const context = new AudioCtor();
-    const master = context.createGain();
-    master.gain.value = mutedRef.current ? 0 : 0.24;
-    master.connect(context.destination);
+    const effects = context.createGain();
+    effects.gain.value = audioMix(getAudioSettings(), document.hidden).effects;
+    effects.connect(context.destination);
     const osc = context.createOscillator();
     const engineGain = context.createGain();
     osc.type = "triangle";
     osc.frequency.value = 58;
-    engineGain.gain.value = 0.0001;
-    osc.connect(engineGain).connect(master);
+    engineGain.gain.value = 0;
+    osc.connect(engineGain).connect(context.destination);
     osc.start();
     audioRef.current = context;
-    masterRef.current = master;
+    effectsGainRef.current = effects;
     engineRef.current = { osc, gain: engineGain };
-  }, []);
-
-  const toggleMute = useCallback(() => {
-    const next = !mutedRef.current;
-    mutedRef.current = next;
-    setMuted(next);
-    if (masterRef.current && audioRef.current) {
-      masterRef.current.gain.setTargetAtTime(next ? 0 : 0.24, audioRef.current.currentTime, 0.03);
-    }
   }, []);
 
   const openModal = useCallback((next: Exclude<Modal, null>) => {
@@ -508,7 +514,8 @@ export default function Home() {
     tone(420, 0.08, "square", 350);
   }, [careerRef, clearInput, developmentRef, diagnostics, ensureAudio, isMobile, pendingDrivingModel, pendingVehicleId, pendingTransmissionMode, pendingRunKind, persistSteeringMode, resetFareCards, saveFuel, setMode, steeringMode, tone, touchDriving, wheelRange]);
 
-  const confirmVehicle = useCallback(() => {
+  const confirmVehicle = useCallback((vehicleId: VehicleId) => {
+    setPendingVehicleId(vehicleId);
     if (pendingDrivingModel === "simulation") setPendingDrivingTrait("street-ace");
     setModal(pendingDrivingModel === "simulation" ? "steering" : "traits");
     setAudioAnnouncement(pendingDrivingModel === "simulation" ? "Vehicle locked in. Choose steering." : "Vehicle locked in. Choose your edge.");
@@ -710,7 +717,7 @@ export default function Home() {
   useGameRuntime({
     passengerReviewRef, navigationDistanceRef, clutchWarningRef, fareImpactRef, taxiExitRef, canvas2dRef, webGpuCanvasRef,
     gameRef, cameraRef, cameraModeRef, inputRef, touchDriving, interactionPulseRef, jumpPulseRef, modeRef,
-    mutedRef, audioRef, ensureAudio, engineRef, boostAudioActiveRef, diagnostics, diagnosticsActive,
+    audioRef, ensureAudio, engineRef, boostAudioActiveRef, diagnostics, diagnosticsActive,
     clearInput, finishRun, setMode, setHud, setRendererKind, setAudioAnnouncement, tone, onSimulationEvents,
   });
 
@@ -732,7 +739,7 @@ export default function Home() {
     try { engineRef.current?.osc.stop(); } catch {}
     const context = audioRef.current;
     engineRef.current = null;
-    masterRef.current = null;
+    effectsGainRef.current = null;
     audioRef.current = null;
     if (context && context.state !== "closed") void context.close().catch(() => {});
   }, []);
@@ -821,7 +828,7 @@ export default function Home() {
       window.removeEventListener("keydown", down);
       window.removeEventListener("keyup", up);
     };
-  }, [cycleCamera, modal, openModal, toggleMute, togglePause]);
+  }, [cycleCamera, modal, openModal, togglePause]);
 
   const handleTouch = useCallback((event: React.PointerEvent<HTMLButtonElement>) => {
     event.preventDefault();
@@ -967,7 +974,7 @@ export default function Home() {
         gasNotice={gasNotice}
         development={{ settings: development, activeRun: mode === "paused", notice: developmentNotice, onChange: changeDevelopment, onAction: runDevelopmentAction }}
         dialogRef={modalDialogRef}
-        optionsTab={optionsTab} onSelectOptionsTab={setOptionsTab} muted={muted} onToggleMute={toggleMute}
+        optionsTab={optionsTab} onSelectOptionsTab={setOptionsTab}
         cameraMode={cameraMode} onSetCameraMode={setCameraMode} cameraDistanceScale={cameraDistance} onSetCameraDistanceScale={setCameraDistanceScale}
         steeringMode={steeringMode} onSetSteeringMode={setSteeringMode}
         wheelRange={wheelRange} onSetWheelRange={setWheelRange}

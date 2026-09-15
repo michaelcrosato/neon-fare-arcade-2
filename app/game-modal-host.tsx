@@ -45,7 +45,7 @@ type GameModalHostProps = Readonly<{
   pendingVehicleId: VehicleId;
   pendingTransmissionMode: TransmissionMode;
   onSelectVehicle: (id: VehicleId) => void;
-  onConfirmVehicle?: () => void;
+  onConfirmVehicle?: (id: VehicleId) => void;
   onSelectTransmission: (mode: TransmissionMode) => void;
   hud: Hud;
   career: CareerState;
@@ -58,8 +58,6 @@ type GameModalHostProps = Readonly<{
   dialogRef: RefObject<HTMLElement | null>;
   optionsTab?: "game" | "dev";
   onSelectOptionsTab?: (tab: "game" | "dev") => void;
-  muted?: boolean;
-  onToggleMute?: () => void;
   cameraMode?: CameraMode;
   onSetCameraMode?: (mode: CameraMode) => void;
   cameraDistanceScale?: CameraDistanceScale;
@@ -102,8 +100,6 @@ export function GameModalHost({
   dialogRef,
   optionsTab,
   onSelectOptionsTab,
-  muted,
-  onToggleMute,
   cameraMode,
   onSetCameraMode,
   cameraDistanceScale,
@@ -152,8 +148,6 @@ export function GameModalHost({
           <GameOptionsPanel
             tab={optionsTab ?? "game"}
             onSelectTab={onSelectOptionsTab ?? (() => {})}
-            muted={muted ?? false}
-            onToggleMute={onToggleMute ?? (() => {})}
             cameraMode={cameraMode ?? "chase-low"}
             onSetCameraMode={onSetCameraMode ?? (() => {})}
             cameraDistanceScale={cameraDistanceScale ?? DEFAULT_CAMERA_DISTANCE_SCALE}

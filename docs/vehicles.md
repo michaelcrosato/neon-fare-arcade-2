@@ -12,6 +12,10 @@ Steering. This applies to keyboard and touch. Locking steering starts the
 countdown. Back and Escape return one stage while retaining the car and
 transmission choices. The garage's new comic artwork and prompts are documented
 in [garage-art.md](garage-art.md).
+Each vehicle has its own Lock In button, using the same treatment as Edge and
+Steering; it commits that card's vehicle even when the other card is selected.
+The Accord's selection copy is limited to “Secret special edition. Same streets.
+Just goes faster.” and the story link, alongside its shifting controls.
 
 The Crown Cab retains its established 1990s Ford Crown Victoria–inspired V8,
 four-speed automatic and 1,900 kg loaded simulation chassis. Its arcade
@@ -27,9 +31,12 @@ grip and carry the owner's “still being financed” description. Financing is
 vehicle backstory. K&N, Brembo and Injen stickers are cosmetic; they do not
 claim a specific fitted parts list or individually add power.
 
-The garage's **Read the Accord's Story** opens the owner-supplied comic poster,
-preserved at `/art/vehicle-stories/accord-backstory.png`, with readable companion
-text and a link to the full-size original. The poster's factory-power wording
+The garage's **Read the Accord's Story** opens the comic poster at
+`/art/vehicle-stories/accord-backstory.png`, with readable companion text and a
+link to the full-size artwork. Its clutch caption now says “Clutch sticks
+sometimes,” matching the game's descriptive copy without a tuning percentage.
+The built-in image edit and its prompt are recorded in [garage-art.md](garage-art.md).
+The poster's factory-power wording
 is part of the artwork; the game's existing authored torque curve is unchanged.
 Escape and Close return focus to the story button without leaving vehicle setup.
 
@@ -88,8 +95,8 @@ the modeled body uses the 2015 pre-facelift coupe shape.
   to reverse in R; brake always brakes. Launch assistance prevents stalling.
 - Reverse is blocked while moving; downshifts that would exceed redline are
   rejected. Holding a shift key cannot skip through gears.
-- In either setting, each clutch engagement has a seeded 2.5% chance to stick
-  disengaged. An automatic gear change is an engagement; in Manual, releasing
+- In either setting, the clutch sometimes sticks disengaged, using a seeded
+  engagement check. An automatic gear change is an engagement; in Manual, releasing
   the clutch is an engagement. A stuck clutch interrupts drive and arcade
   boost, cancels cruise, and shows a persistent red warning immediately above
   the vehicle direction arrow's projected position, even when that arrow is
