@@ -28,6 +28,9 @@ export function presentTaxiExitAction(element: HTMLButtonElement, game: Game, ca
   element.style.left = camera.mobile
     ? `clamp(var(--mobile-left), ${left}px, calc(100% - var(--mobile-right) - ${element.offsetWidth}px))`
     : `${left}px`;
-  element.style.top = `${top}px`;
+  // Rotation can resize the HUD before the next rendered frame updates the door.
+  element.style.top = camera.mobile
+    ? `clamp(136px, ${top}px, calc(100% - ${element.offsetHeight + 116}px))`
+    : `${top}px`;
   element.style.visibility = "visible";
 }
