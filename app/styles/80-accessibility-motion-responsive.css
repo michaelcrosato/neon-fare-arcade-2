@@ -551,6 +551,8 @@
   .mobile-interaction strong { font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .mobile-taxi-exit { position: absolute; z-index: 2; visibility: hidden; display: flex; align-items: center; gap: 7px; width: 126px; min-height: 54px; padding: 8px; color: var(--ink); background: var(--yellow); border: 2px solid var(--ink); border-radius: 8px; outline: 2px solid var(--paper); box-shadow: 0 4px 0 rgb(0 0 0 / 65%); touch-action: manipulation; }
   .mobile-taxi-exit::after { content: ""; position: absolute; right: -7px; top: calc(50% - 5px); width: 10px; height: 10px; background: var(--yellow); border-top: 2px solid var(--ink); border-right: 2px solid var(--ink); transform: rotate(45deg); pointer-events: none; }
+  .mobile-taxi-exit[data-side="right"]::after { right: auto; left: -7px; transform: rotate(-135deg); }
+  .mobile-hud .damage-callout { max-width: min(330px, 70%); padding: 11px 16px; border-width: 3px; font-size: clamp(18px, 4.8vw, 26px); }
   .mobile-taxi-exit svg { width: 24px; height: 26px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
   .mobile-taxi-exit > span { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; }
   .mobile-taxi-exit strong { font: 900 18px/1 "Barlow Condensed", sans-serif; }
@@ -700,6 +702,7 @@
 
 @media (orientation: landscape) and (max-height: 540px) and (max-width: 820px), (orientation: landscape) and (max-height: 540px) and (pointer: coarse) {
   .mobile-notice { left: var(--mobile-left); right: auto; top: calc(64px + env(safe-area-inset-top)); width: min(250px, 34%); transform: none; }
+  .mobile-hud .damage-callout { max-width: min(350px, 50%); font-size: 20px; }
   .mobile-controls { height: 142px; }
   .mobile-interaction { top: auto; bottom: 2px; left: 50%; max-width: 36%; transform: translateX(-50%); }
   .mobile-pedal--gas { height: 84px; }

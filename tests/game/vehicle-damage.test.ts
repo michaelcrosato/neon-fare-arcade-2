@@ -34,10 +34,12 @@ test("real low-speed impacts stack for both driving models; a resting contact ca
       game.z = groundAt(game, .85).height; game.elapsed += .5;
       const events = stepGame(game, TEST_IDLE_INPUT, FIXED_DT, wall, () => 1);
       assert.equal(game.damage.lossKmh, hit);
+      assert.equal(vehicleRepairQuote(game).impactId, hit, "each new impact has a stable presentation identity");
       assert.equal(events.filter(e => e.type === "vehicle-damaged").length, 1);
       const loss = game.damage.lossKmh;
       for (let i = 0; i < 60; i++) stepGame(game, TEST_IDLE_INPUT, FIXED_DT, wall, () => 1);
       assert.equal(game.damage.lossKmh, loss);
+      assert.equal(vehicleRepairQuote(game).impactId, hit, "resting contact must not reposition the damage quip");
     }
   }
 });

@@ -17,8 +17,9 @@ The left-thumb guide and pedal labels appear during countdown, before input
 unlocks, and stay visible in play. The guide fades during nonzero thumb steering
 and returns at center or release. Double-tap and hold gas for arcade boost, or
 brake for the simulation parking brake. Below 10 km/h, a yellow EXIT TAXI action
-tracks the driver’s door using the shared world projection. Cab View keeps it
-on the driver’s side because the exterior door is behind the camera.
+tracks the passenger’s door using the shared world projection. Cab View keeps it
+on the passenger’s right because the exterior door is behind the camera. The
+button clears the pedals and leaves the left thumb's steering area free.
 On foot, a direction
 pad replaces steering and the right controls become run, crouch, and jump. The
 nearby interaction appears above the controls in portrait and between them in

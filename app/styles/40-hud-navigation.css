@@ -646,6 +646,7 @@
 .interaction-prompt.is-taxi-exit:hover, .interaction-prompt.is-taxi-exit:focus-visible { transform: none; }
 .interaction-prompt.is-taxi-exit:active { transform: translateY(2px); }
 .interaction-prompt.is-taxi-exit::after { content: ""; position: absolute; right: -11px; top: calc(50% - 7px); width: 14px; height: 14px; background: var(--ink); border-right: 4px solid var(--yellow); border-top: 4px solid var(--yellow); transform: rotate(45deg); }
+.interaction-prompt.is-taxi-exit[data-side="right"]::after { right: auto; left: -11px; transform: rotate(-135deg); }
 .interaction-prompt kbd {
   display: grid;
   place-items: center;

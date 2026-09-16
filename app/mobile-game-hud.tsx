@@ -64,7 +64,7 @@ export function MobileGameHud({ mode, hud, fareImpact, fareImpactRef, courierImp
 
   return <div className={`mobile-hud ${driving ? "is-driving" : "is-on-foot"}`}>
     {mode === "playing" && driving && <DrivingStuntFeedback stunts={hud.stunts} />}
-    {mode === "playing" && <VehicleDamageFeedback damage={hud.damage} />}
+    {mode === "playing" && <VehicleDamageFeedback damage={hud.damage} runSeed={hud.runSeed} />}
     {mode === "playing" && hud.runKind === "free-run" && driving && onSetCruise
       && <CruiseControl hud={hud} onSetSpeed={onSetCruise} joystick={(steeringMode ?? touchDriving.getMode()) === "joystick"} />}
     {fareImpact && <FareImpactOverlay key={fareImpact.id} impact={fareImpact} overlayRef={fareImpactRef} />}
@@ -88,8 +88,8 @@ export function MobileGameHud({ mode, hud, fareImpact, fareImpactRef, courierImp
       {simulation && hud.vehicleId !== "accord-v6" && <b>{simulationGearLabel(hud.simulationVehicle.gear)}</b>}</div>}
     <FuelGauge fuel={hud.fuel} />
 
-    {mode === "playing" && (hud.damage.line || event || message) && <div className={`mobile-notice ${event ? "is-event" : ""}`} aria-hidden="true">
-      <strong>{hud.damage.line || event?.title || message}</strong>{event && !hud.damage.line && <span>{event.detail}</span>}
+    {mode === "playing" && !hud.damage.line && (event || message) && <div className={`mobile-notice ${event ? "is-event" : ""}`} aria-hidden="true">
+      <strong>{event?.title || message}</strong>{event && <span>{event.detail}</span>}
     </div>}
 
     {mode === "playing" && driving && hud.interactionPrompt && <button type="button" ref={taxiExitRef}

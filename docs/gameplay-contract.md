@@ -60,7 +60,7 @@ updates the arcade launch, steering, road elevation and contact rules below.
   game settings, workshop tools, and recovery remain available in the hub.
   Desktop has no separate bottom-left pause button. Its multiplier sits below
   Score, the fare stack below the mini-map, and Exit Taxi follows the projected
-  driver door using the same presenter as mobile. The compact GPS shows the route,
+  passenger door using the same presenter as mobile. The compact GPS shows the route,
   fare/destination markers and cab without repeated objective, turn or distance
   captions or floating text badges. U-turn plans use the temporary vehicle
   direction arrow; the legacy floating hairpin, U-turn distance badge, warning
@@ -330,8 +330,10 @@ updates the arcade launch, steering, road elevation and contact rules below.
 - E is a context action with a simulation-owned held-input latch. Below 10 km/h
   (using the unrounded speed), a taxi exits on the first safe side; at or above
   that speed both the prompt and action are unavailable. The mobile exit action
-  follows the driver’s door in exterior cameras and sits on the driver’s side in
-  Cab View. A held key cannot exit and re-enter on
+  follows the passenger’s door in exterior cameras and sits on the passenger’s right in
+  Cab View, leaving the steering thumb area free. Its pointer faces the door, and
+  the action clears the mobile pedals. This changes the UI anchor only; the avatar
+  still exits on the first safe side. A held key cannot exit and re-enter on
   adjacent ticks.
   Exit clears the simulation cab's drive controls and yaw state so it stays
   parked. Body roll and roll rate remain live; exit never rights the cab.
@@ -730,6 +732,12 @@ updates the arcade launch, steering, road elevation and contact rules below.
 - A distinct physical vehicle impact removes 1 km/h of available speed and emits
   one humorous damage line. Persistent contact is debounced; tiny resting terrain
   corrections are not hits. The loss persists until a paid repair or a new run.
+- Damage lines appear for three simulation seconds at varied positions near the
+  playfield center, usually with a slight clockwise or counterclockwise tilt.
+  Each impact keeps its position until replaced or expired, on mobile and desktop.
+  Cosmetic placement uses the run seed and impact identity without consuming
+  gameplay RNG. Callouts never intercept steering or button input, remain within
+  the viewport, and reduced motion removes their entrance animation.
 - All driving/transmission modes respect damage with a 10 km/h minimum ceiling.
   The player can still brake and stop. Tow recovery does not repair bodywork.
 - At a gas venue's service lot, a grounded, upright cab stopped below 2 km/h for

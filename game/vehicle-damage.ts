@@ -101,7 +101,7 @@ export function vehicleRepairQuote(game: Game) {
   return { lossKmh: damage.lossKmh, cost, shortfall: Math.max(0, cost - game.fare), eligible,
     serviceOffer: eligible && damage.declinedStation !== damage.station?.id,
     station: damage.station?.label ?? "GO-GO GAS", showOffer: eligible && damage.lossKmh > 0 && damage.declinedStation !== damage.station?.id,
-    line: game.elapsed - damage.lastAt < 3 ? damage.lastLine : "", lastLoss: damage.lastLoss };
+    line: game.elapsed - damage.lastAt < 3 ? damage.lastLine : "", lastLoss: damage.lastLoss, impactId: damage.impacts };
 }
 export type VehicleDamageHud = ReturnType<typeof vehicleRepairQuote>;
 

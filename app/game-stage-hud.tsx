@@ -73,7 +73,7 @@ export function GameStageHud({
   return (
     <>
       {mode === "playing" && hud.playerMode === "driving" && <DrivingStuntFeedback stunts={hud.stunts} />}
-      {mode === "playing" && <VehicleDamageFeedback damage={hud.damage} />}
+      {mode === "playing" && <VehicleDamageFeedback damage={hud.damage} runSeed={hud.runSeed} />}
       {mode !== "menu" && <TransmissionControls hud={hud} enabled={mode === "playing"} onTouch={onTouch} onInput={onTransmissionInput} />}
       {fareImpact && <FareImpactOverlay key={fareImpact.id} impact={fareImpact} overlayRef={fareImpactRef} />}
       {mode === "playing" && hud.runKind === "free-run" && hud.playerMode === "driving" && onSetCruise
@@ -206,7 +206,7 @@ export function GameStageHud({
             </button>
           )}
 
-          {(hud.damage.line || message) && <div className={`comic-callout ${hud.damage.line ? "is-damage" : ""}`} key={hud.damage.line || message}>{hud.damage.line || message}</div>}
+          {!hud.damage.line && message && <div className="comic-callout" key={message}>{message}</div>}
 
           {mode === "playing" && <div className={`touch-controls ${hud.playerMode === "driving" ? "is-driving" : "is-on-foot"}`} aria-label={hud.playerMode === "driving" ? "Touch driving controls" : "Touch walking controls"}>
             <div className="touch-steer">

@@ -51,7 +51,7 @@ import { navigationSettingsForGame } from "./development-settings";
 export const EMPTY_HUD: Hud = {
   venueBrand: null,
   fuel: fuelHud({ fuel: makeFuel("crown-cab"), vehicleId: "crown-cab", vx: 0, vy: 0, boosting: false }),
-  damage: { lossKmh: 0, cost: 0, shortfall: 0, eligible: false, station: "GO-GO GAS", showOffer: false, serviceOffer: false, line: "", lastLoss: 0 },
+  damage: { lossKmh: 0, cost: 0, shortfall: 0, eligible: false, station: "GO-GO GAS", showOffer: false, serviceOffer: false, line: "", lastLoss: 0, impactId: 0 },
   stunts: drivingStuntsHud(makeDrivingStunts(), 0),
   towCost: 0,
   towReceipt: null,

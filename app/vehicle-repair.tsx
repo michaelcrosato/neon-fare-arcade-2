@@ -5,6 +5,7 @@ import type { Game, Hud, Modal, Mode } from "@/game/model";
 import { makeHud } from "@/game/hud";
 import { declineVehicleRepair, repairVehicle } from "@/game/vehicle-damage";
 import { FuelPurchaseActions } from "./fuel-services";
+import { DamageCallout } from "./damage-callout";
 
 type RepairContext = { quote: Hud["damage"]; notice: string; act: (accept: boolean) => void };
 const Repairs = createContext<RepairContext | null>(null);
@@ -65,8 +66,8 @@ export function VehicleRepairOffer({ inline = false }: { inline?: boolean }) {
   </section>;
 }
 
-export function VehicleDamageFeedback({ damage }: { damage: Hud["damage"] }) {
-  return <>{damage.lossKmh > 0 && <aside className="vehicle-damage-status" aria-label={`Vehicle damage: ${damage.lossKmh} kilometres per hour of top speed lost`}>
+export function VehicleDamageFeedback({ damage, runSeed = 0 }: { damage: Hud["damage"]; runSeed?: number }) {
+  return <><DamageCallout damage={damage} runSeed={runSeed} />{damage.lossKmh > 0 && <aside className="vehicle-damage-status" aria-label={`Vehicle damage: ${damage.lossKmh} kilometres per hour of top speed lost`}>
     <b>BODYWORK −{damage.lossKmh} KM/H</b><small>REPAIR AT ANY GAS STATION</small>
   </aside>}<VehicleRepairOffer /></>;
 }
