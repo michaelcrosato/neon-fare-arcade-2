@@ -13,6 +13,11 @@ export type DevelopmentSettings = {
 /** Validate device-local settings at the browser boundary; defaults never alter play. */
 export function normalizeDevelopmentSettings(value: unknown): DevelopmentSettings {
   const source = value && typeof value === "object" ? value as Record<string, unknown> : {};
+  const savedNavigation = source.navigation && typeof source.navigation === "object"
+    ? source.navigation as Partial<NavigationSettings> : undefined;
+  // Old disabled Dev Mode saves could retain inactive GPS tuning. Do not turn
+  // that tuning on during migration to the independent Navigation Lab.
+  const legacyInactive = source.enabled !== true && savedNavigation && !("arrowVisibility" in savedNavigation);
   return {
     enabled: source.enabled === true,
     freezeClock: source.freezeClock === true,
@@ -20,8 +25,7 @@ export function normalizeDevelopmentSettings(value: unknown): DevelopmentSetting
     timeScale: typeof source.timeScale === "number" && Number.isFinite(source.timeScale)
       ? Math.max(.25, Math.min(2, source.timeScale)) : 1,
     showDiagnostics: source.showDiagnostics === true,
-    navigation: normalizeNavigationSettings(source.navigation && typeof source.navigation === "object"
-      ? source.navigation as Partial<NavigationSettings> : undefined),
+    navigation: normalizeNavigationSettings(legacyInactive ? undefined : savedNavigation),
   };
 }
 
@@ -33,7 +37,8 @@ export function applyDevelopmentSettings(game: Game, value: unknown): Developmen
 }
 
 export function navigationSettingsForGame(game: Game): Readonly<NavigationSettings> {
-  return game.development?.enabled ? game.development.navigation : DEFAULT_NAVIGATION_SETTINGS;
+  // Navigation Lab is independent of the simulation-changing Dev Mode switch.
+  return game.development?.navigation ?? DEFAULT_NAVIGATION_SETTINGS;
 }
 
 export function developmentTimeScale(game: Game) {

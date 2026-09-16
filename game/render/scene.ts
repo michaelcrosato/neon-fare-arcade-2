@@ -37,7 +37,9 @@ import {
   YELLOW,
 } from "../config";
 import { clamp, distance, localPoint } from "../math";
-import type { Box, Color, Game, Job, Vec2, WorldPoint } from "../model";
+import type { Box, Color, Game, Job, NavigationPlan, Vec2, WorldPoint } from "../model";
+import { navigationSettingsForGame } from "../development-settings";
+import { routeCorridorBoxes, ROUTE_GUIDE_BUDGET } from "./route-corridor";
 import { buildGpsRoute, routeLength } from "../route-geometry";
 import { waitingFares } from "../fare-selection";
 import { landmarkTileForBlock } from "../landmarks";
@@ -227,12 +229,20 @@ function addCrownTaxiBoxes(boxes: Box[], game: Game) {
 export function routeBoxes(
   game: Game,
   route: readonly WorldPoint[] = buildGpsRoute(game, getNavigationTarget(game)),
+  navigation?: NavigationPlan,
 ) {
   if (!isDriving(game)) return [];
+  const settings = navigation?.settings ?? navigationSettingsForGame(game);
+  if (settings.routeStyle === "off") return [];
+  const showColumns = game.onboard && !game.customDestination && !game.activeCourier
+    && (settings.routeStyle === "corridor" || settings.routeStyle === "both")
+    && (settings.corridorVisibility === "always" || navigation?.offRoute === true);
+  // Columns use the retained road, never the line connecting a lost cab to it.
+  if (showColumns && navigation?.roadRoute) route = navigation.roadRoute;
   const ring = activeObjectiveRing(game);
   const target = getNavigationTarget(game);
   const isRouteToObjective = route.length >= 2 && distance(route[route.length - 1], target) < 2;
-  if (ring && isRouteToObjective && distance(game, ring) * DISPLAY_METERS_PER_WORLD_UNIT <= OBJECTIVE_ARRIVAL_PROMPT_DISTANCE_METERS) {
+  if (!showColumns && ring && isRouteToObjective && distance(game, ring) * DISPLAY_METERS_PER_WORLD_UNIT <= OBJECTIVE_ARRIVAL_PROMPT_DISTANCE_METERS) {
     return [];
   }
   const boxes: Box[] = [];
@@ -241,16 +251,17 @@ export function routeBoxes(
     : game.activeCourier
     ? game.activeCourier.stage === "pickup" ? ORANGE : PINK
     : game.onboard ? RED : CYAN;
-  const dashSpacing = Math.max(11, routeLength(route) / 118);
+  const limit = showColumns && settings.routeStyle === "both" ? ROUTE_GUIDE_BUDGET / 2 : ROUTE_GUIDE_BUDGET;
+  const dashSpacing = Math.max(11, routeLength(route) / (limit - 2));
   let nextDash = 6;
   let traversed = 0;
-  for (let index = 1; index < route.length && boxes.length < 120; index += 1) {
+  for (let index = 1; index < route.length && boxes.length < limit; index += 1) {
     const a = route[index - 1];
     const b = route[index];
     const segment = distance(a, b);
     if (segment < 0.05) continue;
     const yaw = Math.atan2(b.y - a.y, b.x - a.x);
-    while (nextDash <= traversed + segment && boxes.length < 120) {
+    while (nextDash <= traversed + segment && boxes.length < limit) {
       const t = (nextDash - traversed) / segment;
       const lane = roadLanePose({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t,
         z: (a.z ?? 0) + ((b.z ?? 0) - (a.z ?? 0)) * t }, yaw);
@@ -272,7 +283,9 @@ export function routeBoxes(
     }
     traversed += segment;
   }
-  return boxes;
+  if (!showColumns) return boxes;
+  const columns = routeCorridorBoxes(boxes, settings);
+  return settings.routeStyle === "both" ? [...boxes, ...columns] : columns;
 }
 
 export function taxiGroundShadow(game: Game, detailed = false) {
@@ -814,10 +827,10 @@ export function dynamicBoxes(
   seconds: number,
   route: readonly WorldPoint[] = buildGpsRoute(game, getNavigationTarget(game)),
   world?: WorldView,
-  options: { showPlayerAvatar?: boolean } = {},
+  options: { showPlayerAvatar?: boolean; navigation?: NavigationPlan } = {},
 ) {
   const showPlayerAvatar = options.showPlayerAvatar !== false;
-  const boxes: Box[] = routeBoxes(game, route);
+  const boxes: Box[] = routeBoxes(game, route, options.navigation);
   if (isInterior(game)) {
     if (showPlayerAvatar) boxes.push(...playerAvatarBoxes(game, seconds));
     if (world) boxes.push(...interactionMarkerBoxes(game, world, seconds));

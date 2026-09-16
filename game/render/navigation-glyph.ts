@@ -19,9 +19,11 @@ import { isDriving } from "../player";
 import { routeLength } from "../route-geometry";
 import { navLineTargetAngle } from "../navigation";
 import { NAVIGATION_INSTANCE_CAPACITY } from "./packing";
+import { navigationSettingsForGame } from "../development-settings";
 
 export function navigationDistanceBadge(game: Game, seconds: number, navigation: NavigationPlan) {
-  if (!isDriving(game) || navigation.arrivalPromptActive || navigation.requiresUTurn || !navigation.turnCue) return null;
+  if (!isDriving(game) || !(navigation.settings ?? navigationSettingsForGame(game)).showRoadTurns
+    || navigation.arrivalPromptActive || navigation.requiresUTurn || !navigation.turnCue) return null;
   const meters = (distance: number) => {
     const value = Math.max(0, Math.round(distance * DISPLAY_METERS_PER_WORLD_UNIT));
     return value >= 1000 ? `${(value / 1000).toFixed(1)}km` : `${value}m`;
@@ -120,10 +122,10 @@ export function vehicleDepartureArrowBoxes(
     && game.elapsed < navigation.departurePromptUntil
     && navigation.route.length >= 2;
   const arrivalActive = Boolean(navigation.arrivalPromptActive);
-  if (!departureActive && !arrivalActive) return [];
+  if (!(navigation.vehicleArrowVisible ?? (departureActive || arrivalActive))) return [];
 
   const remaining = (navigation.departurePromptUntil ?? 0) - game.elapsed;
-  const fade = arrivalActive ? 1 : clamp(remaining / 0.3, 0, 1);
+  const fade = navigation.vehicleArrowFade ?? (arrivalActive ? 1 : clamp(remaining / 0.3, 0, 1));
   return vehicleDirectionArrowGeometry(game, seconds, navigation, cameraMode, fade);
 }
 
@@ -136,10 +138,13 @@ export function vehicleDirectionArrowGeometry(
   fade = 1,
 ): Box[] {
   const arrivalActive = Boolean(navigation.arrivalPromptActive);
-  const scale = (0.72 + Math.sin(seconds * 7) * 0.03) * (0.8 + 0.2 * fade);
-  const hover = (game.z ?? 0) + (cameraMode === "cab" ? 2.6 : 3.8) + Math.sin(seconds * 5) * 0.15;
-  const origin = cameraMode === "cab"
-    ? localPoint(game.x, game.y, game.heading, 3.2, 0)
+  const cab = cameraMode === "cab";
+  const cabScale = cab ? .48 : 1;
+  const scale = (0.72 + Math.sin(seconds * 7) * 0.03) * (0.8 + 0.2 * fade) * cabScale;
+  const hover = (game.z ?? 0) + (cab ? 3.2 : 3.8) + Math.sin(seconds * 5) * 0.15;
+  // A persistent arrow must stay ahead of the near plane in every bearing.
+  const origin = cab
+    ? localPoint(game.x, game.y, game.heading, 8, -.46)
     : { x: game.x, y: game.y };
 
   const pieces: ArrowGlyphPiece[] = [
@@ -159,18 +164,19 @@ export function vehicleDirectionArrowGeometry(
       ? navLineTargetAngle(game, navigation.route, 10)
       : navigation.departureYaw);
 
-  addArrowGlyphLayer(boxes, origin, yaw, hover, 0, scale, pieces, INK, 1.16, 0);
-  addArrowGlyphLayer(boxes, origin, yaw, hover, 0, scale, pieces, YELLOW, 1, 0.46);
+  addArrowGlyphLayer(boxes, origin, yaw, hover, 0, scale, pieces, INK, 1.16, 0, .68 * cabScale);
+  addArrowGlyphLayer(boxes, origin, yaw, hover, 0, scale, pieces, YELLOW, 1, .46 * cabScale, .68 * cabScale);
   addArrowGlyphLayer(boxes, origin, yaw, hover, 0, scale, [
     { forward: 1.35, cross: 0.32, length: 2.6, breadth: 0.13 },
-  ], WHITE, 1, 0.86, 0.12);
+  ], WHITE, 1, .86 * cabScale, .12 * cabScale);
 
   return boxes;
 }
 
 export function navigationArrowBoxes(game: Game, seconds: number, navigation: NavigationPlan, cameraMode: CameraMode) {
   if (!isDriving(game)) return [];
-  const roadArrows = navigation.arrivalPromptActive || navigation.requiresUTurn
+  const roadArrows = !(navigation.settings ?? navigationSettingsForGame(game)).showRoadTurns
+    || navigation.arrivalPromptActive || navigation.requiresUTurn
     ? []
     : turnArrowBoxes(seconds, navigation, cameraMode);
   const departureArrows = vehicleDepartureArrowBoxes(game, seconds, navigation, cameraMode);

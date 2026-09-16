@@ -15,6 +15,7 @@
 
 .options-tab-strip {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   margin: 14px 0 20px;
   border-bottom: 3px solid var(--ink);
@@ -22,6 +23,7 @@
 }
 
 .options-tab {
+  min-height: 44px;
   padding: 8px 18px;
   font-family: Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif;
   font-size: clamp(1rem, 1.3vw, 1.25rem);
@@ -46,6 +48,30 @@
   background: rgba(0, 0, 0, 0.06);
   border: 3px solid var(--ink);
 }
+
+.navigation-lab-entry { display: grid; gap: 6px; width: 100%; padding: 16px; text-align: left; border: 3px solid var(--ink); background: var(--yellow); color: var(--ink); cursor: pointer; }
+.navigation-lab-entry strong { font: italic 900 24px Impact, sans-serif; }
+.navigation-lab-entry small { font-size: 13px; }
+.navigation-lab__intro { padding: 16px; border-left: 6px solid var(--red); background: var(--ink); color: var(--paper); }
+.navigation-lab__intro .modal-kicker { color: var(--yellow); }
+.navigation-lab__intro h3 { margin: 0; font: italic 900 clamp(26px, 4vw, 38px)/1.1 Impact, sans-serif; }
+.navigation-lab__intro p { margin: 10px 0; }
+.navigation-lab__intro small { color: #d1d4cb; line-height: 1.5; }
+.navigation-lab__presets, .navigation-lab__fields, .navigation-lab__actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 12px; margin: 16px 0; }
+.navigation-lab__presets { grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)); }
+.navigation-lab__presets button, .navigation-lab__actions button { min-height: 48px; padding: 12px; border: 2px solid var(--ink); color: var(--ink); background: var(--paper); cursor: pointer; font-weight: 800; }
+.navigation-lab__presets button { display: grid; gap: 7px; text-align: left; }
+.navigation-lab__presets button[aria-pressed="true"] { background: var(--yellow); box-shadow: 3px 3px 0 var(--ink); }
+.navigation-lab__presets b { font: italic 900 21px Impact, sans-serif; }
+.navigation-lab__presets small { line-height: 1.4; }
+.navigation-lab__field { display: grid; align-content: start; gap: 7px; min-width: 0; font-weight: 800; }
+.navigation-lab__field select, .navigation-lab__field input { width: 100%; min-width: 0; min-height: 44px; padding: 8px; color: var(--ink); background: #fff9e9; border: 2px solid var(--ink); border-radius: 0; font: 16px var(--font-barlow-condensed), sans-serif; }
+.navigation-lab__field input[type="range"] { accent-color: var(--red); padding: 0; }
+.navigation-lab__check { display: flex; align-items: center; gap: 10px; min-height: 44px; font-weight: 800; }
+.navigation-lab__check input { width: 22px; height: 22px; flex-shrink: 0; accent-color: var(--ink); }
+.navigation-lab__readout { padding: 12px; background: #e7e5dc; font: 12px/1.6 monospace; overflow-wrap: anywhere; }
+.navigation-lab__notice { padding: 12px; border-left: 5px solid var(--cyan); background: #fff9e9; line-height: 1.5; }
+.navigation-lab > .primary-small { width: 100%; }
 
 .game-options-section {
   min-width: 0;

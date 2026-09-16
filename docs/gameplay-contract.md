@@ -430,7 +430,9 @@ updates the arcade launch, steering, road elevation and contact rules below.
   cannot bypass that gate. Normal waypoint progress and a valid later rejoin
   trim the existing route without recomputing it. A changed destination, new
   run, explicit Dev Mode relocation, or actual roadside recovery starts a new route immediately; the end of
-  the tow animation does not. Dev Mode may adjust both distance thresholds.
+  the tow animation does not. Navigation Lab may adjust both distance thresholds,
+  the minimum reroute interval, or hold the retained route until a destination
+  change or recovery. Defaults retain the 100 m gate and 0.35 s cooldown.
 - U-turn guidance uses hysteresis and an alignment hold so the warning cannot
   flicker while the taxi rotates.
 - The minimap, instruction copy, and 3D cue consume the same
@@ -790,8 +792,8 @@ the same reviewed change, with the intended gameplay difference documented.
 
 - Options is visible in the header and pause menu. Dev Mode defaults off and
   stores its normalized settings on this device. Turning it off restores the
-  normal 100 m reroute threshold, 1,000 m U-turn savings threshold, and ordinary
-  clock, boost and simulation speed.
+  ordinary clock, boost and simulation speed. Navigation settings are independent
+  and remain active with Dev Mode off; Reset Navigation restores their defaults.
 - GPS reroute distance and U-turn savings accept 0–10,000 displayed meters.
   Updating thresholds does not itself discard the current route. A live
   readout exposes route revision/reason, deviation, remaining distance, position,
@@ -807,3 +809,36 @@ the same reviewed change, with the intended gameplay difference documented.
   the run as a playtest. This flag remains after disabling Dev Mode. Playtest
   results never add career earnings or run-log records; GPS tuning alone does
   not mark a playtest.
+
+## Navigation Lab
+
+- Options → Game Options → Navigation Lab is available from the lobby and pause
+  hub on desktop and mobile. It saves normalized settings on this device and
+  applies them to the current and subsequent runs without enabling Dev Mode or
+  changing reward eligibility. Existing Dev Tools GPS controls share these values.
+  Old saves retain previously active GPS tuning; legacy tuning saved with Dev
+  Mode off stays at the ordinary defaults during migration.
+- Current System restores timed departure/near-arrival arrows and ground dots.
+  Destination Compass uses an always-on arrow with an exact bearing to the
+  visible pickup/dropoff ring center (custom pins and courier objectives use
+  their own destination). Red Destination shows that arrow only for the active
+  passenger dropoff, plus thin vertical red route dots when off route, with the
+  reroute setting raised to 1,000 to leave room to find the retained route.
+- Arrow visibility, route/center targeting, smooth/instant rotation, intersection
+  arrows and ground guidance can be changed independently. Always-on requires
+  an objective; on-foot/off-duty roaming has no cab arrow. Red-only ignores
+  pickup, custom waypoint and courier targets, including when a passenger is
+  onboard but another objective has navigation priority.
+- Vertical guidance extrudes the existing red lane dots straight upward with
+  the same 2.8 × 0.48 footprint. It follows the retained road path, not a diagonal
+  from the deviated taxi. Columns can replace dots or accompany them, activate
+  only off route or throughout a passenger dropoff, and have adjustable height
+  (40–400 m) and opacity (4–40%). Other objective colors retain ground dots.
+- Off-route guide distance is separate from rerouting (8–100 m, default 12 m).
+  It uses the display-meter scale (one world unit per meter) and the closest
+  retained segment in 3D, including deck elevation, and
+  updates after a route revision. Automatic reroute cooldown accepts 0.1–10 s.
+  Hold Route suppresses deviation-based replanning; normal progress, new
+  destinations, new runs and recovery retain their usual behavior.
+- Presets/reset affect only navigation settings. Copy Test Setup includes the
+  selected controls, run seed, position and GPS diagnostics for feedback.

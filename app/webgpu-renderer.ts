@@ -581,6 +581,7 @@ fn bloomColor(color: vec3<f32>) -> vec3<f32> {
       // Draw the player with the taxi after their occlusion silhouettes. An
       // earlier avatar depth write makes its own rear faces appear occluded.
       showPlayerAvatar: false,
+      navigation: navigationPlan,
     }), ...(taxiShadow ? [taxiShadow] : [])];
     const opaqueActors: Box[] = [];
     const transparentActors: Box[] = [];

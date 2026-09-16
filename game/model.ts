@@ -378,6 +378,12 @@ export type TurnCue = {
 
 export type NavigationPlan = {
   route: WorldPoint[];
+  /** Retained road path, without the moving cab-to-route connector. */
+  roadRoute?: WorldPoint[];
+  offRoute?: boolean;
+  vehicleArrowVisible?: boolean;
+  vehicleArrowFade?: number;
+  settings?: Readonly<import("./navigation-policy").NavigationSettings>;
   requiresUTurn: boolean;
   departureYaw: number;
   travelHeading: number;
@@ -398,6 +404,7 @@ export type NavigationPlan = {
     reason: "start" | "destination" | "new-run" | "recovery" | "development" | "deviation";
     rerouteDistanceMeters: number;
     uTurnSavingsMeters: number;
+    rerouteMode?: "distance" | "locked";
   };
 };
 

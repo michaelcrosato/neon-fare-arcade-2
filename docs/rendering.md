@@ -135,6 +135,18 @@ follows the arrow's actual elevation and uses the same reduced-motion clock.
 `road-lanes.ts` resolves route dashes onto the right traffic lane and samples
 its physical height and normal; the canonical route is never modified.
 
+Navigation Lab can extrude red dropoff dashes into translucent vertical columns.
+Their 2.8 × 0.48 XY footprint and lane placement remain identical to the ground
+dots, with zero pitch/tilt so columns rise vertically even on grades. The column
+base uses the actual dash elevation. Off-route guidance uses `NavigationPlan.roadRoute`,
+the retained road path without the moving cab connector. Ground dots and columns
+share the existing 120-instance route budget (60 each when combined); no actor,
+navigation, streamed-world or packing capacity changes. All backends consume the
+same boxes through their existing translucent actor pass. Arrow visibility and
+heading are resolved once by the controller and shared by every backend.
+Cab View uses a smaller arrow eight units ahead of the taxi so even a reverse
+bearing remains ahead of the near plane and above the driving view on phones.
+
 The brief red tow truck uses the actor buffer and renderer-neutral geometry in
 `render/tow-truck.ts`. Its bounded departure path follows physical roads. The
 receipt uses the same semantic charge in the HTML HUD and respects reduced

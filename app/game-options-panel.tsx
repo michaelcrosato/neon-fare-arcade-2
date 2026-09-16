@@ -16,10 +16,13 @@ import { useMobileLayout } from "./use-mobile-layout";
 import { AudioOptions } from "./audio-options";
 import { FullscreenControl } from "./fullscreen-control";
 import { DesktopControls } from "./desktop-controls";
+import { NavigationLab } from "./navigation-lab";
+
+export type OptionsTab = "game" | "navigation" | "dev";
 
 export type GameOptionsPanelProps = {
-  tab: "game" | "dev";
-  onSelectTab: (tab: "game" | "dev") => void;
+  tab: OptionsTab;
+  onSelectTab: (tab: OptionsTab) => void;
   cameraMode: CameraMode;
   onSetCameraMode: (mode: CameraMode) => void;
   cameraDistanceScale: CameraDistanceScale;
@@ -70,6 +73,9 @@ export function GameOptionsPanel({
         >
           GAME SETTINGS
         </button>
+        <button type="button" role="tab" aria-selected={tab === "navigation"}
+          className={`options-tab ${tab === "navigation" ? "is-active" : ""}`}
+          onClick={() => onSelectTab("navigation")}>NAVIGATION LAB</button>
         <button
           type="button"
           role="tab"
@@ -83,6 +89,9 @@ export function GameOptionsPanel({
 
       {tab === "game" ? (
         <div className="game-settings-content">
+          <button type="button" className="navigation-lab-entry" onClick={() => onSelectTab("navigation")}>
+            <strong>NAVIGATION LAB →</strong><small>Cab arrow, GPS realignment &amp; vertical route dots</small>
+          </button>
           <FullscreenControl />
           <AudioOptions />
           {!isMobile && <DesktopControls />}
@@ -232,7 +241,7 @@ export function GameOptionsPanel({
 
           <button className="primary-small" onClick={onClose}>CLOSE OPTIONS</button>
         </div>
-      ) : (
+      ) : tab === "navigation" ? <NavigationLab {...development} onClose={onClose} /> : (
         <div className="dev-settings-content">
           <div className="dev-back-strip">
             <button

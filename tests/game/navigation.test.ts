@@ -22,7 +22,7 @@ import { SPECIAL_ROADS } from "../../game/road-layout";
 import { routeCrossesRoundaboutIsland } from "../../game/road-network";
 import { makeTestJob } from "./support/fixtures";
 import { NAVIGATION_METERS_PER_WORLD_UNIT } from "../../game/config";
-import { normalizeNavigationSettings } from "../../game/navigation-policy";
+import { DEFAULT_NAVIGATION_SETTINGS, normalizeNavigationSettings } from "../../game/navigation-policy";
 
 test("route deviation measures the closest physical deck, including elevation", () => {
   const player = { x: 10, y: 0, z: 0 };
@@ -36,9 +36,9 @@ test("route deviation measures the closest physical deck, including elevation", 
 });
 
 test("navigation settings retain meter units and normalize invalid or extreme input", () => {
-  assert.deepEqual(normalizeNavigationSettings(), { rerouteDistanceMeters: 100, uTurnSavingsMeters: 1000 });
-  assert.deepEqual(normalizeNavigationSettings({ rerouteDistanceMeters: NaN, uTurnSavingsMeters: Infinity }), { rerouteDistanceMeters: 100, uTurnSavingsMeters: 1000 });
-  assert.deepEqual(normalizeNavigationSettings({ rerouteDistanceMeters: -10, uTurnSavingsMeters: 10001 }), { rerouteDistanceMeters: 0, uTurnSavingsMeters: 10000 });
+  assert.deepEqual(normalizeNavigationSettings(), DEFAULT_NAVIGATION_SETTINGS);
+  assert.deepEqual(normalizeNavigationSettings({ rerouteDistanceMeters: NaN, uTurnSavingsMeters: Infinity }), DEFAULT_NAVIGATION_SETTINGS);
+  assert.deepEqual(normalizeNavigationSettings({ rerouteDistanceMeters: -10, uTurnSavingsMeters: 10001 }), { ...DEFAULT_NAVIGATION_SETTINGS, rerouteDistanceMeters: 0, uTurnSavingsMeters: 10000 });
 });
 
 const NAV_JOB = makeTestJob({

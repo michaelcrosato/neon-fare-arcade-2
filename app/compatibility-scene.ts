@@ -13,7 +13,7 @@ export function compatibilityScene(game: Game, camera: Camera, seconds: number, 
   const shadow = showTaxi ? taxiGroundShadow(game, mesh) : null;
   return {
     actors: [
-      ...dynamicBoxes(game, seconds, navigation.route, world, { showPlayerAvatar: false }),
+      ...dynamicBoxes(game, seconds, navigation.route, world, { showPlayerAvatar: false, navigation }),
       ...(shadow ? [shadow] : []),
     ],
     focus: [

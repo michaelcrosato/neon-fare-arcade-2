@@ -33,7 +33,7 @@ import { GpsMap } from "./gps-map";
 import { HomeBasePanel } from "./home-base-panel";
 import { ShoppingPanel, StoreDirectory } from "./shopping-panel";
 import type { DevelopmentPanelProps } from "./development-panel";
-import { GameOptionsPanel } from "./game-options-panel";
+import { GameOptionsPanel, type OptionsTab } from "./game-options-panel";
 import { DEFAULT_CAMERA_DISTANCE_SCALE, type CameraDistanceScale } from "@/game/config";
 
 type GameModalHostProps = Readonly<{
@@ -56,8 +56,8 @@ type GameModalHostProps = Readonly<{
   gasNotice: string;
   development: Omit<DevelopmentPanelProps, "hud" | "onClose">;
   dialogRef: RefObject<HTMLElement | null>;
-  optionsTab?: "game" | "dev";
-  onSelectOptionsTab?: (tab: "game" | "dev") => void;
+  optionsTab?: OptionsTab;
+  onSelectOptionsTab?: (tab: OptionsTab) => void;
   cameraMode?: CameraMode;
   onSetCameraMode?: (mode: CameraMode) => void;
   cameraDistanceScale?: CameraDistanceScale;

@@ -192,6 +192,20 @@ Do not trade away safe placement or change fare rewards to improve this number.
    Road-lane markers belong to `game/road-lanes.ts` and `routeBoxes`, never the
    canonical routing or fare-distance calculation.
 
+### Compare navigation experiments
+
+- Open Options → Game Options → Navigation Lab. Start with Current System,
+  Destination Compass or Red Destination, then vary individual controls. Dev
+  Mode is not required. Copy Test Setup when collecting a report; it includes
+  the seed, controls and route diagnostics.
+- Use Hold Route or a larger reroute distance to test returning to the retained
+  road. Vertical red dots must have the same lane footprint as the ground dots,
+  rise vertically and retire on rejoin in off-route-only mode. Check all camera
+  modes, a grade/bridge and Canvas fallback.
+- Run `navigation-lab.test.ts`, `navigation.test.ts`, `render-contract.test.ts`
+  and `road-guidance.test.ts`, followed by `tests/browser/navigation-lab.spec.ts`
+  for persistence, desktop/phone controls and both renderers.
+
 ## Change roadside recovery
 
 1. Keep charging, safe-road search, actor reset and tow state in `game/recovery.ts`.

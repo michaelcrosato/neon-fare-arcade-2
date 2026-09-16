@@ -139,7 +139,7 @@ export default function Home() {
   const [pendingDrivingTrait, setPendingDrivingTrait] = useState<DrivingTraitId>("street-ace");
   const { steeringMode, setSteeringMode, persistSteeringMode, wheelRange, setWheelRange } = useSteeringSettings(touchDriving);
   const [modal, setModal] = useState<Modal>(null);
-  const [optionsTab, setOptionsTab] = useState<"game" | "dev">("game");
+  const [optionsTab, setOptionsTab] = useState<"game" | "navigation" | "dev">("game");
   const [modalParent, setModalParent] = useState<"home" | null>(null);
   const audioSettings = useAudioSettings();
   const muted = audioSettings.muted;
@@ -928,8 +928,8 @@ export default function Home() {
           onSetCruise={setCruise}
           taxiExitRef={taxiExitRef}
         />
-        {mode === "playing" && development.enabled && development.showDiagnostics && <DevelopmentReadout hud={hud} />}
-        {mode === "playing" && hud.playtest && !(development.enabled && development.showDiagnostics) && <div className="development-playtest-badge">PLAYTEST</div>}
+        {mode === "playing" && (development.navigation.showDiagnostics || (development.enabled && development.showDiagnostics)) && <DevelopmentReadout hud={hud} />}
+        {mode === "playing" && hud.playtest && !(development.navigation.showDiagnostics || (development.enabled && development.showDiagnostics)) && <div className="development-playtest-badge">PLAYTEST</div>}
         {mode === "menu" && (
           <GameModeMenu
             ready={careerReady}

@@ -89,7 +89,7 @@ for (const renderer of ["WebGPU", "Canvas"] as const) for (const mobile of [fals
     expect(report.currentGame.fareJobs).toHaveLength(6);
     expect(report.currentGame.playtest).toBe(true);
     expect(report.currentGame.deliveries).toBe(1);
-    expect(report.currentGame.development?.navigation).toEqual({ rerouteDistanceMeters: 600, uTurnSavingsMeters: 1500 });
+    expect(report.currentGame.development?.navigation).toMatchObject({ rerouteDistanceMeters: 600, uTurnSavingsMeters: 1500 });
     expect(report.recentErrors).toEqual([]);
 
     // Inspect a real waterfront landmark from both rendering paths.

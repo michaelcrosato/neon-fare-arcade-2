@@ -9,17 +9,18 @@ import { stepGame } from "../../game/simulation";
 import { isRoadSurface } from "../../game/road-network";
 import { makeTestWorld, TEST_IDLE_INPUT } from "./support/fixtures";
 import { bankCareerRun, makeCareerState } from "../../game/career";
+import { DEFAULT_NAVIGATION_SETTINGS } from "../../game/navigation-policy";
 
-test("Dev Mode is opt-in, normalizes saved values and restores standard GPS when disabled", () => {
+test("Dev Mode is opt-in and normalizes saved values without changing simulation while disabled", () => {
   const game = makeGame("street-ace", 271);
   const defaults = normalizeDevelopmentSettings(null);
   assert.equal(defaults.enabled, false);
-  assert.deepEqual(defaults.navigation, { rerouteDistanceMeters: 100, uTurnSavingsMeters: 1000 });
+  assert.deepEqual(defaults.navigation, DEFAULT_NAVIGATION_SETTINGS);
   assert.deepEqual(normalizeDevelopmentSettings({ enabled: "true", timeScale: Infinity, navigation: null }), defaults);
   const settings = normalizeDevelopmentSettings({ enabled: true, timeScale: 99,
     navigation: { rerouteDistanceMeters: -20, uTurnSavingsMeters: 99999 } });
   assert.equal(settings.timeScale, 2);
-  assert.deepEqual(settings.navigation, { rerouteDistanceMeters: 0, uTurnSavingsMeters: 10000 });
+  assert.deepEqual(settings.navigation, { ...DEFAULT_NAVIGATION_SETTINGS, rerouteDistanceMeters: 0, uTurnSavingsMeters: 10000 });
   applyDevelopmentSettings(game, { ...defaults, enabled: true, navigation: settings.navigation });
   assert.equal(game.playtest, undefined, "GPS settings alone do not change run rewards");
   const before = structuredClone(game);
