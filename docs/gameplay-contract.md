@@ -460,7 +460,8 @@ updates the arcade launch, steering, road elevation and contact rules below.
   once when its run fare becomes positive. Its occupied passenger trips pause
   once around the canonical route midpoint for a quantum fact and passenger
   reply. Cards preserve visible game margins and freeze all simulation and trip
-  time until a fresh tap, click, key or gamepad Cross. Full rules and sources:
+  time until a fresh Enter press, tap/click on the passenger reply, or gamepad
+  Cross. Driving keys and taps elsewhere leave the lesson open. Full rules and sources:
   [accord-events.md](accord-events.md).
 
 ## Roadside recovery

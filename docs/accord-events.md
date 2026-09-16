@@ -43,9 +43,13 @@ The hook pauses the real frame loop, clears driving input, and displays the
 native `StoryCard` dialog over the still-visible game. Simulation time, passenger
 rating time, time limits, fuel, traffic and fare-card animation all pause.
 
-The passenger reply is the continue button. A fresh key, tap or click resumes;
-gamepad Cross/A works too. Held key repeats and the release of a driving touch
-cannot dismiss the card. Keyboard focus stays in the dialog and returns on close.
+The passenger reply is the continue button. Only a fresh, unmodified **Enter**
+press or a tap/click on that reply resumes; gamepad Cross/A works too after any
+held press is released. Driving keys, Space (even on the focused reply), Escape,
+held key repeats, clicks/taps on the lesson or backdrop, cancelled gestures and
+the release of a driving touch cannot dismiss the card. Tab navigation, scrolling
+and text copying remain available. Keyboard focus stays in the dialog and returns
+on close.
 The card opens at the start of the lesson with focus on the dialog, so a long
 lesson cannot automatically scroll down to its reply. It is centered, scrolls
 internally on small screens, occupies at most 82%
@@ -108,9 +112,10 @@ these with the driver's exaggerated analogy.
 - `tests/game/accord-events.test.ts`: financing, threshold and once-only rules,
   route progress, deterministic content and trip reset, exact roster coverage,
   globally unique replies, repeat-rider rotation and complete lesson reachability.
-- `tests/browser/accord-events.spec.ts`: real frame-loop pause and resume,
-  input repeats, native-dialog geometry, longest lesson/reply readability and
-  dismissal, tire payoff and free/paid tow cards in desktop, portrait and
-  landscape for WebGPU and Canvas.
+- `tests/browser/accord-events.spec.ts`: real frame-loop pause and deliberate
+  confirmation, ignored driving keys and stray clicks/taps, held/cancelled input,
+  gamepad release/repress, native-dialog geometry, longest lesson/reply readability,
+  tire payoff and free/paid tow cards in desktop, portrait and landscape for
+  WebGPU and Canvas.
 - `tests/runtime/run-records.test.ts`: negative run balance survives history
   normalization without a negative career credit.

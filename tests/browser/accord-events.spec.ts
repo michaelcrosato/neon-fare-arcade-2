@@ -11,7 +11,7 @@ test.beforeAll(async () => { bundle = (await build({ entryPoints: ["tests/browse
   platform: "browser", format: "iife", logLevel: "silent" })).outputFiles[0].text; });
 
 for (const backend of ["WebGPU", "Canvas"] as const) for (const shape of ["desktop", "portrait", "landscape"] as const) {
-  test(`${backend} ${shape}: story pauses all trip time, accepts fresh input, and tow fits`, async ({ page }, info) => {
+  test(`${backend} ${shape}: story waits for a deliberate reply, pauses all trip time, and tow fits`, async ({ page }, info) => {
     const errors: string[] = []; page.on("pageerror", error => errors.push(error.message));
     await page.setViewportSize(shape === "desktop" ? { width: 1280, height: 900 } : shape === "portrait" ? { width: 390, height: 844 } : { width: 844, height: 390 });
     if (backend === "Canvas") await page.addInitScript(() => Object.defineProperty(navigator, "gpu", { configurable: true, value: undefined }));
@@ -26,15 +26,30 @@ for (const backend of ["WebGPU", "Canvas"] as const) for (const shape of ["deskt
     await page.clock.install();
     await page.clock.runFor(5000);
     expect(await page.evaluate(() => window.accordEventsScene.state())).toEqual(before);
-    await page.evaluate(() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "w", repeat: true, bubbles: true })));
-    await expect(card).toBeVisible();
+    for (const key of ["w", "a", "s", "d", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space", "Shift", "e", "q", "Escape", "Control+Enter"]) {
+      await page.keyboard.press(key);
+      await expect(card, `${key} must leave the lesson open`).toBeVisible();
+    }
+    await page.evaluate(() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", repeat: true, bubbles: true, cancelable: true })));
+    await expect(card, "a held confirmation key must not skip the lesson").toBeVisible();
+    await card.locator("#story-card-text").click();
+    await page.mouse.click(5, 5);
+    await expect(card, "lesson text and the backdrop are not continue buttons").toBeVisible();
+    await card.focus();
+    await page.keyboard.press("Tab");
+    await expect(card.getByRole("button")).toBeFocused();
+    await page.keyboard.press("Space");
+    await expect(card, "Space must not activate the focused reply").toBeVisible();
+    await card.evaluate(e => { e.focus(); e.scrollTop = 0; });
+    await page.clock.runFor(500);
+    expect(await page.evaluate(() => window.accordEventsScene.state())).toEqual(before);
     const box = (await card.boundingBox())!, viewport = page.viewportSize()!;
     expect(box.width * box.height).toBeLessThan(viewport.width * viewport.height * .85);
     expect(Math.abs(box.x + box.width / 2 - viewport.width / 2)).toBeLessThan(2);
     expect(Math.abs(box.y + box.height / 2 - viewport.height / 2)).toBeLessThan(2);
     expect(await card.evaluate(e => e.scrollWidth <= e.clientWidth + 1)).toBe(true);
     await page.screenshot({ path: info.outputPath("quantum.png") });
-    if (shape === "desktop") await page.keyboard.press("q");
+    if (shape === "desktop") await page.keyboard.press("Enter");
     else await card.getByRole("button").click();
     await expect(card).toHaveCount(0);
     await page.clock.runFor(500);
@@ -75,3 +90,70 @@ for (const backend of ["WebGPU", "Canvas"] as const) for (const shape of ["deskt
     expect(errors).toEqual([]);
   });
 }
+
+test.describe("touch and controller confirmation", () => {
+  test.use({ hasTouch: true, viewport: { width: 390, height: 844 } });
+  for (const backend of ["WebGPU", "Canvas"] as const) {
+    test(`${backend}: held controls and stray touches keep the lesson open`, async ({ page }) => {
+      const errors: string[] = []; page.on("pageerror", error => errors.push(error.message));
+      await page.addInitScript(() => {
+        window.storyPadButtons = [];
+        Object.defineProperty(navigator, "getGamepads", { configurable: true, value: () => [{ connected: true, mapping: "standard", axes: [0, 0],
+          buttons: Array.from({ length: 17 }, (_, i) => ({ pressed: window.storyPadButtons.includes(i), value: window.storyPadButtons.includes(i) ? 1 : 0 })) }] });
+      });
+      if (backend === "Canvas") await page.addInitScript(() => Object.defineProperty(navigator, "gpu", { configurable: true, value: undefined }));
+      await openScenePage(page, bundle);
+      await expect(page.locator("canvas.is-active")).toBeVisible();
+      await page.clock.install();
+      // Cross/A was already boosting on the frame that opened the lesson.
+      await page.evaluate(() => { window.storyPadButtons = [0, 7]; window.accordEventsScene.start("quantum"); });
+      await page.clock.runFor(100);
+      const card = page.getByRole("dialog"), reply = card.getByRole("button");
+      await expect(card).toBeVisible();
+      const before = await page.evaluate(() => window.accordEventsScene.state());
+      await page.clock.runFor(1000);
+      expect(await page.evaluate(() => window.accordEventsScene.state())).toEqual(before);
+      await page.evaluate(() => { window.storyPadButtons = [7, 9, 3]; });
+      await page.clock.runFor(100);
+      await expect(card).toBeVisible();
+      await page.evaluate(() => { window.storyPadButtons = []; });
+      await page.clock.runFor(100);
+      await page.evaluate(() => { window.storyPadButtons = [0]; });
+      await page.clock.runFor(100);
+      await expect(card).toHaveCount(0);
+      await page.evaluate(() => { window.storyPadButtons = []; });
+
+      // A mouse/touch release carried over from driving is not a reply selection.
+      await page.mouse.move(5, 5);
+      await page.mouse.down();
+      await page.evaluate(() => window.accordEventsScene.start("quantum"));
+      await page.clock.runFor(100);
+      await expect(card).toBeVisible();
+      await reply.scrollIntoViewIfNeeded();
+      const box = (await reply.boundingBox())!;
+      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+      await page.mouse.up();
+      await expect(card).toBeVisible();
+      await card.locator("#story-card-text").tap();
+      await page.touchscreen.tap(5, 5);
+      await expect(card).toBeVisible();
+
+      // Dragging off the reply or a browser-cancelled gesture must not accept it.
+      await reply.hover();
+      await page.mouse.down();
+      await page.mouse.move(5, 5);
+      await page.mouse.up();
+      await expect(card).toBeVisible();
+      await reply.dispatchEvent("pointerdown", { isPrimary: true, button: 0 });
+      await reply.dispatchEvent("pointercancel");
+      await reply.dispatchEvent("click", { detail: 1 });
+      await expect(card).toBeVisible();
+      await reply.tap();
+      await expect(card).toHaveCount(0);
+      expect((await page.evaluate(() => window.accordEventsScene.state())).mode).toBe("playing");
+      expect(errors).toEqual([]);
+    });
+  }
+});
+
+declare global { interface Window { storyPadButtons: number[] } }

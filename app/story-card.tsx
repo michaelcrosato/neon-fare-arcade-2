@@ -16,19 +16,26 @@ export function StoryCard({ card, onDismiss }: { card: StoryCardData; onDismiss:
     element?.focus({ preventScroll: true });
     if (element) element.scrollTop = 0;
     const key = (event: KeyboardEvent) => {
-      if (event.key === "Tab") return;
-      event.preventDefault(); event.stopImmediatePropagation();
-      if (!event.repeat && !["Shift", "Control", "Alt", "Meta"].includes(event.key)) onDismiss();
+      event.stopImmediatePropagation();
+      // Keep native scrolling, text copying and Tab navigation, but never let
+      // driving keys (including Space on the focused reply) accept the lesson.
+      if (["Enter", " ", "Escape"].includes(event.key)) event.preventDefault();
+      if (event.type === "keydown" && event.key === "Enter" && !event.repeat && !event.isComposing
+        && !event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey) onDismiss();
     };
     window.addEventListener("keydown", key, true);
-    return () => { window.removeEventListener("keydown", key, true); element?.close(); if (previous?.isConnected) previous.focus(); };
+    window.addEventListener("keyup", key, true);
+    return () => {
+      window.removeEventListener("keydown", key, true);
+      window.removeEventListener("keyup", key, true);
+      element?.close();
+      if (previous?.isConnected) previous.focus();
+    };
   }, [onDismiss]);
   const fact = card.kind === "quantum" ? QUANTUM_FACTS[card.factIndex] : null;
   const frame = card.kind === "quantum" ? fareArtFrame(card.artCell) : null;
   return <dialog ref={dialog} tabIndex={-1} className={`story-card story-card--${card.kind}`} aria-labelledby="story-card-title" aria-describedby="story-card-text"
-    onCancel={event => { event.preventDefault(); onDismiss(); }}
-    onPointerDown={() => { pressed.current = true; }} onPointerCancel={() => { pressed.current = false; }}
-    onClick={event => { if (event.detail === 0 || pressed.current) { pressed.current = false; onDismiss(); } }}>
+    onCancel={event => event.preventDefault()}>
     <header className="story-card__masthead"><b>{fact ? "THE ACCORD HAS A THEORY" : "A LITTLE TRACTION. A BIG MILESTONE."}</b><span>GAME PAUSED Ⅱ</span></header>
     <div className="story-card__body">
       <div className="story-card__emblem" aria-hidden="true">{fact ? fact.symbol : "✓"}<small>{fact ? "QUANTUM CAB" : "PAID IN FULL"}</small></div>
@@ -39,11 +46,19 @@ export function StoryCard({ card, onDismiss }: { card: StoryCardData; onDismiss:
       </div>
     </div>
     <footer>
-      <button type="button" className="story-card__reply" aria-label={card.kind === "quantum" ? `${card.rider}: ${card.response} Resume driving.` : "Winter tires paid off. Resume driving."}>
+      <button type="button" className="story-card__reply" aria-keyshortcuts="Enter"
+        aria-label={card.kind === "quantum" ? `${card.rider}: ${card.response} Resume driving.` : "Winter tires paid off. Resume driving."}
+        onPointerDown={event => { pressed.current = event.isPrimary && event.button === 0; }}
+        onPointerCancel={() => { pressed.current = false; }}
+        onClick={event => {
+          const selected = event.detail === 0 || pressed.current;
+          pressed.current = false;
+          if (selected) onDismiss();
+        }}>
         {card.kind === "quantum" && frame && <span className="story-card__portrait" aria-hidden="true" style={{ backgroundImage: `url(${fareArtAsset("pickup", frame.sheet)})`, backgroundPosition: frame.backgroundPosition }} />}
         <span><small>{card.kind === "quantum" ? `${card.rider} REPLIES` : "THE ACCORD APPROVES"}</small><strong>{card.kind === "quantum" ? `“${card.response}”` : "“Same tires. Lighter conscience. Let’s drive.”"}</strong></span><b aria-hidden="true">↗</b>
       </button>
-      <p>TAP / CLICK / PRESS ANY KEY TO DRIVE ON · GAMEPAD ✕</p>
+      <p>TO CONTINUE: TAP / CLICK THE REPLY · ENTER · GAMEPAD ✕</p>
     </footer>
   </dialog>;
 }
