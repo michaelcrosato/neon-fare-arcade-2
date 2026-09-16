@@ -98,6 +98,7 @@ export function DevelopmentReadout({ hud }: { hud: Hud }) {
     <strong>{hud.playtest ? "PLAYTEST" : "NAVIGATION LAB"} · GPS #{diagnostics?.revision ?? 0}</strong>
     <span>{hud.distance.toLocaleString()} m remaining · {Math.round(diagnostics?.deviationMeters ?? 0)} m off route</span>
     <span>Reroute &gt; {diagnostics?.rerouteDistanceMeters ?? 100} m · U-turn saves ≥ {diagnostics?.uTurnSavingsMeters ?? 1000} m</span>
+    {diagnostics?.routingEnabled === false && <span>GPS ROUTING OFF · destination markers remain</span>}
     {diagnostics?.rerouteMode === "locked" && <span>HOLD ROUTE · automatic recalculation off</span>}
     <span>{diagnostics?.reason ?? "start"} · x {hud.player.x.toFixed(1)} / y {hud.player.y.toFixed(1)} / z {(hud.player.z ?? 0).toFixed(1)}</span>
     <span>Seed {hud.runSeed} · {(hud.elapsed ?? 0).toFixed(2)} s · {hud.speed} km/h</span>

@@ -378,6 +378,8 @@ export type TurnCue = {
 
 export type NavigationPlan = {
   route: WorldPoint[];
+  /** False when routing for this objective is switched off; markers and the cab compass remain independent. */
+  routingEnabled?: boolean;
   /** Retained road path, without the moving cab-to-route connector. */
   roadRoute?: WorldPoint[];
   offRoute?: boolean;
@@ -401,7 +403,8 @@ export type NavigationPlan = {
   diagnostics?: {
     revision: number;
     deviationMeters: number;
-    reason: "start" | "destination" | "new-run" | "recovery" | "development" | "deviation";
+    reason: "start" | "destination" | "new-run" | "recovery" | "development" | "deviation" | "routing";
+    routingEnabled?: boolean;
     rerouteDistanceMeters: number;
     uTurnSavingsMeters: number;
     rerouteMode?: "distance" | "locked";

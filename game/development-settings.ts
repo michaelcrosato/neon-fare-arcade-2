@@ -17,7 +17,8 @@ export function normalizeDevelopmentSettings(value: unknown): DevelopmentSetting
     ? source.navigation as Partial<NavigationSettings> : undefined;
   // Old disabled Dev Mode saves could retain inactive GPS tuning. Do not turn
   // that tuning on during migration to the independent Navigation Lab.
-  const legacyInactive = source.enabled !== true && savedNavigation && !("arrowVisibility" in savedNavigation);
+  const legacyInactive = source.enabled !== true && savedNavigation && !("arrowVisibility" in savedNavigation)
+    && !["routePickups", "routeDropoffs", "routeCustomDestinations", "routeCourierJobs"].some(key => key in savedNavigation);
   return {
     enabled: source.enabled === true,
     freezeClock: source.freezeClock === true,

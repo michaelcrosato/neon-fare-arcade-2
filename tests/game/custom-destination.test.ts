@@ -16,7 +16,7 @@ import {
 import { distance } from "../../game/math";
 import type { InputState, WorldView } from "../../game/model";
 import { NavigationController, buildNavigationPlan } from "../../game/navigation";
-import { routeBoxes } from "../../game/render/scene";
+import { customDestinationPresentationBoxes, routeBoxes } from "../../game/render/scene";
 import { containingRegionForPosition } from "../../game/regions";
 import { isRoadSurface } from "../../game/road-network";
 import { stepGame } from "../../game/simulation";
@@ -151,10 +151,12 @@ test("arrival clears once, restores the job route, and never mutates the job", (
   game.traffic = [];
   const originalJob = game.fareJobs[game.jobIndex];
   game.customDestination = { x: game.x, y: game.y };
+  assert.equal(customDestinationPresentationBoxes(game, 0).length, 28);
 
   const firstEvents = stepGame(game, IDLE_INPUT, FIXED_DT, EMPTY_WORLD, () => 1);
   assert.equal(firstEvents.filter((event) => event.type === "custom-destination-arrived").length, 1);
   assert.equal(game.customDestination, null);
+  assert.deepEqual(customDestinationPresentationBoxes(game, 0), []);
   assert.equal(game.onboard, false);
   assert.equal(game.fareJobs[game.jobIndex], originalJob);
 

@@ -31,17 +31,31 @@ export function NavigationLab({ settings, hud, onChange, onClose }: Pick<Develop
         onClick={() => { update(preset.settings); setNotice(`${preset.label} applied. All navigation controls now match this preset.`); }}>
         <b>{preset.label}</b><small>{preset.detail}</small></button>)}
     </div>
-    <fieldset className="game-options-section"><legend>01 · ARROW ABOVE THE CAB</legend>
+    <fieldset className="game-options-section"><legend>01 · GPS ROUTES FOR</legend>
+      <div className="navigation-lab__fields">
+        <label className="navigation-lab__check"><input type="checkbox" checked={nav.routePickups}
+          onChange={event => update({ routePickups: event.target.checked })} />Fare pickups</label>
+        <label className="navigation-lab__check"><input type="checkbox" checked={nav.routeDropoffs}
+          onChange={event => update({ routeDropoffs: event.target.checked })} />Passenger dropoffs</label>
+        <label className="navigation-lab__check"><input type="checkbox" checked={nav.routeCustomDestinations}
+          onChange={event => update({ routeCustomDestinations: event.target.checked })} />Custom yellow destinations</label>
+        <label className="navigation-lab__check"><input type="checkbox" checked={nav.routeCourierJobs}
+          onChange={event => update({ routeCourierJobs: event.target.checked })} />Courier jobs</label>
+      </div>
+      <p className="options-hint">Choose which destinations get map routes, road dots and turn instructions. Destination circles and beacons stay visible. Fares and deliveries keep working. A custom pin remains your selected destination even with its route off.</p>
+    </fieldset>
+    <fieldset className="game-options-section"><legend>02 · ARROW ABOVE THE CAB</legend>
       <div className="navigation-lab__fields">
         {select("Show cab arrow", "arrowVisibility", [["contextual", "Current · departure + nearby arrival"], ["always", "Always on while navigating"], ["destination", "Red destination only · passenger onboard"], ["off", "Off"]])}
         {select("Arrow points toward", "arrowTarget", [["route", "GPS route · ring center near arrival"], ["destination", "Destination center · direct bearing"]])}
         {select("Arrow response", "arrowSmoothing", [["smooth", "Smooth rotation"], ["instant", "Instant · exact bearing"]])}
       </div>
       <p className="options-hint">Red destination means the active passenger dropoff. Pickups, custom pins and courier jobs keep this arrow hidden in that mode. Always on needs a destination; the cab arrow stays hidden on foot.</p>
+      <p className="options-hint">The cab arrow works independently of route switches. When GPS routing is off for a destination, the arrow points directly at its center.</p>
       <label className="navigation-lab__check"><input type="checkbox" checked={nav.showRoadTurns}
         onChange={event => update({ showRoadTurns: event.target.checked })} />Show turn arrows over intersections</label>
     </fieldset>
-    <fieldset className="game-options-section"><legend>02 · ROAD GUIDE</legend>
+    <fieldset className="game-options-section"><legend>03 · ROAD GUIDE</legend>
       <div className="navigation-lab__fields">
         {select("Ground route style", "routeStyle", [["dashes", "Current · ground dots"], ["corridor", "Vertical red dots"], ["both", "Ground dots + vertical red dots"], ["off", "Off · GPS map only"]])}
         {select("Show vertical dots", "corridorVisibility", [["off-route", "Only when off the GPS route"], ["always", "Always during a red dropoff"]])}
@@ -55,7 +69,7 @@ export function NavigationLab({ settings, hud, onChange, onClose }: Pick<Develop
         {number("Off-route guide distance (m)", "offRouteDistanceMeters", 8, 100, 1)}
       </div>
     </fieldset>
-    <fieldset className="game-options-section"><legend>03 · GPS REALIGNMENT</legend>
+    <fieldset className="game-options-section"><legend>04 · GPS REALIGNMENT</legend>
       {select("Recalculate the GPS route", "rerouteMode", [["distance", "Automatically beyond the distance limit"], ["locked", "Hold route · find your way back"]])}
       <div className="navigation-lab__fields">
         {number("Reroute distance (m)", "rerouteDistanceMeters", 0, 10000, 10)}
@@ -64,10 +78,10 @@ export function NavigationLab({ settings, hud, onChange, onClose }: Pick<Develop
       </div>
       <p className="options-hint">Distance is measured to the closest remaining route segment. Hold route stops automatic recalculation; new destinations and recovery still create a new route. Raise the reroute distance to give yourself more time to follow the vertical dots back.</p>
     </fieldset>
-    <fieldset className="game-options-section"><legend>04 · TEST &amp; SHARE</legend>
+    <fieldset className="game-options-section"><legend>05 · TEST &amp; SHARE</legend>
       <label className="navigation-lab__check"><input type="checkbox" checked={nav.showDiagnostics}
         onChange={event => update({ showDiagnostics: event.target.checked })} />Show live navigation diagnostics</label>
-      <p className="navigation-lab__readout">GPS #{hud.navigationDiagnostics?.revision ?? 0} · {hud.navigationDiagnostics?.reason ?? "start"} · {Math.round(hud.navigationDiagnostics?.deviationMeters ?? 0)} m off route</p>
+      <p className="navigation-lab__readout">GPS #{hud.navigationDiagnostics?.revision ?? 0} · {hud.navigationDiagnostics?.reason ?? "start"} · {hud.navigationDiagnostics?.routingEnabled === false ? "Routing off for this destination" : `${Math.round(hud.navigationDiagnostics?.deviationMeters ?? 0)} m off route`}</p>
       <div className="navigation-lab__actions">
         <button type="button" onClick={async () => {
           try {

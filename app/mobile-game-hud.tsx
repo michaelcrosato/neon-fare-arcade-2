@@ -77,7 +77,9 @@ export function MobileGameHud({ mode, hud, fareImpact, fareImpactRef, courierImp
           <span>{hud.runKind === "free-run" ? "FREE RUN" : hud.clockPaused ? "METER PAUSED" : "SHIFT"}</span>
           {hud.runKind !== "free-run" && <strong>{Math.ceil(hud.time)}<small>s</small></strong>}
         </div>
-        {!roaming && <span className="mobile-distance" aria-label={`Destination distance ${hud.distance} meters`}>{hud.distance}<small>m</small></span>}
+        {!roaming && <span className="mobile-distance" aria-label={hud.route.length ? `Destination distance ${hud.distance} meters` : "GPS routing off"}>
+          {hud.route.length ? <>{hud.distance}<small>m</small></> : <small>GPS OFF</small>}
+        </span>}
       </div>
       <div className="mobile-earnings"><small>FARE</small><strong>${hud.fare}</strong></div>
       <button type="button" className="mobile-menu-button" onClick={() => onSetMode("paused")}

@@ -214,20 +214,20 @@ export function GameModalHost({
                 {hud.walker && <span><i className="walker-dot" /> WALKER · TAXI PARKED</span>}
                 {hud.missionType !== "roam" && <span><i className={hud.missionType} /> JOB · {hud.missionObjective}</span>}
                 {hud.missionType === "roam" && <span><i className="roam" /> OFF DUTY · PASSENGER DISPATCH OFF</span>}
-                {hud.customDestination && <span><i className="waypoint" /> CUSTOM ROUTE ACTIVE</span>}
+                {hud.customDestination && <span><i className="waypoint" /> {hud.route.length ? "CUSTOM ROUTE ACTIVE" : "CUSTOM PIN · GPS ROUTING OFF"}</span>}
                 <span><i className="courier-pickup" /> DIAMONDS · COURIER LOCATIONS</span>
                 <strong>
                   {hud.objectiveType === "roam"
                       ? "OFF DUTY · EXPLORE OR SET A CUSTOM ROUTE"
                       : hud.runKind === "free-run" ? `FREE RUN · OPTIONAL ROUTE · ${hud.gpsInstruction}` : hud.gpsInstruction}
-                  {hud.objectiveType !== "roam" && ` · ${hud.distance}m`}
+                  {hud.route.length > 0 && ` · ${hud.distance}m`}
                 </strong>
               </div>
             </div>
             <p className="full-map-status" role="status" aria-label="GPS pin status" aria-live="polite">{mapNotice}</p>
             <details className="map-shops"><summary>STORES, HOME + FUEL ↗</summary><StoreDirectory /></details>
             <div className="full-map-actions">
-              {hud.customDestination && <button onClick={onRemoveDestination}>{hud.fareDispatchEnabled ? "RETURN TO JOB ROUTE" : "CLEAR GPS ROUTE"}</button>}
+              {hud.customDestination && <button onClick={onRemoveDestination}>{!hud.route.length ? "CLEAR CUSTOM PIN" : hud.fareDispatchEnabled ? "RETURN TO JOB ROUTE" : "CLEAR GPS ROUTE"}</button>}
               {hud.runKind === "free-run" && <button
                 className={`duty-toggle ${hud.fareDispatchEnabled ? "is-on-duty" : "is-off-duty"}`}
                 type="button"

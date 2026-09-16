@@ -45,6 +45,7 @@ import { vehicleDefinition } from "@/game/vehicles";
 import { regionalPlaceName } from "@/game/regions";
 import { makeGame } from "@/game/state";
 import { applyDevelopmentSettings } from "@/game/development-settings";
+import { mapOpeningNotice } from "./runtime/navigation-feedback";
 import type { DevelopmentAction } from "@/game/development-actions";
 import { presentDevelopmentCommand } from "./runtime/development-actions";
 import { useDevelopmentMode } from "./use-development-mode";
@@ -319,15 +320,7 @@ export default function Home() {
     resumeAfterModalRef.current = shouldResume;
     setModalParent(null);
     if (next === "map") {
-      const game = gameRef.current;
-      const destination = game.customDestination;
-      setMapNotice(destination
-        ? game.fareDispatchEnabled
-          ? "CUSTOM ROUTE ACTIVE · MOVE THE PIN OR RETURN TO THE JOB"
-          : "CUSTOM ROUTE ACTIVE · MOVE THE PIN OR CLEAR THE ROUTE"
-        : game.fareDispatchEnabled
-          ? "TAP A STREET TO SET GPS"
-          : "OFF DUTY · TAP A STREET FOR AN OPTIONAL ROUTE");
+      setMapNotice(mapOpeningNotice(gameRef.current));
     }
     if (shouldResume) {
       setMode("paused");
@@ -363,15 +356,7 @@ export default function Home() {
   const openHomeSubview = useCallback((next: "map" | "scores" | "courier") => {
     setModalParent("home");
     if (next === "map") {
-      const game = gameRef.current;
-      const destination = game.customDestination;
-      setMapNotice(destination
-        ? game.fareDispatchEnabled
-          ? "CUSTOM ROUTE ACTIVE · MOVE THE PIN OR RETURN TO THE JOB"
-          : "CUSTOM ROUTE ACTIVE · MOVE THE PIN OR CLEAR THE ROUTE"
-        : game.fareDispatchEnabled
-          ? "TAP A STREET TO SET GPS"
-          : "OFF DUTY · TAP A STREET FOR AN OPTIONAL ROUTE");
+      setMapNotice(mapOpeningNotice(gameRef.current));
     }
     setModal(next);
   }, []);
@@ -386,9 +371,12 @@ export default function Home() {
     const place = regionalPlaceName(destination.x, destination.y) ?? districtName(destination.x, destination.y);
     const game = gameRef.current;
     checkpointExternalGameChange("custom-destination:set");
-    setHud(makeHud(game));
-    setMapNotice(`ROUTE SET · ${place}`);
-    setAudioAnnouncement(game.fareDispatchEnabled
+    const nextHud = makeHud(game);
+    setHud(nextHud);
+    setMapNotice(nextHud.route.length ? `ROUTE SET · ${place}` : `PIN SET · ${place} · GPS ROUTING OFF`);
+    setAudioAnnouncement(!nextHud.route.length
+      ? `Custom pin set for ${place}. Its yellow circle and beacon are visible; GPS routing is off.`
+      : game.fareDispatchEnabled
       ? `Custom GPS route set for ${place}. Your current job remains active.`
       : `Custom GPS route set for ${place}. Passenger dispatch remains off.`);
     tone(660, 0.13, "square", 940);
@@ -400,13 +388,14 @@ export default function Home() {
     const streamed = game.fareDispatchEnabled && refreshFareDispatch(game);
     if (streamed) warmPassengerArt(game.fareJobs);
     checkpointExternalGameChange("custom-destination:clear");
-    setHud(makeHud(game));
-    setMapNotice(game.fareDispatchEnabled
-      ? "CUSTOM ROUTE CLEARED · JOB ROUTE RESTORED"
-      : "CUSTOM ROUTE CLEARED · OFF DUTY");
-    setAudioAnnouncement(game.fareDispatchEnabled
-      ? "Custom GPS route cleared. Job route restored."
-      : "Custom GPS route cleared. Remaining off duty.");
+    const nextHud = makeHud(game);
+    setHud(nextHud);
+    setMapNotice(nextHud.route.length ? "CUSTOM ROUTE CLEARED · JOB ROUTE RESTORED"
+      : game.fareDispatchEnabled ? "CUSTOM PIN CLEARED · JOB MARKERS REMAIN · GPS ROUTING OFF"
+        : "CUSTOM ROUTE CLEARED · OFF DUTY");
+    setAudioAnnouncement(nextHud.route.length ? "Custom GPS route cleared. Job route restored."
+      : game.fareDispatchEnabled ? "Custom pin cleared. Job markers remain visible; GPS routing is off."
+        : "Custom GPS route cleared. Remaining off duty.");
     tone(310, 0.1, "square", 180);
   }, [checkpointExternalGameChange, tone]);
 
@@ -443,13 +432,18 @@ export default function Home() {
     if (!setFareDispatchEnabled(game, enabled)) return;
     if (game.fareJobs !== fareJobsBefore) warmPassengerArt(game.fareJobs);
     checkpointExternalGameChange(`fare-dispatch:${enabled ? "on" : "off"}`);
-    setHud(makeHud(game));
+    const nextHud = makeHud(game);
+    setHud(nextHud);
     if (enabled) {
       const customRouteActive = Boolean(game.customDestination);
-      setMapNotice(customRouteActive
+      setMapNotice(!nextHud.route.length
+        ? "ON DUTY · DESTINATION MARKERS VISIBLE · GPS ROUTING OFF"
+        : customRouteActive
         ? "ON DUTY · CUSTOM ROUTE STAYS ACTIVE"
         : "ON DUTY · NEAREST FARE GUIDANCE RESTORED");
-      setAudioAnnouncement(customRouteActive
+      setAudioAnnouncement(!nextHud.route.length
+        ? "Fare dispatch on. Destination markers are visible; GPS routing is off."
+        : customRouteActive
         ? "Fare dispatch on. Your custom GPS route remains active; fare guidance will resume when it is cleared."
         : "Fare dispatch on. Nearest fare guidance restored.");
       tone(520, 0.09, "square", 760);

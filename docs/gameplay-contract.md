@@ -445,8 +445,12 @@ updates the arcade launch, steering, road elevation and contact rules below.
   the actual pavement. Canonical route geometry, GPS and fare distances remain
   on the road graph; a taxi already in its lane must not double the offset.
 - Tapping a street or moving the GPS pin with Shift+Arrow sets the custom route
-  immediately. The map shows the active route without a confirmation step;
+  immediately when custom routing is enabled. The map shows the active route without a confirmation step;
   Enter or Back returns from the map. Panning does not place a destination.
+- Custom destinations have a yellow ground circle and a translucent yellow
+  beacon using the same distant visibility as a passenger dropoff. The marker
+  remains when custom GPS routing is off, and clears with the pin on arrival or
+  cancellation. Exterior markers stay hidden inside venues.
 - All routes use one directed 3D road graph with physical crossing splits,
   virtual origin/destination projections, corridor weights and a small turn
   cost. Arrival direction is part of the search state, so sample vertices cannot
@@ -824,11 +828,21 @@ the same reviewed change, with the intended gameplay difference documented.
   their own destination). Red Destination shows that arrow only for the active
   passenger dropoff, plus thin vertical red route dots when off route, with the
   reroute setting raised to 1,000 to leave room to find the retained route.
+- GPS routing can be enabled independently for fare pickups, passenger
+  dropoffs, custom yellow destinations and courier jobs. All default on.
+  Disabling a category removes its route from both maps, ground guides,
+  turn arrows, U-turn warnings and turn instructions without changing fares,
+  mission priority, destination markers, arrivals or rewards. A disabled custom
+  pin remains selected; it does not fall back to a passenger route. Reenabling
+  a category plans from the current position immediately, even in Hold Route.
+  Changing an inactive category leaves the current retained route alone.
 - Arrow visibility, route/center targeting, smooth/instant rotation, intersection
   arrows and ground guidance can be changed independently. Always-on requires
   an objective; on-foot/off-duty roaming has no cab arrow. Red-only ignores
   pickup, custom waypoint and courier targets, including when a passenger is
   onboard but another objective has navigation priority.
+  When the active category's route is off, an enabled cab arrow uses the
+  destination center instead of the route. Its visibility rule remains independent.
 - Vertical guidance extrudes the existing red lane dots straight upward with
   the same 2.8 × 0.48 footprint. It follows the retained road path, not a diagonal
   from the deviated taxi. Columns can replace dots or accompany them, activate

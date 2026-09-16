@@ -47,6 +47,7 @@ import { districtName } from "./world";
 import { recoveryCost } from "./recovery";
 import { cruiseSpeedLimit } from "./cruise-control";
 import { navigationSettingsForGame } from "./development-settings";
+import { navigationRoutingEnabled } from "./navigation-policy";
 
 export const EMPTY_HUD: Hud = {
   venueBrand: null,
@@ -160,16 +161,16 @@ export function makeHud(game: Game, navigation?: NavigationPlan, world?: WorldVi
   const target = getObjective(game);
   const navigationTarget = getNavigationTarget(game);
   const player = { x: game.x, y: game.y, ...(game.z ? { z: game.z } : {}) };
-  const plan = navigation ?? buildNavigationPlan(player, navigationTarget, game.heading, navigationSettingsForGame(game));
-  const navigationSuppressed = !game.fareDispatchEnabled
-    && !game.onboard
-    && !game.activeCourier
-    && !game.customDestination;
+  const settings = navigation?.settings ?? navigationSettingsForGame(game);
+  const navigationSuppressed = !navigationRoutingEnabled(getNavigationType(game), settings) || navigation?.routingEnabled === false;
+  const plan: NavigationPlan = navigation ?? (navigationSuppressed
+    ? { route: [], turnCue: null, requiresUTurn: false, travelHeading: game.heading, departureYaw: game.heading }
+    : buildNavigationPlan(player, navigationTarget, game.heading, settings));
   const route = navigationSuppressed ? [] : plan.route;
   const turnCue = navigationSuppressed ? null : plan.turnCue;
   const routeTurnCue = plan.requiresUTurn ? null : nextTurnCue(route, plan.departureYaw);
   const guidance = navigationSuppressed
-    ? { text: "ROAM FREELY", distance: 0 }
+    ? { text: getNavigationType(game) === "roam" ? "ROAM FREELY" : "GPS ROUTING OFF", distance: 0 }
     : gpsInstruction(route, plan.travelHeading, turnCue, plan.requiresUTurn);
   const nextPoint = route.find((point, index) => index > 0 && distance(player, point) > 4) || navigationTarget;
   const controlled = controlledPose(game);

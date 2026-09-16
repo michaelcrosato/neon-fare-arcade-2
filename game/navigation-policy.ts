@@ -1,6 +1,11 @@
 import { NAVIGATION_REPLAN_COOLDOWN, NAVIGATION_REROUTE_DISTANCE_METERS, UTURN_MIN_SAVINGS_METERS } from "./config";
+import type { Hud } from "./model";
 
 export type NavigationSettings = {
+  routePickups: boolean;
+  routeDropoffs: boolean;
+  routeCustomDestinations: boolean;
+  routeCourierJobs: boolean;
   rerouteDistanceMeters: number;
   uTurnSavingsMeters: number;
   arrowVisibility: "contextual" | "always" | "destination" | "off";
@@ -18,6 +23,10 @@ export type NavigationSettings = {
 };
 
 export const DEFAULT_NAVIGATION_SETTINGS: Readonly<NavigationSettings> = {
+  routePickups: true,
+  routeDropoffs: true,
+  routeCustomDestinations: true,
+  routeCourierJobs: true,
   rerouteDistanceMeters: NAVIGATION_REROUTE_DISTANCE_METERS,
   uTurnSavingsMeters: UTURN_MIN_SAVINGS_METERS,
   arrowVisibility: "contextual",
@@ -46,6 +55,10 @@ export function normalizeNavigationSettings(value?: unknown): NavigationSettings
   const choice = <K extends keyof NavigationSettings>(key: K, choices: readonly NavigationSettings[K][]): NavigationSettings[K] =>
     choices.includes(source[key] as NavigationSettings[K]) ? source[key] as NavigationSettings[K] : defaults[key];
   return {
+    routePickups: choice("routePickups", [true, false]),
+    routeDropoffs: choice("routeDropoffs", [true, false]),
+    routeCustomDestinations: choice("routeCustomDestinations", [true, false]),
+    routeCourierJobs: choice("routeCourierJobs", [true, false]),
     rerouteDistanceMeters: number("rerouteDistanceMeters", 0, 10000),
     uTurnSavingsMeters: number("uTurnSavingsMeters", 0, 10000),
     arrowVisibility: choice("arrowVisibility", ["contextual", "always", "destination", "off"]),
@@ -61,6 +74,18 @@ export function normalizeNavigationSettings(value?: unknown): NavigationSettings
     showRoadTurns: choice("showRoadTurns", [true, false]),
     showDiagnostics: choice("showDiagnostics", [true, false]),
   };
+}
+
+/** Filters guidance for the active objective without changing mission priority or eligibility. */
+export function navigationRoutingEnabled(type: Hud["objectiveType"], settings: Readonly<NavigationSettings>) {
+  switch (type) {
+    case "pickup": return settings.routePickups;
+    case "drop": return settings.routeDropoffs;
+    case "waypoint": return settings.routeCustomDestinations;
+    case "courier-pickup":
+    case "courier-drop": return settings.routeCourierJobs;
+    case "roam": return false;
+  }
 }
 
 export const NAVIGATION_PRESETS = [

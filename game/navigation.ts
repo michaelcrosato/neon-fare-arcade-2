@@ -33,8 +33,8 @@ import {
   roadHalfWidthAtPoint,
   routeRoadNetwork,
 } from "./road-network";
-import { activeObjectiveRing, getNavigationKey, getNavigationTarget } from "./state";
-import { DEFAULT_NAVIGATION_SETTINGS, normalizeNavigationSettings, type NavigationSettings } from "./navigation-policy";
+import { activeObjectiveRing, getNavigationKey, getNavigationTarget, getNavigationType } from "./state";
+import { DEFAULT_NAVIGATION_SETTINGS, navigationRoutingEnabled, normalizeNavigationSettings, type NavigationSettings } from "./navigation-policy";
 import { navigationSettingsForGame } from "./development-settings";
 import { isDriving } from "./player";
 
@@ -217,13 +217,14 @@ export class NavigationController {
   private developmentRevision = 0;
   private departurePromptUntil = 0;
   private departureArrowYaw: number | undefined = undefined;
+  private routingEnabled: boolean | undefined;
 
   private adoptPlan(plan: NavigationPlan, player: WorldPoint, elapsed: number,
     reason: NonNullable<NavigationPlan["diagnostics"]>["reason"], target: WorldPoint) {
     this.waypoints = plan.route.slice(1);
     // Compaction merges an arrival's coincident points. Retain the destination
     // as a waypoint so nearby movement keeps the same endpoint and plan.
-    if (!this.waypoints.length && distance(player, target) <= NAVIGATION_ARRIVAL_RADIUS) this.waypoints = [{ ...target }];
+    if (plan.routingEnabled !== false && !this.waypoints.length && distance(player, target) <= NAVIGATION_ARRIVAL_RADIUS) this.waypoints = [{ ...target }];
     this.activeStart = player;
     this.activeYaw = plan.departureYaw;
     this.wrongWay = plan.requiresUTurn;
@@ -281,6 +282,9 @@ export class NavigationController {
 
   update(game: Game, settings: Readonly<Partial<NavigationSettings>> = navigationSettingsForGame(game)): NavigationPlan {
     const policy = normalizeNavigationSettings(settings);
+    const routingEnabled = navigationRoutingEnabled(getNavigationType(game), policy);
+    const routingChanged = routingEnabled !== this.routingEnabled;
+    this.routingEnabled = routingEnabled;
     const policyKey = `${policy.rerouteDistanceMeters}:${policy.uTurnSavingsMeters}`;
     if (this.policyKey && policyKey !== this.policyKey) {
       this.wrongWay = false;
@@ -310,21 +314,24 @@ export class NavigationController {
       this.usingVelocityHeading = true;
     }
     const travelHeading = gameTravelHeading(game, this.usingVelocityHeading);
-    if (objectiveKey !== this.objectiveKey || targetChanged || isNewRun || recovered || developmentChanged || this.revision === 0) {
-      if (objectiveKey !== this.objectiveKey || targetChanged || isNewRun || recovered || developmentChanged) {
+    if (objectiveKey !== this.objectiveKey || targetChanged || isNewRun || recovered || developmentChanged || routingChanged || this.revision === 0) {
+      if (objectiveKey !== this.objectiveKey || targetChanged || isNewRun || recovered || developmentChanged || routingChanged) {
         this.turnCueKey = "";
         this.turnCueVisible = false;
       }
-      const reason = isNewRun ? "new-run" : recovered ? "recovery" : developmentChanged ? "development" : this.revision === 0 ? "start" : "destination";
+      const reason = isNewRun ? "new-run" : recovered ? "recovery" : developmentChanged ? "development"
+        : this.revision === 0 ? "start" : objectiveKey !== this.objectiveKey || targetChanged ? "destination" : "routing";
       this.objectiveKey = objectiveKey;
-      this.adoptPlan(buildNavigationPlan(player, target, travelHeading, policy), player, game.elapsed, reason, target);
+      const plan = routingEnabled ? buildNavigationPlan(player, target, travelHeading, policy)
+        : { route: [], routingEnabled: false, departureYaw: travelHeading, travelHeading, requiresUTurn: false, turnCue: null };
+      this.adoptPlan(plan, player, game.elapsed, reason, target);
     }
 
     const canReplan = game.elapsed - this.lastReplanAt >= policy.rerouteCooldownSeconds;
-    const plannedRoute = [this.activeStart, ...this.waypoints];
+    const plannedRoute = routingEnabled ? [this.activeStart, ...this.waypoints] : [];
     const nearest = closestPointOnRoute(player, plannedRoute);
     const deviationMeters = (nearest?.distance ?? 0) * NAVIGATION_METERS_PER_WORLD_UNIT;
-    if (policy.rerouteMode === "distance" && canReplan && deviationMeters > policy.rerouteDistanceMeters + 1e-7) {
+    if (routingEnabled && policy.rerouteMode === "distance" && canReplan && deviationMeters > policy.rerouteDistanceMeters + 1e-7) {
       this.adoptPlan(buildNavigationPlan(player, target, travelHeading, policy), player, game.elapsed, "deviation", target);
     }
     while (this.waypoints.length > 1) {
@@ -378,7 +385,7 @@ export class NavigationController {
       }
     }
 
-    const route = compactRoute([player, ...this.waypoints]);
+    const route = routingEnabled ? compactRoute([player, ...this.waypoints]) : [];
     const departureYaw = this.activeYaw;
     const nearDestination = routeLength(route) <= NAVIGATION_ARRIVAL_RADIUS + 0.2;
     const elapsedDelta = clamp(game.elapsed - this.lastElapsed, 0, 0.1);
@@ -401,8 +408,8 @@ export class NavigationController {
     const ring = activeObjectiveRing(game);
     const ringDist = ring ? distance(player, ring) : Number.POSITIVE_INFINITY;
     const arrivalPromptActive = ring !== null && ringDist * DISPLAY_METERS_PER_WORLD_UNIT <= OBJECTIVE_ARRIVAL_PROMPT_DISTANCE_METERS;
-    const departurePromptActive = game.elapsed < this.departurePromptUntil && route.length >= 2;
     const hasDestination = objectiveKey !== "off-duty";
+    const departurePromptActive = game.elapsed < this.departurePromptUntil && (routingEnabled ? route.length >= 2 : hasDestination);
     const redDestination = game.onboard && !game.customDestination && !game.activeCourier;
     const arrowActive = isDriving(game) && hasDestination && (policy.arrowVisibility === "always"
       || (policy.arrowVisibility === "destination" && redDestination)
@@ -410,7 +417,7 @@ export class NavigationController {
 
     if (arrowActive) {
       let targetYaw: number;
-      if (policy.arrowTarget === "destination" || (arrivalPromptActive && ring)) {
+      if (!routingEnabled || policy.arrowTarget === "destination" || (arrivalPromptActive && ring)) {
         const center = ring ?? target;
         targetYaw = distance(player, center) >= 0.2
           ? Math.atan2(center.y - player.y, center.x - player.x)
@@ -433,9 +440,9 @@ export class NavigationController {
 
     this.lastElapsed = game.elapsed;
     const turnCue = this.resolveTurnCue(player, travelHeading);
-    const roadRoute = [this.activeStart, ...this.waypoints];
+    const roadRoute = routingEnabled ? [this.activeStart, ...this.waypoints] : [];
     const guideDistance = closestPointOnRoute(player, roadRoute)?.distance ?? 0;
-    return { route, roadRoute, settings: policy,
+    return { route, roadRoute, routingEnabled, settings: policy,
       offRoute: hasDestination && guideDistance * DISPLAY_METERS_PER_WORLD_UNIT > policy.offRouteDistanceMeters + 1e-7,
       vehicleArrowVisible: arrowActive,
       vehicleArrowFade: policy.arrowVisibility !== "contextual" || arrivalPromptActive ? 1
@@ -445,7 +452,7 @@ export class NavigationController {
       departureArrowYaw: this.departureArrowYaw,
       arrivalPromptActive,
       arrivalSpot: arrivalPromptActive ? ring : null,
-      diagnostics: { revision: this.revision, deviationMeters, reason: this.reason, ...policy } };
+      diagnostics: { revision: this.revision, deviationMeters, reason: this.reason, routingEnabled, ...policy } };
   }
 }
 
@@ -489,6 +496,7 @@ export function nextTurnCue(route: WorldPoint[], firstIncomingYaw?: number): Tur
 }
 
 export function gpsInstruction(route: WorldPoint[], heading: number, turnCue?: TurnCue | null, requiresUTurn = false) {
+  if (!route.length) return { text: "GPS ROUTING OFF", distance: 0 };
   const cueIsControllerResolved = turnCue !== undefined;
   const resolvedTurnCue = turnCue === undefined ? nextTurnCue(route) : turnCue;
   let nextIndex = 1;

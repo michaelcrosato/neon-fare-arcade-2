@@ -136,11 +136,13 @@ export function GameStageHud({
             onClick={onOpenMap}
             aria-label={hud.objectiveType === "roam"
               ? "Open full regional GPS map. Off duty. Passenger fare guidance is off."
-              : hud.needsUTurn
+              : !hud.route.length
+                ? `Open full regional GPS map. ${hud.gpsInstruction}. Destination markers are visible.`
+                : hud.needsUTurn
                 ? "Open full regional GPS map. Wrong way. Make a U-turn when safe."
                 : `Open full regional GPS map. ${hud.gpsInstruction} in ${Math.round(hud.gpsTurnDistance * DISPLAY_METERS_PER_WORLD_UNIT)} meters.`}
           >
-            <span className="gps-header"><b>{hud.customDestination ? "CUSTOM ROUTE" : hud.objectiveType === "roam" ? "FREE ROAM" : hud.courierActive ? "COURIER GPS" : "FARE-FINDER"}</b><em>GPS // G</em></span>
+            <span className="gps-header"><b>{hud.customDestination ? hud.route.length ? "CUSTOM ROUTE" : "CUSTOM PIN" : hud.objectiveType === "roam" ? "FREE ROAM" : hud.courierActive ? "COURIER GPS" : "FARE-FINDER"}</b><em>{hud.route.length ? "GPS // G" : "GPS OFF // G"}</em></span>
             <GpsMap hud={hud} />
           </button>}
 

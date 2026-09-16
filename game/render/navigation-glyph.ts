@@ -20,9 +20,17 @@ import { routeLength } from "../route-geometry";
 import { navLineTargetAngle } from "../navigation";
 import { NAVIGATION_INSTANCE_CAPACITY } from "./packing";
 import { navigationSettingsForGame } from "../development-settings";
+import { navigationRoutingEnabled } from "../navigation-policy";
+import { getNavigationType } from "../state";
+
+function roadGuidanceEnabled(game: Game, navigation: NavigationPlan) {
+  const settings = navigation.settings ?? navigationSettingsForGame(game);
+  return navigation.routingEnabled !== false && settings.showRoadTurns
+    && navigationRoutingEnabled(getNavigationType(game), settings);
+}
 
 export function navigationDistanceBadge(game: Game, seconds: number, navigation: NavigationPlan) {
-  if (!isDriving(game) || !(navigation.settings ?? navigationSettingsForGame(game)).showRoadTurns
+  if (!isDriving(game) || !roadGuidanceEnabled(game, navigation)
     || navigation.arrivalPromptActive || navigation.requiresUTurn || !navigation.turnCue) return null;
   const meters = (distance: number) => {
     const value = Math.max(0, Math.round(distance * DISPLAY_METERS_PER_WORLD_UNIT));
@@ -175,7 +183,7 @@ export function vehicleDirectionArrowGeometry(
 
 export function navigationArrowBoxes(game: Game, seconds: number, navigation: NavigationPlan, cameraMode: CameraMode) {
   if (!isDriving(game)) return [];
-  const roadArrows = !(navigation.settings ?? navigationSettingsForGame(game)).showRoadTurns
+  const roadArrows = !roadGuidanceEnabled(game, navigation)
     || navigation.arrivalPromptActive || navigation.requiresUTurn
     ? []
     : turnArrowBoxes(seconds, navigation, cameraMode);

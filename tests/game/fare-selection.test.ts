@@ -446,6 +446,7 @@ test("all fares, traffic, particles, a full route, and the densest crowd stay in
   }));
   route.unshift({ x: game.x, y: game.y });
   game.boosting = true;
+  game.customDestination = { x: 720, y: 0, z: 20 };
   const actors = dynamicBoxes(game, 0, route);
   assert.ok(actors.length <= 1100, `actor fixture grew to ${actors.length}`);
   assert.ok(actors.length <= ACTOR_INSTANCE_CAPACITY);

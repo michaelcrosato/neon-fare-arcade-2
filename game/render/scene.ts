@@ -39,12 +39,13 @@ import {
 import { clamp, distance, localPoint } from "../math";
 import type { Box, Color, Game, Job, NavigationPlan, Vec2, WorldPoint } from "../model";
 import { navigationSettingsForGame } from "../development-settings";
+import { navigationRoutingEnabled } from "../navigation-policy";
 import { routeCorridorBoxes, ROUTE_GUIDE_BUDGET } from "./route-corridor";
 import { buildGpsRoute, routeLength } from "../route-geometry";
 import { waitingFares } from "../fare-selection";
 import { landmarkTileForBlock } from "../landmarks";
 import { campusTileForBlock } from "../campuses";
-import { activeObjectiveRing, getNavigationTarget, getObjective } from "../state";
+import { activeObjectiveRing, getNavigationTarget, getNavigationType, getObjective } from "../state";
 import { specialRoadIntersectsSquare } from "../road-network";
 import { controlledPose, isDriving, isInterior, walkingMotion } from "../player";
 import { northstarPedestrianCountForBlock } from "../mountain";
@@ -228,12 +229,14 @@ function addCrownTaxiBoxes(boxes: Box[], game: Game) {
 
 export function routeBoxes(
   game: Game,
-  route: readonly WorldPoint[] = buildGpsRoute(game, getNavigationTarget(game)),
+  route?: readonly WorldPoint[],
   navigation?: NavigationPlan,
 ) {
   if (!isDriving(game)) return [];
   const settings = navigation?.settings ?? navigationSettingsForGame(game);
-  if (settings.routeStyle === "off") return [];
+  if (settings.routeStyle === "off" || navigation?.routingEnabled === false
+    || !navigationRoutingEnabled(getNavigationType(game), settings)) return [];
+  route ??= buildGpsRoute(game, getNavigationTarget(game));
   const showColumns = game.onboard && !game.customDestination && !game.activeCourier
     && (settings.routeStyle === "corridor" || settings.routeStyle === "both")
     && (settings.corridorVisibility === "always" || navigation?.offRoute === true);
@@ -822,10 +825,18 @@ export function courierPresentationBoxes(game: Game, seconds: number) {
   return boxes;
 }
 
+/** The yellow pin remains visible independently of its optional GPS route. */
+export function customDestinationPresentationBoxes(game: Game, seconds: number) {
+  if (!game.customDestination || isInterior(game)) return [];
+  const boxes: Box[] = [];
+  addObjectiveRing(boxes, game.customDestination, seconds, YELLOW, -1.2, 14, controlledPose(game));
+  return boxes;
+}
+
 export function dynamicBoxes(
   game: Game,
   seconds: number,
-  route: readonly WorldPoint[] = buildGpsRoute(game, getNavigationTarget(game)),
+  route?: readonly WorldPoint[],
   world?: WorldView,
   options: { showPlayerAvatar?: boolean; navigation?: NavigationPlan } = {},
 ) {
@@ -865,6 +876,7 @@ export function dynamicBoxes(
 
   boxes.push(...farePresentationBoxes(game, seconds));
   boxes.push(...courierPresentationBoxes(game, seconds));
+  boxes.push(...customDestinationPresentationBoxes(game, seconds));
   if (showPlayerAvatar) boxes.push(...playerAvatarBoxes(game, seconds));
   if (world) boxes.push(...interactionMarkerBoxes(game, world, seconds));
 

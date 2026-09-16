@@ -205,6 +205,12 @@ Do not trade away safe placement or change fare rewards to improve this number.
 - Run `navigation-lab.test.ts`, `navigation.test.ts`, `render-contract.test.ts`
   and `road-guidance.test.ts`, followed by `tests/browser/navigation-lab.spec.ts`
   for persistence, desktop/phone controls and both renderers.
+- Toggle pickup, dropoff, custom and courier routing independently; markers
+  must remain while both map routes, road guides and turn instructions disappear.
+  Test reenabling while Hold Route is selected and clearing a custom pin with
+  passenger routing disabled. Run `navigation-routing.test.ts` and
+  `destination-beacon.test.ts`; the browser destination-beacon fixture checks
+  yellow and red markers in all cameras across WebGPU, WebGL and software.
 
 ## Change roadside recovery
 
