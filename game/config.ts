@@ -196,10 +196,10 @@ export const NAV_VELOCITY_HEADING_EXIT_SPEED = 2;
 export const UTURN_ENTER_ANGLE = Math.PI * 0.75;
 export const UTURN_EXIT_ANGLE = Math.PI * 0.19;
 export const UTURN_MIN_SAVINGS_METERS = 1000;
-export const NAVIGATION_REROUTE_DISTANCE_METERS = 100;
+export const NAVIGATION_REROUTE_DISTANCE_METERS = 200;
 export const UTURN_ALIGNMENT_HOLD = 0.22;
 export const NAVIGATION_ARRIVAL_RADIUS = 6;
-export const NAVIGATION_REPLAN_COOLDOWN = 0.35;
+export const NAVIGATION_REPLAN_COOLDOWN = 1;
 export const FARE_HANDOFF_SECONDS = 1;
 export const MAX_CHUNK_BOXES = 760;
 export const MAX_CHUNK_COLLIDERS = 256;
@@ -268,17 +268,18 @@ export const DESTINATION_ART_CELL_COUNT = 102;
 
 /** A challenger must save half a block before the live GPS changes fares. */
 export const FARE_TARGET_SWITCH_MARGIN = ROAD_SPACING / 2;
-/** Canonical conversion used by fare quotes and every GPS distance readout (1 world unit = 1 meter). */
-export const DISPLAY_METERS_PER_WORLD_UNIT = 1;
+/** One physical scale for GPS, distance readouts, fuel and vehicle physics.
+ * Velocity is world units/second; km/h divided by 3.6 gives meters/second. */
+export const DISPLAY_METERS_PER_WORLD_UNIT = SPEED_KMH_PER_WORLD_UNIT / 3.6;
 /** Within this distance (in meters) of a pickup or dropoff ring, the vehicle directional arrow activates pointing to the ring center. */
 export const OBJECTIVE_ARRIVAL_PROMPT_DISTANCE_METERS = 100;
-/** Scale factor used by navigation settings (U-turn savings and reroute thresholds). */
-export const NAVIGATION_METERS_PER_WORLD_UNIT = 18;
 /** A stale passenger target may never hold GPS beyond five displayed kilometres. */
-export const FARE_GPS_RETARGET_DISTANCE = 5000 / NAVIGATION_METERS_PER_WORLD_UNIT;
+export const FARE_GPS_RETARGET_DISTANCE = 5000 / DISPLAY_METERS_PER_WORLD_UNIT;
 /** Rolling fare maintenance is intentionally much slower than the simulation tick. */
 export const FARE_STREAM_CHECK_INTERVAL = 0.5;
 export const FARE_STREAM_MIN_TRAVEL = ROAD_SPACING;
+/** Existing rolling-fare catchment in world units; independent of GPS display units. */
+export const FARE_STREAM_RETIRE_DISTANCE = 2500 / 9;
 /** Keep several actionable passengers around the taxi as it crosses the world. */
 export const FARE_STREAM_NEARBY_TARGET = 3;
 /** No pickup may sit directly on top of any fare's drop-off. */

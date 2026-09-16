@@ -16,6 +16,7 @@ import { renderTargetSize } from "../../game/render/resolution";
 import { groundShadowOffset, litSurfaceColor } from "../../game/render/lighting";
 import { makeWalkingActor } from "../../game/player";
 import { NavigationController } from "../../game/navigation";
+import { applyDevelopmentSettings } from "../../game/development-settings";
 import { makeGame, activePassengerJob } from "../../game/state";
 import {
   GHOST_INSTANCE_CAPACITY,
@@ -184,6 +185,7 @@ test("Cab View follows the walker after leaving a rolled simulation taxi", () =>
 
 test("one navigation glyph model fits every camera and budget", () => {
   const game = makeGame();
+  applyDevelopmentSettings(game, { navigation: { routePickups: true } });
   const turnPlan: NavigationPlan = {
     route: [
       { x: 0, y: 2 },

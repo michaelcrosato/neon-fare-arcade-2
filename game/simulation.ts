@@ -9,6 +9,7 @@ import {
   BOOST_OVERDRIVE_TOP_SPEED_WORLD_UNITS,
   CHUNK_SIZE,
   CYAN,
+  DISPLAY_METERS_PER_WORLD_UNIT,
   FARE_DROPOFF_RADIUS,
   FARE_HANDOFF_SECONDS,
   FARE_PICKUP_RADIUS,
@@ -874,7 +875,7 @@ export function stepGame(
 
   for (const hit of recordVehicleContacts(game, driving ? [...damageContacts] : [])) events.push({ type: "vehicle-damaged", ...hit });
   stepRepairLot(game, world, dt);
-  const fuelWarning = stepFuel(game, dt, Math.hypot(game.x - fuelStartX, game.y - fuelStartY));
+  const fuelWarning = stepFuel(game, dt, Math.hypot(game.x - fuelStartX, game.y - fuelStartY) * DISPLAY_METERS_PER_WORLD_UNIT);
   if (fuelWarning) events.push({ type: "fuel-warning", level: fuelWarning });
   if (game.drivingModel === "arcade") stepArcadeChassis(game, previousVx, previousVy, dt);
   for (const particle of game.particles) {

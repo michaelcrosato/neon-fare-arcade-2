@@ -17,12 +17,20 @@ import {
 } from "../../game/navigation";
 import { normalizeAngle } from "../../game/math";
 import type { WorldPoint } from "../../game/model";
-import { makeGame, activePassengerJob } from "../../game/state";
+import { makeGame as createGame, activePassengerJob } from "../../game/state";
+import { applyDevelopmentSettings } from "../../game/development-settings";
 import { SPECIAL_ROADS } from "../../game/road-layout";
 import { routeCrossesRoundaboutIsland } from "../../game/road-network";
 import { makeTestJob } from "./support/fixtures";
-import { NAVIGATION_METERS_PER_WORLD_UNIT } from "../../game/config";
-import { DEFAULT_NAVIGATION_SETTINGS, normalizeNavigationSettings } from "../../game/navigation-policy";
+import { DISPLAY_METERS_PER_WORLD_UNIT } from "../../game/config";
+import { CLASSIC_NAVIGATION_SETTINGS, DEFAULT_NAVIGATION_SETTINGS, normalizeNavigationSettings } from "../../game/navigation-policy";
+
+// These characterize the selectable contextual/automatic navigation policy.
+function makeGame(...args: Parameters<typeof createGame>) {
+  const game = createGame(...args);
+  applyDevelopmentSettings(game, { navigation: CLASSIC_NAVIGATION_SETTINGS });
+  return game;
+}
 
 test("route deviation measures the closest physical deck, including elevation", () => {
   const player = { x: 10, y: 0, z: 0 };
@@ -85,10 +93,10 @@ test("the first fare route keeps its physical distance through the shared graph"
 });
 
 test("U-turn policy requires 1000 displayed meters of real distance savings", () => {
-  const km = 1000 / NAVIGATION_METERS_PER_WORLD_UNIT;
+  const km = 1000 / DISPLAY_METERS_PER_WORLD_UNIT;
   assert.equal(preferReverseRoute(km - .001, 0), false);
   assert.equal(preferReverseRoute(km, 0), true);
-  assert.equal(preferReverseRoute(1000, 940), true, "a long journey does not need a 1.4 route ratio");
+  assert.equal(preferReverseRoute(10 * km, 8.9 * km), true, "a long journey does not need a 1.4 route ratio");
   assert.equal(preferReverseRoute(65, 30), false);
   assert.equal(preferReverseRoute(Infinity, 120), false, "unknown forward travel cannot prove the required savings");
   assert.equal(preferReverseRoute(120, Infinity), false);
@@ -96,9 +104,9 @@ test("U-turn policy requires 1000 displayed meters of real distance savings", ()
 
 test("U-turn planning compares physical route lengths and respects custom savings", () => {
   const start = { x: 0, y: -25, z: 0 }, target = { x: 0, y: 14, z: 0 };
-  assert.equal(buildNavigationPlan(start, target, -Math.PI / 2).requiresUTurn, false, "878m saved is below the default");
+  assert.equal(buildNavigationPlan(start, target, -Math.PI / 2).requiresUTurn, false, "about 42m saved is below the default");
   assert.equal(buildNavigationPlan(start, target, -Math.PI / 2,
-    { rerouteDistanceMeters: 1000, uTurnSavingsMeters: 500 }).requiresUTurn, true);
+    { rerouteDistanceMeters: 1000, uTurnSavingsMeters: 30 }).requiresUTurn, true);
 });
 
 test("turn cues and GPS copy agree on direction", () => {
@@ -273,12 +281,12 @@ test("rerouting waits until more than 100 meters from the closest route point", 
     x: 0, y: -20, z: 0, heading: Math.PI / 2, elapsed: 0 });
   const initial = controller.update(game);
   for (const meters of [10, 50, 99, 100]) {
-    Object.assign(game, { x: meters / NAVIGATION_METERS_PER_WORLD_UNIT, y: -10, elapsed: game.elapsed + 1 });
+    Object.assign(game, { x: meters / DISPLAY_METERS_PER_WORLD_UNIT, y: -10, elapsed: game.elapsed + 1 });
     const plan = controller.update(game);
     assert.equal(plan.diagnostics?.revision, initial.diagnostics?.revision);
     assert.deepEqual(plan.route.slice(1), initial.route.slice(1), `${meters}m keeps the road path`);
   }
-  game.x = 101 / NAVIGATION_METERS_PER_WORLD_UNIT;
+  game.x = 101 / DISPLAY_METERS_PER_WORLD_UNIT;
   game.elapsed += 1;
   const rerouted = controller.update(game);
   assert.equal(rerouted.diagnostics?.revision, 2);
@@ -317,9 +325,9 @@ test("the reroute threshold can be changed for playtesting", () => {
   const game = makeGame();
   Object.assign(game, { fareJobs: [...NAV_JOBS], jobIndex: 0, onboard: true,
     x: 0, y: -20, z: 0, heading: Math.PI / 2, elapsed: 0 });
-  const settings = { rerouteDistanceMeters: 200, uTurnSavingsMeters: 1000 };
+  const settings = { ...CLASSIC_NAVIGATION_SETTINGS, rerouteDistanceMeters: 200, uTurnSavingsMeters: 1000 };
   controller.update(game, settings);
-  Object.assign(game, { x: 201 / NAVIGATION_METERS_PER_WORLD_UNIT, y: -10, elapsed: 1 });
+  Object.assign(game, { x: 201 / DISPLAY_METERS_PER_WORLD_UNIT, y: -10, elapsed: 1 });
   assert.equal(controller.update(game, settings).diagnostics?.revision, 2);
 });
 
@@ -357,6 +365,7 @@ test("a streamed curb refreshes the destination even when the rider key is uncha
 test("navigation controller holds U-turn guidance until alignment is stable", () => {
   const controller = new NavigationController();
   const game = makeGame();
+  applyDevelopmentSettings(game, { navigation: { ...CLASSIC_NAVIGATION_SETTINGS, uTurnSavingsMeters: 30 } });
   game.fareJobs = [...NAV_JOBS];
   game.jobIndex = 0;
   game.x = 0;

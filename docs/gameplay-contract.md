@@ -424,15 +424,25 @@ updates the arcade launch, steering, road elevation and contact rules below.
   meters of actual road-distance savings compared with continuing forward.
   Weighted graph costs and route ratios are not passenger-distance savings.
   An unknown/unreachable forward route cannot prove the required savings.
-- The controller keeps the selected route until the player is more than 100
-  displayed meters from the closest point on any remaining segment, measured
-  in three dimensions. Passing a turn, leaving one lane, or reversing heading
-  cannot bypass that gate. Normal waypoint progress and a valid later rejoin
+- The default holds the selected route so players can find their way back.
+  When automatic rerouting is enabled, its distance gate defaults to 200 meters
+  from the closest point on any remaining segment, measured in three dimensions,
+  with a one-second cooldown. Passing a turn, leaving one lane, or reversing
+  heading cannot bypass that gate. Normal waypoint progress and a valid later rejoin
   trim the existing route without recomputing it. A changed destination, new
   run, explicit Dev Mode relocation, or actual roadside recovery starts a new route immediately; the end of
   the tow animation does not. Navigation Lab may adjust both distance thresholds,
   the minimum reroute interval, or hold the retained route until a destination
-  change or recovery. Defaults retain the 100 m gate and 0.35 s cooldown.
+  change or recovery. Classic System retains the 100 m gate and 0.35 s cooldown.
+- Every distance labeled in meters uses `DISPLAY_METERS_PER_WORLD_UNIT`, derived
+  from the existing speed conversion: 3.1 / 3.6 meters per world unit. At 60 km/h,
+  six seconds of straight travel covers 100 m. GPS totals, turn badges, off-route
+  diagnostics, reroute/U-turn thresholds, the five-kilometer stale-fare limit,
+  arrival prompts, fare/courier quotes, altitude and column heights share this
+  scale. Fuel and drift/air distance count resolved horizontal travel, matching
+  the horizontal speedometer; GPS paths and deviation include road/deck elevation.
+  Heading alone never changes distance. Geometry, lane widths, handling and
+  world-unit-based reward/time tuning remain unchanged.
 - U-turn guidance uses hysteresis and an alignment hold so the warning cannot
   flicker while the taxi rotates.
 - The minimap, instruction copy, and 3D cue consume the same
@@ -612,10 +622,11 @@ updates the arcade launch, steering, road elevation and contact rules below.
   unfinished history.
 - The market rolls while the taxi is empty and not following a custom or
   courier route. After at least one block of travel, available ordinary fares
-  beyond 5,000 displayed meters may retire and fresh region-eligible fares are
-  seeded at validated curbs around the taxi. The system keeps up to three
-  pickups within the 3,240-meter nearby radius, never grows beyond six slots,
-  never re-enables a completed bit, and freezes the sole fare-six survivor.
+  beyond the existing 277.78-world-unit catchment (about 239 m) may retire and
+  fresh region-eligible fares are seeded at validated curbs around the taxi.
+  The system keeps up to three pickups within the five-block nearby radius
+  (180 world units, 155 m), never grows beyond six slots, never re-enables a
+  completed bit, and freezes the sole fare-six survivor.
   Crossing an active regional seam streams the remaining unaccepted slots from
   that region's rider deck and makes it the service region for the current
   cycle.
@@ -820,16 +831,23 @@ the same reviewed change, with the intended gameplay difference documented.
   hub on desktop and mobile. It saves normalized settings on this device and
   applies them to the current and subsequent runs without enabling Dev Mode or
   changing reward eligibility. Existing Dev Tools GPS controls share these values.
-  Old saves retain previously active GPS tuning; legacy tuning saved with Dev
-  Mode off stays at the ordinary defaults during migration.
-- Current System restores timed departure/near-arrival arrows and ground dots.
+  Untouched old defaults migrate once to Game Default. Customized experiments
+  and subsequent explicit Classic selections persist. Legacy tuning saved with
+  Dev Mode off stays at the ordinary defaults during migration.
+- Game Default uses a smoothly rotating arrow aimed at the passenger dropoff
+  center, visible only for that red destination. It holds the GPS route, shows
+  ground dots plus columns when more than 12 m off route, with 400 m height and
+  16% opacity. Automatic reroute controls are 200 m / 1 s and U-turn savings are
+  1,000 m; intersection arrows stay on and diagnostics stay off.
+- Classic System restores timed departure/near-arrival arrows and ground dots.
   Destination Compass uses an always-on arrow with an exact bearing to the
   visible pickup/dropoff ring center (custom pins and courier objectives use
   their own destination). Red Destination shows that arrow only for the active
-  passenger dropoff, plus thin vertical red route dots when off route, with the
+  passenger dropoff, plus thin vertical route dots when off route, with the
   reroute setting raised to 1,000 to leave room to find the retained route.
 - GPS routing can be enabled independently for fare pickups, passenger
-  dropoffs, custom yellow destinations and courier jobs. All default on.
+  dropoffs, custom yellow destinations and courier jobs. Pickups default off;
+  the other three categories default on.
   Disabling a category removes its route from both maps, ground guides,
   turn arrows, U-turn warnings and turn instructions without changing fares,
   mission priority, destination markers, arrivals or rewards. A disabled custom
@@ -843,13 +861,15 @@ the same reviewed change, with the intended gameplay difference documented.
   onboard but another objective has navigation priority.
   When the active category's route is off, an enabled cab arrow uses the
   destination center instead of the route. Its visibility rule remains independent.
-- Vertical guidance extrudes the existing red lane dots straight upward with
+- Vertical guidance extrudes the existing lane dots straight upward with
   the same 2.8 × 0.48 footprint. It follows the retained road path, not a diagonal
   from the deviated taxi. Columns can replace dots or accompany them, activate
-  only off route or throughout a passenger dropoff, and have adjustable height
-  (40–400 m) and opacity (4–40%). Other objective colors retain ground dots.
+  only off route or throughout navigation, and have adjustable height
+  (40–400 m) and opacity (4–40%). Every enabled route uses the same style and
+  retains its color: cyan pickups, red dropoffs, yellow custom pins, orange
+  courier pickups and pink courier deliveries.
 - Off-route guide distance is separate from rerouting (8–100 m, default 12 m).
-  It uses the display-meter scale (one world unit per meter) and the closest
+  It uses the shared speed-calibrated meter scale and the closest
   retained segment in 3D, including deck elevation, and
   updates after a route revision. Automatic reroute cooldown accepts 0.1–10 s.
   Hold Route suppresses deviation-based replanning; normal progress, new

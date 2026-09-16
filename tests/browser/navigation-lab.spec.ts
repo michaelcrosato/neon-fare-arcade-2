@@ -4,9 +4,27 @@ import { WEBGPU_TEST_OPTIONS } from "./browser-options";
 import { openScenePage } from "./scene-page";
 import { confirmVehicle, lockSteeringIfPrompted } from "./start-helpers";
 import type {} from "./fixtures/navigation-lab-scene";
+import { CLASSIC_NAVIGATION_SETTINGS, DEFAULT_NAVIGATION_SETTINGS } from "../../game/navigation-policy";
 
 test.use(WEBGPU_TEST_OPTIONS);
 test.setTimeout(90_000);
+
+test("untouched old saves upgrade once and an explicit Classic choice survives reload", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(navigation => localStorage.setItem("neon-fare-development-v1", JSON.stringify({ navigation })), CLASSIC_NAVIGATION_SETTINGS);
+  await page.reload();
+  const open = async () => {
+    await page.getByRole("button", { name: "OPTIONS", exact: true }).click();
+    await page.getByRole("button", { name: /^GAME OPTIONS/ }).click();
+    await page.getByRole("tab", { name: "NAVIGATION LAB", exact: true }).click();
+  };
+  await open();
+  const lab = page.getByRole("tabpanel", { name: "Navigation Lab" });
+  await expect(lab.getByRole("button", { name: /^GAME DEFAULT/ })).toHaveAttribute("aria-pressed", "true");
+  await lab.getByRole("button", { name: /^CLASSIC SYSTEM/ }).click();
+  await page.reload(); await open();
+  await expect(lab.getByRole("button", { name: /^CLASSIC SYSTEM/ })).toHaveAttribute("aria-pressed", "true");
+});
 
 for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 }, { width: 320, height: 568 }]) {
   test(`navigation controls persist, copy and reset independently of Dev Mode at ${viewport.width}px`, async ({ page }, info) => {
@@ -21,6 +39,8 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 
     };
     await open();
     const lab = page.getByRole("tabpanel", { name: "Navigation Lab" });
+    await expect(lab.getByRole("button", { name: /^GAME DEFAULT/ })).toHaveAttribute("aria-pressed", "true");
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem("neon-fare-development-v1")!).navigation)).toEqual(DEFAULT_NAVIGATION_SETTINGS);
     await lab.getByRole("button", { name: /^RED DESTINATION/ }).click();
     await expect(lab.getByLabel("Show cab arrow", { exact: true })).toHaveValue("destination");
     await expect(lab.getByLabel("Arrow points toward", { exact: true })).toHaveValue("destination");
@@ -82,11 +102,14 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 
     await page.getByRole("button", { name: /^GAME OPTIONS/ }).click();
     await page.getByRole("tab", { name: "NAVIGATION LAB" }).click();
     await lab.getByRole("button", { name: "RESET NAVIGATION" }).click();
-    await expect(lab.getByLabel("Show cab arrow", { exact: true })).toHaveValue("contextual");
-    await expect(lab.getByLabel("Ground route style", { exact: true })).toHaveValue("dashes");
+    await expect(lab.getByLabel("Show cab arrow", { exact: true })).toHaveValue("destination");
+    await expect(lab.getByLabel("Ground route style", { exact: true })).toHaveValue("both");
     await expect(lab.getByLabel("Show live navigation diagnostics", { exact: true })).not.toBeChecked();
-    await expect(lab.getByRole("checkbox", { name: "Fare pickups", exact: true })).toBeChecked();
+    await expect(lab.getByRole("checkbox", { name: "Fare pickups", exact: true })).not.toBeChecked();
     await expect(lab.getByRole("checkbox", { name: "Custom yellow destinations", exact: true })).toBeChecked();
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem("neon-fare-development-v1")!).navigation)).toEqual(DEFAULT_NAVIGATION_SETTINGS);
+    await lab.getByRole("button", { name: /^CLASSIC SYSTEM/ }).click();
+    await expect(lab.getByRole("checkbox", { name: "Fare pickups", exact: true })).toBeChecked();
     await page.keyboard.press("Escape");
     await expect(page.getByRole("dialog", { name: "OPTIONS", exact: true })).toHaveCount(0);
     await page.getByRole("button", { name: "RESUME FREE RUN", exact: true }).click();
@@ -98,7 +121,7 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 
 }
 
 for (const renderer of ["WebGPU", "Canvas 2D"] as const) for (const mobile of [false, true]) {
-  test(`${renderer} renders vertical red dashes and destination bearing in all cameras at ${mobile ? "mobile" : "desktop"} size`, async ({ page }, info) => {
+  test(`${renderer} renders colored vertical dashes and destination bearing in all cameras at ${mobile ? "mobile" : "desktop"} size`, async ({ page }, info) => {
     await page.setViewportSize(mobile ? { width: 390, height: 844 } : { width: 1280, height: 800 });
     const errors: string[] = []; page.on("pageerror", error => errors.push(error.message));
     page.on("console", message => { if (message.type() === "error") errors.push(message.text()); });
@@ -112,6 +135,13 @@ for (const renderer of ["WebGPU", "Canvas 2D"] as const) for (const mobile of [f
       await page.screenshot({ path: info.outputPath(`vertical-dots-${mode}.png`) });
       expect((await page.evaluate(mode => window.navigationLabScene.draw(mode, {}, false), mode)).columns).toBe(0);
       expect((await page.evaluate(mode => window.navigationLabScene.draw(mode, { arrowVisibility: "off", routeStyle: "off" }), mode)).total).toBe(0);
+      for (const objective of ["custom", "pickup"] as const) {
+        const colored = await page.evaluate(({ mode, objective }) => window.navigationLabScene.draw(mode, {}, true, objective), { mode, objective });
+        expect(colored.columns).toBeGreaterThan(0); expect(colored.total).toBeLessThanOrEqual(120);
+        expect(colored.offRoute).toBe(true); expect(colored.matchingColor).toBe(true); expect(colored.arrow).toBe(0);
+        await page.screenshot({ path: info.outputPath(`${objective}-vertical-dots-${mode}.png`) });
+        expect((await page.evaluate(({ mode, objective }) => window.navigationLabScene.draw(mode, {}, false, objective), { mode, objective })).columns).toBe(0);
+      }
     }
     expect(errors).toEqual([]);
   });

@@ -237,8 +237,7 @@ export function routeBoxes(
   if (settings.routeStyle === "off" || navigation?.routingEnabled === false
     || !navigationRoutingEnabled(getNavigationType(game), settings)) return [];
   route ??= buildGpsRoute(game, getNavigationTarget(game));
-  const showColumns = game.onboard && !game.customDestination && !game.activeCourier
-    && (settings.routeStyle === "corridor" || settings.routeStyle === "both")
+  const showColumns = (settings.routeStyle === "corridor" || settings.routeStyle === "both")
     && (settings.corridorVisibility === "always" || navigation?.offRoute === true);
   // Columns use the retained road, never the line connecting a lost cab to it.
   if (showColumns && navigation?.roadRoute) route = navigation.roadRoute;

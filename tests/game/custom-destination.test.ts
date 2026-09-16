@@ -143,7 +143,8 @@ test("navigation replans immediately when a custom destination changes or clears
   game.customDestination = { x: 108, y: 36 };
   assert.ok(distance(controller.update(game).route.at(-1)!, game.customDestination) < 0.001);
   game.customDestination = null;
-  assert.ok(distance(controller.update(game).route.at(-1)!, missionTarget) < 0.001);
+  assert.deepEqual(controller.update(game).route, [], "the default leaves pickup routing off after clearing a pin");
+  assert.ok(distance(controller.update(game, { routePickups: true }).route.at(-1)!, missionTarget) < 0.001);
 });
 
 test("arrival clears once, restores the job route, and never mutates the job", () => {

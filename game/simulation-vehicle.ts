@@ -3,7 +3,7 @@ import { stepOffroadSpeedLimit } from "./offroad-speed";
 import { ACCORD_GEARS, ACCORD_FINAL_DRIVE, ACCORD_WHEEL_RADIUS_M, ACCORD_REDLINE_RPM, VEHICLE_GOVERNED_SPEED_KMH } from "./vehicles";
 import { damageSpeedLimit } from "./vehicle-damage";
 import { hasFuel } from "./fuel";
-import { SPEED_KMH_PER_WORLD_UNIT } from "./config";
+import { DISPLAY_METERS_PER_WORLD_UNIT } from "./config";
 import { steeringInput } from "./input";
 import { clamp, normalizeAngle } from "./math";
 import type {
@@ -53,7 +53,7 @@ export const CROWN_TAXI_SPECS = {
 const GRAVITY = 9.81;
 const AIR_DENSITY = 1.225;
 const GOVERNOR_TAPER_MPS = 3.2;
-const WORLD_SPEED_TO_MPS = SPEED_KMH_PER_WORLD_UNIT / 3.6;
+const WORLD_SPEED_TO_MPS = DISPLAY_METERS_PER_WORLD_UNIT;
 const MPS_TO_WORLD_SPEED = 1 / WORLD_SPEED_TO_MPS;
 const MAX_STEER_RADIANS = 0.56;
 const PHYSICS_SUBSTEP = 1 / 120;

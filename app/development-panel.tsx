@@ -4,6 +4,7 @@ import type { DevelopmentAction } from "@/game/development-actions";
 import { normalizeDevelopmentSettings, type DevelopmentSettings } from "@/game/development-settings";
 import { fareArtAsset, fareArtFrame } from "@/game/fare-presentation";
 import type { Hud } from "@/game/model";
+import { DEFAULT_NAVIGATION_SETTINGS } from "@/game/navigation-policy";
 
 export type DevelopmentPanelProps = {
   settings: DevelopmentSettings;
@@ -97,7 +98,7 @@ export function DevelopmentReadout({ hud }: { hud: Hud }) {
   return <output className="development-readout" aria-label="Live GPS diagnostics" aria-live="off">
     <strong>{hud.playtest ? "PLAYTEST" : "NAVIGATION LAB"} · GPS #{diagnostics?.revision ?? 0}</strong>
     <span>{hud.distance.toLocaleString()} m remaining · {Math.round(diagnostics?.deviationMeters ?? 0)} m off route</span>
-    <span>Reroute &gt; {diagnostics?.rerouteDistanceMeters ?? 100} m · U-turn saves ≥ {diagnostics?.uTurnSavingsMeters ?? 1000} m</span>
+    <span>Reroute &gt; {diagnostics?.rerouteDistanceMeters ?? DEFAULT_NAVIGATION_SETTINGS.rerouteDistanceMeters} m · U-turn saves ≥ {diagnostics?.uTurnSavingsMeters ?? DEFAULT_NAVIGATION_SETTINGS.uTurnSavingsMeters} m</span>
     {diagnostics?.routingEnabled === false && <span>GPS ROUTING OFF · destination markers remain</span>}
     {diagnostics?.rerouteMode === "locked" && <span>HOLD ROUTE · automatic recalculation off</span>}
     <span>{diagnostics?.reason ?? "start"} · x {hud.player.x.toFixed(1)} / y {hud.player.y.toFixed(1)} / z {(hud.player.z ?? 0).toFixed(1)}</span>

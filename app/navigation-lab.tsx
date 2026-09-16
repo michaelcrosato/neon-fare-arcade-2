@@ -57,10 +57,10 @@ export function NavigationLab({ settings, hud, onChange, onClose }: Pick<Develop
     </fieldset>
     <fieldset className="game-options-section"><legend>03 · ROAD GUIDE</legend>
       <div className="navigation-lab__fields">
-        {select("Ground route style", "routeStyle", [["dashes", "Current · ground dots"], ["corridor", "Vertical red dots"], ["both", "Ground dots + vertical red dots"], ["off", "Off · GPS map only"]])}
-        {select("Show vertical dots", "corridorVisibility", [["off-route", "Only when off the GPS route"], ["always", "Always during a red dropoff"]])}
+        {select("Ground route style", "routeStyle", [["dashes", "Ground dots"], ["corridor", "Vertical route dots"], ["both", "Ground dots + vertical route dots"], ["off", "Off · GPS map only"]])}
+        {select("Show vertical dots", "corridorVisibility", [["off-route", "Only when off the GPS route"], ["always", "Always while navigating"]])}
       </div>
-      <p className="options-hint">Thin translucent red columns rise straight up from the existing red dots, with the same width. Ground dots remain while you are on route; pickup and other route colors keep their usual dots.</p>
+      <p className="options-hint">Thin translucent columns rise straight up from the existing dots, with the same width and route color. This works for pickups, dropoffs, yellow custom destinations and courier jobs. Ground dots remain while you are on route.</p>
       <div className="navigation-lab__fields">
         <label className="navigation-lab__field">Column height · {nav.corridorHeightMeters} m<input aria-label="Column height" type="range" min="40" max="400" step="20" value={nav.corridorHeightMeters}
           onChange={event => update({ corridorHeightMeters: event.target.valueAsNumber })} /></label>
@@ -77,6 +77,7 @@ export function NavigationLab({ settings, hud, onChange, onClose }: Pick<Develop
         {number("U-turn savings (m)", "uTurnSavingsMeters", 0, 10000, 100)}
       </div>
       <p className="options-hint">Distance is measured to the closest remaining route segment. Hold route stops automatic recalculation; new destinations and recovery still create a new route. Raise the reroute distance to give yourself more time to follow the vertical dots back.</p>
+      <p className="options-hint">Meters match the speedometer: at 60 km/h, you travel 100 m in six seconds. Driving along the route reduces the distance remaining; driving away from it increases the off-route distance.</p>
     </fieldset>
     <fieldset className="game-options-section"><legend>05 · TEST &amp; SHARE</legend>
       <label className="navigation-lab__check"><input type="checkbox" checked={nav.showDiagnostics}
@@ -90,7 +91,7 @@ export function NavigationLab({ settings, hud, onChange, onClose }: Pick<Develop
             setNotice("Setup copied. Paste it with your feedback so this test can be repeated.");
           } catch { setNotice("Copy failed. Your settings are still saved on this device."); }
         }}>COPY TEST SETUP</button>
-        <button type="button" onClick={() => { update(DEFAULT_NAVIGATION_SETTINGS); setNotice("Original navigation behavior restored."); }}>RESET NAVIGATION</button>
+        <button type="button" onClick={() => { update(DEFAULT_NAVIGATION_SETTINGS); setNotice("Game navigation defaults restored."); }}>RESET NAVIGATION</button>
       </div>
     </fieldset>
     <p className="navigation-lab__notice" role="status">{notice}</p>

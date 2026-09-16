@@ -1,8 +1,6 @@
 import {
   DISPLAY_METERS_PER_WORLD_UNIT,
   NAVIGATION_ARRIVAL_RADIUS,
-  NAVIGATION_METERS_PER_WORLD_UNIT,
-  NAVIGATION_REPLAN_COOLDOWN,
   NAV_VELOCITY_HEADING_ENTER_SPEED,
   NAV_VELOCITY_HEADING_EXIT_SPEED,
   OBJECTIVE_ARRIVAL_PROMPT_DISTANCE_METERS,
@@ -80,7 +78,7 @@ export function buildNavigationPlan(start: WorldPoint, target: WorldPoint, headi
   const forwardDistance = forward ? routeLength(forward.route) : Number.POSITIVE_INFINITY;
   const reverseDistance = reverse ? routeLength(reverse.route) : Number.POSITIVE_INFINITY;
   const reverseIsWorthIt = Boolean(reverse) && preferReverseRoute(forwardDistance, reverseDistance,
-    normalizeNavigationSettings(settings).uTurnSavingsMeters / NAVIGATION_METERS_PER_WORLD_UNIT);
+    normalizeNavigationSettings(settings).uTurnSavingsMeters / DISPLAY_METERS_PER_WORLD_UNIT);
   const chosen = reverseIsWorthIt ? reverse : forward || reverse;
   if (!chosen) {
     const route = buildGpsRoute(start, target);
@@ -101,7 +99,7 @@ export function buildNavigationPlan(start: WorldPoint, target: WorldPoint, headi
 }
 
 export function preferReverseRoute(forwardDistance: number, reverseDistance: number,
-  minimumSavings = DEFAULT_NAVIGATION_SETTINGS.uTurnSavingsMeters / NAVIGATION_METERS_PER_WORLD_UNIT) {
+  minimumSavings = DEFAULT_NAVIGATION_SETTINGS.uTurnSavingsMeters / DISPLAY_METERS_PER_WORLD_UNIT) {
   return Number.isFinite(forwardDistance) && Number.isFinite(reverseDistance)
     && forwardDistance - reverseDistance >= minimumSavings - 1e-9;
 }
@@ -330,8 +328,8 @@ export class NavigationController {
     const canReplan = game.elapsed - this.lastReplanAt >= policy.rerouteCooldownSeconds;
     const plannedRoute = routingEnabled ? [this.activeStart, ...this.waypoints] : [];
     const nearest = closestPointOnRoute(player, plannedRoute);
-    const deviationMeters = (nearest?.distance ?? 0) * NAVIGATION_METERS_PER_WORLD_UNIT;
-    if (routingEnabled && policy.rerouteMode === "distance" && canReplan && deviationMeters > policy.rerouteDistanceMeters + 1e-7) {
+    const replanDeviationMeters = (nearest?.distance ?? 0) * DISPLAY_METERS_PER_WORLD_UNIT;
+    if (routingEnabled && policy.rerouteMode === "distance" && canReplan && replanDeviationMeters > policy.rerouteDistanceMeters + 1e-7) {
       this.adoptPlan(buildNavigationPlan(player, target, travelHeading, policy), player, game.elapsed, "deviation", target);
     }
     while (this.waypoints.length > 1) {
@@ -397,12 +395,12 @@ export class NavigationController {
         this.alignedFor = 0;
       }
     } else if (!nearDestination && headingError > UTURN_ENTER_ANGLE
-      && game.elapsed - this.lastDirectionCheckAt >= NAVIGATION_REPLAN_COOLDOWN) {
+      && game.elapsed - this.lastDirectionCheckAt >= policy.rerouteCooldownSeconds) {
       this.lastDirectionCheckAt = game.elapsed;
       const forward = graphRouteCandidateForDirection(player, target, travelHeading, 1);
       const reverse = graphRouteCandidateForDirection(player, target, travelHeading, -1);
       this.wrongWay = Boolean(forward && reverse) && preferReverseRoute(
-        routeLength(forward!.route), routeLength(reverse!.route), policy.uTurnSavingsMeters / NAVIGATION_METERS_PER_WORLD_UNIT);
+        routeLength(forward!.route), routeLength(reverse!.route), policy.uTurnSavingsMeters / DISPLAY_METERS_PER_WORLD_UNIT);
     }
 
     const ring = activeObjectiveRing(game);
@@ -442,8 +440,10 @@ export class NavigationController {
     const turnCue = this.resolveTurnCue(player, travelHeading);
     const roadRoute = routingEnabled ? [this.activeStart, ...this.waypoints] : [];
     const guideDistance = closestPointOnRoute(player, roadRoute)?.distance ?? 0;
+    // Report the same retained route used by the guide, after rerouting/progress.
+    const deviationMeters = guideDistance * DISPLAY_METERS_PER_WORLD_UNIT;
     return { route, roadRoute, routingEnabled, settings: policy,
-      offRoute: hasDestination && guideDistance * DISPLAY_METERS_PER_WORLD_UNIT > policy.offRouteDistanceMeters + 1e-7,
+      offRoute: hasDestination && deviationMeters > policy.offRouteDistanceMeters + 1e-7,
       vehicleArrowVisible: arrowActive,
       vehicleArrowFade: policy.arrowVisibility !== "contextual" || arrivalPromptActive ? 1
         : clamp((this.departurePromptUntil - game.elapsed) / .3, 0, 1),

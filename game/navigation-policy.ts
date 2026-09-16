@@ -23,27 +23,41 @@ export type NavigationSettings = {
 };
 
 export const DEFAULT_NAVIGATION_SETTINGS: Readonly<NavigationSettings> = {
-  routePickups: true,
+  routePickups: false,
   routeDropoffs: true,
   routeCustomDestinations: true,
   routeCourierJobs: true,
   rerouteDistanceMeters: NAVIGATION_REROUTE_DISTANCE_METERS,
   uTurnSavingsMeters: UTURN_MIN_SAVINGS_METERS,
-  arrowVisibility: "contextual",
-  arrowTarget: "route",
+  arrowVisibility: "destination",
+  arrowTarget: "destination",
   arrowSmoothing: "smooth",
-  routeStyle: "dashes",
+  routeStyle: "both",
   corridorVisibility: "off-route",
-  corridorHeightMeters: 160,
-  corridorOpacity: .12,
+  corridorHeightMeters: 400,
+  corridorOpacity: .16,
   offRouteDistanceMeters: 12,
-  rerouteMode: "distance",
+  rerouteMode: "locked",
   rerouteCooldownSeconds: NAVIGATION_REPLAN_COOLDOWN,
   showRoadTurns: true,
   showDiagnostics: false,
 };
 
-/** Shared by both menus and the controller. Old saves retain the original behavior. */
+/** Original experiment remains selectable; all presets use the same calibrated meters. */
+export const CLASSIC_NAVIGATION_SETTINGS: Readonly<NavigationSettings> = {
+  ...DEFAULT_NAVIGATION_SETTINGS,
+  routePickups: true,
+  rerouteDistanceMeters: 100,
+  arrowVisibility: "contextual",
+  arrowTarget: "route",
+  routeStyle: "dashes",
+  corridorHeightMeters: 160,
+  corridorOpacity: .12,
+  rerouteMode: "distance",
+  rerouteCooldownSeconds: .35,
+};
+
+/** Shared validation for both menus, saved preferences and the controller. */
 export function normalizeNavigationSettings(value?: unknown): NavigationSettings {
   const source = value && typeof value === "object" ? value as Record<string, unknown> : {};
   const defaults = DEFAULT_NAVIGATION_SETTINGS;
@@ -89,11 +103,14 @@ export function navigationRoutingEnabled(type: Hud["objectiveType"], settings: R
 }
 
 export const NAVIGATION_PRESETS = [
-  { id: "classic", label: "CURRENT SYSTEM", detail: "Timed arrow · road dashes", settings: DEFAULT_NAVIGATION_SETTINGS },
+  { id: "default", label: "GAME DEFAULT", detail: "Dropoff compass · hold route · vertical dots", settings: DEFAULT_NAVIGATION_SETTINGS },
+  { id: "classic", label: "CLASSIC SYSTEM", detail: "Timed arrow · road dashes", settings: CLASSIC_NAVIGATION_SETTINGS },
   { id: "compass", label: "DESTINATION COMPASS", detail: "Always on · points at the center", settings: normalizeNavigationSettings({
+    ...CLASSIC_NAVIGATION_SETTINGS,
     arrowVisibility: "always", arrowTarget: "destination", arrowSmoothing: "instant",
   }) },
-  { id: "red-guide", label: "RED DESTINATION", detail: "Dropoff arrow · vertical red dots", settings: normalizeNavigationSettings({
+  { id: "red-guide", label: "RED DESTINATION", detail: "Dropoff arrow · vertical route dots", settings: normalizeNavigationSettings({
+    ...CLASSIC_NAVIGATION_SETTINGS,
     arrowVisibility: "destination", arrowTarget: "destination", arrowSmoothing: "instant", routeStyle: "both",
     rerouteDistanceMeters: 1000,
   }) },

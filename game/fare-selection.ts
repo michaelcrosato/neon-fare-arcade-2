@@ -6,6 +6,7 @@ import {
   FARE_STREAM_CHECK_INTERVAL,
   FARE_STREAM_MIN_TRAVEL,
   FARE_STREAM_NEARBY_TARGET,
+  FARE_STREAM_RETIRE_DISTANCE,
   FARE_TARGET_SWITCH_MARGIN,
   ROAD_SPACING,
 } from "./config";
@@ -208,7 +209,7 @@ export function maintainFareStream(game: Game) {
   );
   const protectedCurrent = isFareAvailable(game, currentIndex)
     && currentPickupRegion?.id === region.id
-    && (routeDistances.get(currentIndex) ?? Number.POSITIVE_INFINITY) <= FARE_GPS_RETARGET_DISTANCE;
+    && (routeDistances.get(currentIndex) ?? Number.POSITIVE_INFINITY) <= FARE_STREAM_RETIRE_DISTANCE;
   const nearbyIndices = availableIndices.filter((index) => (
     containingRegionForPosition(
       game.fareJobs[index].pickup.x,
@@ -225,7 +226,7 @@ export function maintainFareStream(game: Game) {
     if (
       crossedRegion
       || pickupRegion?.id !== region.id
-      || (routeDistances.get(index) ?? 0) > FARE_GPS_RETARGET_DISTANCE
+      || (routeDistances.get(index) ?? 0) > FARE_STREAM_RETIRE_DISTANCE
     ) {
       if (index !== currentIndex || !protectedCurrent) replacements.add(index);
     }

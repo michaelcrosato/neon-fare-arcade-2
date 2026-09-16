@@ -12,6 +12,6 @@ export function normalizeMinimapPreferences(raw: unknown): MinimapPreferences {
 
 /** Heading-up map projection: panel dimensions and geographic zoom are independent. */
 export function compactMapProjection(zoom: number) {
-  const pixelsPerMetre = .58 * zoom;
-  return { pixelsPerMetre, radiusMetres: Math.hypot(62, 49) / pixelsPerMetre };
+  const pixelsPerWorldUnit = .58 * zoom;
+  return { pixelsPerWorldUnit, radiusWorldUnits: Math.hypot(62, 49) / pixelsPerWorldUnit };
 }

@@ -12,8 +12,9 @@ test("HUD projection exposes the opening fare without browser state", () => {
   assert.equal(hud.runKind, "free-run");
   assert.equal(hud.availablePickups.length, FARES_PER_CYCLE);
   assert.equal(hud.fareDestinations.length, FARES_PER_CYCLE);
-  assert.ok(hud.route.length > 1);
-  assert.ok(hud.distance > 0);
+  assert.deepEqual(hud.route, [], "pickup markers remain while their GPS route defaults off");
+  assert.equal(hud.distance, 0);
+  assert.equal(hud.gpsInstruction, "GPS ROUTING OFF");
 });
 
 test("Off Duty HUD suppresses passenger presentation without mutating its baseline", () => {

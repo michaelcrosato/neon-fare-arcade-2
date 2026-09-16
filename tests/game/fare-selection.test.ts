@@ -134,8 +134,8 @@ test("GPS drops a stale fare beyond 5000m even when the nearer fare saves less t
   game.jobIndex = 0;
   game.fareJobs = game.fareJobs.map((job, index) => index < 2 ? {
     ...job,
-    pickup: { x: index === 0 ? 288 : 280, y: 0 },
-    pickupApproach: { x: index === 0 ? 288 : 280, y: 0 },
+    pickup: { x: FARE_GPS_RETARGET_DISTANCE + 20 - index * 8, y: 0 },
+    pickupApproach: { x: FARE_GPS_RETARGET_DISTANCE + 20 - index * 8, y: 0 },
   } : job);
   assert.ok(farePickupRouteDistance({ x: 0, y: 0 }, game.fareJobs[0]) > FARE_GPS_RETARGET_DISTANCE);
   assert.ok(
@@ -149,8 +149,8 @@ test("GPS drops a stale fare beyond 5000m even when the nearer fare saves less t
   game.jobIndex = 0;
   game.fareJobs = game.fareJobs.map((job, index) => index < 2 ? {
     ...job,
-    pickup: { x: index === 0 ? 270 : 262, y: 0 },
-    pickupApproach: { x: index === 0 ? 270 : 262, y: 0 },
+    pickup: { x: FARE_GPS_RETARGET_DISTANCE - 1000 - index * 8, y: 0 },
+    pickupApproach: { x: FARE_GPS_RETARGET_DISTANCE - 1000 - index * 8, y: 0 },
   } : job);
   assert.ok(farePickupRouteDistance({ x: 0, y: 0 }, game.fareJobs[0]) <= FARE_GPS_RETARGET_DISTANCE);
   syncNearestFareTarget(game);

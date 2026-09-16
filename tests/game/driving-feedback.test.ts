@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { FIXED_DT, SPEED_KMH_PER_WORLD_UNIT } from "../../game/config";
+import { DISPLAY_METERS_PER_WORLD_UNIT, FIXED_DT, SPEED_KMH_PER_WORLD_UNIT } from "../../game/config";
 import { drivingStuntsHud, stepDrivingStunts } from "../../game/driving-stunts";
 import { makeHud } from "../../game/hud";
 import { stepManualTransmission } from "../../game/manual-transmission";
@@ -15,6 +15,7 @@ import { makeTestWorld, TEST_IDLE_INPUT as IDLE } from "./support/fixtures";
 import type { Game } from "../../game/model";
 
 const world = makeTestWorld();
+const expectMeters = (meters: number, worldUnits: number) => assert.ok(Math.abs(meters - worldUnits * DISPLAY_METERS_PER_WORLD_UNIT) < 1e-8);
 function travel(game: Game, dx: number, dy: number, grounded = true) {
   const previous = { x: game.x, y: game.y }, wasGrounded = game.roadMotion.grounded;
   game.x += dx; game.y += dy; game.roadMotion.grounded = grounded;
@@ -26,21 +27,21 @@ test("drift distance follows the driven path, joins a brief countersteer and ret
   const game = makeGame("street-ace", 12);
   game.drifting = true;
   for (let i = 0; i < 5; i++) travel(game, 3, 4);
-  assert.equal(game.stunts.drift.meters, 25);
+  expectMeters(game.stunts.drift.meters, 25);
   game.drifting = false; travel(game, 5, 0);
   game.drifting = true; travel(game, -3, -4);
-  assert.equal(game.stunts.drift.meters, 30, "straight travel is excluded; opposite slip stays one drift");
+  expectMeters(game.stunts.drift.meters, 30); // Straight travel is excluded; opposite slip stays one drift.
   game.drifting = false;
   for (let i = 0; i < 4; i++) travel(game, 0, 0);
   assert.equal(game.stunts.drift.count, 1);
-  assert.equal(game.stunts.drift.lastMeters, 30);
+  expectMeters(game.stunts.drift.lastMeters, 30);
   assert.equal(drivingStuntsHud(game.stunts, game.elapsed).drift.showResult, true);
   game.drifting = true; travel(game, 3, 4);
   game.drifting = false;
   for (let i = 0; i < 4; i++) travel(game, 0, 0);
-  assert.equal(game.stunts.drift.totalMeters, 35);
-  assert.equal(game.stunts.drift.bestMeters, 30);
-  assert.equal(game.stunts.drift.lastMeters, 5);
+  expectMeters(game.stunts.drift.totalMeters, 35);
+  expectMeters(game.stunts.drift.bestMeters, 30);
+  expectMeters(game.stunts.drift.lastMeters, 5);
   assert.equal(game.stunts.drift.count, 2);
   assert.equal(drivingStuntsHud(game.stunts, game.elapsed + 5).drift.showResult, false);
 });
@@ -49,26 +50,26 @@ test("air distance includes takeoff and landing travel, excludes height and neve
   const game = makeGame("street-ace", 12);
   game.drifting = true;
   for (let i = 0; i < 4; i++) { game.z += 4; travel(game, 3, 4, false); }
-  assert.equal(game.stunts.air.meters, 20);
+  expectMeters(game.stunts.air.meters, 20);
   assert.equal(game.stunts.drift.totalMeters, 0);
   game.drifting = false; travel(game, 3, 4, true);
-  assert.equal(game.stunts.air.lastMeters, 25);
+  expectMeters(game.stunts.air.lastMeters, 25);
   assert.equal(game.stunts.air.count, 1);
   assert.equal(makeHud(game).stunts.air.showResult, true);
   travel(game, 500, 0, false);
-  assert.equal(game.stunts.air.totalMeters, 25, "teleport-sized jumps are not traveled distance");
+  expectMeters(game.stunts.air.totalMeters, 25); // Teleport-sized jumps are not traveled distance.
 });
 
 test("drift feedback stays silent through ten meters, including short banked drifts", () => {
   const game = makeGame("street-ace", 12);
   game.drifting = true;
-  travel(game, 5, 0); travel(game, 5, 0);
+  travel(game, 5 / DISPLAY_METERS_PER_WORLD_UNIT, 0); travel(game, 5 / DISPLAY_METERS_PER_WORLD_UNIT, 0);
   assert.equal(drivingStuntsHud(game.stunts, game.elapsed).drift.showActive, false);
   game.drifting = false;
   for (let i = 0; i < 4; i++) travel(game, 0, 0);
   assert.equal(drivingStuntsHud(game.stunts, game.elapsed).drift.showResult, false);
   game.drifting = true;
-  travel(game, 5, 0); travel(game, 5, 0); travel(game, .01, 0);
+  travel(game, 5 / DISPLAY_METERS_PER_WORLD_UNIT, 0); travel(game, 5 / DISPLAY_METERS_PER_WORLD_UNIT, 0); travel(game, .01, 0);
   assert.equal(drivingStuntsHud(game.stunts, game.elapsed).drift.showActive, true);
   game.drifting = false;
   for (let i = 0; i < 4; i++) travel(game, 0, 0);
@@ -151,7 +152,7 @@ test("walking and tow recovery cannot add distance or erase banked stunts", () =
   game.drifting = true; travel(game, 3, 4);
   game.player = { kind: "walking", location: { kind: "city" }, actor: makeWalkingActor(taxiPose(game)) };
   travel(game, 3, 4);
-  assert.equal(game.stunts.drift.totalMeters, 5);
+  expectMeters(game.stunts.drift.totalMeters, 5);
   assert.equal(game.stunts.drift.active, false);
   assert.equal(game.stunts.air.totalMeters, 0);
   game.player = { kind: "driving" };
@@ -161,7 +162,7 @@ test("walking and tow recovery cannot add distance or erase banked stunts", () =
   stepGame(game, IDLE, FIXED_DT, world, () => 1);
   assert.equal(game.stunts.air.totalMeters, before);
   assert.equal(game.stunts.air.active, false);
-  assert.equal(game.stunts.drift.totalMeters, 5);
+  expectMeters(game.stunts.drift.totalMeters, 5);
 });
 
 test("automatic gas recovery needs three new complete taps; Manual still requires the clutch", () => {

@@ -9,7 +9,7 @@ import { navigationArrowBoxes, navigationDistanceBadge } from "../../game/render
 import { farePresentationBoxes, routeBoxes } from "../../game/render/scene";
 import { availableCourierContracts, acceptCourierContract } from "../../game/courier";
 
-test("route categories default on, validate saved values and work with Dev Mode off", () => {
+test("route categories validate saved values and work with Dev Mode off", () => {
   assert.deepEqual(normalizeNavigationSettings({ routePickups: "false", routeDropoffs: null, routeCustomDestinations: 0 }), DEFAULT_NAVIGATION_SETTINGS);
   const game = makeGame("street-ace", 93);
   applyDevelopmentSettings(game, { enabled: false, navigation: { routePickups: false } });

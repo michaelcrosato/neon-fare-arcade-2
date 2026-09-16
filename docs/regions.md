@@ -200,7 +200,8 @@ road cuts and embankments, high bridges over the gorge, and buildings on graded
 benches. Village ground is z=44, Mirror Lake z=82, the resort z=128, Aurora
 Lookout z=157, and the upper gondola station z=221. Road tops add 0.64. Terrain,
 tires, walking feet, traffic, collision, camera height, fare approaches, portals,
-and both GPS views share those elevations. GPS displays 18 meters per unit.
+and both GPS views share those elevations. GPS altitude and distances use the
+speed-calibrated scale of 3.1 / 3.6 meters per world unit.
 
 Mirror Lake drains through an animated spillway into the gorge. An eight-cabin
 gondola follows two sagging cables above a cleared snow run between the resort

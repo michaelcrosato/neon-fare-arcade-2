@@ -139,7 +139,8 @@ follows the arrow's actual elevation and uses the same reduced-motion clock.
 `road-lanes.ts` resolves route dashes onto the right traffic lane and samples
 its physical height and normal; the canonical route is never modified.
 
-Navigation Lab can extrude red dropoff dashes into translucent vertical columns.
+Navigation Lab can extrude every enabled route's dashes into translucent vertical
+columns matching its RGB color (including yellow custom GPS routes).
 Their 2.8 × 0.48 XY footprint and lane placement remain identical to the ground
 dots, with zero pitch/tilt so columns rise vertically even on grades. The column
 base uses the actual dash elevation. Off-route guidance uses `NavigationPlan.roadRoute`,

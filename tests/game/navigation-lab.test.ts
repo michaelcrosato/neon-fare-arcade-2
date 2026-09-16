@@ -13,12 +13,13 @@ import { sampleSpecialRoad } from "../../game/road-network";
 import type { NavigationPlan } from "../../game/model";
 import { projectWorldPoint, viewProjection } from "../../game/render/view-projection";
 import { boxSurfaceFaces } from "../../game/render/surfaces";
+import { DISPLAY_METERS_PER_WORLD_UNIT } from "../../game/config";
 
 test("navigation experiments validate old saves and malformed controls without enabling Dev Mode", () => {
   const game = makeGame("street-ace", 91);
   const defaults = normalizeNavigationSettings({ rerouteDistanceMeters: 600 });
   assert.equal(defaults.rerouteDistanceMeters, 600);
-  assert.equal(defaults.arrowVisibility, "contextual");
+  assert.equal(defaults.arrowVisibility, "destination");
   assert.deepEqual(normalizeNavigationSettings({ arrowVisibility: "invalid", corridorOpacity: "0.8", showDiagnostics: "true" }), DEFAULT_NAVIGATION_SETTINGS);
   const bounded = normalizeNavigationSettings({ corridorHeightMeters: Infinity, corridorOpacity: 8, rerouteCooldownSeconds: -2 });
   assert.equal(bounded.corridorHeightMeters, DEFAULT_NAVIGATION_SETTINGS.corridorHeightMeters);
@@ -27,7 +28,7 @@ test("navigation experiments validate old saves and malformed controls without e
   applyDevelopmentSettings(game, { enabled: false, navigation: { arrowVisibility: "always", rerouteDistanceMeters: 600 } });
   assert.equal(navigationSettingsForGame(game).rerouteDistanceMeters, 600);
   assert.equal(game.playtest, undefined);
-  assert.equal(normalizeDevelopmentSettings({ enabled: false, navigation: { rerouteDistanceMeters: 600 } }).navigation.rerouteDistanceMeters, 100,
+  assert.equal(normalizeDevelopmentSettings({ enabled: false, navigation: { rerouteDistanceMeters: 600 } }).navigation.rerouteDistanceMeters, 200,
     "old inactive GPS tuning must not become active during migration");
   assert.equal(normalizeDevelopmentSettings({ enabled: true, navigation: { rerouteDistanceMeters: 600 } }).navigation.rerouteDistanceMeters, 600);
 });
@@ -89,7 +90,7 @@ test("reroute cooldown is configurable and visual changes do not discard the rou
   const game = makeGame("street-ace", 91);
   game.customDestination = { x: 0, y: -360 };
   const controller = new NavigationController();
-  const settings = normalizeNavigationSettings({ rerouteCooldownSeconds: 5, rerouteDistanceMeters: 10 });
+  const settings = normalizeNavigationSettings({ rerouteMode: "distance", rerouteCooldownSeconds: 5, rerouteDistanceMeters: 10 });
   const first = controller.update(game, settings);
   game.x = 72; game.elapsed = 4.9;
   assert.equal(controller.update(game, { ...settings, arrowVisibility: "always" }).diagnostics?.revision, first.diagnostics?.revision);
@@ -129,7 +130,7 @@ test("vertical guide activates strictly beyond its distance threshold and respec
   controller.update(game, settings);
   Object.assign(game, { x: 2.25, y: -12, z: .64, elapsed: 3 });
   assert.equal(controller.update(game, settings).offRoute, false, "the ordinary traffic lane is on route");
-  Object.assign(game, { x: 12, y: -12, z: 0, elapsed: 4 });
+  Object.assign(game, { x: 12 / DISPLAY_METERS_PER_WORLD_UNIT, y: -12, z: 0, elapsed: 4 });
   assert.equal(controller.update(game, settings).offRoute, false);
   game.x += .001;
   assert.equal(controller.update(game, settings).offRoute, true);
@@ -140,7 +141,7 @@ test("vertical guide activates strictly beyond its distance threshold and respec
 test("vertical dots start on graded pavement and combined guidance retains the 120-box budget", () => {
   const game = makeGame("street-ace", 91);
   game.onboard = true;
-  const settings = normalizeNavigationSettings({ routeStyle: "both", corridorVisibility: "always" });
+  const settings = normalizeNavigationSettings({ routePickups: true, routeStyle: "both", corridorVisibility: "always" });
   for (const id of ["starfall-drive", "stormwall-levee-road", "spruce-gorge-viaduct"]) {
     const a = sampleSpecialRoad(id, 45)!.center;
     const b = sampleSpecialRoad(id, 70)!.center;
@@ -162,7 +163,7 @@ test("vertical dots start on graded pavement and combined guidance retains the 1
   const boxes = routeBoxes(game, route, plan);
   assert.ok(boxes.length >= 100 && boxes.length <= ROUTE_GUIDE_BUDGET);
   game.onboard = false;
-  assert.ok(routeBoxes(game, route, plan).every(box => box.sz < 1), "pickup routes never get red columns");
+  assert.ok(routeBoxes(game, route, plan).some(box => box.sz >= 40), "enabled pickup routes also get columns");
 });
 
 test("the Cab View arrow fits above the road in every bearing on desktop and phone", () => {

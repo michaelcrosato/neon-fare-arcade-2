@@ -1,13 +1,21 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { DISPLAY_METERS_PER_WORLD_UNIT } from "../../game/config";
-import { makeGame } from "../../game/state";
+import { makeGame as createGame } from "../../game/state";
+import { applyDevelopmentSettings } from "../../game/development-settings";
+import { CLASSIC_NAVIGATION_SETTINGS } from "../../game/navigation-policy";
 import { roadLanePose } from "../../game/road-lanes";
 import { routeBoxes } from "../../game/render/scene";
 import { navigationDistanceBadge } from "../../game/render/navigation-glyph";
 import { isRoadSurface, sampleSpecialRoad } from "../../game/road-network";
 import { groundAt } from "../../game/vehicle-road-contact";
 import type { NavigationPlan } from "../../game/model";
+
+function makeGame(...args: Parameters<typeof createGame>) {
+  const game = createGame(...args);
+  applyDevelopmentSettings(game, { navigation: CLASSIC_NAVIGATION_SETTINGS });
+  return game;
+}
 
 test("road guidance occupies the right driving lane in all four travel directions", () => {
   const game = makeGame("street-ace", 501, "free-run");
@@ -52,11 +60,11 @@ test("floating arrow badges show the total remaining route distance", () => {
     requiresUTurn: false, departureYaw: -Math.PI / 2, travelHeading: -Math.PI / 2,
     turnCue: { point: { x: 0, y: -36, z: 20 }, incomingYaw: -Math.PI / 2, yaw: 0, kind: "right", distance: 36 } };
   const first = navigationDistanceBadge(game, 0, plan)!;
-  assert.equal(first.distance, "72m");
+  assert.equal(first.distance, "62m");
   assert.equal(first.remaining, "TO DESTINATION");
   assert.ok(first.point.z > 28, "badge clears the elevated arrow");
   plan.turnCue!.distance = 12;
-  assert.equal(navigationDistanceBadge(game, 0, plan)!.distance, "72m", "moving the turn cue does not change the route total");
+  assert.equal(navigationDistanceBadge(game, 0, plan)!.distance, "62m", "moving the turn cue does not change the route total");
   plan.route[0] = { x: 0, y: -24 };
   const remaining = `${Math.round(48 * DISPLAY_METERS_PER_WORLD_UNIT)}m`;
   assert.equal(navigationDistanceBadge(game, 0, plan)!.distance, remaining, "route progress reduces the remaining distance");

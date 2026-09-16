@@ -113,15 +113,15 @@ export function GpsMap({
     const dx = point.x - hud.player.x;
     const dy = point.y - hud.player.y;
     return {
-      x: (-Math.sin(hud.heading) * dx + Math.cos(hud.heading) * dy) * compactProjection.pixelsPerMetre,
-      y: -(Math.cos(hud.heading) * dx + Math.sin(hud.heading) * dy) * compactProjection.pixelsPerMetre,
+      x: (-Math.sin(hud.heading) * dx + Math.cos(hud.heading) * dy) * compactProjection.pixelsPerWorldUnit,
+      y: -(Math.cos(hud.heading) * dx + Math.sin(hud.heading) * dy) * compactProjection.pixelsPerWorldUnit,
     };
   };
   const pointFor = (point: Vec2) => full ? point : compactPoint(point);
   const origin = pointFor({ x: 0, y: 0 }), east = pointFor({ x: 1, y: 0 }), south = pointFor({ x: 0, y: 1 });
   const terrainTransform = `matrix(${east.x - origin.x} ${east.y - origin.y} ${south.x - origin.x} ${south.y - origin.y} ${origin.x} ${origin.y})`;
   const terrainRegions = new Set(ACTIVE_WORLD_REGIONS.filter(region => {
-    const bounds = regionRoadBounds(region), radius = compactProjection.radiusMetres;
+    const bounds = regionRoadBounds(region), radius = compactProjection.radiusWorldUnits;
     return full || hud.player.x + radius >= bounds.minX && hud.player.x - radius <= bounds.maxX
       && hud.player.y + radius >= bounds.minY && hud.player.y - radius <= bounds.maxY;
   }).map(region => region.id));
@@ -129,7 +129,7 @@ export function GpsMap({
   const displayedRouteType = hud.objectiveType;
   const showNavigationTarget = displayedRouteType !== "roam";
   const routePoints = displayedRoute.map(pointFor).map((point) => `${point.x},${point.y}`).join(" ");
-  const roadRadius = compactProjection.radiusMetres + 12 / compactProjection.pixelsPerMetre;
+  const roadRadius = compactProjection.radiusWorldUnits + 12 / compactProjection.pixelsPerWorldUnit;
   const visibleSpecialRoads = full ? specialRoadPolylines : specialRoadPolylines.filter(road =>
     road.maxX >= hud.player.x - roadRadius && road.minX <= hud.player.x + roadRadius
     && road.maxY >= hud.player.y - roadRadius && road.minY <= hud.player.y + roadRadius);
@@ -187,7 +187,7 @@ export function GpsMap({
   } else {
     const centerRoadX = nearestRoadX(hud.player.x);
     const centerRoadY = nearestRoadY(hud.player.y);
-    const localRadius = compactProjection.radiusMetres + ROAD_SPACING;
+    const localRadius = compactProjection.radiusWorldUnits + ROAD_SPACING;
     const roadRadius = Math.ceil(localRadius / ROAD_SPACING);
     for (let offset = -roadRadius; offset <= roadRadius; offset += 1) {
       const roadX = centerRoadX + offset * ROAD_SPACING;

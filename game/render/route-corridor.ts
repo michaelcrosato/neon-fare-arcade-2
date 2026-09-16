@@ -1,4 +1,4 @@
-import { DISPLAY_METERS_PER_WORLD_UNIT, RED } from "../config";
+import { DISPLAY_METERS_PER_WORLD_UNIT } from "../config";
 import type { Box } from "../model";
 import type { NavigationSettings } from "../navigation-policy";
 
@@ -15,6 +15,6 @@ export function routeCorridorBoxes(dashes: readonly Box[], settings: Readonly<Na
     sz: height,
     pitch: 0,
     tilt: 0,
-    color: [RED[0], RED[1], RED[2], settings.corridorOpacity],
+    color: [dash.color[0], dash.color[1], dash.color[2], settings.corridorOpacity],
   }));
 }
