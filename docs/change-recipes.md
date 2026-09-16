@@ -129,6 +129,9 @@ Do not trade away safe placement or change fare rewards to improve this number.
 6. Test every sheet boundary plus shared and every regional eligibility, deck
    exhaustion, adjacent-market blocking, and independent regional history when
    a sixth-fare transfer leaves and later returns to a region.
+7. Each rider also needs three unique, portrait-appropriate Accord conversation
+   replies in `game/passenger-quantum-responses.ts`, keyed by stable rider ID.
+   Run `tests/game/accord-events.test.ts` for exact cast coverage and rotation.
 
 ## Change destinations or GPS policy
 

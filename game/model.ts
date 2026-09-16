@@ -683,6 +683,8 @@ export type Game = {
   /** Run-scoped Accord story state, serialized with deterministic replays. */
   winterTiresPaid?: boolean;
   accordTrip?: import("./accord-events").AccordTrip;
+  /** Per-passenger conversation rotation, independent of the six fare slots. */
+  accordReplyCounts?: Partial<Record<FareId, number>>;
   boost: number;
   combo: number;
   deliveries: number;

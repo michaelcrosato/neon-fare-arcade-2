@@ -7,7 +7,9 @@ import { useGameRuntime } from "../../../app/runtime/use-game-runtime";
 import { presentSimulationEvents } from "../../../app/runtime/present-simulation-events";
 import { DiagnosticsRecorder } from "../../../app/runtime/diagnostics";
 import { TouchDriving } from "../../../app/runtime/touch-driving";
-import { beginAccordTrip } from "../../../game/accord-events";
+import { beginAccordTrip, QUANTUM_FACTS } from "../../../game/accord-events";
+import { FARE_RIDERS } from "../../../game/passengers";
+import { PASSENGER_QUANTUM_RESPONSES } from "../../../game/passenger-quantum-responses";
 import { makeGame } from "../../../game/state";
 import { makeHud } from "../../../game/hud";
 import type { Camera, InputState, Mode } from "../../../game/model";
@@ -52,13 +54,20 @@ function Scene() {
   </section>{storyCard && <StoryCard card={storyCard} onDismiss={dismissStoryCard} />}</main>;
 }
 const fixture = {
-  start(kind: "quantum" | "tires-paid" | "tow", paid = false) {
+  start(kind: "quantum" | "tires-paid" | "tow", paid = false, content?: { factIndex: number; riderId: string; replyIndex: number }) {
     const game = makeGame("street-ace", 91, "timed", "arcade", "accord-v6");
     game.traffic = []; game.elapsed = 4; game.countdown = 0;
     if (kind === "quantum") {
       game.onboard = true;
+      if (content) {
+        const rider = FARE_RIDERS.find(rider => rider.id === content.riderId)!;
+        Object.assign(game.fareJobs[0], { id: rider.id, rider: rider.rider, passengerArtCell: rider.passengerArtCell });
+        const firstReply = ((game.runSeed >>> 0) + rider.passengerArtCell) % 3;
+        game.accordReplyCounts = { [rider.id]: (content.replyIndex - firstReply + 3) % 3 };
+      }
       beginAccordTrip(game, game.fareJobs[0]);
       const trip = game.accordTrip!;
+      if (content) trip.sequence = (content.factIndex - (game.runSeed >>> 0) % QUANTUM_FACTS.length + QUANTUM_FACTS.length) % QUANTUM_FACTS.length;
       let remaining = trip.length * .52;
       for (let i = 1; i < trip.route.length; i++) {
         const a = trip.route[i - 1], b = trip.route[i];
@@ -72,6 +81,14 @@ const fixture = {
     gameRef.current = game;
     cameraRef.current.x = game.x; cameraRef.current.y = game.y; cameraRef.current.heightOffset = game.z;
     setPlaying();
+  },
+  longestContent() {
+    const factIndex = QUANTUM_FACTS.reduce((longest, fact, index) =>
+      fact.title.length + fact.text.length + fact.aside.length > QUANTUM_FACTS[longest].title.length + QUANTUM_FACTS[longest].text.length + QUANTUM_FACTS[longest].aside.length ? index : longest, 0);
+    const replies = FARE_RIDERS.flatMap(rider => PASSENGER_QUANTUM_RESPONSES[rider.id].map((response, replyIndex) => ({ riderId: rider.id, replyIndex, response })));
+    const reply = replies.reduce((longest, reply) => reply.response.length > longest.response.length ? reply : longest);
+    fixture.start("quantum", false, { factIndex, ...reply });
+    return { title: QUANTUM_FACTS[factIndex].title, response: reply.response };
   },
   state() { const g = gameRef.current; return { elapsed: g.elapsed, time: g.timeLeft, x: g.x, y: g.y, fare: g.fare, mode: modeRef.current, stories: [...stories] }; },
 };

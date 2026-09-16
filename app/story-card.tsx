@@ -12,6 +12,9 @@ export function StoryCard({ card, onDismiss }: { card: StoryCardData; onDismiss:
     const element = dialog.current;
     const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     element?.showModal();
+    // A long lesson must open at its beginning, not auto-scroll to the reply button.
+    element?.focus({ preventScroll: true });
+    if (element) element.scrollTop = 0;
     const key = (event: KeyboardEvent) => {
       if (event.key === "Tab") return;
       event.preventDefault(); event.stopImmediatePropagation();
@@ -22,7 +25,7 @@ export function StoryCard({ card, onDismiss }: { card: StoryCardData; onDismiss:
   }, [onDismiss]);
   const fact = card.kind === "quantum" ? QUANTUM_FACTS[card.factIndex] : null;
   const frame = card.kind === "quantum" ? fareArtFrame(card.artCell) : null;
-  return <dialog ref={dialog} className={`story-card story-card--${card.kind}`} aria-labelledby="story-card-title" aria-describedby="story-card-text"
+  return <dialog ref={dialog} tabIndex={-1} className={`story-card story-card--${card.kind}`} aria-labelledby="story-card-title" aria-describedby="story-card-text"
     onCancel={event => { event.preventDefault(); onDismiss(); }}
     onPointerDown={() => { pressed.current = true; }} onPointerCancel={() => { pressed.current = false; }}
     onClick={event => { if (event.detail === 0 || pressed.current) { pressed.current = false; onDismiss(); } }}>
