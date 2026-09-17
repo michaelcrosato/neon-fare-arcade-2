@@ -8,6 +8,7 @@ export class WebGLHorizon {
   private textures: WebGLTexture[] = [];
   private vao: WebGLVertexArrayObject;
   private revision = -1;
+  private locations = new Map<string, WebGLUniformLocation | null>();
   constructor(private gl: WebGL2RenderingContext) {
     const program = gl.createProgram(), vao = gl.createVertexArray();
     if (!program || !vao) throw new Error("Could not allocate horizon renderer");
@@ -36,6 +37,10 @@ void main() {
       }
       gl.linkProgram(program);
       if (!gl.getProgramParameter(program, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(program) ?? "Horizon shader link failed");
+      // Six validated string lookups per frame, for uniforms that never move.
+      for (const name of ["previous", "current", "skyRight", "skyUp", "skyForward", "options"]) {
+        this.locations.set(name, gl.getUniformLocation(program, name));
+      }
       for (let i = 0; i < 2; i++) {
         const texture = gl.createTexture();
         if (!texture) throw new Error("Could not allocate horizon texture");
@@ -55,11 +60,11 @@ void main() {
         gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, HORIZON_WIDTH, HORIZON_HEIGHT, 0, gl.RGBA, gl.UNSIGNED_BYTE, i ? frame.current : frame.previous);
       }
-      gl.uniform1i(gl.getUniformLocation(this.program, i ? "current" : "previous"), i);
+      gl.uniform1i(this.locations.get(i ? "current" : "previous") ?? null, i);
     }
     this.revision = frame.revision;
-    for (const [index, name] of ["skyRight", "skyUp", "skyForward"].entries()) gl.uniform3fv(gl.getUniformLocation(this.program, name), basis.subarray(index * 4, index * 4 + 3));
-    gl.uniform2fv(gl.getUniformLocation(this.program, "options"), basis.subarray(12, 14));
+    for (const [index, name] of ["skyRight", "skyUp", "skyForward"].entries()) gl.uniform3fv(this.locations.get(name) ?? null, basis.subarray(index * 4, index * 4 + 3));
+    gl.uniform2fv(this.locations.get("options") ?? null, basis.subarray(12, 14));
     gl.drawArrays(gl.TRIANGLES, 0, 3); gl.bindVertexArray(null); gl.enable(gl.DEPTH_TEST); gl.depthMask(true);
   }
   destroy() {

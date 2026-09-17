@@ -61,23 +61,61 @@ export function cameraFraming(game: Game, camera: Camera, aspect = 1) {
   };
 }
 
-export function viewProjection(game: Game, camera: Camera, aspect: number, drawDistance: number) {
+/**
+ * `nearOverride` only exists so shadow cascades can slice the same camera
+ * frustum. Every renderer still draws with the default near plane.
+ */
+export function viewProjection(
+  game: Game,
+  camera: Camera,
+  aspect: number,
+  drawDistance: number,
+  nearOverride?: number,
+) {
   const framing = cameraFraming(game, camera, aspect);
   let projection: Float32Array;
   let view: Float32Array;
   if (camera.mode === "fixed") {
     const halfHeight = framing.orthoHalfHeight!;
     const scale = isInterior(game) ? 1 : cameraDistanceScale(camera.distanceScale);
-    projection = orthoZO(halfHeight * aspect, -halfHeight * aspect, -halfHeight, halfHeight, 0.1, 140 * scale);
+    projection = orthoZO(halfHeight * aspect, -halfHeight * aspect, -halfHeight, halfHeight,
+      nearOverride ?? 0.1, nearOverride === undefined ? 140 * scale : Math.min(drawDistance, 140 * scale));
     view = lookAt(framing.eye, framing.target);
   } else if (camera.mode === "cab") {
-    projection = perspectiveZO(perspectiveSkyView(camera)!.fovY, aspect, 0.08, drawDistance);
+    projection = perspectiveZO(perspectiveSkyView(camera)!.fovY, aspect, nearOverride ?? 0.08, drawDistance);
     view = cabViewMatrix(game, camera);
   } else {
-    projection = perspectiveZO(perspectiveSkyView(camera)!.fovY, aspect, 0.15, drawDistance);
+    projection = perspectiveZO(perspectiveSkyView(camera)!.fovY, aspect, nearOverride ?? 0.15, drawDistance);
     view = lookAt(framing.eye, framing.target);
   }
   return mat4Multiply(projection, view);
+}
+
+/**
+ * The near/far planes and screen-space extents a renderer actually projects
+ * with. Screen-space effects have to reconstruct view positions from depth, and
+ * duplicating these constants is how they drift out of sync with the matrices.
+ */
+export function cameraDepthRange(game: Game, camera: Camera, aspect: number, drawDistance: number) {
+  if (camera.mode === "fixed") {
+    const scale = isInterior(game) ? 1 : cameraDistanceScale(camera.distanceScale);
+    const halfHeight = 20 * scale / camera.zoom;
+    return {
+      orthographic: true,
+      near: 0.1,
+      far: 140 * scale,
+      halfWidth: halfHeight * aspect,
+      halfHeight,
+    };
+  }
+  const tanHalfHeight = Math.tan(perspectiveSkyView(camera)!.fovY / 2);
+  return {
+    orthographic: false,
+    near: camera.mode === "cab" ? 0.08 : 0.15,
+    far: drawDistance,
+    halfWidth: tanHalfHeight * aspect,
+    halfHeight: tanHalfHeight,
+  };
 }
 
 export function projectWorldPoint(matrix: Float32Array, x: number, y: number, z: number, width: number, height: number) {

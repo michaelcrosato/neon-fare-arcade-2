@@ -32,6 +32,38 @@ export function cubeVertices() {
   return new Float32Array(output);
 }
 
+/**
+ * Write instances into a caller-owned buffer.
+ *
+ * Renderers reuse one scratch array per instance stream; allocating a fresh
+ * typed array for the actor, navigation and ghost passes every frame was the
+ * largest steady source of garbage in the render loop.
+ */
+export function packBoxesInto(boxes: readonly Box[], packed: Float32Array) {
+  const count = Math.min(boxes.length, Math.floor(packed.length / INSTANCE_FLOATS));
+  for (let index = 0; index < count; index += 1) {
+    const box = boxes[index];
+    const offset = index * INSTANCE_FLOATS;
+    packed[offset] = box.x;
+    packed[offset + 1] = box.y;
+    packed[offset + 2] = box.z;
+    packed[offset + 3] = box.material ?? MAT_GENERIC;
+    packed[offset + 4] = box.sx;
+    packed[offset + 5] = box.sy;
+    packed[offset + 6] = box.sz;
+    packed[offset + 7] = box.yaw;
+    packed[offset + 8] = box.color[0];
+    packed[offset + 9] = box.color[1];
+    packed[offset + 10] = box.color[2];
+    packed[offset + 11] = box.color[3];
+    packed[offset + 12] = box.pitch ?? 0;
+    packed[offset + 13] = box.tilt ?? 0;
+    packed[offset + 14] = 0;
+    packed[offset + 15] = 0;
+  }
+  return count * INSTANCE_FLOATS;
+}
+
 export function packBoxes(boxes: Box[]) {
   const packed = new Float32Array(boxes.length * INSTANCE_FLOATS);
   for (let index = 0; index < boxes.length; index += 1) {

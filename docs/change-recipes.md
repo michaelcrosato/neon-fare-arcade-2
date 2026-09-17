@@ -230,6 +230,24 @@ Do not trade away safe placement or change fare rewards to improve this number.
 4. Extend `render-contract.test.ts` with exact packed floats.
 5. Test a real WebGPU browser; TypeScript cannot validate WGSL.
 
+## Add a rendering effect or change a quality tier
+
+1. Decide where the effect belongs. Budgets and sun/cascade math are
+   renderer-neutral (`game/render/quality.ts`, `game/render/sun.ts`) and belong
+   in `tests/game/render-quality.test.ts`; only the passes, bindings and WGSL
+   live in `app/webgpu-shaders.ts` and `app/webgpu-renderer.ts`.
+2. Add the budget to `RenderQuality` and give every tier a value. A tier whose
+   WGSL differs must also get its own bind group layout entries.
+3. Verify at more than one tier: `?graphics=ultra` and `?graphics=compatibility`
+   compile different shaders and bind different resources, so one passing does
+   not imply the other does.
+4. Check all four cameras, both renderers, and an interior. Interiors disable
+   the cascades, and Fixed ISO is the only orthographic camera.
+5. Measure before and after with `node scripts/render-bench.mjs`, with nothing
+   else running — a background test run moves the mean by several milliseconds.
+6. If a pipeline sets its own bind group inside the scene pass, restore the
+   scene bind group afterwards. The panorama owns group 0 while it draws.
+
 ## Diagnose a frozen frame
 
 1. Add `?diagnostics=1`, pause, and choose **Copy Diagnostics** as soon as the

@@ -26,6 +26,11 @@ Hard budgets:
 - player vehicle meshes: 2,048 faces in a separate dynamic buffer;
 - camera uniform: 24 floats / 96 bytes.
 
+The camera uniform is unchanged. WebGPU adds a separate 72-float frame block for
+the sun, the cascade matrices and their distances, the camera eye and forward
+axis, and the shadow texel size, plus one 96-byte light uniform per cascade at
+the 256-byte binding stride.
+
 ## Road, terrain, and architectural surfaces
 
 `MeshFace` accepts triangles or quads alongside the unchanged box protocol;
@@ -238,15 +243,85 @@ outside it.
 
 ## Streaming and fog
 
-Scene surfaces have hard pixel budgets: 2.5 million pixels for WebGPU and 1.8
-million for Canvas. `render/resolution.ts` may choose a scale below one on large
-displays. WebGPU also respects the device's maximum texture dimension. The
+Scene surfaces have hard pixel budgets: the WebGPU tier budget above, and 1.8
+million pixels for Canvas. `render/resolution.ts` may choose a scale below one on
+large displays. WebGPU also respects the device's maximum texture dimension. The
 HTML HUD keeps its native resolution. These limits bound surface size, not FPS.
+
+## WebGPU frame structure
+
+Passes in submission order: one depth-only pass per shadow cascade; the scene
+pass (panorama, streamed boxes, road and landscape surfaces, opaque actors,
+navigation and ghost silhouettes, vehicle mesh, translucent actors) into a
+multisampled `rgba16float` target that resolves to a sampled scene texture;
+ambient occlusion at half resolution; the bloom pyramid; and the composite.
+
+Every scene pipeline shares one explicit bind group layout and therefore one
+bind group. The box pipelines cull back faces: `abs()` on the instance scale
+makes every cuboid's winding identical, and both shared projections mirror X, so
+outward faces arrive clockwise. Road, terrain and vehicle faces are authored
+without a winding rule and stay double sided.
+
+Bloom is a prefilter with a soft-knee threshold, a thirteen-tap downsample
+chain over the mip levels of one texture, and an additively blended nine-tap
+tent upsample. Ambient occlusion rebuilds view positions from the depth buffer
+and normals from the nearest depth neighbours, then uses the Alchemy estimator:
+a plain depth-difference test darkens every receding ground plane instead of
+only its creases. The composite applies exposure, bloom, occlusion, a filmic
+shoulder, saturation/contrast, the vignette and a triangular-PDF dither.
+
+Instance streams are packed into reusable scratch arrays through
+`packBoxesInto`; the WebGL fallback caches its uniform locations and grows its
+buffer stores instead of reallocating them each frame. When `timestamp-query` is
+available the renderer reports median shadow/scene/composite times through
+`window.__renderStats()`, which `scripts/render-bench.mjs` collects.
+
+## Quality tiers and adaptive resolution
+
+`game/render/quality.ts` is the authoritative tier policy. `resolveRenderTier`
+reads only what a browser reliably reports — the mobile breakpoint, the adapter
+vendor/architecture when Chrome does not mask it, `hardwareConcurrency` and
+`deviceMemory` — and `renderQuality` turns a tier into the effect budget:
+
+| tier | pixels | MSAA | cascades | map | taps | bloom | AO |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `ultra` (discrete desktop GPU) | 4.2M | 4x | 3 | 2048 | 9 | 5 | yes |
+| `balanced` (masked/integrated desktop) | 2.5M | 4x | 2 | 2048 | 4 | 4 | no |
+| `high` (2025 flagship phone) | 2.5M | 4x | 2 | 1024 | 4 | 4 | no |
+| `compatibility` | 2.0M | off | 0 | — | — | 0 | no |
+
+Multisampling stays on for `high` because a tile-based mobile GPU resolves it
+inside tile memory; the scene pass uses `storeOp: "discard"` with a
+`resolveTarget` so the multisampled surface never reaches memory.
+
+Players override the detected tier in Options → Graphics Engine, and
+`?graphics=<tier>` forces one for a single session without changing the saved
+preference. `adaptResolution` lowers the scene scale to `MIN_RESOLUTION_SCALE`
+only after two consecutive slow one-second windows and restores it after six
+fast ones, so a chunk stream or a modal cannot visibly resize the scene.
 
 ## Lighting and ground shadows
 
+`game/render/sun.ts` owns the single sun direction every backend shades with,
+and builds the cascaded shadow matrices. Each cascade bounds its slice of the
+camera frustum with a sphere rather than a corner box, so turning cannot resize
+the covered area, and its light-space origin is snapped to whole shadow texels
+so moving cannot make shadow edges crawl. `viewProjection` accepts a near-plane
+override purely so a cascade can slice the real camera; every renderer still
+draws with the default near plane.
+
+The cascade pass is depth-only and renders the streamed city boxes, opaque
+actors and the ghost buffer — the taxi and the avatar therefore cast. It culls
+front faces so the stored depth sits behind the lit surface, which removes
+shadow acne without a large bias. Only `ultra` also casts from road, terrain and
+vehicle surfaces. Receivers apply the cascade before colour quantization, so the
+posterized bands stay crisp, and emissive materials (windows, lamps, markers,
+route dots, turn arrows, signs and beacons) are never darkened. When cascades
+are active the WebGPU renderer drops the painted `taxiGroundShadow` decal, since
+the real shadow already darkens that ground; Canvas keeps it.
+
 `render/lighting.ts` supplies Canvas's warm direct/cool ambient light and short
-world-space shadow offset, aligned with the existing WebGPU sun direction.
+world-space shadow offset, aligned with the shared WebGPU sun direction.
 Canvas uses light bands on building edges and two-layer elliptical contact
 shadows for cars, foliage, and nearby citizens. Sky and vignette gradients are
 created on resize, not each frame. Emissive signs and navigation retain their

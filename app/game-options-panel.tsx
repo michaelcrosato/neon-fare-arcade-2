@@ -1,6 +1,7 @@
 "use client";
 
 import { VehicleGraphicsOptions } from "./vehicle-graphics";
+import { GraphicsQualityOptions } from "./graphics-quality";
 import { MinimapOptions } from "./minimap-settings";
 import {
   CAMERA_OPTIONS,
@@ -182,6 +183,7 @@ export function GameOptionsPanel({
 
           <fieldset className="game-options-section">
             <legend>GRAPHICS ENGINE</legend>
+            <GraphicsQualityOptions />
             <VehicleGraphicsOptions />
             <div className="graphics-status-box">
               <span className="graphics-status-label">ACTIVE BACKEND</span>

@@ -21,6 +21,11 @@ eligibility, routing, purchase, or physics rules.
 - `webgpu-renderer.ts` and `canvas2d-renderer.ts` are concrete renderers only;
   renderer selection, fallback activation, and cleanup live in
   `runtime/use-game-runtime.ts`.
+- `webgpu-shaders.ts` builds the WGSL for the tier the device resolved to.
+  Effect budgets and the sun/cascade math are renderer-neutral and live in
+  `game/render/quality.ts` and `game/render/sun.ts`.
+- `graphics-quality.tsx` is the saved graphics preference; `?graphics=<tier>`
+  overrides it for one session.
 - `use-career.ts` is the device-local persistence adapter.
 - `use-fare-card-deck.ts` owns browser timing for card presentation.
 
@@ -29,8 +34,14 @@ eligibility, routing, purchase, or physics rules.
 - WebGPU and Canvas consume the same `Game`, `Camera`, `WorldView`, HUD, scene,
   and navigation semantics.
 - `game/render/packing.ts` is authoritative for instance layout and capacity.
+  Per-frame streams use `packBoxesInto` with a renderer-owned scratch array.
 - TypeScript does not compile embedded WGSL. Shader, binding, stride, camera,
-  and fallback changes require real renderer verification.
+  and fallback changes require real renderer verification at more than one
+  quality tier, because the WGSL and the bind group layouts differ per tier.
+- The frame loop measures the stage once per resize. Do not call
+  `getBoundingClientRect` per frame, and do not write canvas dataset attributes
+  unless the value changed: together they force a layout flush every frame.
+- `scripts/render-bench.mjs` reports frame-time percentiles and GPU pass times.
 - Preserve Canvas-first startup, WebGPU first-frame activation, fallback order,
   and cleanup behavior when changing `runtime/use-game-runtime.ts`.
 

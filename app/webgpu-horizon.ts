@@ -13,7 +13,7 @@ export class WebGPUHorizon {
   private textures: any[];
   private group: any;
 
-  constructor(private device: any, format: string) {
+  constructor(private device: any, format: string, sampleCount = 1, depthFormat = "depth24plus") {
     const shader = device.createShaderModule({ code: `
 struct View { right: vec4<f32>, up: vec4<f32>, forward: vec4<f32>, options: vec4<f32> };
 @group(0) @binding(0) var<uniform> view: View;
@@ -23,7 +23,9 @@ struct View { right: vec4<f32>, up: vec4<f32>, forward: vec4<f32>, options: vec4
 struct Vertex { @builtin(position) position: vec4<f32>, @location(0) clip: vec2<f32> };
 @vertex fn vertex(@builtin(vertex_index) i: u32) -> Vertex {
   let positions = array<vec2<f32>, 3>(vec2<f32>(-1,-1),vec2<f32>(3,-1),vec2<f32>(-1,3));
-  var out: Vertex; out.clip=positions[i]; out.position=vec4<f32>(out.clip,0.999,1); return out;
+  // Exactly the far plane: the pass draws after opaque geometry and a
+  // less-or-equal test then limits it to pixels nothing else covered.
+  var out: Vertex; out.clip=positions[i]; out.position=vec4<f32>(out.clip,1.0,1); return out;
 }
 @fragment fn fragment(v: Vertex) -> @location(0) vec4<f32> {
   if (view.options.x < 0.5) {
@@ -36,7 +38,9 @@ struct Vertex { @builtin(position) position: vec4<f32>, @location(0) clip: vec2<
     this.pipeline = device.createRenderPipeline({ layout: "auto",
       vertex: { module: shader, entryPoint: "vertex" }, fragment: { module: shader, entryPoint: "fragment", targets: [{ format }] },
       primitive: { topology: "triangle-list", cullMode: "none" },
-      depthStencil: { format: "depth24plus", depthWriteEnabled: false, depthCompare: "always" } });
+      // The panorama shares the scene pass, so it must match its attachments.
+      multisample: { count: sampleCount },
+      depthStencil: { format: depthFormat, depthWriteEnabled: false, depthCompare: "less-equal" } });
     this.uniform = device.createBuffer({ size: HORIZON_UNIFORM_BYTES, usage: 0x40 | 0x08 });
     this.textures = [0, 1].map(() => device.createTexture({ size: [HORIZON_WIDTH, HORIZON_HEIGHT], format: "rgba8unorm", usage: 0x04 | 0x02 | 0x10 }));
     const sampler = device.createSampler({ addressModeU: "repeat", addressModeV: "clamp-to-edge", minFilter: "linear", magFilter: "linear" });

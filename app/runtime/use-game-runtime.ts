@@ -40,6 +40,7 @@ import {
   walkingCameraHeightOffset,
 } from "@/game/player";
 import { Canvas2DRenderer } from "../canvas2d-renderer";
+import { subscribeGraphicsPreference } from "../graphics-quality";
 import { vehicleDetailSetting } from "../vehicle-graphics";
 import {
   createWebGPURenderer,
@@ -192,6 +193,28 @@ export function useGameRuntime(options: GameRuntimeOptions) {
       }
     };
 
+    // `getBoundingClientRect` forces a layout flush. The HUD presenters needed
+    // it four times per frame, immediately after the renderers wrote canvas
+    // dataset attributes, which invalidated layout again every frame.
+    let stageBounds = { width: 0, height: 0 };
+    const measureStage = () => {
+      // Headless frame-loop tests drive this hook with a stub canvas that has
+      // no layout box; the HUD presenters are skipped there anyway.
+      const rect = canvas2d.getBoundingClientRect?.();
+      stageBounds = { width: rect?.width ?? 0, height: rect?.height ?? 0 };
+    };
+    measureStage();
+    // A resize event is not the only way the stage changes size: entering a
+    // mode, rotating, or a CSS change can too. The observer reports the new box
+    // without the frame loop having to ask for it.
+    const stageObserver = typeof ResizeObserver === "function"
+      ? new ResizeObserver((entries) => {
+          const box = entries[entries.length - 1]?.contentRect;
+          if (box) stageBounds = { width: box.width, height: box.height };
+        })
+      : null;
+    stageObserver?.observe(canvas2d);
+
     const resize = () => {
       try { fallbackRenderer?.resize(); } catch (error) {
         reportRuntimeError("canvas-resize", error);
@@ -202,6 +225,7 @@ export function useGameRuntime(options: GameRuntimeOptions) {
         reportRuntimeError("webgpu-resize", error);
         activateFallback();
       }
+      measureStage();
     };
 
     const renderFrame = (game: Game, now: number, world: WorldView, navigation: NavigationPlan) => {
@@ -414,9 +438,8 @@ export function useGameRuntime(options: GameRuntimeOptions) {
         if (navigationDistanceRef.current) {
           if (currentMode !== "playing") navigationDistanceRef.current.hidden = true;
           else {
-            const bounds = canvas2d.getBoundingClientRect();
             presentNavigationDistance(navigationDistanceRef.current, game, camera, reducedMotion ? 0 : now / 1000,
-              currentNavigation, bounds.width, bounds.height);
+              currentNavigation, stageBounds.width, stageBounds.height);
           }
         }
         if (fareImpactRef.current) {
@@ -424,23 +447,20 @@ export function useGameRuntime(options: GameRuntimeOptions) {
         }
         let taxiExitBounds: ReturnType<typeof presentTaxiExitAction>;
         if (taxiExitRef.current) {
-          const bounds = canvas2d.getBoundingClientRect();
-          taxiExitBounds = presentTaxiExitAction(taxiExitRef.current, game, camera, bounds.width, bounds.height);
+          taxiExitBounds = presentTaxiExitAction(taxiExitRef.current, game, camera, stageBounds.width, stageBounds.height);
         }
         if (clutchWarningRef.current) {
           if (currentMode !== "playing") clutchWarningRef.current.hidden = true;
           else {
-            const bounds = canvas2d.getBoundingClientRect();
             presentClutchWarning(clutchWarningRef.current, game, camera, reducedMotion ? 0 : now / 1000,
-              currentNavigation, bounds.width, bounds.height, taxiExitBounds);
+              currentNavigation, stageBounds.width, stageBounds.height, taxiExitBounds);
           }
         }
         if (passengerReviewRef.current) {
           if (modeRef.current === "menu" || modeRef.current === "ended" || modeRef.current === "countdown") {
             passengerReviewRef.current.hidden = true;
           } else {
-            const bounds = canvas2d.getBoundingClientRect();
-            presentPassengerReview(passengerReviewRef.current, game, cameraRef.current, bounds.width, bounds.height);
+            presentPassengerReview(passengerReviewRef.current, game, cameraRef.current, stageBounds.width, stageBounds.height);
           }
         }
 
@@ -492,7 +512,7 @@ export function useGameRuntime(options: GameRuntimeOptions) {
     };
 
     raf = requestAnimationFrame(frame);
-    void createWebGPURenderer(
+    const activateWebGPU = () => void createWebGPURenderer(
       webGpuCanvas,
       activateFallback,
       () => cancelled || gpuUnavailable,
@@ -520,6 +540,9 @@ export function useGameRuntime(options: GameRuntimeOptions) {
         }
         gpuRenderer = candidate;
         activeRenderer = candidate;
+        // Keeping the fallback's WebGL2 context alive costs a second copy of
+        // the streamed city plus its horizon textures for the whole session.
+        fallbackRenderer?.releaseAcceleratedResources();
         setRendererKind("WEBGPU ACTIVE");
       } catch (error) {
         reportRuntimeError("webgpu-first-frame", error);
@@ -527,6 +550,24 @@ export function useGameRuntime(options: GameRuntimeOptions) {
         activateFallback();
       }
     });
+    activateWebGPU();
+
+    // A new graphics preset changes the shaders, the bind group layouts and the
+    // attachment formats, so the device is rebuilt rather than reconfigured.
+    // The Canvas renderer owns the frame while that happens.
+    const rebuildGpuRenderer = () => {
+      if (cancelled || gpuUnavailable) return;
+      const previous = gpuRenderer;
+      gpuRenderer = null;
+      activeRenderer = fallbackRenderer;
+      setRendererKind(fallbackRenderer ? "CANVAS FALLBACK" : "DISPLAY UNAVAILABLE");
+      previous?.destroy();
+      try { fallbackRenderer?.resize(); } catch (error) {
+        reportRuntimeError("canvas-resize", error);
+      }
+      activateWebGPU();
+    };
+    const stopGraphicsWatch = subscribeGraphicsPreference(rebuildGpuRenderer);
 
     window.addEventListener("resize", resize);
     window.visualViewport?.addEventListener("resize", resize);
@@ -553,7 +594,9 @@ export function useGameRuntime(options: GameRuntimeOptions) {
       window.removeEventListener("resize", resize);
       window.visualViewport?.removeEventListener("resize", resize);
       document.removeEventListener("fullscreenchange", resize);
+      stageObserver?.disconnect();
       releaseGestures?.();
+      stopGraphicsWatch();
       document.removeEventListener("visibilitychange", onVisibility);
       window.removeEventListener("blur", onBlur);
       activeRenderer = null;

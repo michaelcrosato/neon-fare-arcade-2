@@ -210,7 +210,7 @@ test("malformed career storage recovers to a normalized save", async ({ page }) 
     bank: 0,
     owned: ["neon-loft"],
     furnishings: { owned: [], placed: [] },
-    fuelTanks: { "crown-cab": 75.7, "accord-v6": 65 },
+    fuelTanks: { "crown-cab": 75.7, "accord-v6": 65, "gtr-r35": 73.8 },
     runsCompleted: 0,
     lifetimeFare: 0,
     lifetimeScore: 0,

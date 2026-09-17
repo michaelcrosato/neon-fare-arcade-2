@@ -46,11 +46,29 @@ export function roadStripQuad(
   return { corners: [point(a, left), point(b, endLeft), point(b, endRight), point(a, right)], color, material };
 }
 
+/** Float count `packSurfaceQuadsInto` needs for these faces. */
+export function surfaceVertexFloats(quads: readonly MeshFace[]) {
+  let vertices = 0;
+  for (const face of quads) vertices += face.corners.length === 3 ? 3 : 6;
+  return vertices * SURFACE_VERTEX_FLOATS;
+}
+
 /** CPU/GPU vertex contract: xyz/material, normal xyz/face light, RGBA. */
 export function packSurfaceQuads(quads: readonly MeshFace[]) {
+  const output = new Float32Array(surfaceVertexFloats(quads));
+  return output.subarray(0, packSurfaceQuadsInto(quads, output));
+}
+
+/**
+ * Write surface vertices into a caller-owned buffer and return the float count.
+ * Renderers reuse one array per stream instead of allocating the vehicle mesh
+ * again on every frame.
+ */
+export function packSurfaceQuadsInto(quads: readonly MeshFace[], output: Float32Array) {
   if (quads.length > MAX_STREAM_SURFACE_QUADS) throw new Error("Road surface vertex budget exceeded");
-  const vertexCount = quads.reduce((sum, face) => sum + (face.corners.length === 3 ? 3 : 6), 0);
-  const output = new Float32Array(vertexCount * SURFACE_VERTEX_FLOATS);
+  // Writing past a typed array is silently discarded, which would leave a mesh
+  // quietly truncated instead of reporting an undersized scratch buffer.
+  if (output.length < surfaceVertexFloats(quads)) throw new Error("Surface vertex buffer too small");
   let offset = 0;
   for (const quad of quads) {
     // Preserve the 0,1,2 / 0,2,3 fan without per-triangle arrays or vectors.
@@ -81,5 +99,5 @@ export function packSurfaceQuads(quads: readonly MeshFace[]) {
       }
     }
   }
-  return output;
+  return offset;
 }

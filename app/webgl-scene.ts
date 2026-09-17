@@ -1,5 +1,12 @@
 import type { Box, Camera, WorldView } from "@/game/model";
-import { cubeVertices, INSTANCE_BYTES, INSTANCE_FIELD_OFFSET_BYTES, packBoxes } from "@/game/render/packing";
+import {
+  cubeVertices,
+  INSTANCE_BYTES,
+  INSTANCE_FIELD_OFFSET_BYTES,
+  INSTANCE_FLOATS,
+  packBoxesInto,
+} from "@/game/render/packing";
+import { MAX_STREAM_BOXES } from "@/game/config";
 import { packSurfaceQuads, SURFACE_VERTEX_BYTES } from "@/game/render/surfaces";
 import { BEACON_FAR_DEPTH, sphereInView } from "@/game/render/clip";
 import { MAT_WINDOW, MAT_LAMP, MAT_MARKER, MAT_ROUTE, MAT_TURN, MAT_BEACON } from "@/game/config";
@@ -54,7 +61,9 @@ void main() {
     abs(vertex.w-0.8)<0.01?vec3(1,0,0):abs(vertex.w-0.62)<0.01?vec3(-1,0,0):
     abs(vertex.w-0.72)<0.01?vec3(0,1,0):vec3(0,-1,0);
   normal=rotate(n);
-  worldPosition=positionMaterial.xyz+rotate(vertex.xyz*scaleYaw.xyz);
+  // abs() keeps every cuboid wound the same way so back faces can be culled;
+  // a cube is symmetric, so a mirrored scale only reversed the triangle order.
+  worldPosition=positionMaterial.xyz+rotate(vertex.xyz*abs(scaleYaw.xyz));
   color=tint; material=positionMaterial.w;
   vec4 clip=matrix*vec4(worldPosition,1);
   if (material==${MAT_BEACON}.0) clip.z=min(clip.z,clip.w*${BEACON_FAR_DEPTH});
@@ -78,7 +87,13 @@ void main() {
   gl_Position=vec4(clip.xy,2.0*clip.z-clip.w,clip.w);
 }`;
 
-type Mesh = { vao: WebGLVertexArrayObject; buffer: WebGLBuffer; count: number };
+type Mesh = { vao: WebGLVertexArrayObject; buffer: WebGLBuffer; count: number; capacity: number };
+type Uniforms = {
+  matrix: WebGLUniformLocation | null;
+  cameraXY: WebGLUniformLocation | null;
+  drawDistance: WebGLUniformLocation | null;
+  ghost: WebGLUniformLocation | null;
+};
 
 /** WebGL consumes the existing box/surface protocol and camera matrices. */
 export class WebGLScene {
@@ -99,6 +114,13 @@ export class WebGLScene {
   private vehicleSurfaces: Mesh;
   private key: string | null = null;
   private horizon: WebGLHorizon | null = null;
+  // `getUniformLocation` is a validated string lookup; it was being called
+  // eight or more times per frame.
+  private uniforms = new Map<WebGLProgram, Uniforms>();
+  private instanceScratch = new Float32Array(MAX_STREAM_BOXES * INSTANCE_FLOATS);
+  private visible: Box[] = [];
+  private opaque: Box[] = [];
+  private translucent: Box[] = [];
 
   constructor() {
     const gl = this.canvas.getContext("webgl2", { alpha: false, antialias: false });
@@ -107,6 +129,14 @@ export class WebGLScene {
     try {
       this.horizon = new WebGLHorizon(gl);
       this.boxProgram = this.program(BOX_VERTEX); this.surfaceProgram = this.program(SURFACE_VERTEX);
+      for (const program of [this.boxProgram, this.surfaceProgram]) {
+        this.uniforms.set(program, {
+          matrix: gl.getUniformLocation(program, "matrix"),
+          cameraXY: gl.getUniformLocation(program, "cameraXY"),
+          drawDistance: gl.getUniformLocation(program, "drawDistance"),
+          ghost: gl.getUniformLocation(program, "ghost"),
+        });
+      }
       this.cube = this.buffer(); gl.bindBuffer(gl.ARRAY_BUFFER, this.cube);
       gl.bufferData(gl.ARRAY_BUFFER, cubeVertices(), gl.STATIC_DRAW);
       this.city = this.boxMesh(); this.actors = this.boxMesh();
@@ -147,7 +177,7 @@ export class WebGLScene {
   private mesh(): Mesh {
     const vao = this.gl.createVertexArray();
     if (!vao) throw new Error("Could not allocate WebGL vertex array");
-    this.arrays.push(vao); return { vao, buffer: this.buffer(), count: 0 };
+    this.arrays.push(vao); return { vao, buffer: this.buffer(), count: 0, capacity: 0 };
   }
   private boxMesh() {
     const gl = this.gl, mesh = this.mesh(); gl.bindVertexArray(mesh.vao);
@@ -160,9 +190,17 @@ export class WebGLScene {
     });
     return mesh;
   }
-  private upload(mesh: Mesh, boxes: Box[], dynamic = true) {
-    const gl = this.gl; gl.bindBuffer(gl.ARRAY_BUFFER, mesh.buffer);
-    gl.bufferData(gl.ARRAY_BUFFER, packBoxes(boxes), dynamic ? gl.DYNAMIC_DRAW : gl.STATIC_DRAW);
+  /** Reuse one scratch array and one buffer store per stream; `bufferData`
+   * with a fresh typed array reallocated hundreds of kilobytes every frame. */
+  private upload(mesh: Mesh, boxes: Box[]) {
+    const gl = this.gl;
+    const floats = packBoxesInto(boxes, this.instanceScratch);
+    gl.bindBuffer(gl.ARRAY_BUFFER, mesh.buffer);
+    if (mesh.capacity < boxes.length) {
+      mesh.capacity = Math.max(64, boxes.length * 2);
+      gl.bufferData(gl.ARRAY_BUFFER, mesh.capacity * INSTANCE_BYTES, gl.DYNAMIC_DRAW);
+    }
+    if (floats) gl.bufferSubData(gl.ARRAY_BUFFER, 0, this.instanceScratch, 0, floats);
     mesh.count = boxes.length;
   }
   render(matrix: Float32Array, width: number, height: number, camera: Camera, distance: number, world: WorldView, scene: CompatibilityScene, sky: HorizonFrame, skyBasis: Float32Array) {
@@ -176,12 +214,19 @@ export class WebGLScene {
     }
     // Software WebGL drivers otherwise transform the entire radius-three city.
     // Keep the full world streamed, but submit only boxes intersecting the view.
-    this.upload(this.city, world.boxes.filter(box =>
-      sphereInView(matrix, box.x, box.y, box.z, Math.hypot(box.sx, box.sy, box.sz) / 2)));
-    const opaqueActors = scene.actors.filter(box => (box.color[3] ?? 1) >= 0.99);
-    const transparentActors = scene.actors.filter(box => (box.color[3] ?? 1) < 0.99);
-    this.upload(this.actors, opaqueActors);
-    this.upload(this.transparentActors, transparentActors);
+    this.visible.length = 0;
+    for (const box of world.boxes) {
+      if (sphereInView(matrix, box.x, box.y, box.z, Math.hypot(box.sx, box.sy, box.sz) / 2)) this.visible.push(box);
+    }
+    this.upload(this.city, this.visible);
+    this.opaque.length = 0;
+    this.translucent.length = 0;
+    for (const box of scene.actors) {
+      if ((box.color[3] ?? 1) < 0.99) this.translucent.push(box);
+      else this.opaque.push(box);
+    }
+    this.upload(this.actors, this.opaque);
+    this.upload(this.transparentActors, this.translucent);
     this.upload(this.focus, scene.focus); this.upload(this.navigation, scene.navigation);
     const vehicleVertices = packSurfaceQuads(scene.focusSurfaces);
     gl.bindBuffer(gl.ARRAY_BUFFER, this.vehicleSurfaces.buffer);
@@ -189,23 +234,35 @@ export class WebGLScene {
     this.vehicleSurfaces.count = vehicleVertices.byteLength / SURFACE_VERTEX_BYTES;
     gl.viewport(0, 0, width, height); gl.clearColor(0.35, 0.7, 0.88, 1); gl.clearDepth(1);
     gl.depthMask(true); gl.enable(gl.DEPTH_TEST); gl.depthFunc(gl.LEQUAL);
+    // WebGL window space is the vertical mirror of WebGPU's framebuffer space,
+    // so the same outward faces read counter-clockwise here.
+    gl.cullFace(gl.BACK); gl.frontFace(gl.CCW);
     gl.disable(gl.CULL_FACE); gl.disable(gl.BLEND); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     this.horizon!.render(sky, skyBasis);
     const bindProgram = (program: WebGLProgram) => {
-      gl.useProgram(program); gl.uniformMatrix4fv(gl.getUniformLocation(program, "matrix"), false, matrix);
-      gl.uniform2f(gl.getUniformLocation(program, "cameraXY"), camera.x, camera.y);
-      gl.uniform1f(gl.getUniformLocation(program, "drawDistance"), distance); gl.uniform1i(gl.getUniformLocation(program, "ghost"), 0);
+      const uniforms = this.uniforms.get(program)!;
+      gl.useProgram(program); gl.uniformMatrix4fv(uniforms.matrix, false, matrix);
+      gl.uniform2f(uniforms.cameraXY, camera.x, camera.y);
+      gl.uniform1f(uniforms.drawDistance, distance); gl.uniform1i(uniforms.ghost, 0);
     };
-    const boxes = (mesh: Mesh) => { gl.bindVertexArray(mesh.vao); gl.drawArraysInstanced(gl.TRIANGLES, 0, 36, mesh.count); };
+    const setGhost = (program: WebGLProgram, ghost: number) =>
+      gl.uniform1i(this.uniforms.get(program)!.ghost, ghost);
+    // Cuboids are closed volumes: drawing their inward halves doubled the
+    // fallback's fragment work for no visible difference.
+    const boxes = (mesh: Mesh) => {
+      gl.enable(gl.CULL_FACE); gl.bindVertexArray(mesh.vao);
+      gl.drawArraysInstanced(gl.TRIANGLES, 0, 36, mesh.count);
+      gl.disable(gl.CULL_FACE);
+    };
     bindProgram(this.surfaceProgram); gl.bindVertexArray(this.surfaces.vao); gl.drawArrays(gl.TRIANGLES, 0, this.surfaces.count);
     bindProgram(this.boxProgram); boxes(this.city); boxes(this.actors);
     gl.depthMask(false); gl.depthFunc(gl.GREATER); gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-    gl.uniform1i(gl.getUniformLocation(this.boxProgram, "ghost"), 1); boxes(this.focus); boxes(this.navigation);
-    bindProgram(this.surfaceProgram); gl.uniform1i(gl.getUniformLocation(this.surfaceProgram, "ghost"), 1);
+    setGhost(this.boxProgram, 1); boxes(this.focus); boxes(this.navigation);
+    bindProgram(this.surfaceProgram); setGhost(this.surfaceProgram, 1);
     gl.bindVertexArray(this.vehicleSurfaces.vao); gl.drawArrays(gl.TRIANGLES, 0, this.vehicleSurfaces.count);
     bindProgram(this.boxProgram);
     gl.depthMask(true); gl.depthFunc(gl.LEQUAL); gl.disable(gl.BLEND);
-    gl.uniform1i(gl.getUniformLocation(this.boxProgram, "ghost"), 0); boxes(this.focus); boxes(this.navigation);
+    setGhost(this.boxProgram, 0); boxes(this.focus); boxes(this.navigation);
     bindProgram(this.surfaceProgram); gl.bindVertexArray(this.vehicleSurfaces.vao); gl.drawArrays(gl.TRIANGLES, 0, this.vehicleSurfaces.count);
     bindProgram(this.boxProgram);
     if (this.transparentActors.count > 0) {
