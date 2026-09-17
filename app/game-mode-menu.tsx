@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 import type { DrivingModel, RunKind } from "@/game/model";
 import { ACTIVE_WORLD_REGIONS } from "@/game/regions";
 
@@ -7,6 +9,8 @@ type GameModeMenuProps = Readonly<{
   careerBank: number;
   best: number;
   onRequestStartRun: (runKind: RunKind, drivingModel?: DrivingModel) => void;
+  /** Account sync surface, passed in so the menu stays free of any sync rule. */
+  cloudSave?: ReactNode;
 }>;
 
 export function GameModeMenu({
@@ -15,6 +19,7 @@ export function GameModeMenu({
   careerBank,
   best,
   onRequestStartRun,
+  cloudSave,
 }: GameModeMenuProps) {
   return (
     <div className="menu-screen">
@@ -55,6 +60,7 @@ export function GameModeMenu({
             </button>
           </div>
         </div>
+        {cloudSave}
         <div className="menu-meta">
           <span>{rendererKind}</span>
           <span>ARCADE + SIMULATION FREE RUN</span>

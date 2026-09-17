@@ -26,8 +26,10 @@ function storeCareer(career: CareerState) {
 }
 
 /**
- * Device-local persistence adapter. Career rules stay pure in game/career.ts,
- * so a future account/cloud save can replace this hook without changing them.
+ * Device-local persistence adapter, and the source of truth while playing.
+ * Career rules stay pure in game/career.ts, so the optional Google cloud save
+ * in use-cloud-career.ts layers on top through `replaceCareer` without any
+ * rule living in two places. Signed out, this hook behaves exactly as before.
  */
 export function useCareer() {
   const [career, setCareer] = useState<CareerState>(() => makeCareerState());
@@ -102,5 +104,9 @@ export function useCareer() {
     if (result.status === "placed") commitCareer(result.state);
     return result;
   }, [commitCareer]);
-  return { career, careerRef, ready, bankRun, buyItem, buyGasStationOffer, saveFuel, buyFuel, buyFurnishing, setFurnishing };
+  // Adopting an account's career replaces device state wholesale; normalizing
+  // here means a save written by a newer build can never install a bad shape.
+  const replaceCareer = useCallback((next: CareerState) => commitCareer(normalizeCareerState(next)), [commitCareer]);
+
+  return { career, careerRef, ready, bankRun, buyItem, buyGasStationOffer, saveFuel, buyFuel, buyFurnishing, setFurnishing, replaceCareer };
 }

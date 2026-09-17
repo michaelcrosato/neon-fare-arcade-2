@@ -70,6 +70,7 @@ fares fund persistent upgrades.
 - `docs/repository-audit-2026-09-12.md`: boost, input, performance and dependency audit
 - `docs/assets.md`: fare-art atlas manifest and provenance requirements
 - `docs/change-recipes.md`: safe paths for common modifications
+- `docs/cloud-save.md`: optional Google account sync, and its console setup
 - `AGENTS.md`, `app/AGENTS.md`, `game/AGENTS.md`, `tests/AGENTS.md`: scoped
   guidance for people and coding agents
 
@@ -142,6 +143,22 @@ return along Moonwater Drive. Park and press E to explore the beach promenade.
 To preview a production build, run `npm run build` and then
 `npm run start -- --host 127.0.0.1 --port 4173`. This uses Vite's Cloudflare
 preview so the built Worker and static assets run together on Windows and Linux.
+
+## Google account sync
+
+Signing in with Google is optional and off unless configured. It carries a
+career between devices by writing the save to the player's own Google Drive,
+into the hidden per-app folder Drive provides for it. There is no Neon Fare
+server and no database in this path: the game cannot see any other file in the
+player's Drive, and no player data is ever in our custody. Signed out, the game
+behaves exactly as it always has, with the career in `localStorage`.
+
+Set `NEXT_PUBLIC_GOOGLE_CLIENT_ID` to enable it. The value is public by design
+-- it ships in the client bundle -- and the flow uses no client secret. Leave
+the variable unset and the feature stays dark, which is how preview deployments
+and local dev avoid offering a button that cannot work from an unregistered
+origin. `docs/cloud-save.md` has the Google console settings and the rules for
+changing them.
 
 ## Vercel deployment
 

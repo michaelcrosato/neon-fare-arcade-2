@@ -66,6 +66,7 @@ import { gasStationOfferName, type GasStationOfferId } from "@/game/gas-station"
 import { warmPassengerArt } from "./runtime/fare-art";
 import type { CourierImpact } from "./courier-impact-overlay";
 import { useCareer } from "./use-career";
+import { CloudCareerProvider, CloudSaveSurface } from "./cloud-save-surface";
 import { normalizeRunRecords } from "./runtime/run-records";
 import { useFareCardDeck } from "./use-fare-card-deck";
 import { requestGameFullscreen } from "./runtime/game-display";
@@ -857,6 +858,7 @@ export default function Home() {
   }, [mode, setMode]);
 
   return (
+    <CloudCareerProvider career={careerApi}>
     <GameCommerceProvider api={careerApi} gameRef={gameRef} hud={hud} mode={mode} modal={modal} setHud={setHud} checkpoint={checkpointExternalGameChange} onNavigate={selectCustomDestination} onClose={closeModal}>
     <VehicleRepairProvider gameRef={gameRef} hud={hud} mode={mode} modal={modal} setHud={setHud} checkpoint={checkpointExternalGameChange}><main className={`arcade-shell mode-${mode}`}>
       <header className="topbar" inert={modal ? true : undefined} aria-hidden={modal ? true : undefined}>
@@ -931,6 +933,7 @@ export default function Home() {
             careerBank={career.bank}
             best={best}
             onRequestStartRun={requestStartRun}
+            cloudSave={<CloudSaveSurface />}
           />
         )}
         </div>
@@ -985,6 +988,6 @@ export default function Home() {
       />
 
       <div className="sr-only" aria-live="polite" aria-atomic="true">{audioAnnouncement}</div>
-    </main></VehicleRepairProvider></GameCommerceProvider>
+    </main></VehicleRepairProvider></GameCommerceProvider></CloudCareerProvider>
   );
 }

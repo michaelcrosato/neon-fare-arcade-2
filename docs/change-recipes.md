@@ -261,3 +261,29 @@ Do not trade away safe placement or change fare rewards to improve this number.
    active renderer; `webgpu-first-frame` points to shader/buffer setup.
 5. Reproduce with Canvas fallback to separate gameplay from GPU failures.
 6. Add a focused unit fixture before changing deterministic code.
+
+## Change account sync or cloud save
+
+1. Put the rule in `game/career-sync.ts`, never in a hook or a panel. It is pure
+   and may not touch `Date`, so pass every timestamp in as an argument.
+2. Extend `tests/game/career-sync.test.ts` first. Cover the losing side of any
+   new decision: a save that is discarded is progress a player cannot recover.
+3. Rank saves by monotonic progress, not by timestamps. A device with a wrong
+   clock must never outrank a career that is plainly further along, and `bank`
+   is spendable so it can never be a progress signal.
+4. Keep the device save authoritative. Nothing on the sync path may sit between
+   a banked run and `localStorage`, and signed out the game must behave exactly
+   as it did before.
+5. Start every Google request from a click. The GIS token flow opens a popup
+   even when it has nothing to ask, so a timer-driven call fails with a blocked
+   popup; a lapsed token pauses syncing and waits for the player.
+6. Never connect before `careerReady`. Comparing an account against a career
+   that has not loaded yet reads as pristine and adopts the account save over
+   real progress.
+7. Keep the session above the mode. It lives in `CloudCareerProvider` in
+   `page.tsx`; moving it inside the menu tears it down when a run starts.
+8. Run `npm run test:file -- tests/game/career-sync.test.ts`, then
+   `npm run check:fast`.
+9. Verify in a browser on a registered origin, and exercise all four outcomes:
+   first upload, adopt onto a wiped device, in-sync, and the conflict chooser.
+   `docs/cloud-save.md` covers the origins and the Google console settings.

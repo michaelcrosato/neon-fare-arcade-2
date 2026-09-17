@@ -222,6 +222,8 @@
   .start-mode-button { min-height: 75px; padding: 9px 11px 8px 13px; }
   .start-mode-button span b { font-size: clamp(1.45rem, 6vw, 2rem); }
   .menu-meta { flex-wrap: wrap; margin: auto 0 0; gap: 6px; }
+  .cloud-save { margin: 14px 0 0 3px; }
+  .cloud-save-button { width: min(430px, 90vw); }
   .speed-slashes { opacity: 0.44; }
   .hud-top {
     top: 10px;
@@ -586,6 +588,11 @@
   .start-mode-button, .start-mode-button.is-simulation { grid-column: auto; min-height: 68px; padding: 9px 14px; border-width: 3px; box-shadow: 4px 4px 0 var(--ink); }
   .start-mode-button span b { font-size: 27px; }
   .start-mode-button span em { font-size: 10px; }
+  .cloud-save { margin: 0 0 14px; }
+  .cloud-save-button { width: 100%; min-height: 50px; box-shadow: 4px 4px 0 var(--ink); }
+  .cloud-save-status { width: 100%; }
+  .cloud-save-conflict { padding: 14px; }
+  .cloud-save-conflict > div { padding: 18px; }
   .menu-meta { margin: auto 0 0; gap: 8px; }
   .menu-meta span { font-size: 10px; }
   .menu-meta span:nth-child(-n+3) { display: none; }

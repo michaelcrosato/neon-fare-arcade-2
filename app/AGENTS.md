@@ -57,5 +57,33 @@ eligibility, routing, purchase, or physics rules.
 - Visual or input changes require the relevant camera/mobile states and both
   renderer paths to be checked.
 
-Neon Fare currently uses device-local state, not account identity, D1, or R2.
-Do not introduce server persistence without an explicit capability request.
+## Account sync
+
+Neon Fare still has no server of its own, no D1 and no R2, and
+`.openai/hosting.json` stays `d1: null, r2: null`. Do not introduce server
+persistence without an explicit capability request.
+
+Google sign-in is optional and deliberately serverless. The career is written
+to the player's own Drive `appDataFolder` straight from the browser, so there
+is no backend to run and no player data in our custody.
+
+- `game/career-sync.ts` owns every rule: the save envelope, the fingerprint,
+  and which side wins. It is pure and takes timestamps as arguments, because
+  `game/` may not touch `Date`.
+- `app/google-identity.ts` owns the GIS token lifecycle,
+  `app/cloud-save.ts` the Drive requests, `app/use-cloud-career.ts` the
+  orchestration, and `app/cloud-save-panel.tsx` the presentation.
+  `app/cloud-save-surface.tsx` mounts them so `page.tsx` stays a shell.
+- `use-career.ts` remains the source of truth during play. The account copy is
+  a mirror; nothing on the sync path may sit between a banked run and
+  localStorage, and signed out the game must behave exactly as it did before.
+- Conflicts are ranked by monotonic progress, never by timestamp: a device with
+  a wrong clock must not erase a career that is plainly further along. When
+  neither save contains the other, ask the player.
+- Scopes must stay non-sensitive (`openid`, `userinfo.profile`,
+  `drive.appdata`). Adding a sensitive or restricted scope, an app logo, or an
+  eleventh authorized domain forces Google verification and takes the published
+  app offline for everyone until it passes.
+- `NEXT_PUBLIC_GOOGLE_CLIENT_ID` is public by design and there is no client
+  secret anywhere in this project. With the variable unset the whole feature
+  stays dark, which is what keeps tests and local dev unaffected.
