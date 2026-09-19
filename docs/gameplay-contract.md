@@ -723,7 +723,7 @@ updates the arcade launch, steering, road elevation and contact rules below.
 - Pickup requires remaining within the objective radius at low speed for 0.18s.
 - After each of the first three passenger dropoffs, an illustrated reminder
   tells the driver to find blue columns and stop in a blue ring for the next
-  passenger. It appears after the fare card clears, stays until pickup, and
+  passenger. It appears after the fare card and passenger review clear, stays until pickup, and
   never blocks driving input. It hides while paused, on foot, Off Duty or on a
   courier job. Later dropoffs do not show it; a new run starts the guidance over.
 - Dropoff uses route distance, elapsed leg time, collision cleanliness, and the

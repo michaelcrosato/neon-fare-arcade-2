@@ -18,7 +18,8 @@ async function resume(page: Page) {
 
 for (const renderer of ["WebGPU", "Canvas"]) for (const mobile of [false, true]) {
   test.describe(`${renderer} ${mobile ? "mobile" : "desktop"}`, () => {
-    test.use({ viewport: mobile ? renderer === "Canvas" ? { width: 320, height: 568 } : { width: 390, height: 844 } : { width: 1280, height: 800 },
+    test.use({ viewport: mobile ? renderer === "Canvas" ? { width: 320, height: 568 } : { width: 390, height: 844 }
+      : renderer === "Canvas" ? { width: 1264, height: 625 } : { width: 1280, height: 800 },
       contextOptions: { hasTouch: mobile, isMobile: mobile, reducedMotion: "reduce" } });
     test("illustrated pickup tutorial pauses startup and reminds after exactly three dropoffs", async ({ page }, info) => {
       const errors: string[] = [];
@@ -79,7 +80,10 @@ for (const renderer of ["WebGPU", "Canvas"]) for (const mobile of [false, true])
         await page.clock.fastForward(3500);
         await page.clock.runFor(100);
         if (delivery <= 3) {
-          await expect(reminder).toBeVisible();
+          const review = page.locator(".passenger-review");
+          if (await review.isVisible()) await expect(reminder).toHaveCount(0);
+          await presentUntilVisible(page, reminder, 10_000);
+          await expect(review).toBeHidden();
           await expect(reminder).toContainText("LOOK FOR BLUE COLUMNS");
           await expect(reminder.getByRole("img")).toBeVisible();
           await expect(reminder).toBeInViewport({ ratio: 1 });

@@ -18,6 +18,8 @@
   pointer-events: none;
 }
 .pickup-reminder .pickup-column-picture { border: 0; }
+/* Finish the passenger's head-anchored review before showing the next tip. */
+.passenger-review:not([hidden]) ~ .stage-interface .pickup-reminder { display: none; }
 .pickup-reminder .pickup-column-picture__label { display: none; }
 .pickup-reminder small { display: block; color: #8eefff; font: 800 10px/1.2 monospace; letter-spacing: .13em; }
 .pickup-reminder strong { display: block; margin: 3px 0; font: italic 900 23px/1 "Barlow Condensed", sans-serif; }
