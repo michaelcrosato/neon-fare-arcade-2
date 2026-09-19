@@ -21,14 +21,17 @@ export async function lockSteeringIfPrompted(page: Page, lockName = /Select DEFA
   const steering = page.getByRole("dialog", { name: "STEERING SYSTEM" });
   const countdown = page.locator(".countdown");
   const playing = page.locator(".arcade-shell.mode-playing");
+  const tutorial = page.getByRole("dialog", { name: "BLUE COLUMNS = PASSENGERS" });
   try {
     await page.clock.runFor(100);
   } catch {
     // Clock is only installed in countdown-controlled tests.
   }
   // On a slow renderer the click can finish after the countdown has ended.
-  await expect(steering.or(countdown).or(playing)).toBeVisible({ timeout: SCENE_START_TIMEOUT });
+  await expect(steering.or(tutorial).or(countdown).or(playing)).toBeVisible({ timeout: SCENE_START_TIMEOUT });
   if (await steering.isVisible()) {
     await page.getByRole("button", { name: lockName }).click();
+    await expect(tutorial).toBeVisible();
   }
+  if (await tutorial.isVisible()) await tutorial.getByRole("button", { name: "GOT IT · LET’S DRIVE" }).click();
 }

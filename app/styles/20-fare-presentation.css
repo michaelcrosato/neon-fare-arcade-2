@@ -1,3 +1,28 @@
+.pickup-column-picture { display: block; width: 100%; height: auto; border: 3px solid var(--ink); }
+.pickup-reminder {
+  position: absolute;
+  z-index: 43;
+  top: 132px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  width: min(440px, calc(100% - 32px));
+  padding: 9px;
+  color: var(--paper);
+  background: #112a36;
+  border: 3px solid #39cfff;
+  box-shadow: 5px 5px 0 var(--ink);
+  pointer-events: none;
+}
+.pickup-reminder .pickup-column-picture { border: 0; }
+.pickup-reminder .pickup-column-picture__label { display: none; }
+.pickup-reminder small { display: block; color: #8eefff; font: 800 10px/1.2 monospace; letter-spacing: .13em; }
+.pickup-reminder strong { display: block; margin: 3px 0; font: italic 900 23px/1 "Barlow Condensed", sans-serif; }
+.pickup-reminder p { margin: 0; font: 600 15px/1.15 "Barlow Condensed", sans-serif; }
+
 .fare-impact {
   --fare-duration: 3000ms;
   --fare-dock-scale: 0.25;

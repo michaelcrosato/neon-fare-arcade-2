@@ -27,6 +27,7 @@ import { DriverTraitPanel } from "./driver-trait-panel";
 import { stuntMeters } from "./driving-stunt-feedback";
 import { VehicleSelection } from "./vehicle-selection";
 import { SteeringOptionPanel } from "./steering-option-panel";
+import { PickupTutorial } from "./pickup-tutorial";
 import type { SteeringMode, WheelRange } from "./runtime/touch-driving";
 import { GasStationPanel } from "./gas-station-panel";
 import { GpsMap } from "./gps-map";
@@ -130,8 +131,8 @@ export function GameModalHost({
       if (event.currentTarget !== event.target) return;
       onClose();
     }}>
-      <section key={modal} ref={dialogRef} className={`comic-modal ${modal === "vehicles" ? "trait-modal vehicle-modal" : modal === "traits" || modal === "steering" ? "trait-modal" : modal === "gas" ? "gas-modal" : modal === "map" ? "map-modal" : ""}`} role="dialog" aria-modal="true" aria-labelledby="modal-title" aria-describedby={modal === "vehicles" ? "vehicle-modal-description" : modal === "traits" ? "trait-modal-description" : modal === "steering" ? "steering-modal-description" : modal === "gas" ? "gas-station-description" : undefined} tabIndex={-1}>
-        <button className="modal-close" onClick={onClose} aria-label={modal === "vehicles" ? "Back without starting" : modal === "traits" ? "Back to vehicle selection" : modal === "steering" ? `Back to ${pendingDrivingModel === "simulation" ? "vehicle" : "edge"} selection` : modalParent === "home" && modal !== "home" ? "Back to Home Hub" : "Close dialog"}>×</button>
+      <section key={modal} ref={dialogRef} className={`comic-modal ${modal === "pickup-tutorial" ? "pickup-tutorial-modal" : modal === "vehicles" ? "trait-modal vehicle-modal" : modal === "traits" || modal === "steering" ? "trait-modal" : modal === "gas" ? "gas-modal" : modal === "map" ? "map-modal" : ""}`} role="dialog" aria-modal="true" aria-labelledby="modal-title" aria-describedby={modal === "pickup-tutorial" ? "pickup-tutorial-description" : modal === "vehicles" ? "vehicle-modal-description" : modal === "traits" ? "trait-modal-description" : modal === "steering" ? "steering-modal-description" : modal === "gas" ? "gas-station-description" : undefined} tabIndex={-1}>
+        {modal !== "pickup-tutorial" && <button className="modal-close" onClick={onClose} aria-label={modal === "vehicles" ? "Back without starting" : modal === "traits" ? "Back to vehicle selection" : modal === "steering" ? `Back to ${pendingDrivingModel === "simulation" ? "vehicle" : "edge"} selection` : modalParent === "home" && modal !== "home" ? "Back to Home Hub" : "Close dialog"}>×</button>}
         {modal === "vehicles" ? (
           <VehicleSelection vehicleId={pendingVehicleId} transmissionMode={pendingTransmissionMode} drivingModel={pendingDrivingModel} runKind={pendingRunKind}
             onVehicleChange={onSelectVehicle} onTransmissionChange={onSelectTransmission} onConfirm={onConfirmVehicle ?? (() => {})} />
@@ -144,6 +145,8 @@ export function GameModalHost({
             onSelect={onSelectSteering ?? (() => {})}
             onBack={onClose} simulation={pendingDrivingModel === "simulation"}
           />
+        ) : modal === "pickup-tutorial" ? (
+          <PickupTutorial onContinue={onClose} />
         ) : modal === "options" ? (
           <GameOptionsPanel
             tab={optionsTab ?? "game"}

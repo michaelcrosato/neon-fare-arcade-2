@@ -1,3 +1,44 @@
+.pickup-tutorial-modal button:focus-visible { outline: 4px solid #0786bd; outline-offset: 4px; }
+@media (max-width: 820px), (pointer: coarse) {
+  .comic-modal.pickup-tutorial-modal { box-shadow: none; }
+  .pickup-reminder { top: calc(175px + env(safe-area-inset-top)); width: min(370px, calc(100% - 24px)); grid-template-columns: 88px minmax(0, 1fr); gap: 9px; padding: 7px; }
+  .pickup-reminder strong { font-size: 21px; }
+  .pickup-reminder p { font-size: 14px; }
+}
+@media (max-width: 600px) and (orientation: portrait) {
+  .comic-modal.pickup-tutorial-modal { padding: 16px; max-height: calc(100dvh - 40px); border-width: 4px; }
+  .pickup-tutorial-modal .pickup-tutorial__title { margin-bottom: 14px; font-size: 35px; }
+  .pickup-tutorial__body { grid-template-columns: 1fr; gap: 14px; }
+  .pickup-tutorial__body .pickup-column-picture { max-height: 190px; }
+  .pickup-tutorial__copy p { font-size: 17px; margin-bottom: 10px; }
+  .pickup-tutorial__copy ol { gap: 9px; }
+  .pickup-tutorial__footer { flex-direction: column; gap: 10px; margin-top: 15px; padding-top: 12px; }
+  .pickup-tutorial__footer .primary-small { width: 100%; }
+}
+@media (max-width: 600px) and (max-height: 700px) and (orientation: portrait) {
+  .comic-modal.pickup-tutorial-modal { padding: 12px; max-height: 100dvh; }
+  .pickup-tutorial-modal .modal-kicker { font-size: 10px; letter-spacing: .12em; }
+  .pickup-tutorial-modal .pickup-tutorial__title { font-size: 29px; margin: 7px 0 10px; }
+  .pickup-tutorial__body { gap: 10px; }
+  .pickup-tutorial__body .pickup-column-picture { max-height: 136px; }
+  .pickup-tutorial__copy p { font-size: 15px; margin-bottom: 8px; }
+  .pickup-tutorial__copy ol { gap: 6px; }
+  .pickup-tutorial__copy li span { font-size: 14px; }
+  .pickup-tutorial__footer { margin-top: 10px; padding-top: 9px; gap: 7px; }
+}
+@media (max-height: 500px) and (orientation: landscape) {
+  .comic-modal.pickup-tutorial-modal { width: min(760px, 100%); padding: 12px 18px; max-height: calc(100dvh - 32px); border-width: 4px; }
+  .pickup-tutorial-modal .pickup-tutorial__title { margin: 4px 0 10px; font-size: 32px; }
+  .pickup-tutorial__body { grid-template-columns: .9fr 1.3fr; gap: 16px; }
+  .pickup-tutorial__body .pickup-column-picture { max-height: 170px; }
+  .pickup-tutorial__copy p { margin-bottom: 8px; font-size: 16px; }
+  .pickup-tutorial__copy ol { gap: 5px; }
+  .pickup-tutorial__copy li span { font-size: 14px; }
+  .pickup-tutorial__footer { margin-top: 10px; padding-top: 8px; }
+  .pickup-reminder { top: 128px; width: min(350px, 46%); grid-template-columns: 74px minmax(0, 1fr); }
+  .pickup-reminder strong { font-size: 19px; }
+}
+
 .sr-only {
   position: absolute;
   width: 1px;

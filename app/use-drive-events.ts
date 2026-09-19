@@ -27,7 +27,10 @@ export function useDriveEvents({ gameRef, modeRef, modalDialogRef, clearInput, s
   }, [gameRef, setHud, setMode]);
   const onGamepadActions = useCallback((actions: GamepadActions) => {
     if (storyCardRef.current) { if (actions.confirm) dismissStoryCard(); return; }
-    if (modalDialogRef.current) return;
+    if (modalDialogRef.current) {
+      if (actions.confirm) modalDialogRef.current.querySelector<HTMLButtonElement>("[data-gamepad-confirm='true']")?.click();
+      return;
+    }
     if (actions.pause && ["playing", "countdown", "paused"].includes(modeRef.current)) togglePause();
     else if (actions.confirm && modeRef.current === "paused") resumeFromPause();
     else if (actions.camera && modeRef.current === "playing" && isDriving(gameRef.current)) cycleCamera();

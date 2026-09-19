@@ -165,7 +165,10 @@ updates the arcade launch, steering, road elevation and contact rules below.
   speed ceilings are unchanged.
   Setup uses separate Vehicle → Edge → Steering screens on desktop and mobile.
   Simulation retains its physics and uses Vehicle → Steering. Only locking
-  steering starts the countdown; Back and Escape preserve the draft vehicle
+  steering opens a graphical first-fare tutorial showing a passenger in a
+  transparent blue column and a taxi approaching its blue ring. The run stays
+  paused until dismissal, then starts the full countdown. This appears for each
+  new run in all three modes. Back and Escape in setup preserve the draft vehicle
   and transmission while returning one screen.
   Desktop steering setup presents Keyboard & Mouse, a PS5-style standard-mapped
   Gamepad, and a disabled physical Steering Wheel placeholder for later development.
@@ -718,6 +721,11 @@ updates the arcade launch, steering, road elevation and contact rules below.
   explicit relocations and movements of a full block invalidate that interval.
   Entering any visible pickup ring still selects it immediately.
 - Pickup requires remaining within the objective radius at low speed for 0.18s.
+- After each of the first three passenger dropoffs, an illustrated reminder
+  tells the driver to find blue columns and stop in a blue ring for the next
+  passenger. It appears after the fare card clears, stays until pickup, and
+  never blocks driving input. It hides while paused, on foot, Off Duty or on a
+  courier job. Later dropoffs do not show it; a new run starts the guidance over.
 - Dropoff uses route distance, elapsed leg time, collision cleanliness, and the
   current multiplier.
 - Pickup/dropoff time and base payment use one `passengerDistanceQuote`. Event

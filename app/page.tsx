@@ -40,8 +40,6 @@ import type {
   RunRecord,
   WorldPoint,
 } from "@/game/model";
-import { drivingTraitPackage } from "@/game/driving-traits";
-import { vehicleDefinition } from "@/game/vehicles";
 import { regionalPlaceName } from "@/game/regions";
 import { makeGame } from "@/game/state";
 import { applyDevelopmentSettings } from "@/game/development-settings";
@@ -91,6 +89,7 @@ import { copyText } from "./runtime/copy-text";
 import { recoverToRoad } from "@/game/recovery";
 import { StoryCard } from "./story-card";
 import { useDriveEvents } from "./use-drive-events";
+import { PickupReminder } from "./pickup-tutorial";
 
 
 function freshRunSeed() {
@@ -496,13 +495,11 @@ export default function Home() {
       heightOffset: 0, onFoot: false, distanceScale: cameraDistanceScaleRef.current,
     };
     setHud(makeHud(game));
-    resumeAfterModalRef.current = null;
+    resumeAfterModalRef.current = "countdown";
     setModalParent(null);
-    setModal(null);
-    setMode("countdown");
-    setAudioAnnouncement(drivingModel === "simulation"
-      ? `Simulation ready. ${vehicleDefinition(pendingVehicleId).shortName}, ${game.transmissionMode} shifting. Three, two, one.`
-      : `${drivingTraitPackage(drivingTraitId).name} locked in. ${runKind === "free-run" ? "Free Run" : "Arcade shift"} starting. Three, two, one.`);
+    setModal("pickup-tutorial");
+    setMode("paused");
+    setAudioAnnouncement("Your first fare. Blue columns mark waiting passengers. Stop inside a blue ring to pick one up. The game is paused until you are ready.");
     tone(420, 0.08, "square", 350);
   }, [careerRef, clearInput, developmentRef, diagnostics, ensureAudio, isMobile, pendingDrivingModel, pendingVehicleId, pendingTransmissionMode, pendingRunKind, persistSteeringMode, resetFareCards, saveFuel, setMode, steeringMode, tone, touchDriving, wheelRange]);
 
@@ -761,10 +758,10 @@ export default function Home() {
     const focusableSelector = "button:not([disabled]),a[href],input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex='-1'])";
     const frame = window.requestAnimationFrame(() => {
       const dialog = modalDialogRef.current;
-      const first = (modal === "vehicles" || modal === "traits" || modal === "steering")
+      const first = (modal === "vehicles" || modal === "traits" || modal === "steering" || modal === "pickup-tutorial")
         ? dialog?.querySelector<HTMLElement>("[data-modal-autofocus='true']")
         : dialog?.querySelector<HTMLElement>(focusableSelector);
-      (first ?? dialog)?.focus({ preventScroll: modal === "vehicles" || modal === "traits" || modal === "steering" });
+      (first ?? dialog)?.focus({ preventScroll: modal === "vehicles" || modal === "traits" || modal === "steering" || modal === "pickup-tutorial" });
     });
     const onModalKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape" && !event.repeat) {
@@ -924,6 +921,7 @@ export default function Home() {
           onSetCruise={setCruise}
           taxiExitRef={taxiExitRef}
         />
+        {mode === "playing" && <PickupReminder hud={hud} fareCardActive={Boolean(fareImpact || courierImpact)} />}
         {mode === "playing" && (development.navigation.showDiagnostics || (development.enabled && development.showDiagnostics)) && <DevelopmentReadout hud={hud} />}
         {mode === "playing" && hud.playtest && !(development.navigation.showDiagnostics || (development.enabled && development.showDiagnostics)) && <div className="development-playtest-badge">PLAYTEST</div>}
         {mode === "menu" && (
@@ -938,7 +936,7 @@ export default function Home() {
         )}
         </div>
 
-        {!storyCard && <GameSessionOverlays
+        {!storyCard && modal !== "pickup-tutorial" && <GameSessionOverlays
           mode={mode}
           menuOptionsOpen={menuOptionsOpen} pauseView={pauseView} onChangePauseView={setPauseView} onResume={resumeFromPause}
           hud={hud}

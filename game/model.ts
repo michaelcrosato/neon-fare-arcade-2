@@ -1,7 +1,7 @@
 import type { WorldRegionId } from "./region-types";
 
 export type Mode = "menu" | "countdown" | "playing" | "paused" | "ended";
-export type Modal = "vehicles" | "traits" | "steering" | "how" | "scores" | "map" | "home" | "courier" | "gas" | "shop" | "options" | null;
+export type Modal = "vehicles" | "traits" | "steering" | "pickup-tutorial" | "how" | "scores" | "map" | "home" | "courier" | "gas" | "shop" | "options" | null;
 export type CameraMode = "fixed" | "chase-high" | "chase-low" | "cab";
 export type DrivingTraitId = "street-ace" | "drift-demon" | "redline-rush";
 export type RunKind = "timed" | "free-run";

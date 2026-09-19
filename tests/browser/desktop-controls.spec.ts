@@ -27,6 +27,10 @@ test("desktop choices, GT-R automatic, controller pause/resume and fullscreen re
   await expect(steering.getByRole("button", { name: "SUPPORT COMING LATER" })).toBeDisabled();
   await page.screenshot({ path: info.outputPath("desktop-controls.png") });
   await steering.getByRole("button", { name: "Select gamepad controls", exact: true }).click();
+  await expect(page.getByRole("dialog", { name: "BLUE COLUMNS = PASSENGERS" })).toBeVisible();
+  await page.evaluate(() => { window.testPadButtons = [0]; });
+  await expect(page.getByRole("dialog", { name: "BLUE COLUMNS = PASSENGERS" })).toHaveCount(0);
+  await page.evaluate(() => { window.testPadButtons = []; });
   await expect(page.locator(".mode-playing")).toBeVisible({ timeout: 20_000 });
   await page.clock.install();
   await page.clock.runFor(100);
