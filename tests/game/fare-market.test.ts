@@ -152,7 +152,7 @@ test("procedural stop supply scales beyond the former 100-location catalogs", ()
   assert.ok(destinationArtCoverage.size > FARES_PER_CYCLE);
 });
 
-test("Northstar starts with six local fares and always sends fare six back to Neon City", () => {
+test("Northstar starts with six local fares and sends fare six beyond already visited Neon City", () => {
   const northstar = ACTIVE_WORLD_REGIONS.find((region) => region.id === "northstar-range")!;
   const game = makeGame("street-ace", 0x4e4f5254, "free-run");
   game.fareCycle = 0;
@@ -179,20 +179,20 @@ test("Northstar starts with six local fares and always sends fare six back to Ne
   game.y = fifthCompleted.dropoff.y;
   const offer = scheduleSixthFareTransfer(game, fifthCompleted);
   assert.ok(offer);
-  assert.equal(offer.destinationRegionId, "city-center");
+  assert.equal(game.visitedRegionIds.includes(offer.destinationRegionId), false);
   assert.equal(game.fareJobs[5].regionalTransfer?.originRegionId, northstar.id);
   assert.equal(
     containingRegionForPosition(game.fareJobs[5].dropoff.x, game.fareJobs[5].dropoff.y)?.id,
-    "city-center",
+    offer.destinationRegionId,
   );
   for (const localJob of game.fareJobs.slice(0, 5)) {
     assert.equal(containingRegionForPosition(localJob.dropoff.x, localJob.dropoff.y)?.id, northstar.id);
   }
 });
 
-test("City fare-six transfers reach all four cardinal neighbors across seeded markets", () => {
+test("City fare-six transfers can reach every other active region across seeded markets", () => {
   const destinations = new Set<string>();
-  for (const seed of [0, 1, 6, 10]) {
+  for (let seed = 0; seed < 32 && destinations.size < ACTIVE_WORLD_REGIONS.length - 1; seed++) {
     const game = makeGame("street-ace", seed, "free-run");
     game.availableFareMask = 1 << 5;
     const fifthCompleted = game.fareJobs[0];
@@ -200,9 +200,10 @@ test("City fare-six transfers reach all four cardinal neighbors across seeded ma
     game.y = fifthCompleted.dropoff.y;
     const offer = scheduleSixthFareTransfer(game, fifthCompleted);
     assert.ok(offer);
+    assert.equal(game.visitedRegionIds.includes(offer.destinationRegionId), false);
     destinations.add(offer.destinationRegionId);
   }
-  assert.deepEqual([...destinations].sort(), ["cedar-vale", "copper-mesa", "northstar-range", "solana-coast"]);
+  assert.deepEqual([...destinations].sort(), ACTIVE_WORLD_REGIONS.filter(region => region.id !== "city-center").map(region => region.id).sort());
 });
 
 test("a new cycle avoids the prior cycle and starts away from the last dropoff", () => {

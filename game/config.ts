@@ -289,6 +289,8 @@ export const MAX_FARE_TRIP_DISTANCE = ROAD_SPACING * 42;
 export const MAX_FLAT_REGIONAL_FARE_TRIP_DISTANCE = ROAD_SPACING * 60;
 // Scenic terrain and peninsula transfers follow longer winding approaches.
 export const MAX_REGIONAL_FARE_TRIP_DISTANCE = ROAD_SPACING * 110;
+/** Non-neighboring exploration fares can cross up to three active regional seams. */
+export const MAX_MULTI_REGION_FARE_TRIP_DISTANCE = MAX_REGIONAL_FARE_TRIP_DISTANCE * 3;
 export const MIN_REGIONAL_FARE_TRIP_DISTANCE = ROAD_SPACING * 10;
 /** Long-haul dropoffs land well inside the new region, not just over its seam. */
 export const REGIONAL_FARE_DESTINATION_DEPTH = ROAD_SPACING * 8;

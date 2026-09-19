@@ -6,6 +6,9 @@ import {
   FARE_PICKUP_RADIUS,
   FIXED_DT,
   MAX_REGIONAL_FARE_TRIP_DISTANCE,
+  MAX_MULTI_REGION_FARE_TRIP_DISTANCE,
+  MAX_FARE_TRIP_DISTANCE,
+  MIN_FARE_HANDOFF_DISTANCE,
   MIN_REGIONAL_FARE_TRIP_DISTANCE,
   REGIONAL_FARE_DESTINATION_DEPTH,
 } from "../../game/config";
@@ -29,6 +32,7 @@ import {
 } from "../../game/regions";
 import { stepGame } from "../../game/simulation";
 import { makeGame } from "../../game/state";
+import { makeWalkingActor } from "../../game/player";
 import type { InputState, Job, WorldView } from "../../game/model";
 
 const IDLE_INPUT: InputState = {
@@ -126,7 +130,7 @@ test("the first five fares stay local and whichever fare remains sixth always be
       containingRegionForPosition(transfer.dropoff.x, transfer.dropoff.y)?.id,
       offer.destinationRegionId,
     );
-    assert.ok(passengerTripDistance(transfer) <= MAX_REGIONAL_FARE_TRIP_DISTANCE);
+    assert.ok(passengerTripDistance(transfer) <= MAX_MULTI_REGION_FARE_TRIP_DISTANCE);
     assert.ok(passengerTripDistance(transfer) >= MIN_REGIONAL_FARE_TRIP_DISTANCE);
     assert.equal(analyzeFareStopPlacement(transfer.pickup, FARE_PICKUP_RADIUS).safe, true);
     assert.equal(analyzeFareStopPlacement(transfer.dropoff).safe, true);
@@ -221,6 +225,76 @@ test("finishing fare six starts a fresh local cycle that schedules its own sixth
   assert.equal(secondOffer.jobIndex, 2);
   assert.equal(secondOffer.originRegionId, firstOffer.destinationRegionId);
   assert.notEqual(secondOffer.destinationRegionId, firstOffer.destinationRegionId);
+  assert.notEqual(secondOffer.destinationRegionId, firstOffer.originRegionId);
+});
+
+test("regional fares visit every area before repeating, then resume seeded random destinations", () => {
+  for (const seed of [0, 98]) {
+    const game = makeGame("street-ace", seed, "free-run");
+    const seen = new Set([game.fareServiceRegionId]);
+    assert.deepEqual(game.visitedRegionIds, [game.fareServiceRegionId]);
+    for (let leg = 0; leg < ACTIVE_WORLD_REGIONS.length - 1; leg++) {
+      const completed = leaveOnlyFareWaiting(game, leg % 6);
+      const replay = structuredClone(game);
+      const historyBefore = [...game.visitedRegionIds];
+      const offer = scheduleSixthFareTransfer(game, completed);
+      assert.ok(offer);
+      assert.ok(!seen.has(offer.destinationRegionId), `seed ${seed}, leg ${leg}: no revisits before all areas are seen`);
+      assert.deepEqual(scheduleSixthFareTransfer(replay, completed), offer);
+      assert.deepEqual(replay.fareJobs, game.fareJobs, "identical checkpoints produce identical regional fares");
+      assert.deepEqual(game.visitedRegionIds, historyBefore, "offering a destination does not count as visiting it");
+      const transfer = game.fareJobs[offer.jobIndex];
+      markFarePickedUp(game, offer.jobIndex);
+      game.x = transfer.dropoff.x; game.y = transfer.dropoff.y;
+      assert.doesNotThrow(() => {
+        assert.equal(refreshFarePoolAfterRegionalArrival(game, transfer), true);
+      }, `seed ${seed}, leg ${leg}: ${offer.originRegionId} -> ${offer.destinationRegionId}`);
+      seen.add(offer.destinationRegionId);
+      assert.deepEqual(new Set(game.visitedRegionIds), seen);
+      assert.equal(game.fareJobs.length, 6);
+      assert.equal(game.availableFareMask, ALL_FARES_MASK);
+      assert.ok(passengerTripDistance({ pickupApproach: transfer.dropoffApproach,
+        dropoffApproach: game.fareJobs[0].pickupApproach }) >= MIN_FARE_HANDOFF_DISTANCE);
+      for (const pickup of game.fareJobs) for (const dropoff of game.fareJobs) {
+        const distance = passengerTripDistance({ pickupApproach: pickup.pickupApproach, dropoffApproach: dropoff.dropoffApproach });
+        assert.ok(distance >= MIN_FARE_HANDOFF_DISTANCE && distance <= MAX_FARE_TRIP_DISTANCE,
+          `seed ${seed}, leg ${leg}: the next six local fares retain all-pair route limits`);
+      }
+    }
+    assert.equal(seen.size, ACTIVE_WORLD_REGIONS.length);
+    const destinations = new Set<string>();
+    for (let cycle = 0; cycle < 12; cycle++) {
+      const next = structuredClone(game);
+      next.fareCycle += cycle;
+      const offer = scheduleSixthFareTransfer(next, leaveOnlyFareWaiting(next, 5));
+      assert.ok(offer);
+      assert.ok(seen.has(offer.destinationRegionId), "visited destinations become eligible again");
+      assert.notEqual(offer.destinationRegionId, next.fareServiceRegionId);
+      destinations.add(offer.destinationRegionId);
+      assert.equal(next.visitedRegionIds.length, ACTIVE_WORLD_REGIONS.length, "history never resets into another tour");
+    }
+    assert.ok(destinations.size > 1, "post-tour destinations vary with the seeded cycle");
+    assert.deepEqual(makeGame("street-ace", seed, "free-run").visitedRegionIds, ["city-center"], "a new run starts fresh");
+  }
+});
+
+test("off-duty driving and walking count real region visits, while pocket interiors do not", () => {
+  for (const model of ["arcade", "simulation"] as const) {
+    const game = makeGame("street-ace", 41, "free-run", model);
+    game.traffic = []; game.fareDispatchEnabled = false;
+    game.x = 1008; game.y = 0;
+    stepGame(game, IDLE_INPUT, FIXED_DT, EMPTY_WORLD, () => 1);
+    assert.deepEqual(game.visitedRegionIds, ["city-center", "cedar-vale"]);
+    game.player = { kind: "walking", actor: makeWalkingActor({ x: -1008, y: 0, z: 0, heading: 0, vx: 0, vy: 0, speed: 0 }),
+      location: { kind: "city" } };
+    stepGame(game, IDLE_INPUT, FIXED_DT, EMPTY_WORLD, () => 1);
+    assert.deepEqual(game.visitedRegionIds, ["city-center", "cedar-vale", "solana-coast"]);
+    game.player.location = { kind: "interior", venue: { id: "test-gas", kind: "gas", label: "TEST GAS" },
+      returnPose: { x: -1008, y: 0, heading: 0 } };
+    game.player.actor.x = 0; game.player.actor.y = -1008;
+    stepGame(game, IDLE_INPUT, FIXED_DT, EMPTY_WORLD, () => 1);
+    assert.deepEqual(game.visitedRegionIds, ["city-center", "cedar-vale", "solana-coast"]);
+  }
 });
 
 test("the fifth dropoff emits exactly one sixth-fare regional offer", () => {
@@ -292,7 +366,7 @@ test("fare six pickup and arrival complete the regional cycle through simulation
   )));
 });
 
-test("the production scheduler reaches deep destinations from every active region", () => {
+test("the production scheduler reaches every remaining unvisited region, including non-neighbors", () => {
   const seeds = [0, 2, 4, 17, 98, 0xffff_ffff];
   for (const [regionIndex, origin] of ACTIVE_WORLD_REGIONS.entries()) {
     for (let waitingIndex = 0; waitingIndex < 6; waitingIndex += 1) {
@@ -301,21 +375,22 @@ test("the production scheduler reaches deep destinations from every active regio
         origin,
         regionIndex + 1,
       );
+      const target = ACTIVE_WORLD_REGIONS.filter(region => region.id !== origin.id)[waitingIndex];
+      game.visitedRegionIds = ACTIVE_WORLD_REGIONS.filter(region => region.id !== target.id).map(region => region.id);
       const completedJob = leaveOnlyFareWaiting(game, waitingIndex);
       const offer = scheduleSixthFareTransfer(game, completedJob);
       assert.ok(offer, `${origin.name} survivor ${waitingIndex} must schedule`);
 
-      const target = ACTIVE_WORLD_REGIONS.find(
-        (region) => region.id === offer.destinationRegionId,
-      );
-      assert.ok(target);
+      assert.equal(offer.destinationRegionId, target.id, "visited neighbors cannot displace the last unseen region");
       const transfer = game.fareJobs[waitingIndex];
       assert.equal(
         containingRegionForPosition(transfer.dropoff.x, transfer.dropoff.y)?.id,
         target.id,
       );
       assert.ok(passengerTripDistance(transfer) >= MIN_REGIONAL_FARE_TRIP_DISTANCE);
-      assert.ok(passengerTripDistance(transfer) <= MAX_REGIONAL_FARE_TRIP_DISTANCE);
+      const neighboring = activeCardinalNeighborRegions(origin.id).some(region => region.id === target.id);
+      assert.ok(passengerTripDistance(transfer) <= (neighboring ? MAX_REGIONAL_FARE_TRIP_DISTANCE : MAX_MULTI_REGION_FARE_TRIP_DISTANCE));
+      assert.equal(analyzeFareStopPlacement(transfer.dropoff).safe, true);
 
       const originBounds = regionRoadBounds(origin);
       const targetBounds = regionRoadBounds(target);

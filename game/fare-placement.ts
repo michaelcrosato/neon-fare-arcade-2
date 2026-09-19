@@ -10,6 +10,7 @@ import {
   MAX_FARE_TRIP_DISTANCE,
   MAX_FLAT_REGIONAL_FARE_TRIP_DISTANCE,
   MAX_REGIONAL_FARE_TRIP_DISTANCE,
+  MAX_MULTI_REGION_FARE_TRIP_DISTANCE,
   MIN_FARE_HANDOFF_DISTANCE,
   MIN_REGIONAL_FARE_TRIP_DISTANCE,
   REGIONAL_FARE_DESTINATION_DEPTH,
@@ -49,6 +50,7 @@ import { neighborhoodDestinationCard, riderHasScenicTrip, scenicDestinationCard 
 import {
   chunkCoordinateForBlock as owningChunkCoordinateForBlock,
   containingRegionForPosition,
+  activeCardinalNeighborRegions,
   isActiveBlock,
   isPlayablePoint,
   nearestActiveChunk,
@@ -724,6 +726,9 @@ function selectPickupStops(
   const previousPoints = previousStopPoints(previousJobs);
   const output: FareStopPlacement[] = [];
   const minimumAnchorDistance = previousJobs.length > 0 ? MIN_FARE_HANDOFF_DISTANCE : 0;
+  const arrival = previousJobs.at(-1)?.regionalTransfer ? previousJobs.at(-1)!.dropoffApproach : null;
+  const clearsArrival = (stop: FareStopPlacement) => output.length > 0 || !arrival
+    || streetRouteDistance(arrival, stop.approach) >= MIN_FARE_HANDOFF_DISTANCE;
   if (openingHeading !== null) {
     const opening = candidatesInRegion(rankedCandidates(
       seed,
@@ -755,6 +760,7 @@ function selectPickupStops(
       return (!region || stopBelongsToRegion(stop, region))
         && routeDistance >= minimumAnchorDistance
         && routeDistance <= FARE_STOP_RULES.nearbyPickupRadius
+        && clearsArrival(stop)
         && avoidsPreviousStops(stop, previousIds, previousPoints)
         && output.every((selected) => distance(selected.zone, stop.zone) >= ROAD_SPACING);
     }, Math.min(targetCount, nearbyPickupCount));
@@ -777,6 +783,7 @@ function selectPickupStops(
       return (!region || stopBelongsToRegion(stop, region))
         && routeDistance >= minimumAnchorDistance
         && routeDistance <= Math.max(FARE_STOP_RULES.serviceRadius * 2, searchRadius)
+        && clearsArrival(stop)
         && avoidsPreviousStops(stop, previousIds, previousPoints)
         && output.every((selected) => distance(selected.zone, stop.zone) >= ROAD_SPACING);
     }, targetCount);
@@ -827,7 +834,7 @@ function selectDestinationStops(
     addRankedDestinations(output, candidates, seed, accept, targetCount);
     if (output.length === targetCount) return output;
   }
-  throw new Error(`Procedural fare placement could not find ${targetCount} safe destination curbs`);
+  return null;
 }
 
 function shuffled<T>(values: readonly T[], seed: number) {
@@ -864,12 +871,12 @@ export function createProceduralFareStopPairs(
   openingPickup = false,
   region: WorldRegion | null = null,
   options: FareStopPairOptions = {},
-) {
+): Array<{ pickup: FareStopPlacement; dropoff: FareStopPlacement }> {
   const count = options.count ?? FARES_PER_CYCLE;
   if (count < 1 || count > FARES_PER_CYCLE) {
     throw new Error(`Fare stop-pair count ${count} is outside the six-slot contract`);
   }
-  const anchor = options.anchor ?? previousJobs.at(-1)?.dropoffApproach ?? (region?.id === "copper-mesa" ? {
+  const serviceAnchor = region?.id === "copper-mesa" ? {
     // An initial desert market starts around its connected service town. Live
     // rolling markets continue from the actual previous dropoff above.
     x: 0, y: 1332, z: 24,
@@ -883,7 +890,8 @@ export function createProceduralFareStopPairs(
       : region?.id === "cedar-vale" ? { x: 1476, y: -72, z: 0 } : {
     x: TAXI_START.x,
     y: TAXI_START.y,
-  });
+  };
+  const anchor = options.anchor ?? previousJobs.at(-1)?.dropoffApproach ?? serviceAnchor;
   const pickups = selectPickupStops(
     stableHash("pickup-stream", seed),
     anchor,
@@ -901,6 +909,14 @@ export function createProceduralFareStopPairs(
     region,
     count,
   );
+  // Remote winding branches may lack six mutually reachable destinations.
+  // Make one bounded attempt around the region's established service town,
+  // retaining curb safety, stop history and all-pair route limits.
+  if (!destinations && region && (anchor.x !== serviceAnchor.x || anchor.y !== serviceAnchor.y)) {
+    return createProceduralFareStopPairs(seed, previousJobs, openingPickup, region,
+      { ...options, anchor: serviceAnchor });
+  }
+  if (!destinations) throw new Error(`Procedural fare placement could not find ${count} safe destination curbs`);
   const pairedDestinations = shuffled(destinations, stableHash("pairing-stream", seed));
   // At most one scenic outing in a six-fare market, and only on a 1-in-20
   // eligible-rider roll. Ordinary selection never admits wilderness lots.
@@ -943,10 +959,12 @@ function selectRegionalDestinationStop(
   );
   const originBounds = regionRoadBounds(origin);
   const targetBounds = regionRoadBounds(target);
-  const maxDistance = [origin.id, target.id].some(id => id === "northstar-range" || id === "copper-mesa" || id === "solana-coast" || id === "cypress-reach")
-    ? MAX_REGIONAL_FARE_TRIP_DISTANCE : MAX_FLAT_REGIONAL_FARE_TRIP_DISTANCE;
-  // Depth is measured across the shared cardinal seam. Region centers need
-  // not align now that Palm Reach extends farther south than Copper Mesa.
+  const neighboring = activeCardinalNeighborRegions(origin.id).some(region => region.id === target.id);
+  const maxDistance = !neighboring ? MAX_MULTI_REGION_FARE_TRIP_DISTANCE
+    : [origin.id, target.id].some(id => id === "northstar-range" || id === "copper-mesa" || id === "solana-coast" || id === "cypress-reach")
+      ? MAX_REGIONAL_FARE_TRIP_DISTANCE : MAX_FLAT_REGIONAL_FARE_TRIP_DISTANCE;
+  // Land deep inside the destination, measured from the edge facing the origin.
+  // Non-neighbors use the same real road graph through intervening active regions.
   const reachesInterior = (stop: FareStopPlacement) => {
     const eastWest = targetBounds.minX >= originBounds.maxX
       ? stop.zone.x >= targetBounds.minX + REGIONAL_FARE_DESTINATION_DEPTH

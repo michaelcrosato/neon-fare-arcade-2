@@ -38,6 +38,7 @@ import {
 } from "./fare-selection";
 import { passengerDistanceQuote } from "./fare-market";
 import { scheduleSixthFareTransfer } from "./regional-fares";
+import { recordRegionVisit } from "./region-visits";
 import { SPEED_KMH_PER_WORLD_UNIT } from "./config";
 import { vehicleDefinition, VEHICLE_GOVERNED_SPEED_KMH } from "./vehicles";
 import { accordCoupledRpm, accordGearSpeedLimitMps, clutchConnected, stepManualTransmission } from "./manual-transmission";
@@ -900,6 +901,10 @@ export function stepGame(
     game.messageUntil = game.elapsed + 1.8;
     events.push({ type: "custom-destination-arrived" });
   }
+
+  recordRegionVisit(game, game.player.kind === "walking"
+    ? game.player.location.kind === "city" ? game.player.actor : game.player.location.returnPose
+    : game);
 
   if (!driving) {
     game.objectiveDwell = 0;

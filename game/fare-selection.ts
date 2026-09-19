@@ -15,6 +15,7 @@ import { distance } from "./math";
 import type { FarePickupMarker, Game, Job, Vec2 } from "./model";
 import { buildGpsRoute, routeLength } from "./route-geometry";
 import { ACTIVE_WORLD_REGIONS, containingRegionForPosition } from "./regions";
+import { recordRegionVisit } from "./region-visits";
 
 export type WaitingFare = {
   index: number;
@@ -115,6 +116,7 @@ export function refreshFarePoolAfterRegionalArrival(game: Game, completedJob: Jo
     completedJob.dropoff.y,
   );
   if (!arrivalRegion) return false;
+  recordRegionVisit(game, completedJob.dropoff);
   game.fareServiceRegionId = arrivalRegion.id;
   replaceFarePool(game, completedJob, arrivalRegion);
   return true;

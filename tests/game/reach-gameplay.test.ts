@@ -13,7 +13,7 @@ import { makeWalkingActor, WALKER_RADIUS } from "../../game/player";
 import { ACTIVE_WORLD_REGIONS, containingRegionForPosition } from "../../game/regions";
 import { createFareMarket, passengerTripDistance } from "../../game/fare-market";
 import { scheduleSixthFareTransfer } from "../../game/regional-fares";
-import { MAX_REGIONAL_FARE_TRIP_DISTANCE } from "../../game/config";
+import { MAX_MULTI_REGION_FARE_TRIP_DISTANCE } from "../../game/config";
 import { createProceduralFareStopPairs } from "../../game/fare-placement";
 import type { WorldInteraction } from "../../game/model";
 
@@ -70,8 +70,8 @@ test("southern rolling dispatch finds six local pickups and Palm Reach destinati
     }));
     game.availableFareMask = 1 << 5;
     const offer = scheduleSixthFareTransfer(game, game.fareJobs[0]);
-    assert.ok(offer && ["cedar-vale", "copper-mesa"].includes(offer.destinationRegionId));
-    assert.ok(passengerTripDistance(game.fareJobs[5]) <= MAX_REGIONAL_FARE_TRIP_DISTANCE);
+    assert.ok(offer && offer.destinationRegionId !== "cypress-reach" && offer.destinationRegionId !== "city-center");
+    assert.ok(passengerTripDistance(game.fareJobs[5]) <= MAX_MULTI_REGION_FARE_TRIP_DISTANCE);
   }
 });
 

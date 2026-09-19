@@ -152,7 +152,7 @@ export const WORLD_REGION_SLOTS = [
   { direction: "SE", gridX: 1, gridY: 1, activeRegionId: "cypress-reach" },
 ] as const satisfies readonly WorldRegionSlot[];
 
-/** Regional dispatches cross one shared seam and never route through an inactive cell. */
+/** Active regions sharing a cardinal seam; longer trips follow chains of these neighbors. */
 export function activeCardinalNeighborRegions(regionId: WorldRegionId) {
   const origin = WORLD_REGION_SLOTS.find((slot) => slot.activeRegionId === regionId);
   if (!origin) return [];

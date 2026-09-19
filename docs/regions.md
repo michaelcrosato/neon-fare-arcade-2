@@ -442,7 +442,7 @@ Before activating another compass cell:
 8. Run deterministic chunk, stream, collision, portal, pedestrian, fare, route,
    map, and regional-manifest sweeps across every active region.
 9. Preserve center hashes, courier portals, opening-fare behavior, sixth-fare
-   cardinal transfers, and inactive-cell containment.
+   regional exploration progression, and inactive-cell containment.
 10. Verify Fixed, Chase High, Chase Low, Cab, walking, WebGPU, and Canvas at the
     seam, regional center, landmark cluster, and far edge.
 
@@ -450,8 +450,11 @@ The shared road graph now uses A* for regional routes. Cross-region paths honor
 the exact active-cell union and enabled street topology, so Northstar-to-Cedar
 trips descend through Neon City instead of cutting across the inactive northeast
 cell, while Palm Reach connects only through Cedar Vale and Copper Mesa. The
-guaranteed sixth-fare transfer crosses only an active cardinal seam, ranks only
-its destination cell, and starts a new region-local six-job market after arrival.
+guaranteed sixth-fare transfer targets an unvisited active region until all have
+been entered during the run, then chooses freely among the other active regions.
+It may cross several cardinal seams through previously visited regions to reach
+an unseen destination. It still ranks candidates only inside its destination
+cell and starts a new region-local six-job market after arrival.
 Future expansions must preserve those properties; any global fare fallback
 should iterate active-region ranges or a top-k index instead of sorting one giant
 rectangular candidate set.

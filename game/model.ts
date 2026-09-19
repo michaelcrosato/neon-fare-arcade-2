@@ -718,6 +718,8 @@ export type Game = {
   fareTargetScan?: { at: number; x: number; y: number; key: string };
   /** Region that owns ordinary fare markets until a transfer arrives elsewhere. */
   fareServiceRegionId: WorldRegionId;
+  /** Actual regions entered this run, including the starting region and free roaming. */
+  visitedRegionIds: WorldRegionId[];
   /** Per-service-region rider cooldown windows for the 50% no-repeat rule. */
   usedFareRiderIdsByRegion: Partial<Record<WorldRegionId, FareId[]>>;
   jobIndex: number;

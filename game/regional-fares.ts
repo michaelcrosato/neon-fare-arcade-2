@@ -2,7 +2,8 @@ import { createRegionalFareDestinationStop } from "./fare-placement";
 import { isFareAvailable } from "./fare-selection";
 import type { Game, Job } from "./model";
 import type { WorldRegionId } from "./region-types";
-import { activeCardinalNeighborRegions, containingRegionForPosition } from "./regions";
+import { ACTIVE_WORLD_REGIONS, containingRegionForPosition } from "./regions";
+import { recordRegionVisit } from "./region-visits";
 
 export type RegionalFareOffer = {
   jobIndex: number;
@@ -31,7 +32,9 @@ function regionalSeed(
 }
 
 function rankedTransferTargets(game: Game, originRegionId: WorldRegionId) {
-  return activeCardinalNeighborRegions(originRegionId)
+  const alternatives = ACTIVE_WORLD_REGIONS.filter(region => region.id !== originRegionId);
+  const unvisited = alternatives.filter(region => !game.visitedRegionIds.includes(region.id));
+  return (unvisited.length ? unvisited : alternatives)
     .map((region) => ({
       region,
       rank: regionalSeed(
@@ -55,7 +58,8 @@ function soleWaitingFareIndex(game: Game) {
 /**
  * After five local passenger fares, promote the sole remaining waiting rider
  * into the guaranteed sixth-fare transfer. The existing pickup never moves;
- * only its destination changes to a safe curb deep inside a neighboring region.
+ * only its destination changes to a safe curb deep inside an unvisited region.
+ * Once the whole active world has been visited, every other region is eligible.
  */
 export function scheduleSixthFareTransfer(
   game: Game,
@@ -75,6 +79,7 @@ export function scheduleSixthFareTransfer(
   const current = game.fareJobs[jobIndex];
   if (current.regionalTransfer) return null;
 
+  recordRegionVisit(game, completedJob.dropoff);
   const previousJobs = game.fareJobs.filter((_, index) => index !== jobIndex);
   const targets = rankedTransferTargets(game, origin.id);
   if (targets.length === 0) {

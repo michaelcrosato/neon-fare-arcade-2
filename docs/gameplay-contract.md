@@ -669,7 +669,10 @@ updates the arcade launch, steering, road elevation and contact rules below.
   cycle stays at least half a block from every prior pickup/dropoff and its
   first pickup is at least 72 canonical route units from the just-completed
   dropoff. Candidate search expands through finite radii and fails explicitly
-  if six validated pickups and destinations cannot be found.
+  if six validated pickups and destinations cannot be found. If a remote regional
+  location cannot supply enough mutually reachable destinations, one bounded
+  retry uses that region's existing service-town anchor, retaining stop history,
+  the arrival handoff gap and all ordinary fare route limits.
 - Generated passenger legs cannot exceed 1,512 route units, keeping the larger
   catalog inside the existing timer and quick-bonus balance envelope.
 - Each ordinary waiting market is constrained to one `fareServiceRegionId`;
@@ -681,18 +684,27 @@ updates the arcade launch, steering, road elevation and contact rules below.
   selected. Courier jobs do not affect this passenger-market progress.
 - Promoting fare six preserves its existing rider, pickup ring, and validated
   curb; only the destination changes. The destination belongs to an active
-  cardinal-neighbor region, sits at least eight blocks beyond the seam, and
-  keeps the canonical leg between 360 and 2,160 route units, or up to 3,960 when
-  Northstar, Copper, Solana Coast, or Palm Reach is either endpoint to accommodate
-  winding roads and the extended peninsula. Depth is measured across the shared
-  cardinal seam, independently of region height. Fare six remains
+  region the player has not yet entered during this run. The starting region
+  counts as visited, as do regions entered while driving, walking, Off Duty,
+  carrying a passenger, or following another route. Offering a fare does not
+  count as entering its destination. This run-local history survives market
+  refreshes and resets with a new run. Once every active region has been visited,
+  every other active region becomes eligible on each subsequent regional fare;
+  the tour does not reset. Selection remains seeded and deterministic.
+- Regional destinations may be non-neighbors so a dead end cannot force a
+  previously visited destination while unseen areas remain. GPS follows real
+  roads through active regions, which may include already visited areas in
+  transit. Dropoffs sit at least eight blocks inside the destination's edge
+  facing the origin. Neighboring transfers keep the canonical leg between 360
+  and 2,160 route units, or up to 3,960 when Northstar, Copper, Solana Coast, or
+  Palm Reach is either endpoint. Non-neighboring transfers allow up to 11,880
+  route units for multiple seams and winding roads. Fare six remains
   GPS-prioritized until collected. On arrival, the old market is retired and
   the next six fares are generated locally in the destination region, where the
   same five-local-plus-one-regional cycle repeats. Region exclusivity governs
   where a rider may be generated, not where an already selected fare may be
-  delivered. The destination is always selected from the active cardinal
-  neighbors of the current service region; Palm Reach therefore connects
-  only to Cedar Vale or Copper Mesa and never diagonally to Neon City.
+  delivered. Existing offered and accepted trips remain fixed when the player
+  roams elsewhere; exploration history affects the next regional offer.
 - While a passenger is onboard, all waiting pickup bodies, rings, and map
   highlights are hidden. Only the active dropoff ring remains; waiting pickups
   return after dropoff without changing their availability. Pickup, dropoff,

@@ -159,7 +159,7 @@ test("street and promenade walkers stay on dry, collision-clear frontages", () =
   assert.ok(count > 1500 && south > 100);
 });
 
-test("Palm Reach uses its local cast and fare six transfers only to a cardinal neighbor", () => {
+test("Palm Reach uses its local cast and fare six transfers to unvisited regions", () => {
   const game = makeGame("street-ace", 0x43595052, "free-run");
   const market = createFareMarket(game.runSeed, 0, [], cypressReach, {});
   game.fareJobs = market.jobs;
@@ -184,7 +184,7 @@ test("Palm Reach uses its local cast and fare six transfers only to a cardinal n
     const offer = scheduleSixthFareTransfer(seededGame, seededMarket.jobs[0]);
     assert.ok(offer);
     destinations.add(offer.destinationRegionId);
-    assert.ok(["cedar-vale", "copper-mesa"].includes(offer.destinationRegionId));
+    assert.equal(seededGame.visitedRegionIds.includes(offer.destinationRegionId), false);
   }
-  assert.deepEqual([...destinations].sort(), ["cedar-vale", "copper-mesa"]);
+  assert.ok(destinations.size > 1, "seeded transfers offer a variety of unvisited destinations");
 });

@@ -157,7 +157,7 @@ test("Copper Mesa keeps town foot traffic lively and wilderness traffic sparse",
   assert.ok(wilderness < town);
 });
 
-test("Copper Mesa fares use its local cast and fare six reaches only a cardinal neighbor", () => {
+test("Copper Mesa fares use its local cast and fare six reaches an unvisited region", () => {
   const game = makeGame("street-ace", 0x4d455341, "free-run");
   game.fareCycle = 0;
   game.fareServiceRegionId = copperMesa.id;
@@ -182,7 +182,7 @@ test("Copper Mesa fares use its local cast and fare six reaches only a cardinal 
   game.y = completed.dropoff.y;
   const offer = scheduleSixthFareTransfer(game, completed);
   assert.ok(offer);
-  assert.ok(["city-center", "cypress-reach"].includes(offer.destinationRegionId));
+  assert.equal(game.visitedRegionIds.includes(offer.destinationRegionId), false);
   assert.equal(
     containingRegionForPosition(game.fareJobs[5].dropoff.x, game.fareJobs[5].dropoff.y)?.id,
     offer.destinationRegionId,

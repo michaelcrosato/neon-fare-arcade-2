@@ -170,6 +170,7 @@ export function makeGame(
     fareStreamRevision: 0,
     fareStreamCheckAt: 0,
     fareServiceRegionId: initialFareRegion.id,
+    visitedRegionIds: [initialFareRegion.id],
     usedFareRiderIdsByRegion: initialFareMarket.usedFareRiderIdsByRegion,
     // The generator reserves index zero for the visible opening pickup.
     jobIndex: 0,

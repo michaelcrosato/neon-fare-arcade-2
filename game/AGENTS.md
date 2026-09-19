@@ -18,6 +18,7 @@ fixed-step cadence and returns semantic events.
 - Passenger roster/decks: `passengers.ts`; curb validation:
   `fare-placement.ts`; pairing/economy: `fare-market.ts`; targeting/rolling
   dispatch: `fare-selection.ts`; sixth fare: `regional-fares.ts`.
+- Run-local exploration history: `region-visits.ts`.
 - Custom waypoint: `custom-destination.ts`; courier: `courier.ts`; career:
   `career.ts`; gas service: `gas-station.ts`.
 - Roadside rescue and tow charging: `recovery.ts`; right-lane surface poses:

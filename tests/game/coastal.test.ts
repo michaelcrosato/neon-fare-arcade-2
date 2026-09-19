@@ -119,7 +119,7 @@ test("all coast venues, walkers, landmark footprints, and taxi lanes remain coll
   }
 });
 
-test("coastal fares use their local cast and destination art, with City or Ironwake transfers", () => {
+test("coastal fares keep their local cast and destination art while transfers explore unseen regions", () => {
   assert.deepEqual(eligibleFareRiders(coast), [...SHARED_FARE_RIDERS, ...SOLANA_COAST_FARE_RIDERS]);
   const seenLocal = new Set<string>();
   for (const seed of [12, 47, 501]) {
@@ -141,7 +141,8 @@ test("coastal fares use their local cast and destination art, with City or Ironw
     game.x = market.jobs[0].dropoff.x;
     game.y = market.jobs[0].dropoff.y;
     const offer = scheduleSixthFareTransfer(game, market.jobs[0]);
-    assert.ok(offer && ["city-center", "ironwake-works"].includes(offer.destinationRegionId));
+    assert.ok(offer);
+    assert.equal(game.visitedRegionIds.includes(offer.destinationRegionId), false);
     assert.equal(containingRegionForPosition(game.fareJobs[5].dropoff.x, game.fareJobs[5].dropoff.y)?.id, offer.destinationRegionId);
   }
   assert.ok(seenLocal.size >= 3);
