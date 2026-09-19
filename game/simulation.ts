@@ -235,7 +235,10 @@ export function stepGame(
   const previousVx = game.vx, previousVy = game.vy;
   events.push(...stepExploration(game, input, dt, world));
   const driving = isDriving(game);
-  const damageContacts = new Set<string>();
+  const damageContacts = new Map<string, number>();
+  const recordDamageContact = (id: string) => {
+    if (!damageContacts.has(id)) damageContacts.set(id, Math.hypot(game.vx, game.vy) * SPEED_KMH_PER_WORLD_UNIT);
+  };
   const cruisePedals = stepCruiseControl(game, input, dt);
   const drivingTrait = drivingTraitPackage(game.drivingTraitId).modifiers;
   const controlInput: Readonly<InputState> = driving
@@ -297,7 +300,7 @@ export function stepGame(
     game.y = steeringPose.y;
     reconcileSimulationHeading(game, previousHeading, steeringPose.heading);
     if (steeringPose.contact) cancelCruiseControl(game);
-    if (steeringPose.colliderId !== null) damageContacts.add(steeringPose.colliderId);
+    if (steeringPose.colliderId !== null) recordDamageContact(steeringPose.colliderId);
     if (!taxiHitsBuilding(world, game.x, game.y, game.heading, game.z)) {
       lastSafePose = { x: game.x, y: game.y, heading: game.heading };
     }
@@ -449,7 +452,7 @@ export function stepGame(
   const previousHeading = game.heading;
   const steeringPose = collisionSafeSteeringPose(world, game.x, game.y, game.heading, headingDelta, game.z);
   if (steeringPose.contact) cancelCruiseControl(game);
-  if (steeringPose.colliderId !== null) damageContacts.add(steeringPose.colliderId);
+  if (steeringPose.colliderId !== null) recordDamageContact(steeringPose.colliderId);
   game.x = steeringPose.x;
   game.y = steeringPose.y;
   game.heading = steeringPose.heading;
@@ -633,12 +636,12 @@ export function stepGame(
       2.4,
     );
     if (nextX !== unclampedX) {
-      if (Math.abs(game.vx) > .1) damageContacts.add("world-edge:x");
+      if (Math.abs(game.vx) > .1) recordDamageContact("world-edge:x");
       game.vx *= -0.16;
       hitBuilding = true;
     }
     if (nextY !== unclampedY) {
-      if (Math.abs(game.vy) > .1) damageContacts.add("world-edge:y");
+      if (Math.abs(game.vy) > .1) recordDamageContact("world-edge:y");
       game.vy *= -0.16;
       hitBuilding = true;
     }
@@ -660,7 +663,7 @@ export function stepGame(
     hitBuilding = true;
     const moveLength = Math.hypot(moveX, moveY);
     // A support-height correction or resting slope jitter is not an impact.
-    if (moveLength > movementDt * .1) damageContacts.add(buildingContact?.collider.id ?? "terrain-barrier");
+    if (moveLength > movementDt * .1) recordDamageContact(buildingContact?.collider.id ?? "terrain-barrier");
     const candidateApproach = moveX * candidateContact.normalX + moveY * candidateContact.normalY;
     // Overlapping lot colliders can make the deepest candidate manifold point
     // away from the surface that this substep actually crossed. Falling back
@@ -814,7 +817,7 @@ export function stepGame(
       { x: traffic.x, y: traffic.y, heading: trafficHeading, halfLength: 2.05, halfWidth: 0.98 },
     );
     if (driving && trafficHit) cancelCruiseControl(game);
-    if (driving && trafficHit) damageContacts.add(`traffic:${trafficIndex}`);
+    if (driving && trafficHit) recordDamageContact(`traffic:${trafficIndex}`);
     if (driving && trafficHit && traffic.cooldown <= 0) {
       traffic.cooldown = 0.75;
       const impact = game.speed;
@@ -873,7 +876,7 @@ export function stepGame(
     }
   }
 
-  for (const hit of recordVehicleContacts(game, driving ? [...damageContacts] : [])) events.push({ type: "vehicle-damaged", ...hit });
+  for (const hit of recordVehicleContacts(game, driving ? damageContacts : [])) events.push({ type: "vehicle-damaged", ...hit });
   stepRepairLot(game, world, dt);
   const fuelWarning = stepFuel(game, dt, Math.hypot(game.x - fuelStartX, game.y - fuelStartY) * DISPLAY_METERS_PER_WORLD_UNIT);
   if (fuelWarning) events.push({ type: "fuel-warning", level: fuelWarning });

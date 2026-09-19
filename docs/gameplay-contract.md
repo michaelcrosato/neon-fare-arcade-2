@@ -747,9 +747,14 @@ updates the arcade launch, steering, road elevation and contact rules below.
 
 ## Vehicle damage and gas-lot repairs
 
-- A distinct physical vehicle impact removes 1 km/h of available speed and emits
-  one humorous damage line. Persistent contact is debounced; tiny resting terrain
-  corrections are not hits. The loss persists until a paid repair or a new run.
+- A distinct physical vehicle impact only causes damage when the vehicle is moving
+  strictly above 40 km/h before collision response, using its horizontal speed in
+  any direction. Each qualifying impact removes 1 km/h of available speed and emits
+  one humorous damage line. Contacts at or below 40 km/h cause neither damage nor a
+  damage line. Persistent contact is debounced, including low-speed contact; tiny
+  resting terrain corrections are not hits. The loss persists until a paid repair
+  or a new run. Collision response, score penalties and cruise cancellation retain
+  their independent rules.
 - Damage lines appear for three simulation seconds at varied positions near the
   playfield center, usually with a slight clockwise or counterclockwise tilt.
   Each impact keeps its position until replaced or expired, on mobile and desktop.

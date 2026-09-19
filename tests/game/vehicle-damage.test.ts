@@ -16,7 +16,7 @@ function damaged() {
   const game = makeGame("street-ace", 41, "free-run");
   game.damage = makeVehicleDamage(); game.fare = 100; game.x = 20; game.y = 20; game.z = 0;
   game.vx = 0; game.vy = 0; game.roadMotion.grounded = true;
-  recordVehicleContacts(game, ["wall:1"]);
+  recordVehicleContacts(game, [["wall:1", 60]]);
   return game;
 }
 const stationWorld = makeTestWorld({ interactions: [{ kind: "venue-entrance", id: "test-gas", x: 20, y: 20, z: 0,
@@ -24,13 +24,52 @@ const stationWorld = makeTestWorld({ interactions: [{ kind: "venue-entrance", id
   serviceLot: { x: 20, y: 20, halfX: 10, halfY: 10 } }] });
 function stop(game: Game) { for (let i = 0; i < 8; i++) stepRepairLot(game, stationWorld, .1); }
 
-test("real low-speed impacts stack for both driving models; a resting contact cannot charge repeatedly", () => {
+test("damage requires a contact speed strictly above 40 km/h", () => {
+  for (const kmh of [0, 6, 39.99, 40, 40.01, 60]) {
+    const game = makeGame("street-ace", 41, "free-run");
+    const hits = recordVehicleContacts(game, [["wall", kmh]]);
+    const expected = kmh > 40 ? 1 : 0;
+    assert.equal(game.damage.lossKmh, expected, `${kmh} km/h`);
+    assert.equal(game.damage.impacts, expected);
+    assert.equal(hits.length, expected);
+    assert.equal(Boolean(vehicleRepairQuote(game).line), expected === 1);
+  }
+});
+
+test("low-speed contact remains debounced until the vehicle separates", () => {
+  const game = makeGame("street-ace", 41, "free-run");
+  recordVehicleContacts(game, [["wall", 40]]);
+  game.elapsed += FIXED_DT;
+  assert.deepEqual(recordVehicleContacts(game, [["wall", 60]]), []);
+  game.elapsed += .5;
+  assert.equal(recordVehicleContacts(game, [["wall", 60]]).length, 1);
+});
+
+test("wall and traffic contacts use pre-response speed in both driving models", () => {
+  const wall = makeTestWorld({ colliders: [{ id: "wall", x: 5, y: 0, halfX: 5, halfY: 30, height: 8 }] });
+  for (const model of ["arcade", "simulation"] as const) for (const kind of ["wall", "traffic"] as const) {
+    for (const kmh of [6, 39, 40, 41, 60]) {
+      const game = makeGame("street-ace", 41, "free-run", model);
+      Object.assign(game, { x: -2.25, y: 0, heading: 0, vx: kmh / SPEED_KMH_PER_WORLD_UNIT, vy: 0 });
+      game.z = groundAt(game, .85).height;
+      game.traffic = kind === "wall" ? [] : [{ x: 0, y: 0, z: game.z, heading: 0,
+        motion: { kind: "grid", axis: "x" }, dir: 1, speed: 0, color: [1, 1, 1, 1], activeAt: 0, cooldown: 0 }];
+      const events = stepGame(game, TEST_IDLE_INPUT, FIXED_DT, kind === "wall" ? wall : makeTestWorld(), () => 1);
+      const expected = kmh > 40 ? 1 : 0;
+      assert.equal(game.damage.lossKmh, expected, `${model}/${kind}/${kmh} km/h`);
+      assert.equal(events.filter(event => event.type === "vehicle-damaged").length, expected);
+      assert.ok(Math.hypot(game.vx, game.vy) * SPEED_KMH_PER_WORLD_UNIT < 40, "response slows the cab below the damage threshold");
+    }
+  }
+});
+
+test("impacts over 40 km/h stack for both driving models; a resting contact cannot charge repeatedly", () => {
   const wall = makeTestWorld({ colliders: [{ id: "wall", x: 5, y: 0, halfX: 5, halfY: 30, height: 8 }] });
   for (const model of ["arcade", "simulation"] as const) {
     const game = makeGame("street-ace", 41, "free-run", model);
     game.traffic = [];
     for (let hit = 1; hit <= 3; hit++) {
-      game.x = -2.25; game.y = 0; game.heading = 0; game.vx = 2; game.vy = 0;
+      game.x = -2.25; game.y = 0; game.heading = 0; game.vx = 60 / SPEED_KMH_PER_WORLD_UNIT; game.vy = 0;
       game.z = groundAt(game, .85).height; game.elapsed += .5;
       const events = stepGame(game, TEST_IDLE_INPUT, FIXED_DT, wall, () => 1);
       assert.equal(game.damage.lossKmh, hit);
@@ -60,15 +99,15 @@ test("maximum damage still lets each car drive to a station in every transmissio
 
 test("each separate contact costs one km/h, sustained scraping cannot repeat it, and every speed ceiling stops at ten", () => {
   const game = damaged();
-  for (let i = 0; i < 120; i++) { game.elapsed += 1 / 60; recordVehicleContacts(game, ["wall:1"]); }
+  for (let i = 0; i < 120; i++) { game.elapsed += 1 / 60; recordVehicleContacts(game, [["wall:1", 60]]); }
   assert.equal(game.damage.lossKmh, 1);
-  recordVehicleContacts(game, ["wall:1", "traffic:2"]);
+  recordVehicleContacts(game, [["wall:1", 60], ["traffic:2", 60]]);
   assert.equal(game.damage.lossKmh, 2);
   game.elapsed += .5; recordVehicleContacts(game, []);
-  recordVehicleContacts(game, ["wall:1"]);
+  recordVehicleContacts(game, [["wall:1", 60]]);
   assert.equal(game.damage.lossKmh, 3);
   assert.equal(damageSpeedLimit(game, 165), 162);
-  for (let i = 0; i < 500; i++) recordVehicleContacts(game, [`wall:${i + 20}`]);
+  for (let i = 0; i < 500; i++) recordVehicleContacts(game, [[`wall:${i + 20}`, 60]]);
   assert.equal(damageSpeedLimit(game, 165), 10);
   assert.equal(damageSpeedLimit(game, 320), 10);
   assert.equal(damageSpeedLimit(game, 21.7), 10);

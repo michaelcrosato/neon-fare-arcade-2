@@ -705,11 +705,11 @@ test("traffic separation cannot push the taxi through a neighboring building", (
   }];
 
   const events = stepGame(game, IDLE_INPUT, FIXED_DT, world, () => 1);
-  assert.equal(events.filter(event => event.type === "vehicle-damaged").length, 1);
-  assert.equal(game.damage.lossKmh, 1, "traffic contact damages the taxi even below the score-penalty threshold");
+  assert.equal(events.filter(event => event.type === "vehicle-damaged").length, 0);
+  assert.equal(game.damage.lossKmh, 0, "stationary traffic contact cannot damage the taxi");
   assert.equal(game.x, 1.5);
   stepGame(game, IDLE_INPUT, FIXED_DT, world, () => 1);
-  assert.equal(game.damage.lossKmh, 1, "the same overlapping car cannot charge again on the next tick");
+  assert.equal(game.damage.lossKmh, 0, "the same overlapping car cannot cause damage on the next tick");
   assert.equal(Boolean(taxiHitsBuilding(world, game.x, game.y, game.heading)), false);
 });
 

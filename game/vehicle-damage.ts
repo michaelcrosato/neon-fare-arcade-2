@@ -6,6 +6,7 @@ import { VEHICLE_GOVERNED_SPEED_KMH } from "./vehicles";
 
 export const REPAIR_COST_PER_KMH = 10;
 export const MIN_DAMAGED_SPEED_KMH = 10;
+export const DAMAGE_THRESHOLD_KMH = 40;
 const REPAIR_STOP_SECONDS = .6;
 export const DAMAGE_LINES = [
   "There goes the quarter panel!", "There goes the radiator!", "That bumper had one job.",
@@ -44,13 +45,13 @@ function maximumLoss(game: Game) {
   return Math.ceil(top - MIN_DAMAGED_SPEED_KMH);
 }
 
-/** One point per new physical contact. Brief contact jitter is still the same scrape. */
-export function recordVehicleContacts(game: Game, contacts: readonly string[]) {
+/** Contact speeds are captured before collision response. Brief jitter is still the same scrape. */
+export function recordVehicleContacts(game: Game, contacts: Iterable<readonly [id: string, speedKmh: number]>) {
   const damage = state(game);
   damage.contacts = Object.fromEntries(Object.entries(damage.contacts).filter(([, time]) => game.elapsed - time < .25).slice(-32));
   const hits: Array<{ line: string; lossKmh: number; totalLossKmh: number }> = [];
-  for (const id of new Set(contacts)) {
-    if (!(id in damage.contacts)) {
+  for (const [id, speedKmh] of contacts) {
+    if (!(id in damage.contacts) && speedKmh > DAMAGE_THRESHOLD_KMH) {
       const previous = damage.lossKmh;
       damage.lossKmh = Math.min(maximumLoss(game), damage.lossKmh + 1);
       damage.lastLine = DAMAGE_LINES[damage.impacts++ % DAMAGE_LINES.length];

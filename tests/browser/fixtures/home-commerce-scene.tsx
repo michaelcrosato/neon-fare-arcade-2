@@ -97,7 +97,7 @@ const fixture = {
     const entry = cityFuelEntrance(); scene("gas", false); game.player = { kind: "driving" };
     if (entry.kind !== "venue-entrance" || !entry.serviceLot) throw new Error("Fuel lot missing");
     game.x = entry.serviceLot!.x; game.y = entry.serviceLot!.y; game.fuel = makeFuel("accord-v6", litres); game.fare = 40;
-    stepRepairLot(game, city, 1); if (damage) recordVehicleContacts(game, ["fixture-bump"]);
+    stepRepairLot(game, city, 1); if (damage) recordVehicleContacts(game, [["fixture-bump", 60]]);
     showHud = true; return draw();
   },
   leaveLot() { game.x += 100; stepRepairLot(game, city, 1); return draw(); },

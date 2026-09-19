@@ -74,13 +74,13 @@ const fixture = {
       mobile: matchMedia("(max-width: 820px), (pointer: coarse)").matches });
     return draw();
   },
-  hit() { game.elapsed += .4; recordVehicleContacts(game, [`fixture-impact:${game.damage.impacts}`]); return draw(); },
+  hit() { game.elapsed += .4; recordVehicleContacts(game, [[`fixture-impact:${game.damage.impacts}`, 60]]); return draw(); },
   redraw: draw,
   expire() { game.elapsed += 3.1; return draw(); },
   damage(fare = 100) {
     game.damage = makeVehicleDamage(); game.fare = fare; game.elapsed = 5; game.x = 0;
     game.vx = 0; game.vy = 0; game.speed = 0; game.player = { kind: "driving" }; modal = null;
-    recordVehicleContacts(game, ["fender", "radiator", "bumper"]);
+    recordVehicleContacts(game, [["fender", 60], ["radiator", 60], ["bumper", 60]]);
     stepRepairLot(game, world, .8); showHud = true; camera.zoom = 1; return draw();
   },
   leave() { game.x = 20; stepRepairLot(game, world, .8); return draw(); },
