@@ -56,6 +56,7 @@ import { presentPassengerReview } from "./passenger-review";
 import { presentTaxiExitAction } from "./taxi-exit-action";
 import { presentNavigationDistance } from "./navigation-distance";
 import { presentClutchWarning } from "./clutch-warning";
+import { presentPickupReminder } from "./pickup-reminder";
 import { presentFareImpact } from "./fare-impact-layout";
 import { MOBILE_QUERY } from "../use-mobile-layout";
 import { protectGameGestures } from "./game-display";
@@ -69,6 +70,7 @@ export type GameRuntimeOptions = Readonly<{
   clutchWarningRef: RefBox<HTMLDivElement | null>;
   fareImpactRef: RefBox<HTMLDivElement | null>;
   taxiExitRef: RefBox<HTMLButtonElement | null>;
+  pickupReminderRef: RefBox<HTMLElement | null>;
   canvas2dRef: RefBox<HTMLCanvasElement | null>;
   webGpuCanvasRef: RefBox<HTMLCanvasElement | null>;
   gameRef: RefBox<Game>;
@@ -104,6 +106,7 @@ export function useGameRuntime(options: GameRuntimeOptions) {
     clutchWarningRef,
     fareImpactRef,
     taxiExitRef,
+    pickupReminderRef,
     canvas2dRef,
     webGpuCanvasRef,
     gameRef,
@@ -449,6 +452,10 @@ export function useGameRuntime(options: GameRuntimeOptions) {
         if (taxiExitRef.current) {
           taxiExitBounds = presentTaxiExitAction(taxiExitRef.current, game, camera, stageBounds.width, stageBounds.height);
         }
+        if (pickupReminderRef.current && currentMode === "playing") {
+          presentPickupReminder(pickupReminderRef.current, game, camera, currentNavigation,
+            stageBounds.width, stageBounds.height, taxiExitBounds);
+        }
         if (clutchWarningRef.current) {
           if (currentMode !== "playing") clutchWarningRef.current.hidden = true;
           else {
@@ -617,6 +624,7 @@ export function useGameRuntime(options: GameRuntimeOptions) {
     clutchWarningRef,
     fareImpactRef,
     taxiExitRef,
+    pickupReminderRef,
     cameraModeRef,
     cameraRef,
     canvas2dRef,

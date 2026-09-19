@@ -111,6 +111,7 @@ export default function Home() {
   const clutchWarningRef = useRef<HTMLDivElement>(null);
   const fareImpactRef = useRef<HTMLDivElement>(null);
   const taxiExitRef = useRef<HTMLButtonElement>(null);
+  const pickupReminderRef = useRef<HTMLElement>(null);
   const [initialGame] = useState(() => makeGame());
   const gameRef = useRef<Game>(initialGame);
   const cameraRef = useRef<Camera>({ x: 0, y: 0, zoom: 1, heading: -Math.PI / 2, mode: DEFAULT_CAMERA_MODE, boom: defaultCameraBoom(DEFAULT_CAMERA_MODE, DEFAULT_CAMERA_DISTANCE_SCALE), heightOffset: 0, onFoot: false, distanceScale: DEFAULT_CAMERA_DISTANCE_SCALE });
@@ -709,7 +710,7 @@ export default function Home() {
   }, [careerRef, checkpointExternalGameChange, clearInput, diagnostics, onSimulationEvents, resetFareCards, triggerFareImpact]);
 
   useGameRuntime({
-    passengerReviewRef, navigationDistanceRef, clutchWarningRef, fareImpactRef, taxiExitRef, canvas2dRef, webGpuCanvasRef,
+    passengerReviewRef, navigationDistanceRef, clutchWarningRef, fareImpactRef, taxiExitRef, pickupReminderRef, canvas2dRef, webGpuCanvasRef,
     gameRef, cameraRef, cameraModeRef, inputRef, touchDriving, interactionPulseRef, jumpPulseRef, modeRef,
     audioRef, ensureAudio, engineRef, boostAudioActiveRef, diagnostics, diagnosticsActive,
     clearInput, finishRun, setMode, setHud, setRendererKind, setAudioAnnouncement, tone, onSimulationEvents, onGamepadActions,
@@ -921,7 +922,7 @@ export default function Home() {
           onSetCruise={setCruise}
           taxiExitRef={taxiExitRef}
         />
-        {mode === "playing" && <PickupReminder hud={hud} fareCardActive={Boolean(fareImpact || courierImpact)} />}
+        {mode === "playing" && <PickupReminder hud={hud} fareCardActive={Boolean(fareImpact || courierImpact)} reminderRef={pickupReminderRef} />}
         {mode === "playing" && (development.navigation.showDiagnostics || (development.enabled && development.showDiagnostics)) && <DevelopmentReadout hud={hud} />}
         {mode === "playing" && hud.playtest && !(development.navigation.showDiagnostics || (development.enabled && development.showDiagnostics)) && <div className="development-playtest-badge">PLAYTEST</div>}
         {mode === "menu" && (

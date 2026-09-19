@@ -1,7 +1,7 @@
 .pickup-tutorial-modal button:focus-visible { outline: 4px solid #0786bd; outline-offset: 4px; }
 @media (max-width: 820px), (pointer: coarse) {
   .comic-modal.pickup-tutorial-modal { box-shadow: none; }
-  .pickup-reminder { top: calc(175px + env(safe-area-inset-top)); width: min(370px, calc(100% - 24px)); grid-template-columns: 88px minmax(0, 1fr); gap: 9px; padding: 7px; }
+  .pickup-reminder { width: min(370px, calc(100% - 24px)); grid-template-columns: 88px minmax(0, 1fr); gap: 9px; padding: 7px; }
   .pickup-reminder strong { font-size: 21px; }
   .pickup-reminder p { font-size: 14px; }
 }
@@ -35,7 +35,7 @@
   .pickup-tutorial__copy ol { gap: 5px; }
   .pickup-tutorial__copy li span { font-size: 14px; }
   .pickup-tutorial__footer { margin-top: 10px; padding-top: 8px; }
-  .pickup-reminder { top: 128px; width: min(350px, 46%); grid-template-columns: 74px minmax(0, 1fr); }
+  .pickup-reminder { width: min(350px, 46%); grid-template-columns: 74px minmax(0, 1fr); }
   .pickup-reminder strong { font-size: 19px; }
 }
 

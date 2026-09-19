@@ -726,6 +726,9 @@ updates the arcade launch, steering, road elevation and contact rules below.
   passenger. It appears after the fare card and passenger review clear, stays until pickup, and
   never blocks driving input. It hides while paused, on foot, Off Duty or on a
   courier job. Later dropoffs do not show it; a new run starts the guidance over.
+  The reminder sits just above the projected cab, direction arrow and exit
+  action, following camera and viewport changes instead of using a fixed top
+  offset. It stays within the screen and yields to the clutch warning.
 - Dropoff uses route distance, elapsed leg time, collision cleanliness, and the
   current multiplier.
 - Pickup/dropoff time and base payment use one `passengerDistanceQuote`. Event

@@ -93,7 +93,24 @@ for (const renderer of ["WebGPU", "Canvas"]) for (const mobile of [false, true])
             const timer = (await page.locator(".timer-card").boundingBox())!;
             expect(hint.y).toBeGreaterThan(timer.y + timer.height);
           }
+          const hint = (await reminder.boundingBox())!;
+          expect(hint.y).toBeGreaterThan(page.viewportSize()!.height * (mobile ? .32 : .22));
+          const exit = (await page.getByRole("button", { name: /EXIT TAXI/ }).boundingBox())!;
+          expect(hint.y + hint.height).toBeLessThan(exit.y);
           await page.screenshot({ path: info.outputPath(`pickup-reminder-${delivery}.png`) });
+          if (!mobile && delivery === 1) {
+            for (const camera of ["FIXED", "HIGH", "CAB", "LOW"]) {
+              await page.getByRole("button", { name: "Pause game", exact: true }).click();
+              await page.getByRole("group", { name: "Camera view", exact: true }).getByRole("button", { name: camera, exact: true }).click();
+              await page.getByRole("button", { name: /RESUME (FREE RUN|RUN)/ }).click();
+              await page.clock.runFor(600);
+              await expect(reminder).toBeInViewport({ ratio: 1 });
+              const cameraHint = (await reminder.boundingBox())!;
+              const cameraExit = (await page.getByRole("button", { name: /EXIT TAXI/ }).boundingBox())!;
+              expect(cameraHint.y + cameraHint.height).toBeLessThan(cameraExit.y);
+              await page.screenshot({ path: info.outputPath(`pickup-reminder-${camera.toLowerCase()}.png`) });
+            }
+          }
           if (mobile && delivery === 1) {
             await page.setViewportSize({ width: 844, height: 390 });
             await page.clock.runFor(32);

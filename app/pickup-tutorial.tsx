@@ -1,4 +1,4 @@
-import { useId } from "react";
+import { useId, type RefObject } from "react";
 import type { Hud } from "@/game/model";
 
 /** A shared, scalable picture of the actual pickup cue, also used in reminders. */
@@ -75,11 +75,13 @@ export function PickupTutorial({ onContinue }: { onContinue: () => void }) {
   );
 }
 
-export function PickupReminder({ hud, fareCardActive }: { hud: Hud; fareCardActive: boolean }) {
+export function PickupReminder({ hud, fareCardActive, reminderRef }: {
+  hud: Hud; fareCardActive: boolean; reminderRef: RefObject<HTMLElement | null>;
+}) {
   if (hud.deliveries < 1 || hud.deliveries > 3 || hud.passengerOnboard || hud.courierActive
     || !hud.fareDispatchEnabled || hud.playerMode !== "driving" || fareCardActive) return null;
   return (
-    <aside className="pickup-reminder" role="status" aria-label="Next passenger reminder">
+    <aside ref={reminderRef} className="pickup-reminder" role="status" aria-label="Next passenger reminder">
       <PickupColumnIllustration />
       <div><small>NEXT PASSENGER</small><strong>LOOK FOR BLUE COLUMNS</strong>
         <p>Stop in a blue ring to pick up your next passenger.</p></div>

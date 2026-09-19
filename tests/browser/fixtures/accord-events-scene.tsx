@@ -42,7 +42,7 @@ function Scene() {
     presentSimulationEvents(events, { game: () => gameRef.current, tone: noop, announce: noop, warmPassengerArt: noop, triggerFareImpact: noop,
       triggerCourierImpact: noop, setHomeNotice: noop, setCourierNotice: noop, setGasNotice: noop, setHud, openModal: noop, showStoryCard });
   }, [showStoryCard]);
-  useGameRuntime({ passengerReviewRef: nullDiv, navigationDistanceRef: nullDiv, clutchWarningRef: nullDiv, fareImpactRef: nullDiv, taxiExitRef: nullButton,
+  useGameRuntime({ passengerReviewRef: nullDiv, navigationDistanceRef: nullDiv, clutchWarningRef: nullDiv, fareImpactRef: nullDiv, taxiExitRef: nullButton, pickupReminderRef: nullDiv,
     canvas2dRef, webGpuCanvasRef, gameRef, cameraRef, cameraModeRef, inputRef, touchDriving, interactionPulseRef, jumpPulseRef, modeRef,
     audioRef, engineRef, boostAudioActiveRef, diagnostics, diagnosticsActive: false, clearInput, finishRun: noop, setMode, setHud,
     setRendererKind, setAudioAnnouncement: noop, tone: noop, onSimulationEvents, onGamepadActions });
