@@ -230,6 +230,12 @@ updates the arcade launch, steering, road elevation and contact rules below.
 - `Game` is mutated in place inside `stepGame`; do not clone it per tick.
 - Speed is calculated before collision response and refreshes on the
   following tick. That timing is part of the current feel.
+- Wall, terrain, world-edge and traffic collision penalties require speed
+  strictly above 40 km/h before collision response, matching the damage cutoff.
+  At or below 40 km/h, impacts preserve the combo, score, boost and clean-trip
+  flags, including the flags used when passenger or courier delivery settles.
+  Faster impacts retain the existing penalties and collision cooldowns. Physical
+  collision response and cruise cancellation still apply at low speed.
 - Digital steering input resolves into a progressive front-wheel angle, so a
   tap makes a shallow turn while a held input reaches full lock. A drift builds
   progressively above roughly 25 km/h. Higher speed and harder steering retain
@@ -753,8 +759,8 @@ updates the arcade launch, steering, road elevation and contact rules below.
   one humorous damage line. Contacts at or below 40 km/h cause neither damage nor a
   damage line. Persistent contact is debounced, including low-speed contact; tiny
   resting terrain corrections are not hits. The loss persists until a paid repair
-  or a new run. Collision response, score penalties and cruise cancellation retain
-  their independent rules.
+  or a new run. Combo and score penalties share the 40 km/h cutoff, with their
+  existing cooldowns; physical response and cruise cancellation are independent.
 - Damage lines appear for three simulation seconds at varied positions near the
   playfield center, usually with a slight clockwise or counterclockwise tilt.
   Each impact keeps its position until replaced or expired, on mobile and desktop.

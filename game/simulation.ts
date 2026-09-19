@@ -44,7 +44,7 @@ import { accordCoupledRpm, accordGearSpeedLimitMps, clutchConnected, stepManualT
 import { ACCORD_V6_SPECS, GTR_R35_SPECS, stepGtrAutomatic, accordManualAcceleration, accordUnboostedSpeedLimitMps } from "./simulation-vehicle";
 import { stepOffroadSpeedLimit } from "./offroad-speed";
 import { stepDrivingStunts } from "./driving-stunts";
-import { damageSpeedLimit, recordVehicleContacts, stepRepairLot } from "./vehicle-damage";
+import { DAMAGE_THRESHOLD_KMH, damageSpeedLimit, recordVehicleContacts, stepRepairLot } from "./vehicle-damage";
 import { hasFuel, makeFuel, stepFuel, updateFuelRoadLimit } from "./fuel";
 import { drivingTraitPackage } from "./driving-traits";
 import {
@@ -693,8 +693,10 @@ export function stepGame(
   }
 
   if (hitBuilding) cancelCruiseControl(game);
-  if (hitBuilding && impact > 7 && game.collisionCooldown <= 0) {
-    game.collisionCooldown = 0.7;
+  const buildingCollisionReady = hitBuilding && impact > 7 && game.collisionCooldown <= 0;
+  // The cooldown also limits scrape friction; keep its low-speed physics intact.
+  if (buildingCollisionReady) game.collisionCooldown = 0.7;
+  if (buildingCollisionReady && impact * SPEED_KMH_PER_WORLD_UNIT > DAMAGE_THRESHOLD_KMH) {
     game.collisions += 1;
     game.combo = 1;
     game.tripHadCollision = true;
@@ -834,8 +836,9 @@ export function stepGame(
         game.vy - previousVy,
         0.32,
       );
-      if (impact > 5 && game.collisionCooldown <= 0) {
-        game.collisionCooldown = 0.65;
+      const trafficCollisionReady = impact > 5 && game.collisionCooldown <= 0;
+      if (trafficCollisionReady) game.collisionCooldown = 0.65;
+      if (trafficCollisionReady && impact * SPEED_KMH_PER_WORLD_UNIT > DAMAGE_THRESHOLD_KMH) {
         game.collisions += 1;
         game.combo = 1;
         game.tripHadCollision = true;

@@ -607,6 +607,33 @@ test("low-speed steering can back the taxi out from between close props", () => 
   assert.ok(Math.hypot(game.x - startX, game.y - startY) > 2.5);
 });
 
+test("wall and traffic penalties only break combos above 40 km/h in both driving models", () => {
+  const wall = makeTestWorld({ colliders: [{ id: "wall", x: 5, y: 0, halfX: 5, halfY: 30, height: 8 }] });
+  for (const model of ["arcade", "simulation"] as const) for (const kind of ["wall", "traffic"] as const) {
+    for (const kmh of [0, 20, 30, 39.99, 40, 41, 60]) {
+      const game = makeGame("street-ace", 41, "free-run", model);
+      Object.assign(game, { x: -2.25, y: 0, heading: 0, vx: kmh / SPEED_KMH_PER_WORLD_UNIT, vy: 0,
+        combo: 2.5, score: 1000 });
+      game.z = groundAt(game, .85).height;
+      game.activeCourier = { contractId: "paper-rush", stage: "dropoff", acceptedAt: 0, pickedUpAt: 0,
+        approachDistance: 0, deliveryDistance: 100, hadCollision: false, loadedInTaxi: true };
+      game.traffic = kind === "wall" ? [] : [{ x: 0, y: 0, z: game.z, heading: 0,
+        motion: { kind: "grid", axis: "x" }, dir: 1, speed: 0, color: [1, 1, 1, 1], activeAt: 0, cooldown: 0 }];
+      const events = stepGame(game, IDLE_INPUT, FIXED_DT, kind === "wall" ? wall : EMPTY_WORLD, () => 1);
+      const penalized = kmh > 40;
+      const label = `${model}/${kind}/${kmh} km/h`;
+      assert.equal(game.combo, penalized ? 1 : 2.5, label);
+      assert.equal(game.tripHadCollision, penalized, `${label}: passenger dropoff must not reset a protected combo`);
+      assert.equal(game.activeCourier.hadCollision, penalized, `${label}: courier dropoff must not reset a protected combo`);
+      assert.equal(game.collisions, penalized ? 1 : 0, label);
+      assert.equal(game.score, 1000 - (penalized ? kind === "wall" ? 60 : 75 : 0), label);
+      assert.equal(events.filter(event => event.type === "building-collision" || event.type === "traffic-collision").length,
+        penalized ? 1 : 0, label);
+      assert.ok(Math.hypot(game.vx, game.vy) * SPEED_KMH_PER_WORLD_UNIT < 40, "collision response still slows the cab");
+    }
+  }
+});
+
 test("high-speed and glancing building impacts rebound once and preserve wall slide", () => {
   const firstImpact = { type: "vehicle-damaged", line: "There goes the quarter panel!", lossKmh: 1, totalLossKmh: 1 };
   const world: WorldView = makeTestWorld({
